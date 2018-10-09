@@ -19,6 +19,7 @@ def gordo():
 
 @click.command()
 @click.argument('output-dir', 
+                default='/data',
                 envvar='OUTPUT_DIR')
 @click.argument('model-config', 
                 envvar='MODEL_CONFIG', 

@@ -27,5 +27,10 @@ def build_model(output_dir, model_config, data_config):
     logger.debug("Starting to train model.")
     model.fit(X, y)
 
+    outpath = os.path.join(output_dir, 'model.pkl')
+
+    with open('/tmp/model-location.txt', 'w') as f:
+        f.write(outpath)
+
     # TODO: Get better model saving location
-    joblib.dump(model, os.path.join(output_dir, 'model.pkl'))
+    joblib.dump(model, outpath)

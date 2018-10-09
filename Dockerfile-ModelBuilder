@@ -6,7 +6,16 @@ RUN apt-get install -y \
     python-dev \
     build-essential
 
+RUN mkdir /data
+
+# Copy source code
 COPY . /code
+
+# Install gordo-flow
 RUN cd /code && python setup.py install
 
-CMD bash -c "/code/build.sh"
+# build.sh (build the model) as executable default command
+RUN cp /code/build.sh /usr/bin/build \
+    && chmod +x /usr/bin/build
+
+CMD ["build"]
