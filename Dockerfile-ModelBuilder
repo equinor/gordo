@@ -1,0 +1,12 @@
+FROM python:3
+
+RUN apt-get update -y
+RUN apt-get install -y \
+    python-pip \
+    python-dev \
+    build-essential
+
+COPY . /code
+RUN cd /code && python setup.py install
+
+CMD bash -c "/code/build.sh"
