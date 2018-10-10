@@ -3,7 +3,12 @@
 import os
 import sys
 import logging
-from loader import load_model
+os.environ['PYTHONPATH'] = os.path.dirname(__file__)
+
+try:
+    from gordo_flow.runtime.loader import load_model  # If installed as part of the package
+except ImportError:
+    from loader import load_model   # If runtime is standalone
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +26,12 @@ class SeldonModel:
         model_location = os.getenv('MODEL_LOCATION')
         if model_location is None:
             logger.critical(
-                'Environment variable "MODEL_LOCATION" not set, unable to continue!!'
+                'Environment variable "MODEL_LOCATION" not set, unable to '
+                'continue!!'
             )
             sys.exit(1)
         self.model = load_model(model_location)
 
     def predict(self, X, feature_names=None):
+        logger.debug('Feature names: {}'.format(feature_names))
         return self.model.predict(X)

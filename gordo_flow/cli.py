@@ -43,4 +43,5 @@ def build(output_dir, model_config, data_config):
                 data_config=data_config)
     return 0
 
+
 gordo.add_command(build)

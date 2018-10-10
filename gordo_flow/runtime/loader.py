@@ -21,8 +21,8 @@ def load_model(path):
     """
     if not os.path.exists(path):
         raise FileNotFoundError(
-                "Model file at '{}' does not exist!".format(path)
-            )
-    with open(path) as f:
-        return pickle.load(f)
+            "Model file at '{}' does not exist!".format(path)
+        )
+    with open(path) as file:
+        return pickle.load(file)
     

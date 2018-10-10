@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import os
 
 from click.testing import CliRunner
 
@@ -10,7 +9,9 @@ from tests.utils import temp_env_vars
 
 
 class CliTestCase(unittest.TestCase):
-
+    """ 
+    Test the expected usability of the CLI interface
+    """
     def setUp(self):
         self.runner = CliRunner()
 
@@ -22,5 +23,4 @@ class CliTestCase(unittest.TestCase):
         with temp_env_vars(OUTPUT_DIR='/tmp'):
             result = self.runner.invoke(cli.gordo, ['build'])
 
-        self.assertEqual(result.exit_code, 0)
-        
+        self.assertEqual(result.exit_code, 0)        
