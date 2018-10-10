@@ -1,6 +1,6 @@
 
-MODEL_BUILDER_IMG_NAME := milesg/gordo-flow-builder:latest
-MODEL_SERVER_IMG_NAME  := milesg/gordo-flow-server:latest
+MODEL_BUILDER_IMG_NAME := milesg/gordo-components-builder:latest
+MODEL_SERVER_IMG_NAME  := milesg/gordo-components-server:latest
 
 
 # Create the image capable to building/training a model

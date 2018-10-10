@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 
-requirements = ['Click>=6.0', 'requests>=2.0', 'joblib']
+with open('requirements.txt', 'r') as f:
+    requirements = [req.strip() for req in f.readlines()]
 
 setup_requirements = ['pytest-runner', ]
 
@@ -22,12 +23,12 @@ setup(
     description="Train and build models for Argo / Kubernetes",
     entry_points={
         'console_scripts': [
-            'gordo-flow=gordo_flow.cli:gordo',
+            'gordo-components=gordo_components.cli:gordo',
         ],
     },
     install_requires=requirements,
-    license="The Unlicense",
-    name='gordo-flow',
+    license="Unlicense",
+    name='gordo-components',
     packages=find_packages(),
     setup_requires=setup_requirements,
     test_suite='tests',

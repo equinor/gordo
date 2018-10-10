@@ -4,12 +4,12 @@ import unittest
 
 from click.testing import CliRunner
 
-from gordo_flow import cli
+from gordo_components import cli
 from tests.utils import temp_env_vars
 
 
 class CliTestCase(unittest.TestCase):
-    """ 
+    """
     Test the expected usability of the CLI interface
     """
     def setUp(self):

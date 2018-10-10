@@ -10,6 +10,6 @@ done
 
 ls -l /data
 
-gordo-flow build 
+gordo-components build 
 
 ls -l /data

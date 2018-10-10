@@ -5,24 +5,28 @@ CLI interfaces
 '''
 
 import logging
-import click
 from ast import literal_eval
-from gordo_flow.builder import build_model
+
+import click
+from gordo_components.builder import build_model
 
 logger = logging.getLogger(__name__)
 
 
-@click.group('gordo-flow')
+@click.group('gordo-components')
 def gordo():
+    """
+    The main entry point for the CLI interface
+    """
     pass
 
 
 @click.command()
-@click.argument('output-dir', 
+@click.argument('output-dir',
                 default='/data',
                 envvar='OUTPUT_DIR')
-@click.argument('model-config', 
-                envvar='MODEL_CONFIG', 
+@click.argument('model-config',
+                envvar='MODEL_CONFIG',
                 default='{}',
                 type=lambda v: isinstance(literal_eval(v), dict))
 @click.argument('data-config',
@@ -32,7 +36,7 @@ def gordo():
 def build(output_dir, model_config, data_config):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
-    settings. 
+    settings.
     """
     logger.info('Building, output will be at: {}'.format(output_dir))
     logger.info('Model config: {}'.format(model_config))
