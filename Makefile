@@ -1,7 +1,7 @@
 
 MODEL_BUILDER_IMG_NAME := milesg/gordo-components-builder:latest
 MODEL_SERVER_IMG_NAME  := milesg/gordo-components-server:latest
-
+MODEL_SERVER_BASE_IMG  := milesg/gordo-components-serverbase:latest
 
 # Create the image capable to building/training a model
 model-builder:
@@ -9,8 +9,9 @@ model-builder:
 
 # Create the image which serves built models
 model-server:
+	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_BASE_IMG)
 	cd ./gordo_components/runtime && s2i build . -e HTTPS_PROXY=http://www-proxy.statoil.no:80/ \
-	 seldonio/seldon-core-s2i-python3 $(MODEL_SERVER_IMG_NAME)
+	 $(MODEL_SERVER_BASE_IMG) $(MODEL_SERVER_IMG_NAME)
 
 # Publish images to the currently logged in docker repo
 push-images:
