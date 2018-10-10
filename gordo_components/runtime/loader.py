@@ -5,6 +5,7 @@ try:
     import cPickle as pickle 
 except ImportError:
     import pickle
+import joblib
 
 def load_model(path):
     """
@@ -23,6 +24,11 @@ def load_model(path):
         raise FileNotFoundError(
             "Model file at '{}' does not exist!".format(path)
         )
-    with open(path) as file:
-        return pickle.load(file)
+    try:
+        print(os.listdir(os.path.dirname(path)))
+        print('Model path: {}'.format(path))
+    except:
+        print('Path "{}" is not a file'.format(path))
+    with open(path, 'rb') as file:
+        return joblib.load(file)
     

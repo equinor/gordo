@@ -24,6 +24,7 @@ class SeldonModel:
     def __init__(self):
         logger.debug('Loading model...')
         model_location = os.getenv('MODEL_LOCATION')
+        print('MODEL_LOCATION value: {}'.format(model_location))
         if model_location is None:
             logger.critical(
                 'Environment variable "MODEL_LOCATION" not set, unable to '

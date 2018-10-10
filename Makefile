@@ -9,7 +9,7 @@ model-builder:
 
 # Create the image which serves built models
 model-server:
-	cd ./gordo_flow/runtime && s2i build . -e HTTPS_PROXY=http://www-proxy.statoil.no:80/ \
+	cd ./gordo_components/runtime && s2i build . -e HTTPS_PROXY=http://www-proxy.statoil.no:80/ \
 	 seldonio/seldon-core-s2i-python3 $(MODEL_SERVER_IMG_NAME)
 
 # Publish images to the currently logged in docker repo
