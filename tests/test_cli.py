@@ -22,5 +22,4 @@ class CliTestCase(unittest.TestCase):
         """
         with temp_env_vars(OUTPUT_DIR='/tmp'):
             result = self.runner.invoke(cli.gordo, ['build'])
-
         self.assertEqual(result.exit_code, 0)        

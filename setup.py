@@ -1,11 +1,21 @@
+from os import path
 from setuptools import setup, find_packages
 
+# Install requirements
 with open('requirements.txt', 'r') as f:
     requirements = [req.strip() for req in f.readlines()]
 
 setup_requirements = ['pytest-runner', ]
 
+# Test requirements
 test_requirements = ['pytest', ]
+
+# Need the model server runtime requirements to run model tests
+runtime_req_txt = path.join(
+    path.dirname(__file__), 'gordo_components', 'runtime', 'requirements.txt'
+)
+with open(runtime_req_txt) as f:
+    test_requirements.extend([req.strip() for req in f.readlines()])
 
 setup(
     author="Miles Granger",

@@ -10,7 +10,7 @@ model-builder:
 # Create the image which serves built models
 model-server:
 	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_BASE_IMG)
-	cd ./gordo_components/runtime && s2i build . -e HTTPS_PROXY=http://www-proxy.statoil.no:80/ \
+	cd ./gordo_components/runtime && s2i build . -e HTTPS_PROXY=$(HTTPS_PROXY) \
 	 $(MODEL_SERVER_BASE_IMG) $(MODEL_SERVER_IMG_NAME)
 
 # Publish images to the currently logged in docker repo
