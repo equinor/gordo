@@ -27,12 +27,12 @@ def gordo():
                 envvar='OUTPUT_DIR')
 @click.argument('model-config',
                 envvar='MODEL_CONFIG',
-                default='{}',
-                type=lambda v: isinstance(literal_eval(v), dict))
+                default='{"type": "keras"}',
+                type=literal_eval)
 @click.argument('data-config',
                 envvar='DATA_CONFIG',
                 default='{}',
-                type=lambda v: isinstance(literal_eval(v), dict))
+                type=literal_eval)
 def build(output_dir, model_config, data_config):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -45,6 +45,7 @@ def build(output_dir, model_config, data_config):
     build_model(output_dir=output_dir,
                 model_config=model_config,
                 data_config=data_config)
+    logger.info('Successfully built model, and deposited at {}'.format(output_dir))
     return 0
 
 
