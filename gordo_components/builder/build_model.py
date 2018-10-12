@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 def build_model(output_dir, model_config, data_config):
 
     logger.debug("Initializing Dataset with config {}".format(data_config))
-    data = get_dataset(data_config)
+    dataset = get_dataset(data_config)
 
     # TODO: Fit to actual data
     logger.debug("Fetching training data")
-    X, y = data.get_train()
+    X, y = dataset.get_data()
 
     # Get the model and dataset
     logger.debug("Initializing Model with config: {}".format(model_config))

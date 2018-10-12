@@ -20,6 +20,8 @@ class CliTestCase(unittest.TestCase):
         Instead of passing OUTPUT_DIR directly to CLI, should be able to 
         read environment variables
         """
-        with temp_env_vars(OUTPUT_DIR='/tmp'):
+        with temp_env_vars(
+            OUTPUT_DIR='/tmp', 
+            MODEL_CONFIG='{"type": "keras", "epochs": 5}'):
             result = self.runner.invoke(cli.gordo, ['build'])
         self.assertEqual(result.exit_code, 0)        
