@@ -31,10 +31,6 @@ def build_model(output_dir, model_config, data_config):
     filename = 'model.h5' if hasattr(model._model, 'save') else 'model.pkl'
     outpath = os.path.join(output_dir, filename)
 
-    # Let argo know where the model will be saved.
-    with open('/tmp/model-location.txt', 'w') as f:
-        f.write(outpath)
-
     # TODO: Get better model saving ops.
     # If it's a kera's model, need to serialize that seperately as .h5
     # and then save the rest of the model as .pkl
@@ -43,3 +39,9 @@ def build_model(output_dir, model_config, data_config):
         model._model = None  # Can't pickle Keras models.
         outpath = outpath.replace('.h5', '.pkl')
     joblib.dump(model, outpath)  # Pickle remaining model
+
+    # Let argo know where the model will be saved.
+    with open('/tmp/model-location.txt', 'w') as f:
+        # Save original suffix, ie. .h5 so loading knows there is an associated
+        # .pkl; at least until we have a better serialization approach.
+        f.write(os.path.join(output_dir, filename))
