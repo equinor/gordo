@@ -31,7 +31,7 @@ def gordo():
                 type=literal_eval)
 @click.argument('data-config',
                 envvar='DATA_CONFIG',
-                default='{}',
+                default='{"type": "random"}',
                 type=literal_eval)
 def build(output_dir, model_config, data_config):
     """
