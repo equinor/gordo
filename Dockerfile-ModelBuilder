@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.6.6-slim-stretch
 
 RUN apt-get update -y
 RUN apt-get install -y \

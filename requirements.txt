@@ -1,3 +1,9 @@
 Click>=6.0
 requests>=2.0
 joblib
+scikit-learn==0.19.1
+Keras==2.1.5
+h5py==2.8.0
+numpy==1.12.1
+pandas==0.22.0
+tensorflow==1.2

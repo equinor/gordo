@@ -5,7 +5,10 @@ try:
     import cPickle as pickle 
 except ImportError:
     import pickle
+
 import joblib
+from keras.models import load_model as load_keras_model
+
 
 def load_model(path):
     """
@@ -31,9 +34,10 @@ def load_model(path):
         print('Path "{}" is not a file'.format(path))
 
     if path.endswith('.h5'):
-        from keras.models import Model
-        _model = Model.load_model(path)
-        model = joblib.load(path.replace('.h5', '.pkl'))
+        _model = load_keras_model(path)
+        path = path.replace('.h5', '.pkl')
+        with open(path, 'rb') as file:
+            model = joblib.load(file)
         model._model = _model
         return model
 
