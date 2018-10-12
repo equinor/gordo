@@ -14,7 +14,7 @@ class GordoBaseModel:
 
     @abc.abstractmethod
     def __init__(self, n_features=None, **kwargs):
-        """Return model from a config"""
+        """Initialize the model"""
 
     @abc.abstractmethod
     def fit(self, X, y):

@@ -41,4 +41,5 @@ def build_model(output_dir, model_config, data_config):
     if hasattr(model._model, 'save'):
         model._model.save(outpath)
         model._model = None  # Can't pickle Keras models.
+        outpath = outpath.replace('.h5', '.pkl')
     joblib.dump(model, outpath)  # Pickle remaining model
