@@ -43,4 +43,3 @@ def load_model(path):
 
     with open(path, 'rb') as file:
         return joblib.load(file)
-    
