@@ -5,7 +5,7 @@ import logging
 import joblib
 
 from gordo_components.model import get_model
-from gordo_components.dataset import Dataset
+from gordo_components.dataset import get_dataset
 
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def build_model(output_dir, model_config, data_config):
 
     logger.debug("Initializing Dataset with config {}".format(data_config))
-    data = Dataset(**data_config)
+    data = get_dataset(data_config)
 
     # TODO: Fit to actual data
     logger.debug("Fetching training data")

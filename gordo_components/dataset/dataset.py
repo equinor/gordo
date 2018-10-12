@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import numpy as np
+from gordo_components.dataset._datasets import RandomDataset
 
-class Dataset:
 
-    # TODO: Implement me
+AVAILABLE_DATASETS = {
+    'random': RandomDataset
+}
 
-    def __init__(self, **kwargs):
-        pass
 
-    def get_train(self):
-        """return X and y data"""
-        X = np.random.random(size=100).reshape(-1, 20)
-        y = np.random.randint(5)
-        return X, y
-
-    def get_test(self):
-        X = np.random.random(size=100).reshape(-1, 20)
-        return X
+def get_dataset(config):
+    """
+    Return a GordoBaseDataSet object of a certain type, given a config dict
+    """
+    kind = config.get('type', '').lower()
+    Dataset = AVAILABLE_DATASETS.get(kind)
+    if Dataset is None:
+        raise ValueError('Dataset type "{}" is not supported!'.format(kind))
+    return Dataset(**config)
