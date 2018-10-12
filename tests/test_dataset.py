@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+
+import numpy as np
+
 from gordo_components.dataset import get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.dataset._datasets import RandomDataset
@@ -20,5 +23,10 @@ class DatasetTestCase(unittest.TestCase):
 
         self.assertTrue(isinstance(dataset, GordoBaseDataset))
         self.assertTrue(isinstance(dataset, RandomDataset))
-        self.assertTrue(hasattr(dataset, 'get_train'))
-        self.assertTrue(hasattr(dataset, 'get_test'))
+        self.assertTrue(hasattr(dataset, 'get_data'))
+        
+        X, y = dataset.get_data()
+        self.assertTrue(isinstance(X, np.ndarray))
+
+        # y can either be None or an numpy array
+        self.assertTrue(isinstance(y, np.ndarray) or y is None)

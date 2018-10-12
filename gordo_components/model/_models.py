@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import inspect
 
 import keras
 import numpy as np
@@ -36,6 +37,7 @@ class GordoKerasModel(GordoBaseModel):
         Returns:
             GordoKerasModel()
         """
+        self.kwargs = kwargs
         input_dim     = n_features
         encoding_dim  = kwargs.get('enc_dim', [256, 128, 64])
         decoding_dim  = kwargs.get('dec_dim', [64, 128, 256])
@@ -102,8 +104,14 @@ class GordoKerasModel(GordoBaseModel):
     def model(self):
         return self._model
 
-    def fit(self, X, y):
-        return NotImplemented
+    def fit(self, X, y=None):
+
+        # Pull all fit related arguments out of kwargs and pass to model fit
+        fit_args = inspect.getargspec(self._model.fit).args
+        kwargs = {k: v for k, v in self.kwargs.items() if k in fit_args}
+        
+        self._model.fit(X, X, **kwargs)  # Autoencoder; don't GAS about y.
+        return self
 
     def predict(self, X):
-        return NotImplemented
+        return self._model.predict(X)

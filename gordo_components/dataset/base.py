@@ -12,13 +12,7 @@ class GordoBaseDataset:
         """
 
     @abc.abstractmethod
-    def get_train(self):
+    def get_data(self):
         """
         Using initialized params, returns X, y as numpy arrays.
-        """
-
-    @abc.abstractmethod
-    def get_test(self):
-        """
-        Using initialized params, returns X as a numpy array
         """

@@ -17,7 +17,7 @@ class GordoBaseModel:
         """Initialize the model"""
 
     @abc.abstractmethod
-    def fit(self, X, y):
+    def fit(self, X, y=None):
         """Fit the model AND return self"""
 
     @abc.abstractclassmethod
