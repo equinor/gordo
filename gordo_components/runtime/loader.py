@@ -29,6 +29,14 @@ def load_model(path):
         print('Model path: {}'.format(path))
     except:
         print('Path "{}" is not a file'.format(path))
+
+    if path.endswith('.h5'):
+        from keras.models import Model
+        _model = Model.load_model(path)
+        model = joblib.load(path.replace('.h5', '.pkl'))
+        model._model = _model
+        return model
+
     with open(path, 'rb') as file:
         return joblib.load(file)
     
