@@ -6,9 +6,8 @@ class Dataset:
 
     # TODO: Implement me
 
-    @classmethod
-    def from_config(cls, data_config):
-        return Dataset()
+    def __init__(self, **kwargs):
+        pass
 
     def get_train(self):
         """return X and y data"""

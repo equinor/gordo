@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def build_model(output_dir, model_config, data_config):
 
     logger.debug("Initializing Dataset with config {}".format(data_config))
-    data = Dataset.from_config(data_config)
+    data = Dataset(**data_config)
 
     # TODO: Fit to actual data
     logger.debug("Fetching training data")
@@ -28,10 +28,17 @@ def build_model(output_dir, model_config, data_config):
     logger.debug("Starting to train model.")
     model.fit(X, y)
 
-    outpath = os.path.join(output_dir, 'model.pkl')
+    filename = 'model.h5' if hasattr(model._model, 'save') else 'model.pkl'
+    outpath = os.path.join(output_dir, filename)
 
+    # Let argo know where the model will be saved.
     with open('/tmp/model-location.txt', 'w') as f:
         f.write(outpath)
 
-    # TODO: Get better model saving location
-    joblib.dump(model, outpath)
+    # TODO: Get better model saving ops.
+    # If it's a kera's model, need to serialize that seperately as .h5
+    # and then save the rest of the model as .pkl
+    if hasattr(model._model, 'save'):
+        model._model.save(outpath)
+        model._model = None  # Can't pickle Keras models.
+    joblib.dump(model, outpath)  # Pickle remaining model
