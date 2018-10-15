@@ -7,3 +7,4 @@ h5py==2.8.0
 numpy==1.12.1
 pandas==0.22.0
 tensorflow==1.2
+influxdb==5.0.0

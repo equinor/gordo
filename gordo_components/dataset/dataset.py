@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from gordo_components.dataset._datasets import RandomDataset
+from gordo_components.dataset._datasets import (
+    RandomDataset, InfluxBackedDataset
+)
 
 
 AVAILABLE_DATASETS = {
-    'random': RandomDataset
+    'random': RandomDataset,
+    'influx': InfluxBackedDataset
 }
 
 
