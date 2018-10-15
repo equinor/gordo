@@ -29,6 +29,7 @@ def build_model(output_dir, model_config, data_config):
     model.fit(X, y)
 
     filename = 'model.h5' if hasattr(model._model, 'save') else 'model.pkl'
+    os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
     outpath = os.path.join(output_dir, filename)
 
     # TODO: Get better model saving ops.
