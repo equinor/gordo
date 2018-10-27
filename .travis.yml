@@ -21,5 +21,15 @@ install:
 
 script: 
   - python setup.py test
-  - make model-builder
-  - make model-server
+  - make images
+
+
+deploy:
+  - provider: script
+    script: make images push-prod-images
+    on:
+      branch: master
+  - provider: script
+    script: make images push-prod-images
+    on:
+      tags: true
