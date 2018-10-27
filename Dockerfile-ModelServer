@@ -2,4 +2,4 @@ FROM seldonio/seldon-core-s2i-python3
 
 RUN mkdir /code
 COPY . /code
-RUN cd /code && python setup.py install
+RUN cd /code && pip install .

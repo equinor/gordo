@@ -6,7 +6,7 @@ RUN mkdir /data
 COPY . /code
 
 # Install gordo-components
-RUN cd /code && python setup.py install
+RUN cd /code && pip install .
 
 # build.sh (build the model) as executable default command
 RUN cp /code/build.sh /usr/bin/build \
