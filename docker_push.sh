@@ -17,14 +17,21 @@
 
 
 export DOCKER_REGISTRY="${DOCKER_REGISTRY:-auroradevacr.azurecr.io}"
-
+if [[ -z "${DOCKER_PASSWORD}" ]]; then
+    echo "DOCKER_PASSWORD must be set, exiting"
+    exit 1
+fi
+if [[ -z "${DOCKER_USERNAME}" ]]; then
+    echo "DOCKER_USERNAME must be set, exiting"
+    exit 1
+fi
 if [[ -z "${DOCKER_NAME}" ]]; then
     echo "DOCKER_NAME must be set, exiting"
     exit 1
 fi
 
 # Logging in to the docker registry
-#echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
 export git_sha=$(git rev-parse HEAD | cut -c 1-8)
 
 if [[ -z "${DOCKER_IMAGE}" ]]; then
