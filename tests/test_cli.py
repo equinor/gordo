@@ -22,6 +22,7 @@ class CliTestCase(unittest.TestCase):
         """
         with temp_env_vars(
             OUTPUT_DIR='/tmp', 
+            DATA_CONFIG='{"type": "random"}',
             MODEL_CONFIG='{"type": "keras", "epochs": 5}'):
             result = self.runner.invoke(cli.gordo, ['build'])
         self.assertEqual(result.exit_code, 0)        

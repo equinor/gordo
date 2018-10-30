@@ -3,13 +3,13 @@
 # exit when any command fails
 set -e
 
-until mountpoint -q /data; do
-    echo "$(date) - wainting for /data to be mounted..."
+until mountpoint -q /gordo; do
+    echo "$(date) - wainting for /gordo to be mounted..."
     sleep 1
 done       
 
-ls -l /data
+ls -l /gordo
 
 gordo-components build 
 
-ls -l /data
+ls -l /gordo
