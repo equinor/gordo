@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import abc
+from sklearn.base import BaseEstimator
 
 
-class GordoBaseModel:
+class GordoBaseModel(BaseEstimator):
 
-    _model = None
-
-    @abc.abstractproperty
-    def model(self):
-        """Return instance of the underlying predictor model"""
-        return self._model
+    """The underlying model, ie the raw Keras, MXNet, PyTorch, ect model"""
+    model = None
 
     @abc.abstractmethod
     def __init__(self, n_features=None, **kwargs):
@@ -20,7 +17,10 @@ class GordoBaseModel:
     def fit(self, X, y=None):
         """Fit the model AND return self"""
 
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def predict(self, X):
         """make a prediction given X"""
-    
+
+    @abc.abstractmethod 
+    def get_params(deep=False):
+        """Return a dict containing all parameters used to initialized object"""

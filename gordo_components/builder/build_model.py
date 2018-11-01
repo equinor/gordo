@@ -26,20 +26,21 @@ def build_model(output_dir, model_config, data_config):
     model = get_model(model_config)
 
     logger.debug("Starting to train model.")
+    logger.critical(f"X: {X.shape}, y: {y.shape}")
     model.fit(X, y)
 
     # Bit hacky, need to enforce a way to serialize models in a predictable
     # way. ABC may not enforce the model will _actually_ save correctly.
-    filename = 'model.h5' if hasattr(model._model, 'save') else 'model.pkl'
+    filename = 'model.h5' if hasattr(model.model, 'save') else 'model.pkl'
     os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
     outpath = os.path.join(output_dir, filename)
 
     # TODO: Get better model saving ops.
     # If it's a kera's model, need to serialize that seperately as .h5
     # and then save the rest of the model as .pkl
-    if hasattr(model._model, 'save'):
-        model._model.save(outpath)
-        model._model = None  # Can't pickle Keras models.
+    if hasattr(model.model, 'save'):
+        model.model.save(outpath)
+        model.model = None  # Can't pickle Keras models.
         outpath = outpath.replace('.h5', '.pkl')
     joblib.dump(model, outpath)  # Pickle remaining model
 

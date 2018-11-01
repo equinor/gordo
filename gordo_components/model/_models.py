@@ -1,117 +1,56 @@
 # -*- coding: utf-8 -*-
 
-import json
-import logging
-import os
 import inspect
+from typing import Union
 
-import keras
-import numpy as np
-import pandas as pd
-from keras import regularizers
-from keras.layers import Input, Dense
-from keras.models import Sequential as KerasSequential
-from sklearn.model_selection import train_test_split
-
+from keras.wrappers.scikit_learn import KerasRegressor, KerasClassifier
 from gordo_components.model.base import GordoBaseModel
+from gordo_components.model.factories import KerasFeedForwardFactory, KerasLstmFactory
 
 
-class GordoKerasModel(GordoBaseModel):
+FACTORIES = {
+    'feedforward': KerasFeedForwardFactory,
+    'lstm': KerasLstmFactory
+}
+
+
+class KerasModel(KerasRegressor, GordoBaseModel):
     """ 
-    The Keras Model
+    The Keras Model implementation as Scikit-Learn / Gordo model API
     """
-    _model = None
-    _input_dim = None
 
-    def __init__(self, n_features, **kwargs):
+    def __init__(self,
+                 n_features: int,
+                 kind: Union[str, callable] = 'feedforward_symetric',
+                 **kwargs):
         """
-        Builds a customized keras neural network auto-encoder based on a config dict
-        Args:
-            n_features: int - Number of features the dataset X will contain.
-            kwargs: dict - With key indicating the following:
-                * input_dim: input shape on the 1st axis, ie (50,)
-                * enc_dim: List of numbers with the number of neurons in the encoding part
-                * dec_dim: List of numbers with the number of neurons in the decoding part
-                * enc_func: Activation functions for the encoder part
-                * dec_func: Activation functions for the decoder part
-        Returns:
-            GordoKerasModel()
+        Initialized the model
+
+        n_features: int - Number of features in the expected dataset for model,
+                          this will be passed to the factory build functions or
+                          the 'kind' parameter if a callable
+        kind: Union[callable, str] - The structure of model to build, valid 
+            values ['symetric'] if defined as a string. If a callable is passed,
+            the first arg should be 'n_features' and then accept optional kwargs
+            as defined in 'kwargs' which will be passed to this callable. This
+            callable should yield a keras model.
+        kwargs: dict -  Any additional args which are passed to the factory 
+                        building method and/or any additional args to be passed 
+                        to Keras' fit() method
         """
+        kwargs.update({'n_features': n_features})
         self.kwargs = kwargs
-        input_dim     = n_features
-        encoding_dim  = kwargs.get('enc_dim', [256, 128, 64])
-        decoding_dim  = kwargs.get('dec_dim', [64, 128, 256])
-        encoding_func = kwargs.get('enc_func', ['relu', 'relu', 'relu'])
-        decoding_func = kwargs.get('dec_func', ['relu', 'relu', 'tanh'])
 
-        encoding_layers = len(encoding_dim)
-        decoding_layers = len(decoding_dim)
-
-        model = KerasSequential()
-
-        if encoding_layers != len(encoding_func):
-            raise ValueError(
-                "Number of layers ({}) and number of functions ({}) must be equal for the encoder.".format(
-                    encoding_layers, len(encoding_func)))
-
-        if decoding_layers != len(decoding_func):
-            raise ValueError(
-                "Number of layers ({}) and number of functions ({}) must be equal for the decoder.".format(
-                    decoding_layers, len(decoding_func)))
-
-        # Add encoding layers
-        for i in range(encoding_layers):
-            if i == 0:
-                model.add(
-                    Dense(
-                        input_dim=input_dim,
-                        units=encoding_dim[i], 
-                        activation=encoding_func[i]
-                    )
-                )
-            else:
-                model.add(
-                    Dense(
-                        units=encoding_dim[i], 
-                        activation=encoding_func[i],
-                        activity_regularizer=regularizers.l1(10e-5)
-                    )
-                )
-
-        # Add decoding layers
-        for i in range(decoding_layers):
-            model.add( 
-                Dense(
-                    units=decoding_dim[i], 
-                    activation=decoding_func[i]
-                )
-            )
-
-        # Final output layer
-        model.add( 
-            Dense(input_dim, activation='tanh')
-        )
-
-        model.compile(optimizer='adam',
-                      loss='mean_squared_error',
-                      metrics=['accuracy'])
-
-        
-        self._input_dim = input_dim
-        self._model = model
+        # Determine the build_fn, which shall return a Keras model
+        if callable(kind):
+            self.build_fn = kind
+        else:
+            factory = FACTORIES.get(kind.split('_')[0])
+            self.build_fn = getattr(factory, f'build_{kind}_model')
 
     @property
-    def model(self):
-        return self._model
+    def sk_params(self):
+        return self.kwargs
 
-    def fit(self, X, y=None):
-
-        # Pull all fit related arguments out of kwargs and pass to model fit
-        fit_args = inspect.getargspec(self._model.fit).args
-        kwargs = {k: v for k, v in self.kwargs.items() if k in fit_args}
-        
-        self._model.fit(X, X, **kwargs)  # Autoencoder; don't GAS about y.
-        return self
-
-    def predict(self, X):
-        return self._model.predict(X)
+    def __call__(self):
+        return self.build_fn(**self.sk_params)

@@ -3,7 +3,7 @@
 import unittest
 
 from gordo_components.model import get_model
-from gordo_components.model._models import GordoKerasModel
+from gordo_components.model._models import KerasModel
 from gordo_components.model.base import GordoBaseModel
 
 

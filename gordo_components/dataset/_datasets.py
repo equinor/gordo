@@ -142,4 +142,4 @@ class RandomDataset(GordoBaseDataset):
         X = np.random.random(
             size=self.size * self.n_features).reshape(-1, self.n_features)
         y = np.random.random(size=self.size).astype(int)
-        return X, y
+        return X, X.copy()
