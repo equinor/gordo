@@ -3,13 +3,13 @@
 import json
 import logging
 
-from gordo_components.model._models import GordoKerasModel
+from gordo_components.model._models import KerasModel
 
 
 logger = logging.getLogger(__name__)
 
 AVAILABLE_MODELS = {
-    'keras': GordoKerasModel
+    'keras': KerasModel
 }
 
 
