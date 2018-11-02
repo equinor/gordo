@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import unittest
 
 from click.testing import CliRunner
@@ -21,8 +22,11 @@ class CliTestCase(unittest.TestCase):
         read environment variables
         """
         with temp_env_vars(
-            OUTPUT_DIR='/tmp', 
-            DATA_CONFIG='{"type": "random"}',
-            MODEL_CONFIG='{"type": "keras", "epochs": 5}'):
+                OUTPUT_DIR='/tmp',
+                DATA_CONFIG='{"type": "random"}',
+                MODEL_CONFIG='{"type": "KerasModel", "kind": "feedforward_symetric", "epochs": 5}'):
             result = self.runner.invoke(cli.gordo, ['build'])
-        self.assertEqual(result.exit_code, 0)        
+
+        self.assertEqual(result.exit_code, 0, msg=f"Command failed: {result.output}")
+        self.assertTrue(os.path.exists('/tmp/model-location.txt'),
+                        msg='Building was supposed to create a "model-location.txt", but it did not!')

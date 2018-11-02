@@ -3,21 +3,16 @@
 import json
 import logging
 
-from gordo_components.model._models import KerasModel
+from gordo_components.model import models
 
 
 logger = logging.getLogger(__name__)
 
-AVAILABLE_MODELS = {
-    'keras': KerasModel
-}
-
-
 def get_model(config):
-    kind = config.get('type', '').lower()
-    Model = AVAILABLE_MODELS.get(kind)
+    type = config.get('type', '')
+    Model = getattr(models, type, None)
     if Model is None:
         return ValueError(
-            'Type of model: "{}" either not provided or not supported'.format(kind)
+            'Type of model: "{}" either not provided or not supported'.format(type)
         )
     return Model(**config)

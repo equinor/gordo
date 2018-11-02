@@ -26,7 +26,6 @@ def build_model(output_dir, model_config, data_config):
     model = get_model(model_config)
 
     logger.debug("Starting to train model.")
-    logger.critical(f"X: {X.shape}, y: {y.shape}")
     model.fit(X, y)
 
     # Bit hacky, need to enforce a way to serialize models in a predictable

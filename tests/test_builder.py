@@ -18,7 +18,8 @@ class ModelBuilderTestCase(unittest.TestCase):
 
         with TemporaryDirectory() as tmpdir:
 
-            model_config = {'type': 'keras'}
+            model_config = {'type': 'KerasModel',
+                            'kind': 'feedforward_symetric'}
             data_config = {'type': 'random'}
             output_dir = os.path.join(tmpdir, 'some', 'sub', 'directories')
 

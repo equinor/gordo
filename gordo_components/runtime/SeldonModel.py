@@ -8,7 +8,7 @@ os.environ['PYTHONPATH'] = os.path.dirname(__file__)
 try:
     from gordo_components.runtime.loader import load_model  # If installed as part of the package
 except ImportError:
-    from loader import load_model   # If runtime is standalone
+    from .loader import load_model   # If runtime is standalone
 
 logger = logging.getLogger(__name__)
 
