@@ -37,8 +37,8 @@ fi
 if [[ -z "${DOCKER_USERNAME}" ]]; then
     echo "DOCKER_USERNAME not set: we assume that you are already logged in to the docker registry."
 else
-    # Logging in to the docker registry
-    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
+    # Logging in to the docker registry, exiting script if it fails
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY || exit 1
 fi
 
 export git_sha=$(git rev-parse HEAD | cut -c 1-8)
