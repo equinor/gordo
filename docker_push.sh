@@ -7,31 +7,27 @@
 # "gordo-infrastructure/gordo-deploy:0.0.2" if DOCKER_NAME is "gordo-infrastructure/gordo-deploy".
 
 # Expects the following environment variables to be set:
-# DOCKER_USERNAME: Required
-# DOCKER_PASSWORD: Required
 # DOCKER_NAME: Required. Docker name to push to.
 # DOCKER_FILE: Semi-Required. Dockerfile to build. Either DOCKER_IMAGE or DOCKER_FILE must be set.
 # DOCKER_IMAGE: Semi-Required. The local docker image to push. Either DOCKER_IMAGE or DOCKER_FILE must be set.
+# DOCKER_USERNAME: If set then it uses it an the password to log in to the registry
+# DOCKER_PASSWORD: If set then it uses it an the username to log in to the registry
 # DOCKER_REGISTRY: Docker registry to push to. Defaults to auroradevacr.azurecr.io
 # GORDO_PROD_MODE: If false then pushed tags will include a -dev suffix. Defaults to false
 
-
 export DOCKER_REGISTRY="${DOCKER_REGISTRY:-auroradevacr.azurecr.io}"
-if [[ -z "${DOCKER_PASSWORD}" ]]; then
-    echo "DOCKER_PASSWORD must be set, exiting"
-    exit 1
-fi
-if [[ -z "${DOCKER_USERNAME}" ]]; then
-    echo "DOCKER_USERNAME must be set, exiting"
-    exit 1
-fi
 if [[ -z "${DOCKER_NAME}" ]]; then
     echo "DOCKER_NAME must be set, exiting"
     exit 1
 fi
 
-# Logging in to the docker registry
-echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
+if [[ -z "${DOCKER_USERNAME}" ]]; then
+    echo "Since DOCKER_USERNAME is not set we assume you are already logged in to the docker registry"
+else
+    # Logging in to the docker registry
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY
+fi
+
 export git_sha=$(git rev-parse HEAD | cut -c 1-8)
 
 if [[ -z "${DOCKER_IMAGE}" ]]; then
