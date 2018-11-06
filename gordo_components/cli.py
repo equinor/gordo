@@ -12,6 +12,8 @@ import yaml
 import click
 from gordo_components.builder import build_model
 
+import dateutil
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +51,18 @@ def build(output_dir, model_config, data_config):
     data_config['tag_list'] = data_config.get(
         'tag_list',
         literal_eval(os.environ.get('TAGS', '[]'))
+    ) #remove this if tag_lists is added to DATA_CONFIG environment variable
+    data_config['from_ts'] = data_config.get(
+        'from_ts',
+        dateutil.parser.isoparse(os.environ['TRAIN_START_DATE'])
     )
+    #remove this if train_start_date is added to DATA_CONFIG environment variable
+    data_config['to_ts'] = data_config.get(
+        'to_ts',
+        dateutil.parser.isoparse(os.environ['TRAIN_END_DATE'])
+    )
+    #remove this if train_end_date is added to DATA_CONFIG environment variable
+
     data_config['machine_name'] = data_config.get(
         'machine_name',
         os.environ.get('MACHINE_NAME')
