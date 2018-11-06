@@ -14,15 +14,14 @@ logger = logging.getLogger(__name__)
 
 class InfluxBackedDataset(GordoBaseDataset):
 
-    Machine = namedtuple('Machine', ['machine_name', 'tag_name', 'tag_list'])
+    Machine = namedtuple('Machine', ['machine_name', 'tag_list'])
 
     def __init__(self,
                  influx_config,
                  machine_name=None,
-                 tag_name='tag',
                  tag_list=None,
-                 from_ts=None, 
-                 to_ts=None, 
+                 from_ts=None,
+                 to_ts=None,
                  resolution="10m", 
                  resample=True,
                  **kwargs):
@@ -34,7 +33,6 @@ class InfluxBackedDataset(GordoBaseDataset):
             influx_config: dict - Configuration for InfluxDB connection with keys:
                 host, port, username, password, database
             machine_id: str
-            tag_name: str - Name of the 'tags' in Influx
             tag_list: List[str] - List of tags
             from_ts: Optional[timestamp]
             to_ts  : Optional[timestamp]
@@ -42,7 +40,7 @@ class InfluxBackedDataset(GordoBaseDataset):
             resample: bool - Whether to resample.
         """
         self.to_ts = to_ts
-        self.machine = self.Machine(machine_name, tag_name, tag_list)
+        self.machine = self.Machine(machine_name, tag_list)
         self.from_ts = from_ts
         self.resample = resample
         self.resolution = resolution
@@ -70,7 +68,7 @@ class InfluxBackedDataset(GordoBaseDataset):
         query_string = f'''
             SELECT {'mean("Value")' if self.resample else '"Value"'} as "{tag}" 
             FROM "{self.influx_config["database"]}" 
-            WHERE("{self.machine.tag_name}" =~ /^{tag}$/) 
+            WHERE("tag" =~ /^{tag}$/) 
                 {f"AND time >= {int(self.from_ts.timestamp())}s" if self.from_ts else ""} 
                 {f"AND time <= {int(self.to_ts.timestamp())}s" if self.to_ts else ""} 
             {f'GROUP BY time({self.resolution}), "tag" fill(previous)' if self.resample else ""}
