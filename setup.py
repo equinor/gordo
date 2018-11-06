@@ -8,7 +8,7 @@ with open('requirements.txt', 'r') as f:
 setup_requirements = ['pytest-runner', ]
 
 # Test requirements
-test_requirements = ['pytest', ]
+test_requirements = ['pytest', 'ruamel.yaml==0.15.76']
 
 # Need the model server runtime requirements to run model tests
 runtime_req_txt = path.join(
