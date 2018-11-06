@@ -18,10 +18,10 @@ class InfluxBackedDataset(GordoBaseDataset):
 
     def __init__(self,
                  influx_config,
+                 from_ts,
+                 to_ts,
                  machine_name=None,
                  tag_list=None,
-                 from_ts=None,
-                 to_ts=None,
                  resolution="10m", 
                  resample=True,
                  **kwargs):
@@ -34,8 +34,8 @@ class InfluxBackedDataset(GordoBaseDataset):
                 host, port, username, password, database
             machine_id: str
             tag_list: List[str] - List of tags
-            from_ts: Optional[timestamp]
-            to_ts  : Optional[timestamp]
+            from_ts: timestamp: start date of training period
+            to_ts  : timestamp: end date of training period
             resolution: str - ie. "10m"
             resample: bool - Whether to resample.
         """
@@ -105,6 +105,9 @@ class InfluxBackedDataset(GordoBaseDataset):
             NaNs (which are removed) the from_ts might differ from the
             resulting first timestamp in the dataframe
         """
+        if self.machine.tag_list is None:
+            self.machine.tag_list = []
+
         logger.info("Getting data for machine {}".format(self.machine.machine_name))
         logger.info("Taglist:\n{}".format(self.machine.tag_list))
         sensors = []
