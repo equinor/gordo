@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import inspect
 import logging
+import json
 from typing import Union
+from os import path
 
 from keras.wrappers.scikit_learn import KerasRegressor, KerasClassifier
+from keras.models import load_model
 from gordo_components.model.base import GordoBaseModel
 from gordo_components.model.factories import *
 
@@ -71,3 +73,21 @@ class KerasModel(KerasRegressor, GordoBaseModel):
     def fit(self, X, y, sample_weight=None, **kwargs):
         self.kwargs.update({'n_features': X.shape[1]})
         return super().fit(X, y, sample_weight=None, **kwargs)
+
+    def save_to_dir(self, directory: str):
+        params = {'kind': self.kind}
+        params.update(self.get_params())
+        with open(path.join(directory, 'params.json'), 'w') as f:
+            json.dump(params, f)
+        if self.model is not None:
+            self.model.save(path.join(directory, 'model.h5'))
+
+    @classmethod
+    def load_from_dir(cls, directory: str):
+        with open(path.join(directory, 'params.json'), 'r') as f:
+            params = json.load(f)
+        obj = cls(**params)
+        model_file = path.join(directory, 'model.h5')
+        if path.isfile(model_file):
+            obj.model = load_model(model_file)
+        return obj
