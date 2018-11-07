@@ -2,6 +2,10 @@ FROM python:3.6.6-slim-stretch
 
 RUN mkdir /data
 
+# Install requirements separately for improved docker caching
+COPY requirements.txt /code/
+RUN pip install -r /code/requirements.txt
+
 # Copy source code
 COPY . /code
 
