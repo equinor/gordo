@@ -4,7 +4,7 @@ import os
 import logging
 import joblib
 
-from gordo_components.model import get_model
+from gordo_components.pipeline_translator import pipeline_from_definition
 from gordo_components.dataset import get_dataset
 
 
@@ -22,8 +22,7 @@ def build_model(output_dir, model_config, data_config):
 
     # Get the model and dataset
     logger.debug("Initializing Model with config: {}".format(model_config))
-    model_config['n_features'] = X.shape[1]
-    model = get_model(model_config)
+    model = pipeline_from_definition(model_config)
 
     logger.debug("Starting to train model.")
     model.fit(X, y)
