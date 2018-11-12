@@ -9,7 +9,7 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from gordo_components.model.models import KerasModel
 
-from gordo_components.pipeline_translator import pipeline_from_definition
+from gordo_components.serializer import pipeline_from_definition
 
 
 logger = logging.getLogger(__name__)

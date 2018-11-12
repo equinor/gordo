@@ -72,7 +72,8 @@ class KerasModel(KerasRegressor, GordoBaseModel):
 
     def fit(self, X, y, sample_weight=None, **kwargs):
         self.kwargs.update({'n_features': X.shape[1]})
-        return super().fit(X, y, sample_weight=None, **kwargs)
+        super().fit(X, y, sample_weight=None, **kwargs)
+        return self
 
     def save_to_dir(self, directory: str):
         params = {'kind': self.kind}

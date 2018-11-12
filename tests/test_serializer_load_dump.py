@@ -13,13 +13,13 @@ from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler
 
 from gordo_components.model.models import KerasModel
-from gordo_components.pipeline_translator import pipeline_serializer
+from gordo_components import serializer
 
 
 logger = logging.getLogger(__name__)
 
 
-class PipelineDumpTestCase(unittest.TestCase):
+class PipelineSerializationTestCase(unittest.TestCase):
 
     def _structure_verifier(self, prefix_dir, structure):
         """
@@ -48,6 +48,7 @@ class PipelineDumpTestCase(unittest.TestCase):
                 self.assertTrue(path.isfile(path.join(directory, file_or_dict)))
 
     def test_pipeline_serialization(self):
+
         pipe = Pipeline([
             ('pca1', PCA(n_components=10)),
             ('fu', FeatureUnion([
@@ -61,10 +62,12 @@ class PipelineDumpTestCase(unittest.TestCase):
         ])
 
         X = np.random.random(size=100).reshape(10, 10)
-        pipe.fit(X, X)
+        pipe.fit(X.copy(), X.copy())
 
         with TemporaryDirectory() as tmp:
-            pipeline_serializer.dump(pipe, tmp)
+
+            # Test dump
+            serializer.dump(pipe, tmp)
 
             # Assert that a dirs are created for each step in Pipeline
             expected_structure = OrderedDict([
@@ -86,3 +89,28 @@ class PipelineDumpTestCase(unittest.TestCase):
             ])
 
             self._structure_verifier(prefix_dir=tmp, structure=expected_structure)
+
+            # Test load from the serialized pipeline above
+            pipe_clone = serializer.load(tmp)
+
+            # Verify same state for both pipelines
+            y_hat_pipe1 = pipe.predict(X.copy()).flatten()
+            y_hat_pipe2 = pipe_clone.predict(X.copy()).flatten()
+            self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
+
+    def test_dump_load_keras_directly(self):
+
+        model = KerasModel(kind='feedforward_symetric')
+
+        X = np.random.random(size=100).reshape(10, 10)
+        model.fit(X.copy(), X.copy())
+
+        with TemporaryDirectory() as tmp:
+            serializer.dump(model, tmp)
+
+            model_clone = serializer.load(tmp)
+
+            self.assertTrue(
+                np.allclose(model.predict(X.copy()).flatten(),
+                            model_clone.predict(X.copy()).flatten())
+            )

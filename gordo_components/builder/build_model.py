@@ -4,7 +4,7 @@ import os
 import logging
 import joblib
 
-from gordo_components.pipeline_translator import pipeline_from_definition
+from gordo_components.serializer import pipeline_from_definition
 from gordo_components.dataset import get_dataset
 
 

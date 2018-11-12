@@ -14,7 +14,7 @@ def pipeline_into_definition(pipeline: Pipeline, prune_default_params: bool=Fals
     """
     Convert an instance of sklearn.pipeline.Pipeline into a dict definition
     capable of being reconstructed with
-    gordo_components.pipeline_translator.pipeline_from_definition
+    gordo_components.serializer.pipeline_from_definition
 
     Parameters
     ----------
