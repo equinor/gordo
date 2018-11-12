@@ -16,7 +16,7 @@ def pipeline_from_definition(pipe_definition: dict) -> Union[FeatureUnion, Pipel
 
     Example:
     >>> import yaml
-    >>> from gordo_components.pipeline_translator import pipeline_from_definition
+    >>> from gordo_components.serializer import pipeline_from_definition
     >>> raw_config = '''
     ... sklearn.pipeline.Pipeline:
     ...         steps:
