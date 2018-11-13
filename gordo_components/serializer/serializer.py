@@ -144,7 +144,7 @@ def dump(obj: object, dest_dir: str):
     Example:
 
     >>> from sklearn.pipeline import Pipeline
-    >>> from sklearn.preprocessing import PCA
+    >>> from sklearn.decomposition import PCA
     >>> from gordo_components.model.models import KerasModel
     >>> from gordo_components import serializer
     >>> pipe = Pipeline([
@@ -153,8 +153,8 @@ def dump(obj: object, dest_dir: str):
     ...     # KerasModel implements both `save_to_dir` and `load_from_dir`
     ...     ('model', KerasModel(kind='feedforward_symetric'))
     ... ])
-    >>> serializer.dump(obj=pipe, dest_dir='/my-model')
-    >>> pipe_clone = serializer.load(source_dir='/my-model')
+    >>> serializer.dump(obj=pipe, dest_dir='/tmp/my-model')
+    >>> pipe_clone = serializer.load(source_dir='/tmp/my-model')
 
     Parameters
     ----------
