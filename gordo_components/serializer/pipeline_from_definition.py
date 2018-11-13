@@ -16,23 +16,24 @@ def pipeline_from_definition(pipe_definition: dict) -> Union[FeatureUnion, Pipel
 
     Example:
     >>> import yaml
-    >>> from gordo_components.serializer import pipeline_from_definition
+    >>> from gordo_components import serializer
     >>> raw_config = '''
     ... sklearn.pipeline.Pipeline:
     ...         steps:
-    ...             - sklearn.decomposition.PCA:
+    ...             - sklearn.decomposition.pca.PCA:
     ...                 n_components: 3
     ...             - sklearn.pipeline.FeatureUnion:
-    ...                 - sklearn.decomposition.PCA:
+    ...                 - sklearn.decomposition.pca.PCA:
     ...                     n_components: 3
     ...                 - sklearn.pipeline.Pipeline:
-    ...                     - sklearn.preprocessing.MinMaxScaler
-    ...                     - sklearn.decomposition.TruncatedSVD:
+    ...                     - sklearn.preprocessing.data.MinMaxScaler
+    ...                     - sklearn.decomposition.truncated_svd.TruncatedSVD:
     ...                         n_components: 2
-    ...             - sklearn.ensemble.RandomForestClassifier:
-    ...         max_depth: 3'''
+    ...             - sklearn.ensemble.forest.RandomForestClassifier:
+    ...                 max_depth: 3
+    ... '''
     >>> config = yaml.load(raw_config)
-    >>> scikit_learn_pipeline = pipeline_from_definition(config)
+    >>> scikit_learn_pipeline = serializer.pipeline_from_definition(config)
 
 
     Parameters
