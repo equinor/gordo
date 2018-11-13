@@ -28,6 +28,10 @@ class ModelBuilderTestCase(unittest.TestCase):
                         model_config=model_config, 
                         data_config=data_config)
 
-            # Assert the model was saved at the location specified
-            saved_model = os.path.join(output_dir, 'model.pkl')
-            self.assertTrue(os.path.exists(saved_model))
+            # Assert the model was saved at the location
+            # using gordo_components.serializer should create some subdir(s)
+            # which start with 'n_step'
+            dirs = [d for d in os.listdir(output_dir) if d.startswith('n_step')]
+            self.assertGreaterEqual(len(dirs), 1,
+                                    msg='Expected saving of model to create at '
+                                        f'least one subdir, but got {len(dirs)}')
