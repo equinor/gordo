@@ -4,46 +4,50 @@ import os
 import logging
 import joblib
 
-from gordo_components.serializer import pipeline_from_definition
+from gordo_components import serializer
 from gordo_components.dataset import get_dataset
 
 
 logger = logging.getLogger(__name__)
 
 
-def build_model(output_dir, model_config, data_config):
+def build_model(output_dir: str, model_config: dict, data_config: dict):
+    """
+    Build a model and serialize to a directory for later serving.
 
+    Parameters
+    ----------
+        output_dir: str - The path to the directory to save the trained model
+        model_config: dict - mapping of Model to initialize and any additional
+                             kwargs which are to be used in it's initialization
+                             Example: {'type': 'KerasModel',
+                                       'kind': 'feedforward_symetric'}
+        data_config: dict - mapping of the Dataset to initialize, following the
+                            same logic as model_config
+    Returns
+    -------
+        None
+    """
+    # Get the dataset from config
     logger.debug("Initializing Dataset with config {}".format(data_config))
     dataset = get_dataset(data_config)
 
-    # TODO: Fit to actual data
     logger.debug("Fetching training data")
     X, y = dataset.get_data()
 
     # Get the model and dataset
     logger.debug("Initializing Model with config: {}".format(model_config))
-    model = pipeline_from_definition(model_config)
+    model = serializer.pipeline_from_definition(model_config)
 
     logger.debug("Starting to train model.")
     model.fit(X, y)
 
-    # Bit hacky, need to enforce a way to serialize models in a predictable
-    # way. ABC may not enforce the model will _actually_ save correctly.
-    filename = 'model.h5' if hasattr(model.model, 'save') else 'model.pkl'
+    # Save the model/pipeline
     os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
-    outpath = os.path.join(output_dir, filename)
+    logger.debug(f'Saving model to output dir: {output_dir}')
+    serializer.dump(model, output_dir)
 
-    # TODO: Get better model saving ops.
-    # If it's a kera's model, need to serialize that seperately as .h5
-    # and then save the rest of the model as .pkl
-    if hasattr(model.model, 'save'):
-        model.model.save(outpath)
-        model.model = None  # Can't pickle Keras models.
-        outpath = outpath.replace('.h5', '.pkl')
-    joblib.dump(model, outpath)  # Pickle remaining model
-
-    # Let argo know where the model will be saved.
+    # Let argo & subsequent model loader know where the model will be saved.
     with open('/tmp/model-location.txt', 'w') as f:
-        # Save original suffix, ie. .h5 so loading knows there is an associated
-        # .pkl; at least until we have a better serialization approach.
-        f.write(os.path.join(output_dir, filename))
+        f.write(output_dir)
+    logger.info(f'Successfully trained model, dumped to "{output_dir}, exiting.')

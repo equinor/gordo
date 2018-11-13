@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import logging
-os.environ['PYTHONPATH'] = os.path.dirname(__file__)
 
-try:
-    from gordo_components.runtime.loader import load_model  # If installed as part of the package
-except ImportError:
-    from .loader import load_model   # If runtime is standalone
+from gordo_components import serializer
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +21,14 @@ class SeldonModel:
         model_location = os.getenv('MODEL_LOCATION')
         print('MODEL_LOCATION value: {}'.format(model_location))
         if model_location is None:
-            logger.critical(
-                'Environment variable "MODEL_LOCATION" not set, unable to '
-                'continue!!'
-            )
-            sys.exit(1)
-        self.model = load_model(model_location)
+            raise ValueError('Environment variable "MODEL_LOCATION" not set!')
+        if not os.path.isdir(model_location):
+            raise NotADirectoryError(
+                f'The supplied directory: "{model_location}" does not exist!')
+
+        logger.info(f'Loading up serialized model from dir: {model_location}')
+        self.model = serializer.load(model_location)
+        logger.info(f'Model loaded successfully, ready to serve predictions!')
 
     def predict(self, X, feature_names=None):
         logger.debug('Feature names: {}'.format(feature_names))

@@ -5,9 +5,11 @@ import json
 from typing import Union
 from os import path
 
-from keras.wrappers.scikit_learn import KerasRegressor, KerasClassifier
+from keras.wrappers.scikit_learn import KerasRegressor
 from keras.models import load_model
 from gordo_components.model.base import GordoBaseModel
+
+# This is required to run `register_model_builder` against registered factories
 from gordo_components.model.factories import *
 
 from gordo_components.model.register import register_model_builder
