@@ -8,7 +8,7 @@ import numpy as np
 from keras.wrappers.scikit_learn import BaseWrapper
 
 from gordo_components.model import get_model
-from gordo_components.model.models import KerasModel
+from gordo_components.model.models import KerasModel, KerasAutoEncoder
 from gordo_components.model.base import GordoBaseModel
 
 
@@ -34,6 +34,20 @@ class KerasModelTestCase(unittest.TestCase):
         self.assertIsInstance(model, BaseWrapper)
         self.assertIsInstance(model, KerasModel)
 
+    def test_keras_autoencoder_type(self):
+        config = {
+            'type'      : 'KerasAutoEncoder',
+            'kind'      : 'feedforward_symetric',
+            'n_features': 10,
+            'enc_dim'   : [8, 4, 2],
+            'dec_dim'   : [2, 4, 8],
+            'enc_func'  : ['relu', 'relu', 'relu'],
+            'dec_func'  : ['relu', 'relu', 'relu']
+        }
+        model = get_model(config)
+        self.assertTrue(isinstance(model, KerasAutoEncoder))
+        self.assertTrue(isinstance(model, KerasModel))
+
     def test_save_load(self):
         config = {
             'type': 'KerasModel',
@@ -50,10 +64,18 @@ class KerasModelTestCase(unittest.TestCase):
 
         # Have to call fit, since model production is lazy
         X = np.random.random(size=100).reshape(10, 10)
-        model.fit(X, X)
+
+        # Unless it's the KerasAutoEncoder type, it would expect a y as a target
+        with self.assertRaises(TypeError):
+            model.fit(X)
+
+        # AutoEncoder is fine without a y target
+        config['type'] = 'KerasAutoEncoder'
+        model = get_model(config)
+        model.fit(X)
 
         xTest = np.random.random(size=100).reshape(10, 10)
-        yHat = model.predict(xTest)
+        xHat = model.predict(xTest)
 
         with tempfile.TemporaryDirectory() as tmp:
             model.save_to_dir(tmp)
@@ -64,5 +86,5 @@ class KerasModelTestCase(unittest.TestCase):
 
             # Assert it maintained the state by ensuring predictions are the same
             self.assertTrue(
-                np.allclose(yHat.flatten(), model_clone.predict(xTest).flatten())
+                np.allclose(xHat.flatten(), model_clone.predict(xTest).flatten())
             )

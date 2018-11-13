@@ -9,6 +9,7 @@ from keras.models import Sequential as KerasSequential
 from gordo_components.model.register import register_model_builder
 
 
+@register_model_builder(type="KerasAutoEncoder")
 @register_model_builder(type="KerasModel")
 def feedforward_symetric(
         n_features: int,
