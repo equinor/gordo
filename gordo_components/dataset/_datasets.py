@@ -21,7 +21,7 @@ class InfluxBackedDataset(GordoBaseDataset):
                  from_ts,
                  to_ts,
                  machine_name=None,
-                 tag_list=[],
+                 tag_list=None,
                  resolution="10m", 
                  resample=True,
                  **kwargs):
@@ -105,6 +105,9 @@ class InfluxBackedDataset(GordoBaseDataset):
             NaNs (which are removed) the from_ts might differ from the
             resulting first timestamp in the dataframe
         """
+        if self.machine.tag_list is None:
+            self.machine.tag_list = []
+
         logger.info("Getting data for machine {}".format(self.machine.machine_name))
         logger.info("Taglist:\n{}".format(self.machine.tag_list))
         sensors = []
