@@ -94,3 +94,16 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         if path.isfile(model_file):
             obj.model = load_model(model_file)
         return obj
+
+
+class KerasAutoEncoder(KerasModel):
+    """
+    Subclass of the KerasModel to allow fitting to just X without requiring y.
+    """
+    def fit(self, X, y=None, **kwargs):
+        if y is not None:
+            logger.warn(f'This is an AutoEncoder and does not care about a '
+                        f'target, but a y was supplied. It will be ignored!')
+        y = X.copy()
+        super().fit(X, y, **kwargs)
+        return self
