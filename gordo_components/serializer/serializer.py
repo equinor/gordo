@@ -10,10 +10,12 @@ import re
 import pickle
 
 from os import path
-from typing import Tuple, Union
+from typing import Tuple, Union, Dict, Any, IO
 
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.base import BaseEstimator, TransformerMixin
+
+from gordo_components.model.models import GordoBaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ N_STEP_REGEX = re.compile(r'.*n_step=([0-9]+)')
 CLASS_REGEX  = re.compile(r'.*class=(.*$)')
 
 
-def load(source_dir: str) -> object:
+def load(source_dir: str) -> Any:
     """
     Load an object from a directory, saved by
     gordo_components.serializer.pipeline_serializer.dump
@@ -63,19 +65,19 @@ def _parse_dir_name(source_dir: str) -> Tuple[int, str]:
     Parses the required params from a directory name for loading
     Expected name format "n_step=<int>-class=<path.to.class.Model>"
     """
-    n_step = N_STEP_REGEX.search(source_dir)
-    if n_step is None:
+    match = N_STEP_REGEX.search(source_dir)
+    if match is None:
         raise ValueError(f'Source dir not valid, expected "n_step=" in '
                          f'directory but instead got: {source_dir}')
     else:
-        n_step = int(n_step.groups()[0])
+        n_step = int(match.groups()[0])  # type: int
 
-    class_path = CLASS_REGEX.search(source_dir)
-    if class_path is None:
+    match = CLASS_REGEX.search(source_dir)
+    if match is None:
         raise ValueError(f'Source dir not valid, expected "class=" in directory '
                          f'but instead got: {source_dir}')
     else:
-        class_path = class_path.groups()[0]
+        class_path = match.groups()[0]  # type: str
     return n_step, class_path
 
 
@@ -98,12 +100,12 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
                        f'not exist. Will attempt to unpickle it from file in '
                        f'source directory: {source_dir}.')
     step_name = f'step={str(n_step).zfill(3)}'
-    params = dict()
+    params = dict()  # type: Dict[str, Any]
 
     # If this is a FeatureUnion, we also have a `params.json` for it
     if StepClass == FeatureUnion:
-        with open(os.path.join(source_dir, 'params.json'), 'r') as f:
-            params = json.load(f)
+        with open(os.path.join(source_dir, 'params.json'), 'r') as p:
+            params = json.load(p)
 
     # Pipelines and FeatureUnions have sub steps which need to be loaded
     if any(StepClass == Obj for Obj in (Pipeline, FeatureUnion)):
@@ -128,7 +130,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
             raise ValueError(f'Expected a single file in what is expected to be '
                              f'a single object directory, found {len(file)} '
                              f'in directory: {source_dir}')
-        with bz2.open(path.join(source_dir, file[0]), 'rb') as f:
+        with bz2.open(path.join(source_dir, file[0]), 'rb') as f:  # type: IO[bytes]
             return step_name, pickle.load(f)
 
 
@@ -167,7 +169,10 @@ def dump(obj: object, dest_dir: str):
     _dump_step(step=('obj', obj), n_step=0, dest_dir=dest_dir)
 
 
-def _dump_step(step: Tuple[str, object], dest_dir: str, n_step: int=0):
+def _dump_step(
+        step: Tuple[str, Union[GordoBaseModel, TransformerMixin]],
+        dest_dir: str,
+        n_step: int=0):
     """
     Accepts any Scikit-Learn transformer and dumps it into a directory
     recoverable by gordo_components.serializer.pipeline_serializer.load
@@ -213,5 +218,5 @@ def _dump_step(step: Tuple[str, object], dest_dir: str, n_step: int=0):
             logger.info(f'Saving model to sub_dir: {sub_dir}')
             step_transformer.save_to_dir(os.path.join(sub_dir))
         else:
-            with bz2.open(os.path.join(sub_dir, f'{step_name}.pkl.gz'), 'wb') as f:
-                pickle.dump(step_transformer, f)
+            with bz2.open(os.path.join(sub_dir, f'{step_name}.pkl.gz'), 'wb') as s: # type: IO[bytes]
+                pickle.dump(step_transformer, s)
