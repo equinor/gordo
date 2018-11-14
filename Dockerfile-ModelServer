@@ -7,4 +7,6 @@ COPY requirements.txt /code/
 RUN pip install -r /code/requirements.txt
 
 COPY . /code
-RUN cd /code && pip install .
+
+# Install gordo-components, packaged from earlier 'python setup.py sdist'
+RUN pip install /code/dist/$(ls /code/dist | head -1)
