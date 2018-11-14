@@ -2,10 +2,11 @@
 
 import logging
 import json
-from typing import Union
+from typing import Union, Callable, Dict, Any
 from os import path
 
 from keras.wrappers.scikit_learn import KerasRegressor
+from keras.models import Model as KerasBaseModel
 from keras.models import load_model
 from gordo_components.model.base import GordoBaseModel
 
@@ -20,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 class KerasModel(KerasRegressor, GordoBaseModel):
 
-    def __init__(self, kind: Union[str, callable], **kwargs):
+    def __init__(self,
+                 kind: Union[str, Callable[[int, Dict[str, Any]], KerasBaseModel]],
+                 **kwargs) -> None:
         """
         Initialized a Scikit-Learn API compatitble Keras model with a pre-registered function or a builder function
         directly.
@@ -58,7 +61,7 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         
         if callable(kind):
             register_model_builder(type=class_name)(kind)
-            self.kind = self.kind.__name__
+            self.kind = kind.__name__
         else:
             if kind not in register_model_builder.factories[class_name]:
                 raise ValueError(f'kind: {kind} is not an available model for type: {class_name}!')
@@ -67,6 +70,11 @@ class KerasModel(KerasRegressor, GordoBaseModel):
     @property
     def sk_params(self):
         return self.kwargs
+
+    def get_params(self, **params):
+        params = super().get_params(**params)
+        params.update({'kind': self.kind})
+        return params
 
     def __call__(self):
         build_fn = register_model_builder.factories[self.__class__.__name__][self.kind]
@@ -78,8 +86,7 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         return self
 
     def save_to_dir(self, directory: str):
-        params = {'kind': self.kind}
-        params.update(self.get_params())
+        params = self.get_params()
         with open(path.join(directory, 'params.json'), 'w') as f:
             json.dump(params, f)
         if self.model is not None:

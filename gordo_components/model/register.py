@@ -1,6 +1,7 @@
 import logging
 import inspect
-
+from typing import Dict, Callable, Any
+from gordo_components.model.models import GordoBaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -40,17 +41,17 @@ class register_model_builder:
     }
     '''
   
-    factories = dict()
+    factories = dict()  # type: Dict[str, Dict[str, Callable[[int, Any], GordoBaseModel]]]
 
     def __init__(self, type: str):
         self.type = type
 
-    def __call__(self, build_fn: callable):
+    def __call__(self, build_fn: Callable[[int, Any], GordoBaseModel]):
         self._register(self.type, build_fn)
         return build_fn
 
     @classmethod
-    def _register(cls, type: str, build_fn: callable):
+    def _register(cls, type: str, build_fn: Callable[[int, Any], GordoBaseModel]):
         """
         Registers a given function as an available factory under
         this type.

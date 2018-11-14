@@ -2,7 +2,7 @@
 
 import logging
 import pydoc
-from typing import List, Union
+from typing import List, Union, Dict, Any, Optional, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 
@@ -10,7 +10,8 @@ from sklearn.base import BaseEstimator
 logger = logging.getLogger(__name__)
 
 
-def pipeline_from_definition(pipe_definition: dict) -> Union[FeatureUnion, Pipeline]:
+def pipeline_from_definition(pipe_definition: Union[str, Dict[str, Dict[str, Any]]]
+                             ) -> Union[FeatureUnion, Pipeline]:
     """
     Construct a Pipeline or FeatureUnion from a definition.
 
@@ -49,7 +50,7 @@ def pipeline_from_definition(pipe_definition: dict) -> Union[FeatureUnion, Pipel
     return _build_step(pipe_definition)
 
 
-def _build_branch(definition: List[Union[str, dict]],
+def _build_branch(definition: Iterable[Union[str, Dict[Any, Any]]],
                   constructor_class=Union[Pipeline, None]):
     """
     Builds a branch of the tree and optionall constructs the class with the given
@@ -60,7 +61,8 @@ def _build_branch(definition: List[Union[str, dict]],
     return steps if constructor_class is None else constructor_class(steps)
 
 
-def _build_step(step: dict) -> Union[FeatureUnion, Pipeline, BaseEstimator]:
+def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
+                ) -> Union[FeatureUnion, Pipeline, BaseEstimator]:
     """
     Build an isolated step within a transformer list, given a dict config
 
@@ -114,7 +116,8 @@ def _build_step(step: dict) -> Union[FeatureUnion, Pipeline, BaseEstimator]:
             # If params is an iterable, is has to be the first argument
             # to the StepClass (FeatureUnion / Pipeline); a list of transformers
             elif any(isinstance(params, obj) for obj in (tuple, list)):
-                return StepClass(_build_branch(params, None))
+                steps = _build_branch(params, None)
+                return StepClass(steps)
             else:
                 raise ValueError(
                     f'Got {StepClass} but the supplied parameters'
