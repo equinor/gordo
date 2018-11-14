@@ -30,7 +30,13 @@ push-dev-images: push-builder push-server
 push-prod-images: export GORDO_PROD_MODE:="true"
 push-prod-images:	push-builder push-server
 
-images: model-builder model-server
+# Make the python source distribution
+sdist:
+	# Ensure the dist directory is empty/non-existant before sdist
+	rm -rf ./dist/
+	python setup.py sdist
+
+images: sdist model-builder model-server
 
 test:
 	python setup.py test

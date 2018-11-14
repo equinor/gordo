@@ -9,8 +9,8 @@ RUN pip install -r /code/requirements.txt
 # Copy source code
 COPY . /code
 
-# Install gordo-components
-RUN cd /code && pip install .
+# Install gordo-components, packaged from earlier 'python setup.py sdist'
+RUN pip install /code/dist/$(ls /code/dist | head -1)
 
 # build.sh (build the model) as executable default command
 RUN cp /code/build.sh /usr/bin/build \

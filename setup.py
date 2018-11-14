@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 with open('requirements.txt', 'r') as f:
     requirements = [req.strip() for req in f.readlines()]
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = ['pytest-runner', 'setuptools_scm']
 
 # Test requirements
 test_requirements = ['pytest', 'ruamel.yaml==0.15.76', 'pytest-mypy==0.3.2']
@@ -44,6 +44,9 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/Statoil/gordo-flow',
-    version='0.1.0',
+    use_scm_version={
+        'write_to': 'gordo_components/_version.py',
+        'relative_to': __file__
+    },
     zip_safe=True,
 )
