@@ -1,21 +1,25 @@
-from os import path
 from setuptools import setup, find_packages
 
 # Install requirements
-with open('requirements.txt', 'r') as f:
-    requirements = [req.strip() for req in f.readlines()]
+install_requires = [
+    'Click~=7.0',
+    'h5py~=2.8',
+    'influxdb~=5.2',
+    'joblib~=0.13',
+    'Keras~=2.2',
+    'numpy~=1.15',
+    'pandas~=0.23',
+    'pip-tools~=3.1',
+    'python-dateutil~=2.7',
+    'requests~=2.20',
+    'scikit-learn~=0.20',
+    'tensorflow~=1.12'
+]
 
 setup_requirements = ['pytest-runner', 'setuptools_scm']
 
 # Test requirements
-test_requirements = ['pytest', 'ruamel.yaml==0.15.76', 'pytest-mypy==0.3.2']
-
-# Need the model server runtime requirements to run model tests
-runtime_req_txt = path.join(
-    path.dirname(__file__), 'gordo_components', 'runtime', 'requirements.txt'
-)
-with open(runtime_req_txt) as f:
-    test_requirements.extend([req.strip() for req in f.readlines()])
+test_requirements = ['pytest==4.0.0', 'ruamel.yaml==0.15.76', 'pytest-mypy==0.3.2']
 
 setup(
     author="Miles Granger",
@@ -36,7 +40,7 @@ setup(
             'gordo-components=gordo_components.cli:gordo',
         ],
     },
-    install_requires=requirements,
+    install_requires=install_requires,
     license="Unlicense",
     name='gordo-components',
     packages=find_packages(),
