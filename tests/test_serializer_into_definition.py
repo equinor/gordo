@@ -111,7 +111,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                                 random_state:
                                 tol: 0.0
                             memory:
-                        n_jobs: 1
+                        n_jobs:
                         transformer_weights:
                     - gordo_components.model.models.KerasModel:
                         kind: feedforward_symetric
