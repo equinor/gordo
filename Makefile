@@ -28,7 +28,7 @@ push-builder: model-builder
 push-dev-images: push-builder push-server
 
 push-prod-images: export GORDO_PROD_MODE:="true"
-push-prod-images:	push-builder push-server
+push-prod-images: push-builder push-server
 
 # Make the python source distribution
 sdist:

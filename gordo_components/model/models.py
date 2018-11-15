@@ -4,7 +4,9 @@ import logging
 import json
 from typing import Union, Callable, Dict, Any
 from os import path
+from contextlib import contextmanager
 
+import keras.backend as K
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.models import Model as KerasBaseModel
 from keras.models import load_model
@@ -17,6 +19,22 @@ from gordo_components.model.register import register_model_builder
 
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def possible_tf_mgmt(keras_model):
+    """
+    When serving a Keras model backed by tensorflow, the object is expected
+    to have `_tf_graph` and `_tf_session` stored attrs. Which will be used
+    as the default when calling the Keras model
+    """
+    logger.info(f'Keras backend: {K.backend()}')
+    if K.backend() == 'tensorflow':
+        logger.debug(f'Using keras_model {keras_model} local TF Graph and Session')
+        with keras_model._tf_graph.as_default(), keras_model._tf_session.as_default():
+            yield
+    else:
+        yield
 
 
 class KerasModel(KerasRegressor, GordoBaseModel):
@@ -54,6 +72,17 @@ class KerasModel(KerasRegressor, GordoBaseModel):
                         building function and/or any additional args to be passed
                         to Keras' fit() method
         """
+        # Tensorflow requires managed graph/session as to not default to global
+        if K.backend() == 'tensorflow':
+            logger.info(f'Keras backend detected as tensorflow, keeping local graph')
+            import tensorflow as tf
+            self._tf_graph = tf.Graph()
+            self._tf_session = tf.Session(graph=self._tf_graph)
+        else:
+            logger.info(f'Keras backend detected as NOT tensorflow, but: {K.backend()}')
+            self._tf_session = None
+            self._tf_graph = None
+
         self.build_fn = None
         self.kwargs = kwargs
 
@@ -78,19 +107,28 @@ class KerasModel(KerasRegressor, GordoBaseModel):
 
     def __call__(self):
         build_fn = register_model_builder.factories[self.__class__.__name__][self.kind]
-        return build_fn(**self.sk_params)
+        with possible_tf_mgmt(self):
+            return build_fn(**self.sk_params)
 
     def fit(self, X, y, sample_weight=None, **kwargs):
+        logger.debug(f'Fitting to data of length: {len(X)}')
         self.kwargs.update({'n_features': X.shape[1]})
-        super().fit(X, y, sample_weight=None, **kwargs)
+        with possible_tf_mgmt(self):
+            super().fit(X, y, sample_weight=None, **kwargs)
         return self
+
+    def predict(self, x, **kwargs):
+        logger.debug(f'Predicting data of length: {len(x)}')
+        with possible_tf_mgmt(self):
+            return super().predict(x, **kwargs)
 
     def save_to_dir(self, directory: str):
         params = self.get_params()
         with open(path.join(directory, 'params.json'), 'w') as f:
             json.dump(params, f)
         if self.model is not None:
-            self.model.save(path.join(directory, 'model.h5'))
+            with possible_tf_mgmt(self):
+                self.model.save(path.join(directory, 'model.h5'))
 
     @classmethod
     def load_from_dir(cls, directory: str):
@@ -99,7 +137,9 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         obj = cls(**params)
         model_file = path.join(directory, 'model.h5')
         if path.isfile(model_file):
-            obj.model = load_model(model_file)
+            with possible_tf_mgmt(obj):
+                K.set_learning_phase(0)
+                obj.model = load_model(model_file)
         return obj
 
 
