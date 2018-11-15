@@ -2,7 +2,6 @@
 
 import os
 import logging
-
 from gordo_components import serializer
 
 logger = logging.getLogger(__name__)
@@ -27,6 +26,7 @@ class SeldonModel:
                 f'The supplied directory: "{model_location}" does not exist!')
 
         logger.info(f'Loading up serialized model from dir: {model_location}')
+
         self.model = serializer.load(model_location)
         logger.info(f'Model loaded successfully, ready to serve predictions!')
 

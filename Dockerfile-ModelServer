@@ -6,10 +6,11 @@ COPY . /code
 COPY .git /code/
 
 WORKDIR /code
-RUN python setup.py sdist && \
-    mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
+RUN rm -rf /code/dist \
+    && python setup.py sdist \
+    && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
 
-FROM seldonio/seldon-core-s2i-python3
+FROM seldonio/seldon-core-s2i-python3:0.3
 
 # Install requirements separately for improved docker caching
 COPY requirements.txt /code/
