@@ -39,6 +39,6 @@ class CliTestCase(unittest.TestCase):
                 MODEL_CONFIG=json.dumps(model_config)):
             result = self.runner.invoke(cli.gordo, ['build'])
 
-        self.assertEqual(result.exit_code, 0, msg=f"Command failed: {result.stdout}")
+        self.assertEqual(result.exit_code, 0, msg=f"Command failed: {result}")
         self.assertTrue(os.path.exists('/tmp/model-location.txt'),
                         msg='Building was supposed to create a "model-location.txt", but it did not!')
