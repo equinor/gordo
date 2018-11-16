@@ -35,6 +35,8 @@ class CliTestCase(unittest.TestCase):
         logger.info(f'MODEL_CONFIG={json.dumps(model_config)}')
         with temp_env_vars(
                 OUTPUT_DIR='/tmp',
+                TRAIN_START_DATE='2015-01-01',
+                TRAIN_END_DATE='2015-06-01',
                 DATA_CONFIG='{"type": "random"}',
                 MODEL_CONFIG=json.dumps(model_config)):
             result = self.runner.invoke(cli.gordo, ['build'])

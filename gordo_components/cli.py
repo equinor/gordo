@@ -12,7 +12,7 @@ import yaml
 import click
 from gordo_components.builder import build_model
 
-import dateutil
+import dateutil.parser
 
 logger = logging.getLogger(__name__)
 
@@ -46,27 +46,17 @@ def build(output_dir, model_config, data_config):
     settings.
     """
 
-    # We have access to MACHINE_NAME & TAGS env vars
-    # probably need to refactor this more generically after mvp.
-    data_config['tag_list'] = data_config.get(
-        'tag_list',
-        literal_eval(os.environ.get('TAGS', '[]'))
-    ) #remove this if tag_lists is added to DATA_CONFIG environment variable
-    data_config['from_ts'] = data_config.get(
-        'from_ts',
-        dateutil.parser.isoparse(os.environ['TRAIN_START_DATE'])
-    )
-    #remove this if train_start_date is added to DATA_CONFIG environment variable
-    data_config['to_ts'] = data_config.get(
-        'to_ts',
-        dateutil.parser.isoparse(os.environ['TRAIN_END_DATE'])
-    )
-    #remove this if train_end_date is added to DATA_CONFIG environment variable
+    # TODO: Move all data related input from environment variable to data_config,
+    # TODO: thereby removing all these data_config['variable'] lines
 
-    data_config['machine_name'] = data_config.get(
-        'machine_name',
-        os.environ.get('MACHINE_NAME')
-    )
+    data_config['tag_list'] = literal_eval(os.environ.get('TAGS', '[]'))
+    data_config['machine_name'] = os.environ.get('MACHINE_NAME')
+
+    # TODO: Move parsing from here, into the InfluxDataSet class
+    data_config['from_ts'] = dateutil.parser.isoparse(os.environ['TRAIN_START_DATE'])
+
+    # TODO: Move parsing from here, into the InfluxDataSet class
+    data_config['to_ts'] = dateutil.parser.isoparse(os.environ['TRAIN_END_DATE'])
 
     logger.info('Building, output will be at: {}'.format(output_dir))
     logger.info('Model config: {}'.format(model_config))
