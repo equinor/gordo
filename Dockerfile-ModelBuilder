@@ -1,19 +1,29 @@
-FROM python:3.6.6-slim-stretch
+FROM python:3.6.6 as builder
 
-RUN mkdir /data
+# Copy source code
+COPY . /code
+# Copy .git to deduce version number
+COPY .git /code/
+
+WORKDIR /code
+RUN python setup.py sdist && \
+    mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
+
+FROM python:3.6.6-slim-stretch
 
 # Install requirements separately for improved docker caching
 COPY requirements.txt /code/
 RUN pip install -r /code/requirements.txt
 
-# Copy source code
-COPY . /code
-
-# Install gordo-components, packaged from earlier 'python setup.py sdist'
-RUN pip install /code/dist/$(ls /code/dist | head -1)
+ADD build.sh /code/build.sh
 
 # build.sh (build the model) as executable default command
 RUN cp /code/build.sh /usr/bin/build \
     && chmod +x /usr/bin/build
+
+# Install gordo-components, packaged from earlier 'python setup.py sdist'
+COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
+
+RUN pip install ./gordo-components-packed.tar.gz
 
 CMD ["build"]
