@@ -32,11 +32,11 @@ push-prod-images:	push-builder push-server
 
 # Make the python source distribution
 sdist:
-	# Ensure the dist directory is empty/non-existant before sdist
+# Ensure the dist directory is empty/non-existant before sdist
 	rm -rf ./dist/
 	python setup.py sdist
 
-images: sdist model-builder model-server
+images: model-builder model-server
 
 test:
 	python setup.py test
