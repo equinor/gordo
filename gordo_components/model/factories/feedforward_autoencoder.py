@@ -10,7 +10,7 @@ from gordo_components.model.register import register_model_builder
 
 
 @register_model_builder(type="KerasAutoEncoder")
-@register_model_builder(type="KerasModel")
+@register_model_builder(type="KerasBaseEstimator")
 def feedforward_symetric(
         n_features: int,
         enc_dim: List[int] = None,

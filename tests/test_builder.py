@@ -18,7 +18,7 @@ class ModelBuilderTestCase(unittest.TestCase):
 
         with TemporaryDirectory() as tmpdir:
 
-            model_config = {'gordo_components.model.models.KerasModel':
+            model_config = {'gordo_components.model.models.KerasAutoEncoder':
                                 {'kind': 'feedforward_symetric'}
                             }
             data_config = {'type': 'random'}

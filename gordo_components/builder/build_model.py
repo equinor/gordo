@@ -21,7 +21,7 @@ def build_model(output_dir: str, model_config: dict, data_config: dict):
         output_dir: str - The path to the directory to save the trained model
         model_config: dict - mapping of Model to initialize and any additional
                              kwargs which are to be used in it's initialization
-                             Example: {'type': 'KerasModel',
+                             Example: {'type': 'KerasAutoEncoder',
                                        'kind': 'feedforward_symetric'}
         data_config: dict - mapping of the Dataset to initialize, following the
                             same logic as model_config

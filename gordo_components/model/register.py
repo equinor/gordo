@@ -1,7 +1,7 @@
 import logging
 import inspect
 from typing import Dict, Callable, Any
-from gordo_components.model.models import GordoBaseModel
+from gordo_components.model.models import GordoBase
 
 logger = logging.getLogger(__name__)
 
@@ -9,49 +9,49 @@ logger = logging.getLogger(__name__)
 class register_model_builder:
     """
     Decorator to register a function as an available 'type' in supporting
-    factory classes such as gordo_compontents.models._models.KerasModel. 
+    factory classes such as gordo_compontents.models._models.KerasAutoEncoder.
 
     When submitting the config file, it's important that the 'kind' is compatible
     with 'type'. 
 
-    ie. 'type': 'KerasModel' should support the object returned by a given 
+    ie. 'type': 'KerasAutoEncoder' should support the object returned by a given
     decorated function.
 
 
-    Example for KerasModel:
+    Example for KerasAutoEncoder:
 
     from gordo_compontents.models.register import register_model_builder
 
-    @register_model_builder(type='KerasModel')
+    @register_model_builder(type='KerasAutoEncoder')
     def special_keras_model_builder(n_features, ...):
         ...
 
     A valid yaml config would be:
-
-    type: KerasModel
-    kind: special_keras_model_builder
+    model:
+        gordo_components.models.KerasAutoEncoder:
+            kind: special_keras_model_builder
     """
 
     '''
     Mapping of type: kind: function.
     ie.
     {
-        'KerasModel' : {'special_keras_model_builder': <gordo_components.builder.....>},
+        'KerasAutoEncoder' : {'special_keras_model_builder': <gordo_components.builder.....>},
         'ScikitRandomForest': {'special_random_forest': <gordo_components.build....>}
     }
     '''
   
-    factories = dict()  # type: Dict[str, Dict[str, Callable[[int, Any], GordoBaseModel]]]
+    factories = dict()  # type: Dict[str, Dict[str, Callable[[int, Any], GordoBase]]]
 
     def __init__(self, type: str):
         self.type = type
 
-    def __call__(self, build_fn: Callable[[int, Any], GordoBaseModel]):
+    def __call__(self, build_fn: Callable[[int, Any], GordoBase]):
         self._register(self.type, build_fn)
         return build_fn
 
     @classmethod
-    def _register(cls, type: str, build_fn: Callable[[int, Any], GordoBaseModel]):
+    def _register(cls, type: str, build_fn: Callable[[int, Any], GordoBase]):
         """
         Registers a given function as an available factory under
         this type.

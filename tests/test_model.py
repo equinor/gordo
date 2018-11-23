@@ -8,8 +8,8 @@ import numpy as np
 from keras.wrappers.scikit_learn import BaseWrapper
 
 from gordo_components.model import get_model
-from gordo_components.model.models import KerasModel, KerasAutoEncoder
-from gordo_components.model.base import GordoBaseModel
+from gordo_components.model.models import KerasAutoEncoder
+from gordo_components.model.base import GordoBase
 
 
 class KerasModelTestCase(unittest.TestCase):
@@ -19,7 +19,7 @@ class KerasModelTestCase(unittest.TestCase):
         Test creating a keras based model from config
         """
         config = {
-            'type'      : 'KerasModel',
+            'type'      : 'KerasAutoEncoder',
             'kind'      : 'feedforward_symetric',
             'n_features': 10,
             'enc_dim'   : [8, 4, 2],
@@ -30,9 +30,9 @@ class KerasModelTestCase(unittest.TestCase):
 
         # Ensure we can poke the model the same
         model = get_model(config)
-        self.assertIsInstance(model, GordoBaseModel)
+        self.assertIsInstance(model, GordoBase)
         self.assertIsInstance(model, BaseWrapper)
-        self.assertIsInstance(model, KerasModel)
+        self.assertIsInstance(model, KerasAutoEncoder)
 
     def test_keras_autoencoder_type(self):
         config = {
@@ -46,11 +46,11 @@ class KerasModelTestCase(unittest.TestCase):
         }
         model = get_model(config)
         self.assertTrue(isinstance(model, KerasAutoEncoder))
-        self.assertTrue(isinstance(model, KerasModel))
+        self.assertTrue(isinstance(model, GordoBase))
 
     def test_save_load(self):
         config = {
-            'type': 'KerasModel',
+            'type': 'KerasBaseEstimator',
             'kind': 'feedforward_symetric',
             'n_features': 10,
             'enc_dim': [8, 4, 2],
@@ -75,16 +75,16 @@ class KerasModelTestCase(unittest.TestCase):
         model.fit(X)
 
         xTest = np.random.random(size=100).reshape(10, 10)
-        xHat = model.predict(xTest)
+        xHat = model.transform(xTest)
 
         with tempfile.TemporaryDirectory() as tmp:
             model.save_to_dir(tmp)
-            model_clone = KerasModel.load_from_dir(tmp)
+            model_clone = KerasAutoEncoder.load_from_dir(tmp)
 
             # Assert parameters are the same.
             self.assertEqual(model.get_params(), model_clone.get_params())
 
             # Assert it maintained the state by ensuring predictions are the same
             self.assertTrue(
-                np.allclose(xHat.flatten(), model_clone.predict(xTest).flatten())
+                np.allclose(xHat.flatten(), model_clone.transform(xTest).flatten())
             )

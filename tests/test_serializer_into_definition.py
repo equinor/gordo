@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler
 
-from gordo_components.model.models import KerasModel
+from gordo_components.model.models import KerasAutoEncoder
 from gordo_components.serializer import pipeline_into_definition, pipeline_from_definition
 
 
@@ -30,7 +30,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         ('truncsvd', TruncatedSVD(n_components=2))
                     ]))
                 ])),
-                ('ae', KerasModel(kind='feedforward_symetric'))
+                ('ae', KerasAutoEncoder(kind='feedforward_symetric'))
             ]),
 
             # MinMax initialized (wrongly) with a list
@@ -43,7 +43,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         ('truncsvd', TruncatedSVD(n_components=2))
                     ]))
                 ])),
-                ('ae', KerasModel(kind='feedforward_symetric'))
+                ('ae', KerasAutoEncoder(kind='feedforward_symetric'))
             ]),
 
             # MinMax initialized with tuple
@@ -56,7 +56,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         ('truncsvd', TruncatedSVD(n_components=2))
                     ]))
                 ])),
-                ('ae', KerasModel(kind='feedforward_symetric'))
+                ('ae', KerasAutoEncoder(kind='feedforward_symetric'))
             ]),
 
             # First pipeline without explicit steps param, other with.
@@ -69,7 +69,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         ('truncsvd', TruncatedSVD(n_components=2))
                     ]))
                 ])),
-                ('ae', KerasModel(kind='feedforward_symetric'))
+                ('ae', KerasAutoEncoder(kind='feedforward_symetric'))
             ])
         ]
 
@@ -113,7 +113,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                             memory:
                         n_jobs:
                         transformer_weights:
-                    - gordo_components.model.models.KerasModel:
+                    - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_symetric
                 memory:
             """.rstrip().strip().replace(' ', '')
@@ -144,7 +144,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                     ('step_1', TruncatedSVD(n_components=2))
                 ]))
             ])),
-            ('step_2', KerasModel(kind='feedforward_symetric'))
+            ('step_2', KerasAutoEncoder(kind='feedforward_symetric'))
         ])
 
         pipeline_from_definition(pipeline_into_definition(pipe))
@@ -191,7 +191,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                             memory:
                         n_jobs: 1
                         transformer_weights:
-                    - gordo_components.model.models.KerasModel:
+                    - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_symetric
                 memory:
             '''

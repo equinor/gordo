@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import json
 import logging
 from gordo_components import serializer
-from gordo_components.model.base import GordoBaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +34,16 @@ class SeldonModel:
                 f'The supplied directory: "{model_location}" does not exist!')
 
         logger.info(f'Loading up serialized model from dir: {model_location}')
-
         self.model = serializer.load(model_location)
         self.metadata = serializer.load_metadata(model_location)
         logger.info(f'Model loaded successfully, ready to serve predictions!')
 
     def predict(self, X, feature_names=None):
         logger.debug('Feature names: {}'.format(feature_names))
-        return self.model.predict(X)
+        try:
+            return self.model.predict(X)
+        except AttributeError:
+            return self.model.transform(X)
 
     def tags(self):
         return self.metadata
