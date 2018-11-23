@@ -14,12 +14,12 @@ class RegisterTestCase(unittest.TestCase):
         """
         # Fail without required param(s)
         with self.assertRaises(ValueError):
-            @register_model_builder(type='KerasModel')
+            @register_model_builder(type='KerasBaseEstimator')
             def build_fn():
                 pass 
 
         # Pass with required param(s)
-        @register_model_builder(type='KerasModel')
+        @register_model_builder(type='KerasBaseEstimator')
         def build_fn(n_features):
             pass
 
@@ -30,14 +30,14 @@ class RegisterTestCase(unittest.TestCase):
         """
         Ensure the register holds references to multiple funcs
         """
-        @register_model_builder(type='KerasModel')
+        @register_model_builder(type='KerasBaseEstimator')
         def func1(n_features):
             pass
 
-        @register_model_builder(type='KerasModel')
+        @register_model_builder(type='KerasBaseEstimator')
         def func2(n_features):
             pass
 
         self.assertTrue(
-            all(func_name in register_model_builder.factories['KerasModel']
+            all(func_name in register_model_builder.factories['KerasBaseEstimator']
                 for func_name in ['func1', 'func2']))

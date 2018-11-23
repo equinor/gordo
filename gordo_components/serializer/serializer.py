@@ -15,7 +15,7 @@ from typing import Tuple, Union, Dict, Any, IO
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from gordo_components.model.models import GordoBaseModel
+from gordo_components.model.models import GordoBase
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
                  for sub_dir in sub_dirs_to_load]
         return step_name, StepClass(steps, **params)
 
-    # May model implementing load_from_dir method, from GordoBaseModel
+    # May model implementing load_from_dir method, from GordoBase
     elif hasattr(StepClass, 'load_from_dir'):
         return step_name, StepClass.load_from_dir(source_dir)
 
@@ -174,13 +174,13 @@ def dump(obj: object, dest_dir: str, metadata: dict=None):
 
     >>> from sklearn.pipeline import Pipeline
     >>> from sklearn.decomposition import PCA
-    >>> from gordo_components.model.models import KerasModel
+    >>> from gordo_components.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
     >>> pipe = Pipeline([
     ...     # PCA is picklable
     ...     ('pca', PCA(3)),
-    ...     # KerasModel implements both `save_to_dir` and `load_from_dir`
-    ...     ('model', KerasModel(kind='feedforward_symetric'))
+    ...     # KerasAutoEncoder implements both `save_to_dir` and `load_from_dir`
+    ...     ('model', KerasAutoEncoder(kind='feedforward_symetric'))
     ... ])
     >>> serializer.dump(obj=pipe, dest_dir='/tmp/my-model')
     >>> pipe_clone = serializer.load(source_dir='/tmp/my-model')
@@ -204,7 +204,7 @@ def dump(obj: object, dest_dir: str, metadata: dict=None):
 
 
 def _dump_step(
-        step: Tuple[str, Union[GordoBaseModel, TransformerMixin]],
+        step: Tuple[str, Union[GordoBase, TransformerMixin]],
         dest_dir: str,
         n_step: int=0):
     """

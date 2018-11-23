@@ -1,6 +1,6 @@
 ## Public components: 
   - `gordo_components.model.get_model`
-  - `gordo_components.model.base.GordoBaseModel`
+  - `gordo_components.model.base.GordoBase`
 
 ----
 
@@ -10,7 +10,7 @@
 ### Example theoretical use:
 
 ```python
-from keras.models import Model as KerasModel
+from keras.models import Model as KerasAutoEncoder
 from gordo_components.model import get_model
 
 config = {
@@ -18,5 +18,5 @@ config = {
 }
 
 model = get_model(config)
-assert isinstance(model, KerasModel)
+assert isinstance(model, KerasAutoEncoder)
 ```

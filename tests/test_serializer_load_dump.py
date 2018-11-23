@@ -12,7 +12,7 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler
 
-from gordo_components.model.models import KerasModel
+from gordo_components.model.models import KerasAutoEncoder
 from gordo_components import serializer
 
 
@@ -58,7 +58,7 @@ class PipelineSerializationTestCase(unittest.TestCase):
                     ('truncsvd', TruncatedSVD(n_components=7))
                 ]))
             ])),
-            ('ae', KerasModel(kind='feedforward_symetric'))
+            ('ae', KerasAutoEncoder(kind='feedforward_symetric'))
         ])
 
         X = np.random.random(size=100).reshape(10, 10)
@@ -85,8 +85,8 @@ class PipelineSerializationTestCase(unittest.TestCase):
                             ('n_step=001-class=sklearn.decomposition.truncated_svd.TruncatedSVD', 'truncsvd.pkl.gz')
                         ]))
                     ])),
-                    ('n_step=002-class=gordo_components.model.models.KerasModel', 'model.h5'),
-                    ('n_step=002-class=gordo_components.model.models.KerasModel', 'params.json')
+                    ('n_step=002-class=gordo_components.model.models.KerasAutoEncoder', 'model.h5'),
+                    ('n_step=002-class=gordo_components.model.models.KerasAutoEncoder', 'params.json')
                 ]))
             ])
 
@@ -100,13 +100,13 @@ class PipelineSerializationTestCase(unittest.TestCase):
             self.assertEqual(metadata, metadata_clone)
 
             # Verify same state for both pipelines
-            y_hat_pipe1 = pipe.predict(X.copy()).flatten()
-            y_hat_pipe2 = pipe_clone.predict(X.copy()).flatten()
+            y_hat_pipe1 = pipe.transform(X.copy()).flatten()
+            y_hat_pipe2 = pipe_clone.transform(X.copy()).flatten()
             self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
 
     def test_dump_load_keras_directly(self):
 
-        model = KerasModel(kind='feedforward_symetric')
+        model = KerasAutoEncoder(kind='feedforward_symetric')
 
         X = np.random.random(size=100).reshape(10, 10)
         model.fit(X.copy(), X.copy())
@@ -117,6 +117,6 @@ class PipelineSerializationTestCase(unittest.TestCase):
             model_clone = serializer.load(tmp)
 
             self.assertTrue(
-                np.allclose(model.predict(X.copy()).flatten(),
-                            model_clone.predict(X.copy()).flatten())
+                np.allclose(model.transform(X.copy()).flatten(),
+                            model_clone.transform(X.copy()).flatten())
             )

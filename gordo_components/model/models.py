@@ -7,10 +7,13 @@ from os import path
 from contextlib import contextmanager
 
 import keras.backend as K
-from keras.wrappers.scikit_learn import KerasRegressor
-from keras.models import Model as KerasBaseModel
+import numpy as np
+
+from sklearn.base import TransformerMixin
+from keras.wrappers.scikit_learn import BaseWrapper
+import keras.models
 from keras.models import load_model
-from gordo_components.model.base import GordoBaseModel
+from gordo_components.model.base import GordoBase
 
 # This is required to run `register_model_builder` against registered factories
 from gordo_components.model.factories import *
@@ -37,10 +40,10 @@ def possible_tf_mgmt(keras_model):
         yield
 
 
-class KerasModel(KerasRegressor, GordoBaseModel):
+class KerasBaseEstimator(BaseWrapper, GordoBase):
 
     def __init__(self,
-                 kind: Union[str, Callable[[int, Dict[str, Any]], KerasBaseModel]],
+                 kind: Union[str, Callable[[int, Dict[str, Any]], keras.models.Model]],
                  **kwargs) -> None:
         """
         Initialized a Scikit-Learn API compatitble Keras model with a pre-registered function or a builder function
@@ -54,12 +57,12 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         def this_function_returns_a_special_keras_model(n_features, extra_param1, extra_param2):
             ...
 
-        scikit_based_model = KerasModel(kind=this_function_returns_a_special_keras_model,
+        scikit_based_transformer = KerasAutoEncoder(kind=this_function_returns_a_special_keras_model,
                                         extra_param1='special_parameter',
                                         extra_param2='another_parameter')
 
-        scikit_based_model.fit(X, y)
-        scikit_based_model.predict(X)
+        scikit_based_transformer.fit(X, y)
+        scikit_based_transformer.transform(X)
         ```
 
         kind: Union[callable, str] - The structure of the model to build. As designated by any registered builder
@@ -100,6 +103,13 @@ class KerasModel(KerasRegressor, GordoBaseModel):
     def sk_params(self):
         return self.kwargs
 
+    def fit(self, X, y, sample_weight=None, **kwargs):
+        logger.debug(f'Fitting to data of length: {len(X)}')
+        self.kwargs.update({'n_features': X.shape[1]})
+        with possible_tf_mgmt(self):
+            super().fit(X, y, sample_weight=None, **kwargs)
+        return self
+
     def get_params(self, **params):
         params = super().get_params(**params)
         params.update({'kind': self.kind})
@@ -110,23 +120,11 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         with possible_tf_mgmt(self):
             return build_fn(**self.sk_params)
 
-    def fit(self, X, y, sample_weight=None, **kwargs):
-        logger.debug(f'Fitting to data of length: {len(X)}')
-        self.kwargs.update({'n_features': X.shape[1]})
-        with possible_tf_mgmt(self):
-            super().fit(X, y, sample_weight=None, **kwargs)
-        return self
-
-    def predict(self, x, **kwargs):
-        logger.debug(f'Predicting data of length: {len(x)}')
-        with possible_tf_mgmt(self):
-            return super().predict(x, **kwargs)
-
     def save_to_dir(self, directory: str):
         params = self.get_params()
         with open(path.join(directory, 'params.json'), 'w') as f:
             json.dump(params, f)
-        if self.model is not None:
+        if hasattr(self, 'model') and self.model is not None:
             with possible_tf_mgmt(self):
                 self.model.save(path.join(directory, 'model.h5'))
 
@@ -143,9 +141,9 @@ class KerasModel(KerasRegressor, GordoBaseModel):
         return obj
 
 
-class KerasAutoEncoder(KerasModel):
+class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
     """
-    Subclass of the KerasModel to allow fitting to just X without requiring y.
+    Subclass of the KerasBaseEstimator to allow fitting to just X without requiring y.
     """
     def fit(self, X, y=None, **kwargs):
         if y is not None:
@@ -154,3 +152,14 @@ class KerasAutoEncoder(KerasModel):
         y = X.copy()
         super().fit(X, y, **kwargs)
         return self
+
+    def transform(self, X, **kwargs):
+
+        with possible_tf_mgmt(self):
+            xhat = self.model.predict(X, **kwargs)
+
+        results = list()
+        for sample_input, sample_output in zip(X.tolist(), xhat.reshape(X.shape).tolist()):
+            sample_input.extend(sample_output)
+            results.append(sample_input)
+        return np.asarray(results)

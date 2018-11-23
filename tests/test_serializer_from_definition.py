@@ -8,7 +8,7 @@ import copy
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler
-from gordo_components.model.models import KerasModel
+from gordo_components.model.models import KerasAutoEncoder
 
 from gordo_components.serializer import pipeline_from_definition
 
@@ -60,7 +60,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                             memory:
                         n_jobs: 1
                         transformer_weights:
-                    - gordo_components.model.models.KerasModel:
+                    - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_symetric
             ''',
 
@@ -78,7 +78,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                 feature_range: [0, 1]
                             - sklearn.decomposition.truncated_svd.TruncatedSVD:
                                 n_components: 2
-                    - gordo_components.model.models.KerasModel:
+                    - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_symetric
             ''',
 
@@ -120,7 +120,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         memory: /tmp
                     n_jobs: 1
                     transformer_weights:
-                - gordo_components.model.models.KerasModel:
+                - gordo_components.model.models.KerasAutoEncoder:
                     kind: feedforward_symetric
             '''
         ]
@@ -174,7 +174,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         self.assertIsInstance(sub_pipeline.steps[1][1], TruncatedSVD)
         self.assertEqual(sub_pipeline.steps[1][1].n_components, 2)
 
-        # STEP 3 TEST:  Finally, the last step should be a KerasModel
+        # STEP 3 TEST:  Finally, the last step should be a KerasBaseEstimator
         step3 = pipe.steps[2][1]
-        self.assertIsInstance(step3, KerasModel)
+        self.assertIsInstance(step3, KerasAutoEncoder)
         self.assertTrue(step3.kind, 'feedforward_symetric')
