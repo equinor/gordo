@@ -7,7 +7,7 @@ import io
 
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 
 from gordo_components.model.models import KerasAutoEncoder
 from gordo_components.serializer import pipeline_into_definition, pipeline_from_definition
@@ -135,6 +135,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
         """
         Pass Pipeline into definition, and then from that definition
         """
+        from gordo_components.model.transformer_funcs.general import multiply_by
         pipe = Pipeline([
             ('step_0', PCA(n_components=2)),
             ('step_1', FeatureUnion([
@@ -144,7 +145,8 @@ class PipelineToConfigTestCase(unittest.TestCase):
                     ('step_1', TruncatedSVD(n_components=2))
                 ]))
             ])),
-            ('step_2', KerasAutoEncoder(kind='feedforward_symetric'))
+            ('step_2', FunctionTransformer(func=multiply_by, kw_args={'factor': 1})),
+            ('step_3', KerasAutoEncoder(kind='feedforward_symetric'))
         ])
 
         pipeline_from_definition(pipeline_into_definition(pipe))
@@ -165,6 +167,13 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         tol: 0.0
                         iterated_power: auto
                         random_state:
+                    - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                        func: gordo_components.model.transformer_funcs.general.multiply_by
+                        kw_args:
+                            factor: 1
+                        inverse_func: gordo_components.model.transformer_funcs.general.multiply_by
+                        inv_kw_args:
+                            factor: 1
                     - sklearn.pipeline.FeatureUnion:
                         transformer_list:
                         - sklearn.decomposition.pca.PCA:
