@@ -23,6 +23,33 @@ N_STEP_REGEX = re.compile(r'.*n_step=([0-9]+)')
 CLASS_REGEX  = re.compile(r'.*class=(.*$)')
 
 
+def load_metadata(source_dir: str) -> dict:
+    """
+    Load the given metadata.json which was saved during the `serializer.dump`
+    will return the loaded metadata as a dict, or empty dict if no file was found
+
+    Parameters
+    ----------
+        source_dir: str - Directory of the saved model, As with serializer.load(source_dir)
+                          this source_dir can be the top level, or the first dir
+                          into the serialized model.
+
+    Returns
+    -------
+        dict
+    """
+    # Since this function can take the top level dir, or a dir directly
+    # into the first step of the pipeline, we need to check both for metadata
+    for possible_path in [path.join(source_dir, 'metadata.json'),
+                          path.join(source_dir, '..', 'metadata.json')]:
+        if path.isfile(possible_path):
+            with open(possible_path, 'r') as f:
+                return json.load(f)
+    logger.warning(f'Metadata file in source dir: "{source_dir}" not found'
+                   f' in or up one directory.')
+    return dict()
+
+
 def load(source_dir: str) -> Any:
     """
     Load an object from a directory, saved by
@@ -134,7 +161,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
             return step_name, pickle.load(f)
 
 
-def dump(obj: object, dest_dir: str):
+def dump(obj: object, dest_dir: str, metadata: dict=None):
     """
     Serialize an object into a directory
 
@@ -160,12 +187,19 @@ def dump(obj: object, dest_dir: str):
 
     Parameters
     ----------
-        obj: object - The object which to dump. Must be picklable or implement
+        obj: object - The object to dump. Must be picklable or implement
                       a `save_to_dir` AND `load_from_dir` method.
+        dest_dir: str - The directory to which to save the model
+        metadata: dict - any additional metadata to be saved alongside this model
+                         if it exists, will be returned from the corresponding
+                         "load" function
     Returns
     -------
         None
     """
+    if metadata is not None:
+        with open(os.path.join(dest_dir, 'metadata.json'), 'w') as f:
+            json.dump(metadata, f, default=str)
     _dump_step(step=('obj', obj), n_step=0, dest_dir=dest_dir)
 
 

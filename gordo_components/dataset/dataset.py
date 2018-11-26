@@ -5,6 +5,7 @@ from gordo_components.dataset._datasets import (
 )
 
 
+# TODO: We should get from the module `datasets` directly, as we do with models
 AVAILABLE_DATASETS = {
     'random': RandomDataset,
     'influx': InfluxBackedDataset

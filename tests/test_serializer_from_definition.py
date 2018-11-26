@@ -82,7 +82,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         kind: feedforward_symetric
             ''',
 
-            # Define pipeline memory with something other than None
+            # Define pipeline memory with something other than None w/o metadata
             '''
             sklearn.pipeline.Pipeline:
                 steps:
