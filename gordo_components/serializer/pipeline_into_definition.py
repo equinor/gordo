@@ -2,9 +2,10 @@
 
 import inspect
 import logging
-from typing import Iterable
+from typing import Iterable, Any, Dict, Union, List
 
 from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import FunctionTransformer
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ def _decompose_node(step: object, prune_default_params: bool=False):
     import_str = f'{step.__module__}.{step.__class__.__name__}'
     init_params = inspect.getfullargspec(step.__class__.__init__).args
 
-    params = dict()
+    params = dict()  # type: Dict[str, Union[str, int, float, List[Dict[str, Dict[str, Union[str, int, float]]]]]]
 
     for param in [p for p in init_params if p != 'self']:
 
@@ -67,6 +68,12 @@ def _decompose_node(step: object, prune_default_params: bool=False):
                 and param in ['steps', 'transformer_list'] \
                 and any(isinstance(step, Obj) for Obj in [FeatureUnion, Pipeline]):
             params[param] = [_decompose_node(leaf[1]) for leaf in param_val]
+
+        # Handle FunctionTransformer function object type parameters
+        elif isinstance(step, FunctionTransformer) and param in ['func', 'inverse_func'] and callable(param_val):
+            # param_val is a function for FunctionTransformer.func init param
+            params[param] = f'{param_val.__module__}.{param_val.__name__}'
+
         else:
             params[param] = param_val
     params = _prune_default_parameters(step, params) if prune_default_params else params

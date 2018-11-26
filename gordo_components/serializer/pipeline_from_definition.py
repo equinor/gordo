@@ -5,6 +5,7 @@ import pydoc
 import copy
 from typing import List, Union, Dict, Any, Optional, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import FunctionTransformer
 from sklearn.base import BaseEstimator
 
 
@@ -130,6 +131,15 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
                     f'Got {StepClass} but the supplied parameters'
                     f'seem invalid: {params}')
 
+        # FunctionTransformer needs to have its `func` param loaded from
+        # gordo_components
+        elif StepClass == FunctionTransformer:
+            for func_arg in ['func', 'inverse_func']:
+                if params.get(func_arg) is not None:
+                    func = pydoc.locate(params[func_arg])
+                    if func is None:
+                        raise ValueError(f'Was unable to locate function: {params[func_arg]}')
+                    params[func_arg] = func
         return StepClass(**params)
 
     # If step is just a string, can initialize it without any params

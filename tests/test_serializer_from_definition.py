@@ -7,10 +7,11 @@ import copy
 
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.preprocessing import MinMaxScaler
-from gordo_components.model.models import KerasAutoEncoder
+from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 
+from gordo_components.model.models import KerasAutoEncoder
 from gordo_components.serializer import pipeline_from_definition
+import gordo_components.model.transformer_funcs.general
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,10 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         tol: 0.0
                         iterated_power: auto
                         random_state:
+                    - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                        func: gordo_components.model.transformer_funcs.general.multiply_by
+                        kw_args:
+                            factor: 1
                     - sklearn.pipeline.FeatureUnion:
                         transformer_list:
                         - sklearn.decomposition.pca.PCA:
@@ -70,6 +75,10 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                 steps:
                     - sklearn.decomposition.pca.PCA:
                         n_components: 2
+                    - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                        func: gordo_components.model.transformer_funcs.general.multiply_by
+                        kw_args:
+                            factor: 1
                     - sklearn.pipeline.FeatureUnion:
                         - sklearn.decomposition.pca.PCA:
                             n_components: 3
@@ -94,6 +103,10 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                     tol: 0.0
                     iterated_power: auto
                     random_state:
+                - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                        func: gordo_components.model.transformer_funcs.general.multiply_by
+                        kw_args:
+                            factor: 1
                 - sklearn.pipeline.FeatureUnion:
                     transformer_list:
                     - sklearn.decomposition.pca.PCA:
@@ -140,7 +153,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
             # Special tests that defining non-default argument holds for a
             # 'key:  ' is evaled to 'key=None'
             if 'memory: /tmp' in raw_yaml:
-                self.assertEqual(pipe.steps[1][1].transformer_list[1][1].memory, '/tmp')
+                self.assertEqual(pipe.steps[2][1].transformer_list[1][1].memory, '/tmp')
             self._verify_pipe(pipe)
 
     def _verify_pipe(self, pipe):
@@ -155,16 +168,21 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         self.assertIsInstance(step1, PCA)
         self.assertEqual(step1.n_components, 2)
 
-        # STEP 2 TEST: Test expected FeatureUnion Step
+        # STEP 2 TEST: Test expected FunctionTransformer step
         step2 = pipe.steps[1][1]
-        self.assertIsInstance(step2, FeatureUnion)
+        self.assertIsInstance(step2, FunctionTransformer)
+        self.assertEqual(step2.func, gordo_components.model.transformer_funcs.general.multiply_by)
+
+        # STEP 3 TEST: Test expected FeatureUnion Step
+        step3 = pipe.steps[2][1]
+        self.assertIsInstance(step3, FeatureUnion)
 
         # First transformer of feature_transformers should be PCA(n_components=3)
-        self.assertIsInstance(step2.transformer_list[0][1], PCA)
-        self.assertEqual(step2.transformer_list[0][1].n_components, 3)
+        self.assertIsInstance(step3.transformer_list[0][1], PCA)
+        self.assertEqual(step3.transformer_list[0][1].n_components, 3)
 
-        # Second transformer in feature_transformers should be Pipeline
-        sub_pipeline = step2.transformer_list[1][1]
+        # Third transformer in feature_transformers should be Pipeline
+        sub_pipeline = step3.transformer_list[1][1]
         self.assertIsInstance(sub_pipeline, Pipeline)
 
         # First step in the sub pipeline is MinMaxScalar
@@ -174,7 +192,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         self.assertIsInstance(sub_pipeline.steps[1][1], TruncatedSVD)
         self.assertEqual(sub_pipeline.steps[1][1].n_components, 2)
 
-        # STEP 3 TEST:  Finally, the last step should be a KerasBaseEstimator
-        step3 = pipe.steps[2][1]
-        self.assertIsInstance(step3, KerasAutoEncoder)
-        self.assertTrue(step3.kind, 'feedforward_symetric')
+        # STEP 4 TEST:  Finally, the last step should be a KerasModel
+        step4 = pipe.steps[3][1]
+        self.assertIsInstance(step4, KerasAutoEncoder)
+        self.assertTrue(step4.kind, 'feedforward_symetric')
