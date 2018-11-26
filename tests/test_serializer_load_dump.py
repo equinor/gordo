@@ -67,10 +67,12 @@ class PipelineSerializationTestCase(unittest.TestCase):
         with TemporaryDirectory() as tmp:
 
             # Test dump
-            serializer.dump(pipe, tmp)
+            metadata = {'key': 'value'}
+            serializer.dump(pipe, tmp, metadata=metadata)
 
             # Assert that a dirs are created for each step in Pipeline
             expected_structure = OrderedDict([
+                ('n_step=000-class=sklearn.pipeline.Pipeline', 'metadata.json'),
                 ('n_step=000-class=sklearn.pipeline.Pipeline', OrderedDict([
                     ('n_step=000-class=sklearn.decomposition.pca.PCA', 'pca1.pkl.gz'),
 
@@ -92,6 +94,10 @@ class PipelineSerializationTestCase(unittest.TestCase):
 
             # Test load from the serialized pipeline above
             pipe_clone = serializer.load(tmp)
+            metadata_clone = serializer.load_metadata(tmp)
+
+            # Ensure the metadata was saved and loaded back
+            self.assertEqual(metadata, metadata_clone)
 
             # Verify same state for both pipelines
             y_hat_pipe1 = pipe.predict(X.copy()).flatten()

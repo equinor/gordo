@@ -128,7 +128,8 @@ class PipelineToConfigTestCase(unittest.TestCase):
             stream.seek(0)
 
             current_output = stream.read().rstrip().strip().replace(' ', '')
-            self.assertEqual(current_output, expected_definition)
+            self.assertEqual(current_output, expected_definition,
+                             msg=f'Failed output:\n{current_output}\nExpected:----------------\n{expected_definition}')
 
     def test_into_from(self):
         """
@@ -195,4 +196,5 @@ class PipelineToConfigTestCase(unittest.TestCase):
                 memory:
             '''
         definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
-        pipeline_into_definition(pipeline_from_definition(definition))
+        pipe = pipeline_from_definition(definition)
+        pipeline_into_definition(pipe)

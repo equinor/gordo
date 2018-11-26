@@ -22,7 +22,7 @@ class InfluxBackedDataset(GordoBaseDataset):
                  to_ts,
                  machine_name=None,
                  tag_list=None,
-                 resolution="10m", 
+                 resolution="10m",
                  resample=True,
                  **kwargs):
         """
@@ -56,11 +56,11 @@ class InfluxBackedDataset(GordoBaseDataset):
         """
         Parameters
         ----------
-            tag: str - The tag attached to the timeseries 
+            tag: str - The tag attached to the timeseries
 
         Returns
         -------
-            One column DataFrame 
+            One column DataFrame
         """
 
         logger.info("Reading tag: {}".format(tag))

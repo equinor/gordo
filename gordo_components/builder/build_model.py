@@ -3,8 +3,9 @@
 import os
 import logging
 import joblib
+import copy
 
-from gordo_components import serializer
+from gordo_components import serializer, __version__
 from gordo_components.dataset import get_dataset
 
 

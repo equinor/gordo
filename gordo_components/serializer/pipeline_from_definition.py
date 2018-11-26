@@ -96,6 +96,7 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
     # and an associated dict containing parameters for the desired
     # sklearn step. ie. {'sklearn.preprocessing.PCA': {'n_components': 2}}
     if isinstance(step, dict):
+
         if len(step.keys()) != 1:
             raise ValueError(f"Step should have a single key, "
                              f"found multiple: {step.keys()}")
@@ -104,6 +105,9 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
         params = step.get(import_str, dict())
 
         StepClass = pydoc.locate(import_str)
+
+        if StepClass is None:
+            raise ImportError(f'Could not locate path: "{import_str}"')
 
         # FeatureUnion or another Pipeline transformer
         if any(StepClass == obj for obj in [FeatureUnion, Pipeline]):
@@ -125,6 +129,7 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
                 raise ValueError(
                     f'Got {StepClass} but the supplied parameters'
                     f'seem invalid: {params}')
+
         return StepClass(**params)
 
     # If step is just a string, can initialize it without any params
