@@ -2,6 +2,7 @@
 
 import logging
 import pydoc
+import copy
 from typing import List, Union, Dict, Any, Optional, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
@@ -47,7 +48,9 @@ def pipeline_from_definition(pipe_definition: Union[str, Dict[str, Dict[str, Any
     -------
         sklearn.pipeline.Pipeline
     """
-    return _build_step(pipe_definition)
+    # Avoid some mutation
+    definition = copy.deepcopy(pipe_definition)
+    return _build_step(definition)
 
 
 def _build_branch(definition: Iterable[Union[str, Dict[Any, Any]]],
