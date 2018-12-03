@@ -16,6 +16,14 @@ class SeldonModel:
     The Seldon model
     """
     def __init__(self):
+
+        # Set log level, defaulting to DEBUG
+        log_level = logging.getLevelName(os.getenv('LOG_LEVEL', 'DEBUG').upper())
+        if not isinstance(log_level, int):
+            log_level = logging.DEBUG
+        logger.setLevel(log_level)
+        logging.getLogger('gordo_components').setLevel(log_level)
+
         logger.debug('Loading model...')
         model_location = os.getenv('MODEL_LOCATION')
         print('MODEL_LOCATION value: {}'.format(model_location))
