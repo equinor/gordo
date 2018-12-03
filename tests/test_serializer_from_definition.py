@@ -3,6 +3,7 @@
 import logging
 import unittest
 import yaml
+import copy
 
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.pipeline import FeatureUnion, Pipeline
@@ -130,7 +131,11 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
             config = yaml.load(raw_yaml)
             logger.debug('{}'.format(config))
 
+            config_clone = copy.deepcopy(config)  # To ensure no mutation occurs
             pipe = pipeline_from_definition(config)
+
+            # Test that the original config matches the one passed; no mutation
+            self.assertEqual(config, config_clone)
 
             # Special tests that defining non-default argument holds for a
             # 'key:  ' is evaled to 'key=None'
