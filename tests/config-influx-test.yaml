@@ -1,0 +1,17 @@
+machines:
+  CT-23-KbBBerik1234g:
+    tags:
+        - TRC-FIQ -23-0453N
+        - TRC-FIQ -80-0303N
+        - TRC-FIQ -80-0703N
+        - TRC-FIQ -80-0704N
+    train_start_date: 2016-01-15T13:03:04+02:00
+    train_end_date: 2018-03-11T11:05:10+02:00
+  CT-23-KbBBerik1235g:
+    tags:
+        - TRC-FIQ -23-0453N
+        - TRC-FIQ -80-0303N
+        - TRC-FIQ -80-0703N
+        - TRC-FIQ -80-0705N
+    train_start_date: 2016-01-15T13:03:04+02:00
+    train_end_date: 2018-03-11T11:05:10+02:00

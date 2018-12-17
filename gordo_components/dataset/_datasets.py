@@ -76,21 +76,27 @@ class InfluxBackedDataset(GordoBaseDataset):
         logger.info("Query string: {}".format(query_string))
         dataframes = self.influx_client.query(query_string)
 
+        list_of_tags = self._list_of_tags_from_influx()
+        if tag not in list_of_tags:
+            raise ValueError (f'tag {tag} is not a valid tag.  List of tags = {list_of_tags}')
+
         try:
             vals = dataframes.values()
             result = list(vals)[0]
             return result
 
-        except (KeyError, IndexError):
-            logger.error("Unable to find series with tag: {}".format(tag))
+        except IndexError as e:
+            logger.error(f"Unable to find data for tag {tag} in the time range {self.from_ts} - {self.to_ts}")
+            raise e
 
-    def database_exists(self, database):
-        """
-        Helper: determine if a given database exists in the current influxdb connection
-        """
-        return any(
-            entry['name'] == database for entry in self.influx_client.get_list_database()
-        )
+    def _list_of_tags_from_influx(self):
+        query_tags = f'''SHOW TAG VALUES ON {self.influx_config["database"]} WITH KEY="tag" '''
+        result = self.influx_client.query(query_tags)
+        list_of_tags = []
+        for item in list(result.get_points()):
+            list_of_tags.append(item['value'])
+        return list_of_tags
+
 
     def _get_sensor_data(self):
         """
