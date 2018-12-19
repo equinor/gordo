@@ -2,7 +2,6 @@ export DOCKER_REGISTRY := auroradevacr.azurecr.io
 
 MODEL_BUILDER_IMG_NAME := gordo-components/gordo-model-builder
 MODEL_SERVER_IMG_NAME  := gordo-components/gordo-model-server
-MODEL_SERVER_BASE_IMG  := gordo-components/gordo-serverbase
 
 # Create the image capable to building/training a model
 model-builder:
@@ -10,9 +9,7 @@ model-builder:
 
 # Create the image which serves built models
 model-server:
-	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_BASE_IMG)
-	cd ./gordo_components/runtime && s2i build . -e HTTPS_PROXY=$(HTTPS_PROXY) \
-	 $(MODEL_SERVER_BASE_IMG) $(MODEL_SERVER_IMG_NAME)
+	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_IMG_NAME)
 
 push-server: model-server
 	export DOCKER_NAME=$(MODEL_SERVER_IMG_NAME);\

@@ -10,7 +10,7 @@ RUN rm -rf /code/dist \
     && python setup.py sdist \
     && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
 
-FROM seldonio/seldon-core-s2i-python3:0.3
+FROM python:3.6.6
 
 # Install requirements separately for improved docker caching
 COPY requirements.txt /code/
@@ -20,3 +20,5 @@ COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
 
 # Install gordo-components, packaged from earlier 'python setup.py sdist'
 RUN pip install ./gordo-components-packed.tar.gz
+
+CMD ["gordo-components", "run-server", "--host", "0.0.0.0", "--port", "5555"]

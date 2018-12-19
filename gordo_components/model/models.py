@@ -147,8 +147,8 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
     """
     def fit(self, X, y=None, **kwargs):
         if y is not None:
-            logger.warn(f'This is an AutoEncoder and does not care about a '
-                        f'target, but a y was supplied. It will be ignored!')
+            logger.warning(f'This is an AutoEncoder and does not care about a '
+                           f'target, but a y was supplied. It will be ignored!')
         y = X.copy()
         super().fit(X, y, **kwargs)
         return self
