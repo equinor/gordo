@@ -11,9 +11,14 @@ from ast import literal_eval
 import yaml
 import click
 from gordo_components.builder import build_model
+from gordo_components.server import server
 
 import dateutil.parser
 
+# Set log level, defaulting to DEBUG
+log_level = os.getenv('LOG_LEVEL', 'DEBUG').upper()
+logging.basicConfig(level=getattr(logging, log_level),
+                    format='[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -69,4 +74,12 @@ def build(output_dir, model_config, data_config):
     return 0
 
 
+@click.command('run-server')
+@click.option('--host', type=str, help='The host to run the server on.')
+@click.option('--port', type=int, help='The port to run the server on.')
+def run_server_cli(host, port):
+    server.run_server(host, port)
+
+
 gordo.add_command(build)
+gordo.add_command(run_server_cli)

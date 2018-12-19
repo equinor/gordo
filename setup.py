@@ -13,7 +13,8 @@ install_requires = [
     'python-dateutil~=2.7',
     'requests~=2.20',
     'scikit-learn~=0.20',
-    'tensorflow~=1.12'
+    'tensorflow~=1.12',
+    'Flask~=1.0',
 ]
 
 setup_requirements = ['pytest-runner', 'setuptools_scm']
