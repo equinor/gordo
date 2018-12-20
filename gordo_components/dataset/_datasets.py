@@ -65,9 +65,10 @@ class InfluxBackedDataset(GordoBaseDataset):
 
         logger.info("Reading tag: {}".format(tag))
         logger.info("Fetching data from {} to {}".format(self.from_ts, self.to_ts))
+        measurement = self.influx_config["database"]
         query_string = f'''
             SELECT {'mean("Value")' if self.resample else '"Value"'} as "{tag}" 
-            FROM "{self.influx_config["database"]}" 
+            FROM "{measurement}" 
             WHERE("tag" =~ /^{tag}$/) 
                 {f"AND time >= {int(self.from_ts.timestamp())}s" if self.from_ts else ""} 
                 {f"AND time <= {int(self.to_ts.timestamp())}s" if self.to_ts else ""} 
@@ -100,12 +101,6 @@ class InfluxBackedDataset(GordoBaseDataset):
 
     def _get_sensor_data(self):
         """
-        Args:
-            machine: The machine configuration to read data for
-            influx_config: Configuration of influx connection
-            from_ts: Timestamp telling from which time to fetch data (optional)
-            to_ts: Timestamp telling to which time to fetch data (optional)
-            resolution: Desired resolution for the results eg. '10m', '10s',...
         Returns:
             A single dataframe with all sensors. Note, due to potential leading
             NaNs (which are removed) the from_ts might differ from the
