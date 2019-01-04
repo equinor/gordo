@@ -10,7 +10,7 @@ RUN rm -rf /code/dist \
     && python setup.py sdist \
     && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
 
-FROM python:3.6.8
+FROM python:3.6.8-slim-stretch
 
 # Install requirements separately for improved docker caching
 COPY requirements.txt /code/
