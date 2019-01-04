@@ -16,6 +16,7 @@ FROM python:3.6.8-slim-stretch
 COPY requirements.txt /code/
 RUN pip install -r /code/requirements.txt
 
+# Install gordo-components, packaged from earlier 'python setup.py sdist'
 COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
 
 # Install gordo-components, packaged from earlier 'python setup.py sdist'
