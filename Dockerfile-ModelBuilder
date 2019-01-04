@@ -16,15 +16,16 @@ FROM python:3.6.8-slim-stretch
 COPY requirements.txt /code/
 RUN pip install -r /code/requirements.txt
 
+# Install gordo-components, packaged from earlier 'python setup.py sdist'
+COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
+
+# Install gordo-components, packaged from earlier 'python setup.py sdist'
+RUN pip install ./gordo-components-packed.tar.gz
+
 ADD build.sh /code/build.sh
 
 # build.sh (build the model) as executable default command
 RUN cp /code/build.sh /usr/bin/build \
     && chmod +x /usr/bin/build
-
-# Install gordo-components, packaged from earlier 'python setup.py sdist'
-COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
-
-RUN pip install ./gordo-components-packed.tar.gz
 
 CMD ["build"]
