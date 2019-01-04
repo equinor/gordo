@@ -55,7 +55,6 @@ def build(output_dir, model_config, data_config):
     # TODO: thereby removing all these data_config['variable'] lines
 
     data_config['tag_list'] = literal_eval(os.environ.get('TAGS', '[]'))
-    data_config['machine_name'] = os.environ.get('MACHINE_NAME')
 
     # TODO: Move parsing from here, into the InfluxDataSet class
     data_config['from_ts'] = dateutil.parser.isoparse(os.environ['TRAIN_START_DATE'])
