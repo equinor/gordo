@@ -1,4 +1,4 @@
-FROM python:3.6.6 as builder
+FROM python:3.6.8 as builder
 
 # Copy source code
 COPY . /code
@@ -10,7 +10,7 @@ RUN rm -rf /code/dist \
     && python setup.py sdist \
     && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
 
-FROM python:3.6.6
+FROM python:3.6.8
 
 # Install requirements separately for improved docker caching
 COPY requirements.txt /code/
