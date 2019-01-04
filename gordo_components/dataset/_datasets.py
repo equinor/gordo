@@ -4,7 +4,6 @@ import logging
 import numpy as np
 import pandas as pd
 
-from collections import namedtuple
 from datetime import timedelta
 from influxdb import DataFrameClient
 from gordo_components.dataset.base import GordoBaseDataset
@@ -14,13 +13,11 @@ logger = logging.getLogger(__name__)
 
 class InfluxBackedDataset(GordoBaseDataset):
 
-    Machine = namedtuple('Machine', ['machine_name', 'tag_list'])
 
     def __init__(self,
                  influx_config,
                  from_ts,
                  to_ts,
-                 machine_name=None,
                  tag_list=None,
                  resolution="10m",
                  resample=True,
@@ -32,7 +29,6 @@ class InfluxBackedDataset(GordoBaseDataset):
         ----------
             influx_config: dict - Configuration for InfluxDB connection with keys:
                 host, port, username, password, database
-            machine_id: str
             tag_list: List[str] - List of tags
             from_ts: timestamp: start date of training period
             to_ts  : timestamp: end date of training period
@@ -40,7 +36,7 @@ class InfluxBackedDataset(GordoBaseDataset):
             resample: bool - Whether to resample.
         """
         self.to_ts = to_ts
-        self.machine = self.Machine(machine_name, tag_list)
+        self.tag_list = tag_list
         self.from_ts = from_ts
         self.resample = resample
         self.resolution = resolution
@@ -106,13 +102,12 @@ class InfluxBackedDataset(GordoBaseDataset):
             NaNs (which are removed) the from_ts might differ from the
             resulting first timestamp in the dataframe
         """
-        if self.machine.tag_list is None:
-            self.machine.tag_list = []
+        if self.tag_list is None:
+            self.tag_list = []
 
-        logger.info("Getting data for machine {}".format(self.machine.machine_name))
-        logger.info("Taglist:\n{}".format(self.machine.tag_list))
+        logger.info("Taglist:\n{}".format(self.tag_list))
         sensors = []
-        for tag in self.machine.tag_list:
+        for tag in self.tag_list:
             single_sensor = self.read_single_sensor(tag)
             sensors.append(single_sensor)
 
