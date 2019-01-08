@@ -2,6 +2,7 @@ export DOCKER_REGISTRY := auroradevacr.azurecr.io
 
 MODEL_BUILDER_IMG_NAME := gordo-components/gordo-model-builder
 MODEL_SERVER_IMG_NAME  := gordo-components/gordo-model-server
+WATCHMAN_IMG_NAME := gordo-components/gordo-watchman
 
 # Create the image capable to building/training a model
 model-builder:
@@ -10,6 +11,10 @@ model-builder:
 # Create the image which serves built models
 model-server:
 	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_IMG_NAME)
+
+# Create the image which reports status of expected model endpoints for the project
+watchman:
+	docker build . -f Dockerfile-Watchman -t $(WATCHMAN_IMG_NAME)
 
 push-server: model-server
 	export DOCKER_NAME=$(MODEL_SERVER_IMG_NAME);\
@@ -21,11 +26,16 @@ push-builder: model-builder
 	export DOCKER_IMAGE=$(MODEL_BUILDER_IMG_NAME);\
 	./docker_push.sh
 
+push-watchman: watchman
+	export DOCKER_NAME=$(WATCHMAN_IMG_NAME);\
+	export DOCKER_IMAGE=$(WATCHMAN_IMG_NAME);\
+	./docker_push.sh
+
 # Publish images to the currently logged in docker repo
-push-dev-images: push-builder push-server
+push-dev-images: push-builder push-server push-watchman
 
 push-prod-images: export GORDO_PROD_MODE:="true"
-push-prod-images: push-builder push-server
+push-prod-images: push-builder push-server push-watchman
 
 # Make the python source distribution
 sdist:
@@ -33,7 +43,7 @@ sdist:
 	rm -rf ./dist/
 	python setup.py sdist
 
-images: model-builder model-server
+images: model-builder model-server watchman
 
 test:
 	python setup.py test
