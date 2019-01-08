@@ -176,14 +176,16 @@ def dump(obj: object, dest_dir: str, metadata: dict=None):
     >>> from sklearn.decomposition import PCA
     >>> from gordo_components.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
+    >>> from tempfile import TemporaryDirectory
     >>> pipe = Pipeline([
     ...     # PCA is picklable
     ...     ('pca', PCA(3)),
     ...     # KerasAutoEncoder implements both `save_to_dir` and `load_from_dir`
     ...     ('model', KerasAutoEncoder(kind='feedforward_symetric'))
     ... ])
-    >>> serializer.dump(obj=pipe, dest_dir='/tmp/my-model')
-    >>> pipe_clone = serializer.load(source_dir='/tmp/my-model')
+    >>> with TemporaryDirectory() as tmp:
+    ...     serializer.dump(obj=pipe, dest_dir=tmp)
+    ...     pipe_clone = serializer.load(source_dir=tmp)
 
     Parameters
     ----------
