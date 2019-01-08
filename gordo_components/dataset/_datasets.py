@@ -124,6 +124,13 @@ class InfluxBackedDataset(GordoBaseDataset):
 
         return all_tags
 
+    def get_metadata(self):
+        metadata = {'tag_list': self.tag_list,
+                    'train_start_date': self.from_ts,
+                    'train_end_date': self.to_ts}
+        return metadata
+
+
 
 class RandomDataset(GordoBaseDataset):
     """
@@ -140,3 +147,8 @@ class RandomDataset(GordoBaseDataset):
             size=self.size * self.n_features).reshape(-1, self.n_features)
         y = np.random.random(size=self.size).astype(int)
         return X, X.copy()
+
+    def get_metadata(self):
+        metadata = {'size': self.size,
+                    'n_features': self.n_features}
+        return metadata
