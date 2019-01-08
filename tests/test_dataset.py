@@ -24,9 +24,13 @@ class DatasetTestCase(unittest.TestCase):
         self.assertTrue(isinstance(dataset, GordoBaseDataset))
         self.assertTrue(isinstance(dataset, RandomDataset))
         self.assertTrue(hasattr(dataset, 'get_data'))
+        self.assertTrue(hasattr(dataset, 'get_metadata'))
         
         X, y = dataset.get_data()
         self.assertTrue(isinstance(X, np.ndarray))
 
         # y can either be None or an numpy array
         self.assertTrue(isinstance(y, np.ndarray) or y is None)
+
+        metadata = dataset.get_metadata()
+        self.assertTrue(isinstance(metadata,dict))

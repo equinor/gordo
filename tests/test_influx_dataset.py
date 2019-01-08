@@ -14,6 +14,7 @@ from influxdb import InfluxDBClient
 from click.testing import CliRunner
 
 from gordo_components.dataset._datasets import InfluxBackedDataset
+from gordo_components.dataset import get_dataset
 
 import pytest
 
@@ -146,3 +147,27 @@ class PredictionInfluxTestCase(unittest.TestCase):
         tags = set(list_of_tags)
         self.assertTrue(expected_tags==tags,msg=f'Expected tags = {expected_tags}'
                                                 f'outputted {tags}')
+
+    def test_influx_dataset_attrs(self):
+        """
+        Test expected attributes
+        """
+        from_ts = '2016-01-01T09:11:00+00:00'
+        to_ts = '2016-01-01T10:30:00+00:00'
+        from_ts = dateutil.parser.isoparse(from_ts)
+        to_ts = dateutil.parser.isoparse(to_ts)
+        influx_config = self.influx_config
+        tag_list = ['TRC-FIQ -23-0453N', 'TRC-FIQ -80-0303N',
+                    'TRC-FIQ -80-0703N', 'TRC-FIQ -80-0704N']
+        config = {
+            'type': 'influx',
+            'from_ts': from_ts,
+            'to_ts': to_ts,
+            'influx_config': influx_config,
+            'tag_list': tag_list
+        }
+        dataset = get_dataset(config)
+        self.assertTrue(hasattr(dataset, 'get_metadata'))
+
+        metadata = dataset.get_metadata()
+        self.assertTrue(isinstance(metadata, dict))
