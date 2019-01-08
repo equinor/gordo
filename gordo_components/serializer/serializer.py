@@ -199,11 +199,10 @@ def dump(obj: object, dest_dir: str, metadata: dict=None):
     -------
         None
     """
+    _dump_step(step=('obj', obj), n_step=0, dest_dir=dest_dir)
     if metadata is not None:
         with open(os.path.join(dest_dir, 'metadata.json'), 'w') as f:
             json.dump(metadata, f, default=str)
-    _dump_step(step=('obj', obj), n_step=0, dest_dir=dest_dir)
-
 
 def _dump_step(
         step: Tuple[str, Union[GordoBase, TransformerMixin]],

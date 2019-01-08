@@ -15,4 +15,10 @@ class GordoBaseDataset:
     def get_data(self):
         """
         Using initialized params, returns X, y as numpy arrays.
+
+        """
+    @abc.abstractmethod
+    def get_metadata(self):
+        """
+        Returns metadata (e.g. tag_list, train_start_date, train_end_date in InfluxBackedDataset class)
         """
