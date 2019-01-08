@@ -9,23 +9,27 @@ astor==0.7.1              # via tensorflow
 certifi==2018.10.15       # via requests
 chardet==3.0.4            # via requests
 click==7.0
+flask==1.0.2
 gast==0.2.0               # via tensorflow
 grpcio==1.16.1            # via tensorboard, tensorflow
 h5py==2.8.0
 idna==2.7                 # via requests
 influxdb==5.2.0
+itsdangerous==1.1.0       # via flask
+jinja2==2.10              # via flask
 joblib==0.13.0
 keras-applications==1.0.6  # via keras, tensorflow
 keras-preprocessing==1.0.5  # via keras, tensorflow
 keras==2.2.4
 markdown==3.0.1           # via tensorboard
+markupsafe==1.1.0         # via jinja2
 numpy==1.15.4
 pandas==0.23.4
 pip-tools==3.1.0
 protobuf==3.6.1           # via tensorboard, tensorflow
 python-dateutil==2.7.5
 pytz==2018.7              # via influxdb, pandas
-pyyaml==3.13              # via keras
+pyyaml==4.2b4
 requests==2.20.1
 scikit-learn==0.20.0
 scipy==1.1.0              # via keras, scikit-learn
@@ -34,5 +38,5 @@ tensorboard==1.12.0       # via tensorflow
 tensorflow==1.12.0
 termcolor==1.1.0          # via tensorflow
 urllib3==1.24.1           # via requests
-werkzeug==0.14.1          # via tensorboard
+werkzeug==0.14.1          # via flask, tensorboard
 wheel==0.32.3             # via tensorboard, tensorflow
