@@ -21,7 +21,7 @@ install_requires = [
 setup_requirements = ['pytest-runner', 'setuptools_scm']
 
 # Test requirements
-test_requirements = ['docker==3.6.0', 'pytest==4.0.0', 'ruamel.yaml==0.15.76', 'pytest-mypy==0.3.2']
+test_requirements = ['docker==3.6.0', 'pytest==4.0.0', 'ruamel.yaml==0.15.76', 'pytest-mypy==0.3.2', 'responses==0.10.5']
 
 setup(
     author="Miles Granger",

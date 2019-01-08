@@ -12,6 +12,7 @@ import yaml
 import click
 from gordo_components.builder import build_model
 from gordo_components.server import server
+from gordo_components import watchman
 
 import dateutil.parser
 
@@ -80,5 +81,24 @@ def run_server_cli(host, port):
     server.run_server(host, port)
 
 
+@click.command('run-watchman')
+@click.option('--host', type=str, help='The host to run the server on.')
+@click.option('--port', type=int, help='The port to run the server on.')
+def run_watchman_cli(host, port):
+    """
+    Start the Gordo Watchman server for this project. Which is responsible
+    for dynamically comparing expected URLs derived from a project config fle
+    against those actually deployed to determine and report their health.
+
+    \b
+    Must have the following environment variables set:
+        PROJECT_NAME: project_name for the config file
+        TARGET_NAMES: A list of non-sanitized machine / target names
+        TARGET_NAMES_SANITIZED: Same list of names, only sanitized
+    """
+    watchman.server.run_server(host, port)
+
+
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
+gordo.add_command(run_watchman_cli)
