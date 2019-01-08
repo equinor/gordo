@@ -11,6 +11,7 @@ install_requires = [
     'pandas~=0.23',
     'pip-tools~=3.1',
     'python-dateutil~=2.7',
+    'pyyaml>=4.2b1',
     'requests~=2.20',
     'scikit-learn~=0.20',
     'tensorflow~=1.12',
