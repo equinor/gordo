@@ -10,11 +10,6 @@ python:
 os:
   - linux
 
-before_install:
-  - wget https://github.com/openshift/source-to-image/releases/download/v1.1.11/source-to-image-v1.1.11-78a76d97-linux-amd64.tar.gz -O source2image.tar.gz
-  - tar -xvf source2image.tar.gz
-  - chmod +x s2i && sudo mv s2i /usr/bin/
-
 install: 
   - pip install -r requirements.txt
 
