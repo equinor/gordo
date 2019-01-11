@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import os
-import yaml
-import ast
 import requests
 import logging
+from typing import Iterable
 from flask import Flask, jsonify, make_response
 from flask.views import MethodView
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +13,8 @@ from gordo_components import __version__
 # Will contain a list of endpoints to expected models via Ambassador
 # see _load_endpoints()
 ENDPOINTS = None
+PROJECT_NAME = None
+TARGET_NAMES = None
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class WatchmanApi(MethodView):
             # List of dicts: [{'endpoint': /path/to/endpoint, 'healthy': bool}]
             results = [{'endpoint': futures[f], 'healthy': f.result()} for f in futures]
 
-        payload = jsonify({'endpoints': results, 'project_name': os.environ['PROJECT_NAME']})
+        payload = jsonify({'endpoints': results, 'project_name': PROJECT_NAME})
         resp = make_response(payload, 200)
         resp.headers['Cache-Control'] = 'max-age=0'
         return resp
@@ -51,48 +51,35 @@ def healthcheck():
     """
     Return gordo version, route for Watchman server
     """
-    payload = jsonify({'version': __version__, 'config': yaml.load(os.environ['TARGET_NAMES'])})
+    payload = jsonify({'version': __version__, 'config': TARGET_NAMES})
     return payload, 200
 
 
-def build_app():
+def build_app(project_name: str, target_names: Iterable[str], target_names_sanitized: Iterable[str]):
     """
     Build app and any associated routes
     """
-    global ENDPOINTS
-    ENDPOINTS = _load_endpoints()
 
+    # Precompute list of expected endpoints from config file and other global env
+    global ENDPOINTS, PROJECT_NAME, TARGET_NAMES
+    ENDPOINTS = [f'/gordo/v0/{project_name}/{sanitized_name}/healthcheck'
+                 for sanitized_name in target_names_sanitized]
+    PROJECT_NAME = project_name
+    TARGET_NAMES = target_names
+
+    # App and routes
     app = Flask(__name__)
     app.add_url_rule(rule='/healthcheck', view_func=healthcheck, methods=['GET'])
     app.add_url_rule(rule='/', view_func=WatchmanApi.as_view('sentinel_api'), methods=['GET'])
     return app
 
 
-def run_server(host: str = '0.0.0.0', port: int = 5555, debug: bool = False):
-    app = build_app()
+def run_server(host: str,
+               port: int,
+               debug: bool,
+               project_name: str,
+               target_names: Iterable[str],
+               target_names_sanitized: Iterable[str]):
+
+    app = build_app(project_name, target_names, target_names_sanitized)
     app.run(host, port, debug=debug)
-
-
-def _load_endpoints():
-    """
-    Given the current environment vars of TARGET_NAMES, PROJECT_NAME, AMBASSADORHOST and PORT: build a list
-    of pre-computed expected endpoints
-    """
-    if 'TARGET_NAMES_SANITIZED' not in os.environ or 'TARGET_NAMES' not in os.environ:
-        raise EnvironmentError('Need to have TARGET_NAMES_SANITIZED and TARGET_NAMES environment variables set as a'
-                               ' list of expected, sanitized and non-sanitized target / machine names.')
-    if 'PROJECT_NAME' not in os.environ:
-        raise EnvironmentError('Need to have PROJECT_NAME environment variable set.')
-
-    TARGET_NAMES_SANITIZED = ast.literal_eval(os.environ['TARGET_NAMES_SANITIZED'])
-    _TARGET_NAMES = ast.literal_eval(os.environ['TARGET_NAMES'])
-    project_name = os.environ["PROJECT_NAME"]
-
-    # Precompute list of expected endpoints from config file
-    endpoints = [f'/gordo/v0/{project_name}/{sanitized_name}/healthcheck'
-                 for sanitized_name in TARGET_NAMES_SANITIZED]
-    return endpoints
-
-
-if __name__ == '__main__':
-    run_server()
