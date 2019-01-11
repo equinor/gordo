@@ -6,13 +6,10 @@ import responses
 
 from gordo_components import __version__
 from gordo_components.watchman import server
-from tests.utils import temp_env_vars
 
 
 TARGET_NAMES = ['CT-machine-name-456', 'CT-machine-name-123']
-TARGET_NAMES_STR = str(TARGET_NAMES)
 TARGET_NAMES_SANITIZED = ['ct-machine-name-456-kn209d', 'ct-machine-name-123-ksno0s9f092']
-TARGET_NAMES_SANITIZED_STR = str(TARGET_NAMES_SANITIZED)
 PROJECT_NAME = 'some-project-name'
 AMBASSADORHOST = 'ambassador'
 URL_FORMAT = 'http://{host}/gordo/v0/{project_name}/{sanitized_name}/healthcheck'
@@ -30,20 +27,17 @@ def request_callback(_request):
 
 class WatchmanTestCase(unittest.TestCase):
 
-    @temp_env_vars(TARGET_NAMES=TARGET_NAMES_STR, TARGET_NAMES_SANITIZED=TARGET_NAMES_SANITIZED_STR, PROJECT_NAME=PROJECT_NAME)
     def setUp(self):
-        app = server.build_app()
+        app = server.build_app(project_name=PROJECT_NAME, target_names=TARGET_NAMES, target_names_sanitized=TARGET_NAMES_SANITIZED)
         app.testing = True
         self.app = app.test_client()
 
-    @temp_env_vars(TARGET_NAMES=TARGET_NAMES_STR, TARGET_NAMES_SANITIZED=TARGET_NAMES_SANITIZED_STR, PROJECT_NAME=PROJECT_NAME)
     def test_healthcheck(self):
         resp = self.app.get('/healthcheck')
         self.assertEqual(resp.status_code, 200)
         resp = resp.get_json()
         self.assertTrue('version' in resp)
 
-    @temp_env_vars(TARGET_NAMES=TARGET_NAMES_STR, TARGET_NAMES_SANITIZED=TARGET_NAMES_SANITIZED_STR, PROJECT_NAME=PROJECT_NAME)
     @responses.activate
     def test_api(self):
         """

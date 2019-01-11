@@ -5,6 +5,7 @@ CLI interfaces
 '''
 
 import logging
+import ast
 import os
 from ast import literal_eval
 
@@ -82,9 +83,13 @@ def run_server_cli(host, port):
 
 
 @click.command('run-watchman')
-@click.option('--host', type=str, help='The host to run the server on.')
-@click.option('--port', type=int, help='The port to run the server on.')
-def run_watchman_cli(host, port):
+@click.argument('project-name', envvar='PROJECT_NAME', type=str)
+@click.argument('target-names', envvar='TARGET_NAMES', type=ast.literal_eval)
+@click.argument('target-names-sanitized', envvar='TARGET_NAMES_SANITIZED', type=ast.literal_eval)
+@click.option('--host', type=str, help='The host to run the server on.', default='0.0.0.0')
+@click.option('--port', type=int, help='The port to run the server on.', default=5555)
+@click.option('--debug', type=bool, help='Run in debug mode', default=False)
+def run_watchman_cli(project_name, target_names, target_names_sanitized, host, port, debug):
     """
     Start the Gordo Watchman server for this project. Which is responsible
     for dynamically comparing expected URLs derived from a project config fle
@@ -96,7 +101,7 @@ def run_watchman_cli(host, port):
         TARGET_NAMES: A list of non-sanitized machine / target names
         TARGET_NAMES_SANITIZED: Same list of names, only sanitized
     """
-    watchman.server.run_server(host, port)
+    watchman.server.run_server(host, port, debug, project_name, target_names, target_names_sanitized)
 
 
 gordo.add_command(build)
