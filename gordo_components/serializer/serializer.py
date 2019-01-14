@@ -19,8 +19,8 @@ from gordo_components.model.models import GordoBase
 
 logger = logging.getLogger(__name__)
 
-N_STEP_REGEX = re.compile(r'.*n_step=([0-9]+)')
-CLASS_REGEX  = re.compile(r'.*class=(.*$)')
+N_STEP_REGEX = re.compile(r".*n_step=([0-9]+)")
+CLASS_REGEX = re.compile(r".*class=(.*$)")
 
 
 def load_metadata(source_dir: str) -> dict:
@@ -40,13 +40,17 @@ def load_metadata(source_dir: str) -> dict:
     """
     # Since this function can take the top level dir, or a dir directly
     # into the first step of the pipeline, we need to check both for metadata
-    for possible_path in [path.join(source_dir, 'metadata.json'),
-                          path.join(source_dir, '..', 'metadata.json')]:
+    for possible_path in [
+        path.join(source_dir, "metadata.json"),
+        path.join(source_dir, "..", "metadata.json"),
+    ]:
         if path.isfile(possible_path):
-            with open(possible_path, 'r') as f:
+            with open(possible_path, "r") as f:
                 return json.load(f)
-    logger.warning(f'Metadata file in source dir: "{source_dir}" not found'
-                   f' in or up one directory.')
+    logger.warning(
+        f'Metadata file in source dir: "{source_dir}" not found'
+        f" in or up one directory."
+    )
     return dict()
 
 
@@ -72,14 +76,15 @@ def load(source_dir: str) -> Any:
     """
     # This source dir should have a single pipeline entry directory.
     # may have been passed a top level dir, containing such an entry:
-    if not source_dir.startswith('n_step'):
-        dirs = [d for d in os.listdir(source_dir)
-                if 'n_step=' in d]
+    if not source_dir.startswith("n_step"):
+        dirs = [d for d in os.listdir(source_dir) if "n_step=" in d]
         if len(dirs) != 1:
-            raise ValueError(f'Found multiple object entries to load from, '
-                             f'should pass a directory to pipeline directly or '
-                             f'a directory containing a single object entry.'
-                             f'Possible objects found: {dirs}')
+            raise ValueError(
+                f"Found multiple object entries to load from, "
+                f"should pass a directory to pipeline directly or "
+                f"a directory containing a single object entry."
+                f"Possible objects found: {dirs}"
+            )
         else:
             source_dir = path.join(source_dir, dirs[0])
 
@@ -94,15 +99,19 @@ def _parse_dir_name(source_dir: str) -> Tuple[int, str]:
     """
     match = N_STEP_REGEX.search(source_dir)
     if match is None:
-        raise ValueError(f'Source dir not valid, expected "n_step=" in '
-                         f'directory but instead got: {source_dir}')
+        raise ValueError(
+            f'Source dir not valid, expected "n_step=" in '
+            f"directory but instead got: {source_dir}"
+        )
     else:
         n_step = int(match.groups()[0])  # type: int
 
     match = CLASS_REGEX.search(source_dir)
     if match is None:
-        raise ValueError(f'Source dir not valid, expected "class=" in directory '
-                         f'but instead got: {source_dir}')
+        raise ValueError(
+            f'Source dir not valid, expected "class=" in directory '
+            f"but instead got: {source_dir}"
+        )
     else:
         class_path = match.groups()[0]  # type: str
     return n_step, class_path
@@ -123,45 +132,55 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
     n_step, class_path = _parse_dir_name(source_dir)
     StepClass = pydoc.locate(class_path)
     if StepClass is None:
-        logger.warning(f'Specified a class path of "{class_path}" but it does '
-                       f'not exist. Will attempt to unpickle it from file in '
-                       f'source directory: {source_dir}.')
-    step_name = f'step={str(n_step).zfill(3)}'
+        logger.warning(
+            f'Specified a class path of "{class_path}" but it does '
+            f"not exist. Will attempt to unpickle it from file in "
+            f"source directory: {source_dir}."
+        )
+    step_name = f"step={str(n_step).zfill(3)}"
     params = dict()  # type: Dict[str, Any]
 
     # If this is a FeatureUnion, we also have a `params.json` for it
     if StepClass == FeatureUnion:
-        with open(os.path.join(source_dir, 'params.json'), 'r') as p:
+        with open(os.path.join(source_dir, "params.json"), "r") as p:
             params = json.load(p)
 
     # Pipelines and FeatureUnions have sub steps which need to be loaded
     if any(StepClass == Obj for Obj in (Pipeline, FeatureUnion)):
 
         # Load the sub_dirs to load into the Pipeline/FeatureUnion in order
-        sub_dirs_to_load = sorted([sub_dir for sub_dir in os.listdir(source_dir)
-                                   if path.isdir(path.join(source_dir, sub_dir))],
-                                  key=lambda d: _parse_dir_name(d)[0])
-        steps = [_load_step(path.join(source_dir, sub_dir))
-                 for sub_dir in sub_dirs_to_load]
+        sub_dirs_to_load = sorted(
+            [
+                sub_dir
+                for sub_dir in os.listdir(source_dir)
+                if path.isdir(path.join(source_dir, sub_dir))
+            ],
+            key=lambda d: _parse_dir_name(d)[0],
+        )
+        steps = [
+            _load_step(path.join(source_dir, sub_dir)) for sub_dir in sub_dirs_to_load
+        ]
         return step_name, StepClass(steps, **params)
 
     # May model implementing load_from_dir method, from GordoBase
-    elif hasattr(StepClass, 'load_from_dir'):
+    elif hasattr(StepClass, "load_from_dir"):
         return step_name, StepClass.load_from_dir(source_dir)
 
     # Otherwise we have a normal Scikit-Learn transformer
     else:
         # Find the name of this file in the directory, should only be one
-        file = glob.glob(path.join(source_dir, '*.pkl.gz'))
+        file = glob.glob(path.join(source_dir, "*.pkl.gz"))
         if len(file) != 1:
-            raise ValueError(f'Expected a single file in what is expected to be '
-                             f'a single object directory, found {len(file)} '
-                             f'in directory: {source_dir}')
-        with bz2.open(path.join(source_dir, file[0]), 'rb') as f:  # type: IO[bytes]
+            raise ValueError(
+                f"Expected a single file in what is expected to be "
+                f"a single object directory, found {len(file)} "
+                f"in directory: {source_dir}"
+            )
+        with bz2.open(path.join(source_dir, file[0]), "rb") as f:  # type: IO[bytes]
             return step_name, pickle.load(f)
 
 
-def dump(obj: object, dest_dir: str, metadata: dict=None):
+def dump(obj: object, dest_dir: str, metadata: dict = None):
     """
     Serialize an object into a directory
 
@@ -199,15 +218,15 @@ def dump(obj: object, dest_dir: str, metadata: dict=None):
     -------
         None
     """
-    _dump_step(step=('obj', obj), n_step=0, dest_dir=dest_dir)
+    _dump_step(step=("obj", obj), n_step=0, dest_dir=dest_dir)
     if metadata is not None:
-        with open(os.path.join(dest_dir, 'metadata.json'), 'w') as f:
+        with open(os.path.join(dest_dir, "metadata.json"), "w") as f:
             json.dump(metadata, f, default=str)
 
+
 def _dump_step(
-        step: Tuple[str, Union[GordoBase, TransformerMixin]],
-        dest_dir: str,
-        n_step: int=0):
+    step: Tuple[str, Union[GordoBase, TransformerMixin]], dest_dir: str, n_step: int = 0
+):
     """
     Accepts any Scikit-Learn transformer and dumps it into a directory
     recoverable by gordo_components.serializer.pipeline_serializer.load
@@ -226,32 +245,43 @@ def _dump_step(
                for recovery stored there.
     """
     step_name, step_transformer = step
-    step_import_str = f'{step_transformer.__module__}.{step_transformer.__class__.__name__}'
-    sub_dir = os.path.join(dest_dir, f'n_step={str(n_step).zfill(3)}-class={step_import_str}')
+    step_import_str = (
+        f"{step_transformer.__module__}.{step_transformer.__class__.__name__}"
+    )
+    sub_dir = os.path.join(
+        dest_dir, f"n_step={str(n_step).zfill(3)}-class={step_import_str}"
+    )
 
     os.makedirs(sub_dir, exist_ok=True)
 
     if any(isinstance(step_transformer, Obj) for Obj in [FeatureUnion, Pipeline]):
-        steps_attr = 'transformer_list' if isinstance(step_transformer, FeatureUnion) else 'steps'
+        steps_attr = (
+            "transformer_list"
+            if isinstance(step_transformer, FeatureUnion)
+            else "steps"
+        )
         for i, step in enumerate(getattr(step_transformer, steps_attr)):
             _dump_step(step=step, n_step=i, dest_dir=sub_dir)
 
         # If this is a feature Union, we want to save `n_jobs` & `transformer_weights`
         if isinstance(step_transformer, FeatureUnion):
             params = {
-                'n_jobs'             : getattr(step_transformer, 'n_jobs'),
-                'transformer_weights': getattr(step_transformer, 'transformer_weights')
+                "n_jobs": getattr(step_transformer, "n_jobs"),
+                "transformer_weights": getattr(step_transformer, "transformer_weights"),
             }
-            with open(os.path.join(sub_dir, 'params.json'), 'w') as f:
+            with open(os.path.join(sub_dir, "params.json"), "w") as f:
                 json.dump(params, f)
     else:
-        if hasattr(step_transformer, 'save_to_dir'):
-            if not hasattr(step_transformer, 'load_from_dir'):
+        if hasattr(step_transformer, "save_to_dir"):
+            if not hasattr(step_transformer, "load_from_dir"):
                 raise AttributeError(
                     f'The object in this step implements a "save_to_dir" but '
-                    f'not "load_from_dir" it will be un-recoverable!')
-            logger.info(f'Saving model to sub_dir: {sub_dir}')
+                    f'not "load_from_dir" it will be un-recoverable!'
+                )
+            logger.info(f"Saving model to sub_dir: {sub_dir}")
             step_transformer.save_to_dir(os.path.join(sub_dir))
         else:
-            with bz2.open(os.path.join(sub_dir, f'{step_name}.pkl.gz'), 'wb') as s: # type: IO[bytes]
+            with bz2.open(
+                os.path.join(sub_dir, f"{step_name}.pkl.gz"), "wb"
+            ) as s:  # type: IO[bytes]
                 pickle.dump(step_transformer, s)

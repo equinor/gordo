@@ -8,8 +8,9 @@ from gordo_components.model import models
 
 logger = logging.getLogger(__name__)
 
+
 def get_model(config):
-    type = config.get('type', '')
+    type = config.get("type", "")
     Model = getattr(models, type, None)
     if Model is None:
         raise ValueError(

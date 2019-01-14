@@ -37,11 +37,12 @@ class GordoServerTestCase(unittest.TestCase):
                         kind: feedforward_symetric
                 memory:
             """,
-            Loader=ruamel.yaml.Loader)
+            Loader=ruamel.yaml.Loader,
+        )
         model = serializer.pipeline_from_definition(definition)
         X = np.random.random(size=100).reshape(-10, 10)
         model.fit(X, X)
-        serializer.dump(model, target_dir, metadata={'model-name': 'test-model'})
+        serializer.dump(model, target_dir, metadata={"model-name": "test-model"})
 
     def setUp(self):
         with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
@@ -54,23 +55,23 @@ class GordoServerTestCase(unittest.TestCase):
         Test expected behavior of /healthcheck
         """
         with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
-            resp = self.app.get('/healthcheck')
+            resp = self.app.get("/healthcheck")
         self.assertEqual(resp.status_code, 200)
 
         data = resp.get_json()
-        logger.debug(f'Got resulting JSON response: {data}')
-        self.assertTrue('version' in data)
+        logger.debug(f"Got resulting JSON response: {data}")
+        self.assertTrue("version" in data)
 
     def test_metadata_endpoint(self):
         """
         Test the expected behavior of /metadata
         """
         with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
-            resp = self.app.get('/metadata')
+            resp = self.app.get("/metadata")
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertTrue('model-metadata' in data)
-        self.assertEqual(data['model-metadata']['model-name'], 'test-model')
+        self.assertTrue("model-metadata" in data)
+        self.assertEqual(data["model-metadata"]["model-name"], "test-model")
 
     def test_predictions_endpoint(self):
         """
@@ -79,27 +80,31 @@ class GordoServerTestCase(unittest.TestCase):
         with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
 
             # This should give an error, input data is not the same as data trained with
-            resp = self.app.post('/predictions', json={'X': [[1, 2, 3, 2, 1], [1, 2, 4, 5, 2]]})
+            resp = self.app.post(
+                "/predictions", json={"X": [[1, 2, 3, 2, 1], [1, 2, 4, 5, 2]]}
+            )
             self.assertEqual(resp.status_code, 400)
             data = resp.get_json()
-            logger.debug(f'Got resulting JSON response: {data}')
-            self.assertTrue('error' in data)
+            logger.debug(f"Got resulting JSON response: {data}")
+            self.assertTrue("error" in data)
 
             # These should be fine; multi-record and single record prediction requests.
-            for data in [np.random.random(size=20).reshape(2, 10).tolist(),
-                         np.random.random(size=10).tolist()]:
+            for data in [
+                np.random.random(size=20).reshape(2, 10).tolist(),
+                np.random.random(size=10).tolist(),
+            ]:
 
-                resp = self.app.post('/predictions', json={'X': data})
+                resp = self.app.post("/predictions", json={"X": data})
                 self.assertEqual(resp.status_code, 200)
                 data = resp.get_json()
-                logger.debug(f'Got resulting JSON response: {data}')
-                self.assertTrue('output' in data)
-                np.asanyarray(data['output'])
+                logger.debug(f"Got resulting JSON response: {data}")
+                self.assertTrue("output" in data)
+                np.asanyarray(data["output"])
 
             # Should fail with 400 if no X is supplied.
-            resp = self.app.post('/predictions', json={'no-x-here': True})
+            resp = self.app.post("/predictions", json={"no-x-here": True})
             self.assertEqual(resp.status_code, 400)
 
             # Providing mismatching record lengths should cause 400
-            resp = self.app.post('/predictions', json={'X': [[1, 2, 3], [1, 2]]})
+            resp = self.app.post("/predictions", json={"X": [[1, 2, 3], [1, 2]]})
             self.assertEqual(resp.status_code, 400)

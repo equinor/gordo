@@ -12,8 +12,9 @@ from sklearn.base import BaseEstimator
 logger = logging.getLogger(__name__)
 
 
-def pipeline_from_definition(pipe_definition: Union[str, Dict[str, Dict[str, Any]]]
-                             ) -> Union[FeatureUnion, Pipeline]:
+def pipeline_from_definition(
+    pipe_definition: Union[str, Dict[str, Dict[str, Any]]]
+) -> Union[FeatureUnion, Pipeline]:
     """
     Construct a Pipeline or FeatureUnion from a definition.
 
@@ -54,19 +55,22 @@ def pipeline_from_definition(pipe_definition: Union[str, Dict[str, Dict[str, Any
     return _build_step(definition)
 
 
-def _build_branch(definition: Iterable[Union[str, Dict[Any, Any]]],
-                  constructor_class=Union[Pipeline, None]):
+def _build_branch(
+    definition: Iterable[Union[str, Dict[Any, Any]]],
+    constructor_class=Union[Pipeline, None],
+):
     """
     Builds a branch of the tree and optionall constructs the class with the given
     leafs of the branch, if constructor_class is not none. Otherwise just the
     built leafs are returned.
     """
-    steps = [(f'step_{i}', _build_step(step)) for i, step in enumerate(definition)]
+    steps = [(f"step_{i}", _build_step(step)) for i, step in enumerate(definition)]
     return steps if constructor_class is None else constructor_class(steps)
 
 
-def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
-                ) -> Union[FeatureUnion, Pipeline, BaseEstimator]:
+def _build_step(
+    step: Union[str, Dict[str, Dict[str, Any]]]
+) -> Union[FeatureUnion, Pipeline, BaseEstimator]:
     """
     Build an isolated step within a transformer list, given a dict config
 
@@ -99,8 +103,9 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
     if isinstance(step, dict):
 
         if len(step.keys()) != 1:
-            raise ValueError(f"Step should have a single key, "
-                             f"found multiple: {step.keys()}")
+            raise ValueError(
+                f"Step should have a single key, " f"found multiple: {step.keys()}"
+            )
 
         import_str = list(step.keys())[0]
         params = step.get(import_str, dict())
@@ -116,10 +121,12 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
             # Need to ensure the parameters to be supplied are valid FeatureUnion
             # & Pipeline both take a list of transformers, but with different
             # kwarg, here we pull out the list to keep _build_branch generic
-            if 'transformer_list' in params:
-                params['transformer_list'] = _build_branch(params['transformer_list'], None)
-            elif 'steps' in params:
-                params['steps'] = _build_branch(params['steps'], None)
+            if "transformer_list" in params:
+                params["transformer_list"] = _build_branch(
+                    params["transformer_list"], None
+                )
+            elif "steps" in params:
+                params["steps"] = _build_branch(params["steps"], None)
 
             # If params is an iterable, is has to be the first argument
             # to the StepClass (FeatureUnion / Pipeline); a list of transformers
@@ -128,17 +135,20 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
                 return StepClass(steps)
             else:
                 raise ValueError(
-                    f'Got {StepClass} but the supplied parameters'
-                    f'seem invalid: {params}')
+                    f"Got {StepClass} but the supplied parameters"
+                    f"seem invalid: {params}"
+                )
 
         # FunctionTransformer needs to have its `func` param loaded from
         # gordo_components
         elif StepClass == FunctionTransformer:
-            for func_arg in ['func', 'inverse_func']:
+            for func_arg in ["func", "inverse_func"]:
                 if params.get(func_arg) is not None:
                     func = pydoc.locate(params[func_arg])
                     if func is None:
-                        raise ValueError(f'Was unable to locate function: {params[func_arg]}')
+                        raise ValueError(
+                            f"Was unable to locate function: {params[func_arg]}"
+                        )
                     params[func_arg] = func
         return StepClass(**params)
 
@@ -149,5 +159,6 @@ def _build_step(step: Union[str, Dict[str, Dict[str, Any]]]
         return StepClass()
 
     else:
-        raise ValueError(f"Expected step to be either a string or a dict,"
-                         f"found: {type(step)}")
+        raise ValueError(
+            f"Expected step to be either a string or a dict," f"found: {type(step)}"
+        )

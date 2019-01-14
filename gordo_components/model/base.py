@@ -4,12 +4,11 @@ import abc
 
 
 class GordoBase:
-
     @abc.abstractmethod
     def __init__(self, **kwargs):
         """Initialize the model"""
 
-    @abc.abstractmethod 
+    @abc.abstractmethod
     def get_params(self, deep=False):
         """Return a dict containing all parameters used to initialized object"""
 

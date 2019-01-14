@@ -11,7 +11,9 @@ from sklearn.preprocessing import FunctionTransformer
 logger = logging.getLogger(__name__)
 
 
-def pipeline_into_definition(pipeline: Pipeline, prune_default_params: bool=False) -> dict:
+def pipeline_into_definition(
+    pipeline: Pipeline, prune_default_params: bool = False
+) -> dict:
     """
     Convert an instance of sklearn.pipeline.Pipeline into a dict definition
     capable of being reconstructed with
@@ -32,7 +34,7 @@ def pipeline_into_definition(pipeline: Pipeline, prune_default_params: bool=Fals
     return steps
 
 
-def _decompose_node(step: object, prune_default_params: bool=False):
+def _decompose_node(step: object, prune_default_params: bool = False):
     """
     Decompose a specific instance of a scikit-learn transformer,
     including Pipelines or FeatureUnions
@@ -50,12 +52,14 @@ def _decompose_node(step: object, prune_default_params: bool=False):
                is a dict of parameters for that class.
     """
 
-    import_str = f'{step.__module__}.{step.__class__.__name__}'
+    import_str = f"{step.__module__}.{step.__class__.__name__}"
     init_params = inspect.getfullargspec(step.__class__.__init__).args
 
-    params = dict()  # type: Dict[str, Union[str, int, float, List[Dict[str, Dict[str, Union[str, int, float]]]]]]
+    params = (
+        dict()
+    )  # type: Dict[str, Union[str, int, float, List[Dict[str, Dict[str, Union[str, int, float]]]]]]
 
-    for param in [p for p in init_params if p != 'self']:
+    for param in [p for p in init_params if p != "self"]:
 
         # Can be a parameter (n_components=2) or another branch of the
         # pipeline/feature union, (steps=[{'sklearn.decomposition.PCA': {...}}, ..])
@@ -64,15 +68,21 @@ def _decompose_node(step: object, prune_default_params: bool=False):
         # If the current step is an instance of FeatureUnion or Pipeline,
         # We'll need to decompose the sub transformers for it if it's for the
         # 'steps' input for Pipeline or 'transformer_list' for FeatureUnion
-        if isinstance(param_val, Iterable) \
-                and param in ['steps', 'transformer_list'] \
-                and any(isinstance(step, Obj) for Obj in [FeatureUnion, Pipeline]):
+        if (
+            isinstance(param_val, Iterable)
+            and param in ["steps", "transformer_list"]
+            and any(isinstance(step, Obj) for Obj in [FeatureUnion, Pipeline])
+        ):
             params[param] = [_decompose_node(leaf[1]) for leaf in param_val]
 
         # Handle FunctionTransformer function object type parameters
-        elif isinstance(step, FunctionTransformer) and param in ['func', 'inverse_func'] and callable(param_val):
+        elif (
+            isinstance(step, FunctionTransformer)
+            and param in ["func", "inverse_func"]
+            and callable(param_val)
+        ):
             # param_val is a function for FunctionTransformer.func init param
-            params[param] = f'{param_val.__module__}.{param_val.__name__}'
+            params[param] = f"{param_val.__module__}.{param_val.__name__}"
 
         else:
             params[param] = param_val
@@ -97,12 +107,14 @@ def _prune_default_parameters(obj: object, current_params) -> dict:
 
     signature = inspect.signature(obj.__class__.__init__)
     default_params = {
-        k: v.default for k, v in signature.parameters.items()
+        k: v.default
+        for k, v in signature.parameters.items()
         if v.default is not inspect.Parameter.empty
     }
-    logger.debug(f'Current params: {current_params}, default_params: {default_params}')
+    logger.debug(f"Current params: {current_params}, default_params: {default_params}")
 
     return {
-        k: v for (k, v) in current_params.items()
+        k: v
+        for (k, v) in current_params.items()
         if current_params[k] != default_params[k]
     }

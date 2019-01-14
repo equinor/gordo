@@ -13,19 +13,18 @@ from gordo_components.model.base import GordoBase
 
 
 class KerasModelTestCase(unittest.TestCase):
-
     def test_keras_type_config(self):
         """
         Test creating a keras based model from config
         """
         config = {
-            'type'      : 'KerasAutoEncoder',
-            'kind'      : 'feedforward_symetric',
-            'n_features': 10,
-            'enc_dim'   : [8, 4, 2],
-            'dec_dim'   : [2, 4, 8],
-            'enc_func'  : ['relu', 'relu', 'relu'],
-            'dec_func'  : ['relu', 'relu', 'relu']
+            "type": "KerasAutoEncoder",
+            "kind": "feedforward_symetric",
+            "n_features": 10,
+            "enc_dim": [8, 4, 2],
+            "dec_dim": [2, 4, 8],
+            "enc_func": ["relu", "relu", "relu"],
+            "dec_func": ["relu", "relu", "relu"],
         }
 
         # Ensure we can poke the model the same
@@ -36,13 +35,13 @@ class KerasModelTestCase(unittest.TestCase):
 
     def test_keras_autoencoder_type(self):
         config = {
-            'type'      : 'KerasAutoEncoder',
-            'kind'      : 'feedforward_symetric',
-            'n_features': 10,
-            'enc_dim'   : [8, 4, 2],
-            'dec_dim'   : [2, 4, 8],
-            'enc_func'  : ['relu', 'relu', 'relu'],
-            'dec_func'  : ['relu', 'relu', 'relu']
+            "type": "KerasAutoEncoder",
+            "kind": "feedforward_symetric",
+            "n_features": 10,
+            "enc_dim": [8, 4, 2],
+            "dec_dim": [2, 4, 8],
+            "enc_func": ["relu", "relu", "relu"],
+            "dec_func": ["relu", "relu", "relu"],
         }
         model = get_model(config)
         self.assertTrue(isinstance(model, KerasAutoEncoder))
@@ -50,13 +49,13 @@ class KerasModelTestCase(unittest.TestCase):
 
     def test_save_load(self):
         config = {
-            'type': 'KerasBaseEstimator',
-            'kind': 'feedforward_symetric',
-            'n_features': 10,
-            'enc_dim': [8, 4, 2],
-            'dec_dim': [2, 4, 8],
-            'enc_func': ['relu', 'relu', 'relu'],
-            'dec_func': ['relu', 'relu', 'relu']
+            "type": "KerasBaseEstimator",
+            "kind": "feedforward_symetric",
+            "n_features": 10,
+            "enc_dim": [8, 4, 2],
+            "dec_dim": [2, 4, 8],
+            "enc_func": ["relu", "relu", "relu"],
+            "dec_func": ["relu", "relu", "relu"],
         }
 
         # Ensure we can poke the model the same
@@ -70,7 +69,7 @@ class KerasModelTestCase(unittest.TestCase):
             model.fit(X)
 
         # AutoEncoder is fine without a y target
-        config['type'] = 'KerasAutoEncoder'
+        config["type"] = "KerasAutoEncoder"
         model = get_model(config)
         model.fit(X)
 

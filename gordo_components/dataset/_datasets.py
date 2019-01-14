@@ -12,16 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 class InfluxBackedDataset(GordoBaseDataset):
-
-
-    def __init__(self,
-                 influx_config,
-                 from_ts,
-                 to_ts,
-                 tag_list=None,
-                 resolution="10m",
-                 resample=True,
-                 **kwargs):
+    def __init__(
+        self,
+        influx_config,
+        from_ts,
+        to_ts,
+        tag_list=None,
+        resolution="10m",
+        resample=True,
+        **kwargs,
+    ):
         """
         TODO: Finish docs
 
@@ -62,20 +62,22 @@ class InfluxBackedDataset(GordoBaseDataset):
         logger.info("Reading tag: {}".format(tag))
         logger.info("Fetching data from {} to {}".format(self.from_ts, self.to_ts))
         measurement = self.influx_config["database"]
-        query_string = f'''
+        query_string = f"""
             SELECT {'mean("Value")' if self.resample else '"Value"'} as "{tag}" 
             FROM "{measurement}" 
             WHERE("tag" =~ /^{tag}$/) 
                 {f"AND time >= {int(self.from_ts.timestamp())}s" if self.from_ts else ""} 
                 {f"AND time <= {int(self.to_ts.timestamp())}s" if self.to_ts else ""} 
             {f'GROUP BY time({self.resolution}), "tag" fill(previous)' if self.resample else ""}
-        '''
+        """
         logger.info("Query string: {}".format(query_string))
         dataframes = self.influx_client.query(query_string)
 
         list_of_tags = self._list_of_tags_from_influx()
         if tag not in list_of_tags:
-            raise ValueError (f'tag {tag} is not a valid tag.  List of tags = {list_of_tags}')
+            raise ValueError(
+                f"tag {tag} is not a valid tag.  List of tags = {list_of_tags}"
+            )
 
         try:
             vals = dataframes.values()
@@ -83,17 +85,20 @@ class InfluxBackedDataset(GordoBaseDataset):
             return result
 
         except IndexError as e:
-            logger.error(f"Unable to find data for tag {tag} in the time range {self.from_ts} - {self.to_ts}")
+            logger.error(
+                f"Unable to find data for tag {tag} in the time range {self.from_ts} - {self.to_ts}"
+            )
             raise e
 
     def _list_of_tags_from_influx(self):
-        query_tags = f'''SHOW TAG VALUES ON {self.influx_config["database"]} WITH KEY="tag" '''
+        query_tags = (
+            f"""SHOW TAG VALUES ON {self.influx_config["database"]} WITH KEY="tag" """
+        )
         result = self.influx_client.query(query_tags)
         list_of_tags = []
         for item in list(result.get_points()):
-            list_of_tags.append(item['value'])
+            list_of_tags.append(item["value"])
         return list_of_tags
-
 
     def _get_sensor_data(self):
         """
@@ -125,11 +130,12 @@ class InfluxBackedDataset(GordoBaseDataset):
         return all_tags
 
     def get_metadata(self):
-        metadata = {'tag_list': self.tag_list,
-                    'train_start_date': self.from_ts,
-                    'train_end_date': self.to_ts}
+        metadata = {
+            "tag_list": self.tag_list,
+            "train_start_date": self.from_ts,
+            "train_end_date": self.to_ts,
+        }
         return metadata
-
 
 
 class RandomDataset(GordoBaseDataset):
@@ -143,12 +149,12 @@ class RandomDataset(GordoBaseDataset):
 
     def get_data(self):
         """return X and y data"""
-        X = np.random.random(
-            size=self.size * self.n_features).reshape(-1, self.n_features)
+        X = np.random.random(size=self.size * self.n_features).reshape(
+            -1, self.n_features
+        )
         y = np.random.random(size=self.size).astype(int)
         return X, X.copy()
 
     def get_metadata(self):
-        metadata = {'size': self.size,
-                    'n_features': self.n_features}
+        metadata = {"size": self.size, "n_features": self.n_features}
         return metadata
