@@ -31,9 +31,9 @@ def possible_tf_mgmt(keras_model):
     to have `_tf_graph` and `_tf_session` stored attrs. Which will be used
     as the default when calling the Keras model
     """
-    logger.info(f'Keras backend: {K.backend()}')
-    if K.backend() == 'tensorflow':
-        logger.debug(f'Using keras_model {keras_model} local TF Graph and Session')
+    logger.info(f"Keras backend: {K.backend()}")
+    if K.backend() == "tensorflow":
+        logger.debug(f"Using keras_model {keras_model} local TF Graph and Session")
         with keras_model._tf_graph.as_default(), keras_model._tf_session.as_default():
             yield
     else:
@@ -41,10 +41,11 @@ def possible_tf_mgmt(keras_model):
 
 
 class KerasBaseEstimator(BaseWrapper, GordoBase):
-
-    def __init__(self,
-                 kind: Union[str, Callable[[int, Dict[str, Any]], keras.models.Model]],
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        kind: Union[str, Callable[[int, Dict[str, Any]], keras.models.Model]],
+        **kwargs,
+    ) -> None:
         """
         Initialized a Scikit-Learn API compatitble Keras model with a pre-registered function or a builder function
         directly.
@@ -76,13 +77,14 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
                         to Keras' fit() method
         """
         # Tensorflow requires managed graph/session as to not default to global
-        if K.backend() == 'tensorflow':
-            logger.info(f'Keras backend detected as tensorflow, keeping local graph')
+        if K.backend() == "tensorflow":
+            logger.info(f"Keras backend detected as tensorflow, keeping local graph")
             import tensorflow as tf
+
             self._tf_graph = tf.Graph()
             self._tf_session = tf.Session(graph=self._tf_graph)
         else:
-            logger.info(f'Keras backend detected as NOT tensorflow, but: {K.backend()}')
+            logger.info(f"Keras backend detected as NOT tensorflow, but: {K.backend()}")
             self._tf_session = None
             self._tf_graph = None
 
@@ -90,13 +92,15 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         self.kwargs = kwargs
 
         class_name = self.__class__.__name__
-        
+
         if callable(kind):
             register_model_builder(type=class_name)(kind)
             self.kind = kind.__name__
         else:
             if kind not in register_model_builder.factories[class_name]:
-                raise ValueError(f'kind: {kind} is not an available model for type: {class_name}!')
+                raise ValueError(
+                    f"kind: {kind} is not an available model for type: {class_name}!"
+                )
             self.kind = kind
 
     @property
@@ -104,15 +108,15 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         return self.kwargs
 
     def fit(self, X, y, sample_weight=None, **kwargs):
-        logger.debug(f'Fitting to data of length: {len(X)}')
-        self.kwargs.update({'n_features': X.shape[1]})
+        logger.debug(f"Fitting to data of length: {len(X)}")
+        self.kwargs.update({"n_features": X.shape[1]})
         with possible_tf_mgmt(self):
             super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
     def get_params(self, **params):
         params = super().get_params(**params)
-        params.update({'kind': self.kind})
+        params.update({"kind": self.kind})
         return params
 
     def __call__(self):
@@ -122,18 +126,18 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
 
     def save_to_dir(self, directory: str):
         params = self.get_params()
-        with open(path.join(directory, 'params.json'), 'w') as f:
+        with open(path.join(directory, "params.json"), "w") as f:
             json.dump(params, f)
-        if hasattr(self, 'model') and self.model is not None:
+        if hasattr(self, "model") and self.model is not None:
             with possible_tf_mgmt(self):
-                self.model.save(path.join(directory, 'model.h5'))
+                self.model.save(path.join(directory, "model.h5"))
 
     @classmethod
     def load_from_dir(cls, directory: str):
-        with open(path.join(directory, 'params.json'), 'r') as f:
+        with open(path.join(directory, "params.json"), "r") as f:
             params = json.load(f)
         obj = cls(**params)
-        model_file = path.join(directory, 'model.h5')
+        model_file = path.join(directory, "model.h5")
         if path.isfile(model_file):
             with possible_tf_mgmt(obj):
                 K.set_learning_phase(0)
@@ -145,10 +149,13 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
     """
     Subclass of the KerasBaseEstimator to allow fitting to just X without requiring y.
     """
+
     def fit(self, X, y=None, **kwargs):
         if y is not None:
-            logger.warning(f'This is an AutoEncoder and does not care about a '
-                           f'target, but a y was supplied. It will be ignored!')
+            logger.warning(
+                f"This is an AutoEncoder and does not care about a "
+                f"target, but a y was supplied. It will be ignored!"
+            )
         y = X.copy()
         super().fit(X, y, **kwargs)
         return self
@@ -159,7 +166,9 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
             xhat = self.model.predict(X, **kwargs)
 
         results = list()
-        for sample_input, sample_output in zip(X.tolist(), xhat.reshape(X.shape).tolist()):
+        for sample_input, sample_output in zip(
+            X.tolist(), xhat.reshape(X.shape).tolist()
+        ):
             sample_input.extend(sample_output)
             results.append(sample_input)
         return np.asarray(results)

@@ -53,19 +53,21 @@ def build_model(output_dir: str, model_config: dict, data_config: dict):
 
     # Save the model/pipeline + metadata
     os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
-    logger.debug(f'Saving model to output dir: {output_dir}')
+    logger.debug(f"Saving model to output dir: {output_dir}")
     metadata = {}
-    metadata['dataset'] = dataset.get_metadata()
+    metadata["dataset"] = dataset.get_metadata()
     utc_dt = datetime.datetime.now(datetime.timezone.utc)
-    metadata['model'] = {'model_creation_date' : str(utc_dt.astimezone()),
-                         'model_builder_version' : __version__,
-                         'model_config' : model_config,
-                         'data_query_duration_sec' : time_elapsed_data,
-                         'model_training_duration_sec' : time_elapsed_model}
+    metadata["model"] = {
+        "model_creation_date": str(utc_dt.astimezone()),
+        "model_builder_version": __version__,
+        "model_config": model_config,
+        "data_query_duration_sec": time_elapsed_data,
+        "model_training_duration_sec": time_elapsed_model,
+    }
 
-    serializer.dump(model, output_dir,metadata=metadata)
+    serializer.dump(model, output_dir, metadata=metadata)
 
     # Let argo & subsequent model loader know where the model will be saved.
-    with open('/tmp/model-location.txt', 'w') as f:
+    with open("/tmp/model-location.txt", "w") as f:
         f.write(output_dir)
     logger.info(f'Successfully trained model, dumped to "{output_dir}, exiting.')

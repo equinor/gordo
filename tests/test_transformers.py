@@ -18,11 +18,7 @@ class GordoFunctionTransformerFuncsTestCase(unittest.TestCase):
         """
         Inserts a transformer into the middle of a pipeline and runs it
         """
-        pipe = Pipeline([
-            ('pca1', PCA()),
-            ('custom', transformer),
-            ('pca2', PCA())
-        ])
+        pipe = Pipeline([("pca1", PCA()), ("custom", transformer), ("pca2", PCA())])
         X = np.random.random(size=100).reshape(10, 10)
         pipe.fit_transform(X)
 
@@ -30,7 +26,7 @@ class GordoFunctionTransformerFuncsTestCase(unittest.TestCase):
         from gordo_components.model.transformer_funcs.general import multiply_by
 
         # Provide a require argument
-        tf = FunctionTransformer(func=multiply_by, kw_args={'factor': 2})
+        tf = FunctionTransformer(func=multiply_by, kw_args={"factor": 2})
         self._validate_transformer(tf)
 
         # Ignore the required argument

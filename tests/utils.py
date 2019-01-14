@@ -1,6 +1,7 @@
 import os
 from contextlib import contextmanager
 
+
 @contextmanager
 def temp_env_vars(**kwargs):
     """
@@ -10,7 +11,7 @@ def temp_env_vars(**kwargs):
 
     for key in kwargs:
         os.environ[key] = kwargs[key]
-    
+
     yield
 
     os.environ.clear()

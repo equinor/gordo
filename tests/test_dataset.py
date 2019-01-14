@@ -10,22 +10,19 @@ from gordo_components.dataset._datasets import RandomDataset
 
 
 class DatasetTestCase(unittest.TestCase):
-
     def test_random_dataset_attrs(self):
         """
         Test expected attributes
         """
-        config = {
-            'type': 'random'
-        }
+        config = {"type": "random"}
 
         dataset = get_dataset(config)
 
         self.assertTrue(isinstance(dataset, GordoBaseDataset))
         self.assertTrue(isinstance(dataset, RandomDataset))
-        self.assertTrue(hasattr(dataset, 'get_data'))
-        self.assertTrue(hasattr(dataset, 'get_metadata'))
-        
+        self.assertTrue(hasattr(dataset, "get_data"))
+        self.assertTrue(hasattr(dataset, "get_metadata"))
+
         X, y = dataset.get_data()
         self.assertTrue(isinstance(X, np.ndarray))
 
@@ -33,4 +30,4 @@ class DatasetTestCase(unittest.TestCase):
         self.assertTrue(isinstance(y, np.ndarray) or y is None)
 
         metadata = dataset.get_metadata()
-        self.assertTrue(isinstance(metadata,dict))
+        self.assertTrue(isinstance(metadata, dict))

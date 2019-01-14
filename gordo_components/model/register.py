@@ -32,15 +32,15 @@ class register_model_builder:
             kind: special_keras_model_builder
     """
 
-    '''
+    """
     Mapping of type: kind: function.
     ie.
     {
         'KerasAutoEncoder' : {'special_keras_model_builder': <gordo_components.builder.....>},
         'ScikitRandomForest': {'special_random_forest': <gordo_components.build....>}
     }
-    '''
-  
+    """
+
     factories = dict()  # type: Dict[str, Dict[str, Callable[[int, Any], GordoBase]]]
 
     def __init__(self, type: str):
@@ -66,8 +66,8 @@ class register_model_builder:
     @staticmethod
     def _validate_func(func):
         # Any validity checks before registering their function
-        if 'n_features' not in inspect.getfullargspec(func).args:
+        if "n_features" not in inspect.getfullargspec(func).args:
             raise ValueError(
-                f"Build function: {func.__name__} does not have " \
+                f"Build function: {func.__name__} does not have "
                 "'n_features' as an argument; it should."
             )

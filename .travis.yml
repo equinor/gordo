@@ -12,8 +12,10 @@ os:
 
 install: 
   - pip install -r requirements.txt
+  - pip install black
 
-script: 
+script:
+  - black --check gordo_components/ tests/
   - python setup.py test
   - make images
 

@@ -18,13 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
-
     def setUp(self):
 
         self.various_raw_yamls = [
-
             # This has full parameter names define
-            '''
+            """
             sklearn.pipeline.Pipeline:
                 steps:
                     - sklearn.decomposition.pca.PCA:
@@ -67,10 +65,9 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         transformer_weights:
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_symetric
-            ''',
-
+            """,
             # This has only some named parameters included
-            '''
+            """
             sklearn.pipeline.Pipeline:
                 steps:
                     - sklearn.decomposition.pca.PCA:
@@ -89,10 +86,9 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                 n_components: 2
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_symetric
-            ''',
-
+            """,
             # Define pipeline memory with something other than None w/o metadata
-            '''
+            """
             sklearn.pipeline.Pipeline:
                 steps:
                 - sklearn.decomposition.pca.PCA:
@@ -135,14 +131,14 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                     transformer_weights:
                 - gordo_components.model.models.KerasAutoEncoder:
                     kind: feedforward_symetric
-            '''
+            """,
         ]
 
     def test_pipeline_from_definition(self):
 
         for raw_yaml in self.various_raw_yamls:
             config = yaml.load(raw_yaml)
-            logger.debug('{}'.format(config))
+            logger.debug("{}".format(config))
 
             config_clone = copy.deepcopy(config)  # To ensure no mutation occurs
             pipe = pipeline_from_definition(config)
@@ -152,8 +148,8 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
 
             # Special tests that defining non-default argument holds for a
             # 'key:  ' is evaled to 'key=None'
-            if 'memory: /tmp' in raw_yaml:
-                self.assertEqual(pipe.steps[2][1].transformer_list[1][1].memory, '/tmp')
+            if "memory: /tmp" in raw_yaml:
+                self.assertEqual(pipe.steps[2][1].transformer_list[1][1].memory, "/tmp")
             self._verify_pipe(pipe)
 
     def _verify_pipe(self, pipe):
@@ -171,7 +167,9 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         # STEP 2 TEST: Test expected FunctionTransformer step
         step2 = pipe.steps[1][1]
         self.assertIsInstance(step2, FunctionTransformer)
-        self.assertEqual(step2.func, gordo_components.model.transformer_funcs.general.multiply_by)
+        self.assertEqual(
+            step2.func, gordo_components.model.transformer_funcs.general.multiply_by
+        )
 
         # STEP 3 TEST: Test expected FeatureUnion Step
         step3 = pipe.steps[2][1]
@@ -195,4 +193,4 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         # STEP 4 TEST:  Finally, the last step should be a KerasModel
         step4 = pipe.steps[3][1]
         self.assertIsInstance(step4, KerasAutoEncoder)
-        self.assertTrue(step4.kind, 'feedforward_symetric')
+        self.assertTrue(step4.kind, "feedforward_symetric")
