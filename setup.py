@@ -16,6 +16,7 @@ install_requires = [
     "scikit-learn~=0.20",
     "tensorflow~=1.12",
     "Flask~=1.0",
+    "flask-restplus~=0.12",
 ]
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]
