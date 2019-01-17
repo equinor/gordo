@@ -113,3 +113,6 @@ def run_watchman_cli(
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
 gordo.add_command(run_watchman_cli)
+
+if __name__ == "__main__":
+    gordo()
