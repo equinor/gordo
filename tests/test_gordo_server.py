@@ -80,9 +80,7 @@ class GordoServerTestCase(unittest.TestCase):
         with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
 
             # This should give an error, input data is not the same as data trained with
-            resp = self.app.post(
-                "/predictions", json={"X": [[1, 2, 3, 2, 1], [1, 2, 4, 5, 2]]}
-            )
+            resp = self.app.post("/predictions", json={"X": [[1, 2, 3], [1, 2, 3]]})
             self.assertEqual(resp.status_code, 400)
             data = resp.get_json()
             logger.debug(f"Got resulting JSON response: {data}")

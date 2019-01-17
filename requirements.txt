@@ -5,10 +5,12 @@
 #    pip-compile --output-file requirements.txt setup.py
 #
 absl-py==0.6.1            # via tensorflow
+aniso8601==4.1.0          # via flask-restplus
 astor==0.7.1              # via tensorflow
 certifi==2018.10.15       # via requests
 chardet==3.0.4            # via requests
 click==7.0
+flask-restplus==0.12.1
 flask==1.0.2
 gast==0.2.0               # via tensorflow
 grpcio==1.16.1            # via tensorboard, tensorflow
@@ -18,6 +20,7 @@ influxdb==5.2.0
 itsdangerous==1.1.0       # via flask
 jinja2==2.10              # via flask
 joblib==0.13.0
+jsonschema==2.6.0         # via flask-restplus
 keras-applications==1.0.6  # via keras, tensorflow
 keras-preprocessing==1.0.5  # via keras, tensorflow
 keras==2.2.4
@@ -28,12 +31,12 @@ pandas==0.23.4
 pip-tools==3.1.0
 protobuf==3.6.1           # via tensorboard, tensorflow
 python-dateutil==2.7.5
-pytz==2018.7              # via influxdb, pandas
+pytz==2018.7              # via flask-restplus, influxdb, pandas
 pyyaml==4.2b4
 requests==2.20.1
 scikit-learn==0.20.0
 scipy==1.1.0              # via keras, scikit-learn
-six==1.11.0               # via absl-py, grpcio, h5py, influxdb, keras, keras-preprocessing, pip-tools, protobuf, python-dateutil, tensorboard, tensorflow
+six==1.11.0               # via absl-py, flask-restplus, grpcio, h5py, influxdb, keras, keras-preprocessing, pip-tools, protobuf, python-dateutil, tensorboard, tensorflow
 tensorboard==1.12.0       # via tensorflow
 tensorflow==1.12.0
 termcolor==1.1.0          # via tensorflow
