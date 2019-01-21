@@ -14,7 +14,7 @@ class DatasetTestCase(unittest.TestCase):
         """
         Test expected attributes
         """
-        config = {"type": "random"}
+        config = {"type": "RandomDataset"}
 
         dataset = get_dataset(config)
 

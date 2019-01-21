@@ -183,7 +183,7 @@ class PredictionInfluxTestCase(unittest.TestCase):
             "TRC-FIQ -80-0704N",
         ]
         config = {
-            "type": "influx",
+            "type": "InfluxBackedDataset",
             "from_ts": from_ts,
             "to_ts": to_ts,
             "influx_config": influx_config,

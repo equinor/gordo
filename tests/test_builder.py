@@ -23,7 +23,7 @@ class ModelBuilderTestCase(unittest.TestCase):
                     "kind": "feedforward_symetric"
                 }
             }
-            data_config = {"type": "random"}
+            data_config = {"type": "RandomDataset"}
             output_dir = os.path.join(tmpdir, "some", "sub", "directories")
 
             build_model(
