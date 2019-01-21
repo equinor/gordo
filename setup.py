@@ -28,7 +28,7 @@ test_requirements = [
     "ruamel.yaml==0.15.76",
     "pytest-mypy==0.3.2",
     "responses==0.10.5",
-    "black==18.9b0"
+    "black==18.9b0",
 ]
 
 setup(
