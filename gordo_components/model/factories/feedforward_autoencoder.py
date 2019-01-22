@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List
+from typing import List, Tuple
 
 from keras import regularizers
 from keras.layers import Dense
@@ -22,14 +22,25 @@ def feedforward_model(
 ) -> keras.models.Sequential:
     """
     Builds a customized keras neural network auto-encoder based on a config dict
-    Args:
-        n_features: int - Number of features the dataset X will contain.
-        enc_dim: list -  List of numbers with the number of neurons in the encoding part
-        dec_dim: list -  List of numbers with the number of neurons in the decoding part
-        enc_func: list - Activation functions for the encoder part
-        dec_func: list - Activation functions for the decoder part
+
+    Parameters:
+    ----------
+
+    n_features: int
+        Number of features the dataset X will contain.
+    enc_dim: list
+        List of numbers with the number of neurons in the encoding part
+    dec_dim: list
+        List of numbers with the number of neurons in the decoding part
+    enc_func: list
+        Activation functions for the encoder part
+    dec_func: list
+        Activation functions for the decoder part
+
     Returns:
-        GordoKerasModel()
+    -------
+    keras.models.Sequential
+
     """
     input_dim = n_features
     encoding_dim = enc_dim or [256, 128, 64]
@@ -75,20 +86,23 @@ def feedforward_model(
 @register_model_builder(type="KerasAutoEncoder")
 @register_model_builder(type="KerasBaseEstimator")
 def feedforward_symmetric(
-    n_features: int, dims: List[int], funcs: List[str], **kwargs
+    n_features: int,
+    dims: Tuple[int, ...] = (256, 128, 64),
+    funcs: Tuple[str, ...] = ("relu", "relu", "relu"),
+    **kwargs,
 ) -> keras.models.Sequential:
     """
     Builds a symmetrical feedforward model
 
     Parameters:
     ----------
-        n_features: int
-                    Number of input and output neurons
-        dim: List[int]
-             Number of neurons per layers for the encoder, reversed for the decoder.
-             Must have len > 0
-        funcs: List[str]
-            Activation functions for the internal layers
+    n_features: int
+         Number of input and output neurons
+    dim: List[int]
+         Number of neurons per layers for the encoder, reversed for the decoder.
+         Must have len > 0
+    funcs: List[str]
+        Activation functions for the internal layers
 
     Returns:
     -------
@@ -110,6 +124,7 @@ def feedforward_hourglass(
     **kwargs,
 ) -> keras.models.Sequential:
     """
+
     Builds an hourglass shaped neural network, with decreasing number of neurons
     as one gets deeper into the encoder network and increasing number
     of neurons as one gets out of the decoder network.
@@ -125,24 +140,23 @@ def feedforward_hourglass(
                      * * * * *
                   * * * * * * * *
                 * * * * * * * * * *
-
-    Parameters
+    Parameters:
     ----------
-    n_features          : int
-                        Number of input and output neurons
-    encoding_layers     : int
-                        Number of layers from the input layer (exclusive) to the
-                        narrowest layer (inclusive). Must be > 0. The total nr of layers
-                        including input and output layer will be 2*encoding_layers + 1.
-    compression_factor  : float
-                        How small the smallest layer is as a ratio of n_features
-                        (rounded up to nearest integer). Must satisfy
-                        0 <= compression_factor <= 1.
-    func                : str
-                        Activation function for the internal layers
+    n_features: int
+        Number of input and output neurons
+    encoding_layers: int
+        Number of layers from the input layer (exclusive) to the
+        narrowest layer (inclusive). Must be > 0. The total nr of layers
+        including input and output layer will be 2*encoding_layers + 1.
+    compression_factor: float
+        How small the smallest layer is as a ratio of n_features
+        (rounded up to nearest integer). Must satisfy
+        0 <= compression_factor <= 1.
+    func: str
+        Activation function for the internal layers
 
 
-    Returns
+    Returns:
     -------
     keras.models.Sequential
 
