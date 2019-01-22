@@ -2,7 +2,12 @@
 
 import logging
 import json
-from typing import Union, Callable, Dict, Any, Optional
+import math
+import copy
+import types
+
+
+from typing import Union, Callable, Dict, Any, Optional, Generator
 from os import path
 from contextlib import contextmanager
 
@@ -17,6 +22,9 @@ from keras.wrappers.scikit_learn import BaseWrapper
 import keras.models
 from keras.models import load_model
 from gordo_components.model.base import GordoBase
+
+from keras.engine.sequential import Sequential
+
 
 # This is required to run `register_model_builder` against registered factories
 from gordo_components.model.factories import *  # pragma: no flakes
@@ -69,15 +77,17 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         scikit_based_transformer.transform(X)
         ```
 
-        kind: Union[callable, str] - The structure of the model to build. As designated by any registered builder
-                                     functions, registered with gordo_compontents.model.register.register_model_builder
-                                     Alternatively, one may pass a builder function directly to this argument. Such a
-                                     function should accept `n_features` as it's first argument, and pass any additional
-                                     parameters to `**kwargs`
+        kind: Union[callable, str]
+            The structure of the model to build. As designated by any registered builder
+            functions, registered with gordo_components.model.register.register_model_builder
+            Alternatively, one may pass a builder function directly to this argument. Such a
+            function should accept `n_features` as it's first argument, and pass any additional
+            parameters to `**kwargs`
 
-        kwargs: dict -  Any additional args which are passed to the factory 
-                        building function and/or any additional args to be passed
-                        to Keras' fit() method
+        kwargs: dict
+            Any additional args which are passed to the factory
+            building function and/or any additional args to be passed
+            to Keras' fit() method
         """
         # Tensorflow requires managed graph/session as to not default to global
         if K.backend() == "tensorflow":
@@ -110,9 +120,12 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
     def sk_params(self):
         return self.kwargs
 
-    def fit(self, X, y, sample_weight=None, **kwargs):
+    def fit(self, X: np.ndarray, y: Optional[np.ndarray], **kwargs):
         logger.debug(f"Fitting to data of length: {len(X)}")
-        self.kwargs.update({"n_features": X.shape[1]})
+        if len(X.shape) == 2:
+            self.kwargs.update({"n_features": X.shape[1]})
+        if len(X.shape) == 3:  # for LSTM based models
+            self.kwargs.update({"n_features": X.shape[2]})
         with possible_tf_mgmt(self):
             super().fit(X, y, sample_weight=None, **kwargs)
         return self
@@ -144,13 +157,16 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         """
         Returns the appropriate scoring metric for a given model
 
-        Parameters
+        Parameters:
         ----------
-        X: Union[np.ndarray, pd.DataFrame] - Input data to the model
-        y: Union[np.ndarray, pd.DataFrame] - Target
-        sample_weight: Optional[np.ndarray] - sample weights
+        X: Union[np.ndarray, pd.DataFrame]
+            Input data to the model
+        y: Union[np.ndarray, pd.DataFrame]
+            Target
+        sample_weight: Optional[np.ndarray]
+            sample weights
 
-        Returns
+        Returns:
         -------
         score: float
         """
@@ -176,7 +192,9 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
     Subclass of the KerasBaseEstimator to allow fitting to just X without requiring y.
     """
 
-    def fit(self, X, y=None, **kwargs):
+    def fit(
+        self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
+    ) -> "KerasAutoEncoder":
         if y is not None:
             logger.warning(
                 f"This is an AutoEncoder and does not care about a "
@@ -186,7 +204,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         super().fit(X, y, **kwargs)
         return self
 
-    def transform(self, X, **kwargs):
+    def transform(self, X: np.ndarray, **kwargs) -> np.ndarray:
 
         with possible_tf_mgmt(self):
             xhat = self.model.predict(X, **kwargs)
@@ -208,13 +226,16 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         """
         Returns the explained variance score between auto encoder's input vs output
 
-        Parameters
+        Parameters:
         ----------
-        X: Union[np.ndarray, pd.DataFrame] - Input data to the model
-        y: Union[np.ndarray, pd.DataFrame] - Target
-        sample_weight: Optional[np.ndarray] - sample weights
+        X: Union[np.ndarray, pd.DataFrame]
+            Input data to the model
+        y: Union[np.ndarray, pd.DataFrame]
+            Target
+        sample_weight: Optional[np.ndarray]
+            sample weights
 
-        Returns
+        Returns:
         -------
         score: float
         """
@@ -227,3 +248,151 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
             out = self.model.predict(X)
 
         return explained_variance_score(X if y is None else y, out)
+
+
+class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
+    """
+       Subclass of the KerasBaseEstimator to allow to train a many-one LSTM autoencoder
+    """
+
+    def __init__(
+        self,
+        kind: Union[Callable, str],
+        lookback_window: int = 1,
+        batch_size: int = 32,
+        epochs: int = 1,
+        **kwargs,
+    ) -> None:
+        """
+
+        Parameters:
+        ----------
+        kind: Union[Callable, str]
+            The structure of the model to build. As designated by any registered builder
+            functions, registered with gordo_components.model.register.register_model_builder
+            Alternatively, one may pass a builder function directly to this argument. Such a
+            function should accept `n_features` as it's first argument, and pass any additional
+            parameters to `**kwargs`
+        lookback_window: int
+            number of timestamps (lags) used to train the model
+        batch_size: int
+            number of training examples used in one epoch
+        epochs: int
+            number of epochs to train the model. An epoch is an iteration over the entire
+            data provided
+        kwargs: dict
+            any arguments which are passed to the factory building function and/or any
+            additional args to be passed to the intermediate fit method.
+        """
+
+        self.lookback_window = lookback_window
+        self.batch_size = batch_size
+        self.epochs = epochs
+        kwargs["lookback_window"] = lookback_window
+        kwargs["kind"] = kind
+        kwargs[
+            "epochs"
+        ] = (
+            1
+        )  # this is only used for the intermediate fit method (fit method of base class),
+        # called only to initiate the model
+        kwargs[
+            "verbose"
+        ] = (
+            0
+        )  # this is only used for the intermediate fit method called only to initiate the model
+        super().__init__(**kwargs)
+        """
+        Example use:
+        from gordo_components.model import models
+
+        def this_function_returns_a_keras_lstm_model(n_features, lookback_window, 
+                                                              extra_param1, extra_param2):
+               ...
+
+        scikit_based_transformer = KerasLSTMAutoEncoder(kind=this_function_returns_a_keras_lstm_model,
+                                           lookback_window,
+                                           batch_size,
+                                           extra_param1='special_parameter',
+                                           extra_param2='another_parameter')
+
+        scikit_based_transformer.fit(X, y)
+        scikit_based_transformer.transform(X)
+        """
+
+    # many to one architecture
+    def _generate_window(
+        self, X: np.ndarray, output_y: bool = True
+    ) -> Generator[Union[np.ndarray, tuple], None, None]:
+        """
+
+        Parameters:
+        ----------
+        X: 2D np array
+            data to predict/transform on (n_samples x n_features)
+        output_y: bool
+            if true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
+            if false, sample_in for Keras LSTM predict_generator will be generated
+
+        Returns:
+        -------
+        sample_in: 3D np array
+            each iterate generates a window of data points of size 1 x lookback_window
+            x n_features to use within fit/transform methods
+        sample_out: 3D np array
+            the last data point of sample_in (1 x 1 x n_features)
+
+        """
+
+        if self.lookback_window > X.shape[0]:
+            raise ValueError("Lookback_window cannot be larger than the size of X")
+        while True:
+            for i in range(X.shape[0] - (self.lookback_window - 1)):
+                sample_in = X[i : self.lookback_window + i]
+                sample_out = sample_in[-1]
+                if output_y:
+                    yield (
+                        sample_in.reshape(1, self.lookback_window, X.shape[1]),
+                        sample_out.reshape(1, X.shape[1]),
+                    )
+                else:
+                    yield sample_in.reshape(1, self.lookback_window, X.shape[1])
+
+    def fit(
+        self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
+    ) -> "KerasLSTMAutoEncoder":
+        if y is not None:
+            logger.warning(
+                f"This is a many-to-one LSTM AutoEncoder that does not need a "
+                f"target, but a y was supplied. It will not be used."
+            )
+        gen = self._generate_window(X, output_y=True)
+
+        super().fit(
+            *next(gen), **kwargs
+        )  # this is an intermediate fit method, called only to initiate the model
+
+        steps_per_epoch = math.ceil(
+            (X.shape[0] - (self.lookback_window - 1)) / self.batch_size
+        )
+
+        with possible_tf_mgmt(self):
+            self.model.fit_generator(
+                gen, steps_per_epoch=steps_per_epoch, epochs=self.epochs, shuffle=False
+            )  # this is the actual Keras fit_generator method
+        return self
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        gen = self._generate_window(X, output_y=False)
+        with possible_tf_mgmt(self):
+            xhat = self.model.predict_generator(
+                gen, steps=X.shape[0] - (self.lookback_window - 1)
+            )
+        X = X[self.lookback_window - 1 :]
+        results = list()
+        for sample_input, sample_output in zip(
+            X.tolist(), xhat.reshape(X.shape).tolist()
+        ):
+            sample_input.extend(sample_output)
+            results.append(sample_input)
+        return np.asarray(results)

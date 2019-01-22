@@ -8,7 +8,7 @@ import dateutil.parser  # type: ignore
 import typing
 
 from functools import wraps
-
+from typing import Callable
 from datetime import datetime
 
 import numpy as np
@@ -158,7 +158,10 @@ class PredictionApiView(Base):
 
         try:
             context["output"] = self.get_predictions(X).tolist()
-
+        except ValueError as err:
+            logger.critical(f"Failed to predict or transform; error: {err}")
+            context["error"] = f"ValueError: {str(err)}"
+            context["status-code"] = 400
         # Model may only be a transformer, probably an AttributeError, but catch all to avoid logging other
         # exceptions twice if it happens.
         except Exception as exc:
