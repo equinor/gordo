@@ -3,6 +3,8 @@
 import os
 import logging
 import timeit
+from functools import wraps
+from typing import Callable
 
 import numpy as np
 
@@ -13,33 +15,18 @@ from gordo_components import __version__, serializer
 
 logger = logging.getLogger(__name__)
 
-api = Api()
+
+api = Api(
+    title="Gordo API Docs",
+    version=__version__,
+    description="Documentation for the Gordo ML Server",
+    default_label="Gordo Endpoints",
+)
 
 
 MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
 MODEL = None
 MODEL_METADATA = None
-
-
-def load_model_and_metadata():
-    """
-    Loads a model from having the 'MODEL_LOCATION' environment variable
-    and sets the global variables 'MODEL' to the loaded model, and 'MODEL_METADATA'
-    to any existing metadata for that model.
-    """
-    logger.debug("Determining model location...")
-    model_location = os.getenv(MODEL_LOCATION_ENV_VAR)
-    if model_location is None:
-        raise ValueError(f'Environment variable "{MODEL_LOCATION_ENV_VAR}" not set!')
-    if not os.path.isdir(model_location):
-        raise NotADirectoryError(
-            f'The supplied directory: "{model_location}" does not exist!'
-        )
-
-    global MODEL, MODEL_METADATA
-    MODEL = serializer.load(model_location)
-    MODEL_METADATA = serializer.load_metadata(model_location)
-
 
 API_MODEL_INPUT = api.model(
     "Prediction - Multiple Samples", {"X": fields.List(fields.List(fields.Float))}
@@ -143,6 +130,80 @@ class MetaDataView(Resource):
         }
 
 
+def adapt_proxy_deployment(wsgi_app: Callable):
+    """
+    Special note about deploying behind Ambassador, or prefixed proxy paths in general:
+
+        When deployed on kubernetes/ambassador there is a prefix in-front of the
+        server. ie. /gordo/v0/some-project-name/some-target.
+
+        The server itself only knows about routes to the right of such a prefix:
+        such as '/metadata' or '/predictions when in reality, the full path is
+        /gordo/v0/some-project-name/some-target/metadata
+
+        This is solved by getting the current application's assigned prefix,
+        where HTTP_X_ENVOY_ORIGINAL_PATH is the *full* path, including the prefix.
+        and PATH_INFO is the actual relative path the server knows about.
+
+        This function wraps the WSGI app itself to map the current full path
+        to the assigned route function.
+
+        ie. /metadata -> metadata route function, by default, but updates
+        /gordo/v0/some-project-name/some-target/metadata -> metadata route function
+    """
+
+    @wraps(wsgi_app)
+    def wrapper(environ, start_response):
+
+        # Script name can be "/gordo/v0/some-project-name/some-target/metadata"
+        script_name = environ.get("HTTP_X_ENVOY_ORIGINAL_PATH", "")
+        if script_name:
+
+            # PATH_INFO could be either "/" or some local route such as "/metadata"
+            path_info = environ.get("PATH_INFO", "")
+            if path_info.rstrip("/"):
+
+                # PATH_INFO must be something like "/metadata" or other local path
+                # To figure out the prefix/script_name we remove it from the
+                # full HTTP_X_ENVOY_ORIGINAL_PATH, so that something such as
+                # /gordo/v0/some-project-name/some-target/metadata, becomes
+                # /gordo/v0/some-project-name/some-target/
+                script_name = script_name.replace(path_info, "")
+            environ["SCRIPT_NAME"] = script_name
+
+            # Now we can just ensure the PATH_INFO reflects the locally known path
+            # such as /metadata and not /gordo/v0/some-project-name/some-target/metadata
+            if path_info.startswith(script_name):
+                environ["PATH_INFO"] = path_info[len(script_name) :]
+
+        scheme = environ.get("HTTP_X_FORWARDED_PROTO", "")
+        if scheme:
+            environ["wsgi.url_scheme"] = scheme
+        return wsgi_app(environ, start_response)
+
+    return wrapper
+
+
+def load_model_and_metadata():
+    """
+    Loads a model from having the 'MODEL_LOCATION' environment variable
+    and sets the global variables 'MODEL' to the loaded model, and 'MODEL_METADATA'
+    to any existing metadata for that model.
+    """
+    logger.debug("Determining model location...")
+    model_location = os.getenv(MODEL_LOCATION_ENV_VAR)
+    if model_location is None:
+        raise ValueError(f'Environment variable "{MODEL_LOCATION_ENV_VAR}" not set!')
+    if not os.path.isdir(model_location):
+        raise NotADirectoryError(
+            f'The supplied directory: "{model_location}" does not exist!'
+        )
+
+    global MODEL, MODEL_METADATA
+    MODEL = serializer.load(model_location)
+    MODEL_METADATA = serializer.load_metadata(model_location)
+
+
 def build_app():
     """
     Build app and any associated routes
@@ -151,6 +212,9 @@ def build_app():
     api.init_app(app)
     api.add_resource(PredictionApiView, "/predictions")
     api.add_resource(MetaDataView, "/metadata", "/healthcheck")
+
+    app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)
+    app.url_map.strict_slashes = False  # /path and /path/ are ok.
     return app
 
 
