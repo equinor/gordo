@@ -8,6 +8,8 @@ import os
 import pydoc
 import re
 import pickle
+import tempfile
+import tarfile
 
 from os import path
 from typing import Tuple, Union, Dict, Any, IO
@@ -21,6 +23,41 @@ logger = logging.getLogger(__name__)
 
 N_STEP_REGEX = re.compile(r".*n_step=([0-9]+)")
 CLASS_REGEX = re.compile(r".*class=(.*$)")
+
+
+def dumps(model: GordoBase) -> bytes:
+    """
+    Dump a model into a bytes representation suitable for loading from
+    gordo_components.serializer.loads
+
+    Example:
+
+    >>> from gordo_components.model.models import KerasAutoEncoder
+    >>> from gordo_components import serializer
+    >>> model = KerasAutoEncoder('feedforward_symetric')
+    >>> serialized = serializer.dumps(model)
+    >>> assert isinstance(serialized, bytes)
+    >>> model_clone = serializer.loads(serialized)
+    >>> assert isinstance(model_clone, KerasAutoEncoder)
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        dump(model, tmp)
+        with tarfile.open(os.path.join(tmp, "tmp.tar.gz"), "w:gz") as archive:
+            archive.add(tmp, recursive=True, arcname="serialized_gordo_model")
+        with open(os.path.join(tmp, "tmp.tar.gz"), "rb") as f:
+            return f.read()
+
+
+def loads(bytes_object: bytes) -> GordoBase:
+    """
+    Load a GordoBase model from bytes dumped from gordo_components.serializer.dumps
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        with open(os.path.join(tmp, "tmp.tar.gz"), "wb") as f:
+            f.write(bytes_object)
+        with tarfile.open(os.path.join(tmp, "tmp.tar.gz"), "r:gz") as archive:
+            archive.extractall(tmp)
+        return load(os.path.join(tmp, "serialized_gordo_model"))
 
 
 def load_metadata(source_dir: str) -> dict:

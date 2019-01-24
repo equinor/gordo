@@ -151,6 +151,15 @@ class PipelineSerializationTestCase(unittest.TestCase):
             y_hat_pipe2 = pipe_clone.transform(X.copy()).flatten()
             self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
 
+            # Now use dumps/loads
+            serialized = serializer.dumps(pipe)
+            pipe_clone = serializer.loads(serialized)
+
+            # Verify same state for both pipelines
+            y_hat_pipe1 = pipe.transform(X.copy()).flatten()
+            y_hat_pipe2 = pipe_clone.transform(X.copy()).flatten()
+            self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
+
     def test_dump_load_keras_directly(self):
 
         model = KerasAutoEncoder(kind="feedforward_symetric")
