@@ -3,7 +3,7 @@
 import logging
 import pydoc
 import copy
-from typing import List, Union, Dict, Any, Optional, Iterable
+from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.base import BaseEstimator

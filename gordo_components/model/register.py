@@ -1,6 +1,6 @@
 import logging
 import inspect
-from typing import Dict, Callable, Any
+from typing import Dict, Callable, Any  # pragma: no flakes
 from gordo_components.model.models import GordoBase
 
 logger = logging.getLogger(__name__)

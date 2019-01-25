@@ -13,10 +13,10 @@ import tempfile
 import tarfile
 
 from os import path
-from typing import Tuple, Union, Dict, Any, IO
+from typing import Tuple, Union, Dict, Any, IO  # pragma: no flakes
 
 from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import TransformerMixin
 
 from gordo_components.model.models import GordoBase
 

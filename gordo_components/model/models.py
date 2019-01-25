@@ -16,7 +16,7 @@ from keras.models import load_model
 from gordo_components.model.base import GordoBase
 
 # This is required to run `register_model_builder` against registered factories
-from gordo_components.model.factories import *
+from gordo_components.model.factories import *  # pragma: no flakes
 
 from gordo_components.model.register import register_model_builder
 

@@ -4,7 +4,6 @@ import logging
 import numpy as np
 import pandas as pd
 
-from datetime import timedelta
 from influxdb import DataFrameClient
 from gordo_components.dataset.base import GordoBaseDataset
 
@@ -152,7 +151,6 @@ class RandomDataset(GordoBaseDataset):
         X = np.random.random(size=self.size * self.n_features).reshape(
             -1, self.n_features
         )
-        y = np.random.random(size=self.size).astype(int)
         return X, X.copy()
 
     def get_metadata(self):

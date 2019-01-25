@@ -1,7 +1,6 @@
 import os
 import unittest
 import yaml
-import glob
 import docker
 import logging
 import time
