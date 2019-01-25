@@ -29,6 +29,7 @@ test_requirements = [
     "pytest-mypy==0.3.2",
     "responses==0.10.5",
     "black==18.9b0",
+    "pytest-flakes~=4.0",
 ]
 
 setup(
