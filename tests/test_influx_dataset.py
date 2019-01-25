@@ -24,6 +24,7 @@ SOURCE_DB_NAME = "sensors"  # This is also used for influx measurement name!
 DESTINATION_DB_NAME = "destdb"
 
 
+@pytest.mark.dockertest
 class PredictionInfluxTestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
