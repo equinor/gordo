@@ -92,7 +92,7 @@ class PredictionApiView(Resource):
 
         # Model may only be a transformer, probably an AttributeError, but catch all to avoid logging other
         # exceptions twice if it happens.
-        except Exception as exc:
+        except Exception:
             try:
                 context["output"] = self.model.transform(X).tolist()
             except Exception as exc:

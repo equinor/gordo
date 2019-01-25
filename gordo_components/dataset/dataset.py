@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from gordo_components.dataset._datasets import RandomDataset, InfluxBackedDataset
-
 from gordo_components.dataset import _datasets
 
 

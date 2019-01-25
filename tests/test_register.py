@@ -19,7 +19,7 @@ class RegisterTestCase(unittest.TestCase):
                 pass
 
         # Pass with required param(s)
-        @register_model_builder(type="KerasBaseEstimator")
+        @register_model_builder(type="KerasBaseEstimator")  # pragma: no flakes
         def build_fn(n_features):
             pass
 

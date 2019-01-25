@@ -2,7 +2,7 @@
 
 import inspect
 import logging
-from typing import Iterable, Any, Dict, Union, List
+from typing import Iterable, Dict, Union, List  # pragma: no flakes
 
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import FunctionTransformer
