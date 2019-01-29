@@ -17,6 +17,7 @@ install_requires = [
     "tensorflow~=1.12",
     "Flask~=1.0",
     "flask-restplus~=0.12",
+    "azure-datalake-store~=0.0",
 ]
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]
@@ -30,6 +31,7 @@ test_requirements = [
     "responses==0.10.5",
     "black==18.9b0",
     "pytest-flakes~=4.0",
+    "adal~=1.2",
 ]
 
 setup(

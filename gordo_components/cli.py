@@ -43,7 +43,10 @@ DEFAULT_MODEL_CONFIG = "{'gordo_components.model.models.KerasAutoEncoder': {'kin
     "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=yaml.load
 )
 @click.argument(
-    "data-config", envvar="DATA_CONFIG", default='{"type": "influx"}', type=literal_eval
+    "data-config",
+    envvar="DATA_CONFIG",
+    default='{"type": "InfluxBackedDataset"}',
+    type=literal_eval,
 )
 @click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
 def build(output_dir, model_config, data_config, metadata):
@@ -72,9 +75,9 @@ def build(output_dir, model_config, data_config, metadata):
     # TODO: Move parsing from here, into the InfluxDataSet class
     data_config["to_ts"] = dateutil.parser.isoparse(os.environ["TRAIN_END_DATE"])
 
-    logger.info("Building, output will be at: {}".format(output_dir))
-    logger.info("Model config: {}".format(model_config))
-    logger.info("Data config: {}".format(data_config))
+    logger.info(f"Building, output will be at: {output_dir}")
+    logger.info(f"Model config: {model_config}")
+    logger.info(f"Data config: {data_config}")
 
     build_model(
         output_dir=output_dir,
@@ -82,7 +85,7 @@ def build(output_dir, model_config, data_config, metadata):
         data_config=data_config,
         metadata=metadata,
     )
-    logger.info("Successfully built model, and deposited at {}".format(output_dir))
+    logger.info(f"Successfully built model, and deposited at {output_dir}")
     return 0
 
 

@@ -7,8 +7,10 @@ def get_dataset(config):
     """
     Return a GordoBaseDataSet object of a certain type, given a config dict
     """
-    kind = config.get("type", "")
+    dataset_config = dict(config)
+    kind = dataset_config.pop("type", "")
     Dataset = getattr(_datasets, kind, None)
     if Dataset is None:
-        raise ValueError('Dataset type "{}" is not supported!'.format(kind))
-    return Dataset(**config)
+        raise ValueError(f'Dataset type "{kind}" is not supported!')
+
+    return Dataset(**dataset_config)
