@@ -17,7 +17,7 @@ def feedforward_symetric(
     dec_dim: List[int] = None,
     enc_func: List[str] = None,
     dec_func: List[str] = None,
-    **kwargs
+    **kwargs,
 ):
     """
     Builds a customized keras neural network auto-encoder based on a config dict
@@ -40,16 +40,12 @@ def feedforward_symetric(
 
     if len(encoding_dim) != len(encoding_func):
         raise ValueError(
-            "Number of layers ({}) and number of functions ({}) must be equal for the encoder.".format(
-                len(encoding_dim), len(encoding_func)
-            )
+            f"Number of layers ({len(encoding_dim)}) and number of functions ({len(encoding_func)}) must be equal for the encoder."
         )
 
     if len(decoding_dim) != len(decoding_func):
         raise ValueError(
-            "Number of layers ({}) and number of functions ({}) must be equal for the decoder.".format(
-                len(decoding_dim), len(decoding_func)
-            )
+            f"Number of layers ({len(decoding_dim)}) and number of functions ({len(decoding_func)}) must be equal for the decoder."
         )
 
     # Add encoding layers

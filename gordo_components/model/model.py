@@ -13,6 +13,6 @@ def get_model(config):
     Model = getattr(models, type, None)
     if Model is None:
         raise ValueError(
-            'Type of model: "{}" either not provided or not supported'.format(type)
+            f'Type of model: "{type}" either not provided or not supported'
         )
     return Model(**config)

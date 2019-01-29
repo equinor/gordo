@@ -33,7 +33,7 @@ def build_model(output_dir: str, model_config: dict, data_config: dict, metadata
         None
     """
     # Get the dataset from config
-    logger.debug("Initializing Dataset with config {}".format(data_config))
+    logger.debug(f"Initializing Dataset with config {data_config}")
     dataset = get_dataset(data_config)
 
     logger.debug("Fetching training data")
@@ -43,7 +43,7 @@ def build_model(output_dir: str, model_config: dict, data_config: dict, metadata
     time_elapsed_data = end - start
 
     # Get the model and dataset
-    logger.debug("Initializing Model with config: {}".format(model_config))
+    logger.debug(f"Initializing Model with config: {model_config}")
     model = serializer.pipeline_from_definition(model_config)
 
     logger.debug("Starting to train model.")
