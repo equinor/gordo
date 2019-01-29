@@ -45,10 +45,20 @@ DEFAULT_MODEL_CONFIG = "{'gordo_components.model.models.KerasAutoEncoder': {'kin
 @click.argument(
     "data-config", envvar="DATA_CONFIG", default='{"type": "influx"}', type=literal_eval
 )
-def build(output_dir, model_config, data_config):
+@click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
+def build(output_dir, model_config, data_config, metadata):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
+
+    Parameters
+    ----------
+    output_dir: str - Directory to save model & metadata to.
+    model_config: dict - kwargs to be used in initializing the model. Should also
+                         contain kwarg 'type' which references the model to use. ie. KerasAutoEncoder
+    data_config: dict - kwargs to be used in intializing the dataset. Should also
+                         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
+    metadata: dict - Any additional metadata to save under the key 'user-defined'
     """
 
     # TODO: Move all data related input from environment variable to data_config,
@@ -67,7 +77,10 @@ def build(output_dir, model_config, data_config):
     logger.info("Data config: {}".format(data_config))
 
     build_model(
-        output_dir=output_dir, model_config=model_config, data_config=data_config
+        output_dir=output_dir,
+        model_config=model_config,
+        data_config=data_config,
+        metadata=metadata,
     )
     logger.info("Successfully built model, and deposited at {}".format(output_dir))
     return 0
