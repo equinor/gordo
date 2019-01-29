@@ -30,6 +30,7 @@ class ModelBuilderTestCase(unittest.TestCase):
                 output_dir=output_dir,
                 model_config=model_config,
                 data_config=data_config,
+                metadata={},
             )
 
             # Assert the model was saved at the location

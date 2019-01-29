@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import ast
 import os
 import logging
 import datetime
 import time
+
+from typing import Dict, Any
 
 from gordo_components import serializer, __version__
 from gordo_components.dataset import get_dataset
@@ -12,7 +15,7 @@ from gordo_components.dataset import get_dataset
 logger = logging.getLogger(__name__)
 
 
-def build_model(output_dir: str, model_config: dict, data_config: dict):
+def build_model(output_dir: str, model_config: dict, data_config: dict, metadata: dict):
     """
     Build a model and serialize to a directory for later serving.
 
@@ -50,9 +53,7 @@ def build_model(output_dir: str, model_config: dict, data_config: dict):
     time_elapsed_model = end - start
 
     # Save the model/pipeline + metadata
-    os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
-    logger.debug(f"Saving model to output dir: {output_dir}")
-    metadata = {}
+    metadata = {"user-defined": metadata}
     metadata["dataset"] = dataset.get_metadata()
     utc_dt = datetime.datetime.now(datetime.timezone.utc)
     metadata["model"] = {
@@ -63,6 +64,8 @@ def build_model(output_dir: str, model_config: dict, data_config: dict):
         "model_training_duration_sec": time_elapsed_model,
     }
 
+    os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
+    logger.debug(f"Saving model to output dir: {output_dir}")
     serializer.dump(model, output_dir, metadata=metadata)
 
     # Let argo & subsequent model loader know where the model will be saved.
