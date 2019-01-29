@@ -9,13 +9,9 @@ from gordo_components.watchman import server
 
 
 TARGET_NAMES = ["CT-machine-name-456", "CT-machine-name-123"]
-TARGET_NAMES_SANITIZED = [
-    "ct-machine-name-456-kn209d",
-    "ct-machine-name-123-ksno0s9f092",
-]
 PROJECT_NAME = "some-project-name"
 AMBASSADORHOST = "ambassador"
-URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{sanitized_name}/healthcheck"
+URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{target_name}/healthcheck"
 
 
 def request_callback(_request):
@@ -30,11 +26,7 @@ def request_callback(_request):
 
 class WatchmanTestCase(unittest.TestCase):
     def setUp(self):
-        app = server.build_app(
-            project_name=PROJECT_NAME,
-            target_names=TARGET_NAMES,
-            target_names_sanitized=TARGET_NAMES_SANITIZED,
-        )
+        app = server.build_app(project_name=PROJECT_NAME, target_names=TARGET_NAMES)
         app.testing = True
         self.app = app.test_client()
 
@@ -64,11 +56,9 @@ class WatchmanTestCase(unittest.TestCase):
         # List of expected endpoints given the current CONFIG_FILE and the project name
         expected_endpoints = [
             URL_FORMAT.format(
-                host=AMBASSADORHOST,
-                project_name=PROJECT_NAME,
-                sanitized_name=sanitized_name,
+                host=AMBASSADORHOST, project_name=PROJECT_NAME, target_name=target_name
             )
-            for sanitized_name in TARGET_NAMES_SANITIZED
+            for target_name in TARGET_NAMES
         ]
 
         data = resp.get_json()

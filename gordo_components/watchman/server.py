@@ -61,11 +61,7 @@ def healthcheck():
     return payload, 200
 
 
-def build_app(
-    project_name: str,
-    target_names: Iterable[str],
-    target_names_sanitized: Iterable[str],
-):
+def build_app(project_name: str, target_names: Iterable[str]):
     """
     Build app and any associated routes
     """
@@ -73,8 +69,8 @@ def build_app(
     # Precompute list of expected endpoints from config file and other global env
     global ENDPOINTS, PROJECT_NAME, TARGET_NAMES
     ENDPOINTS = [
-        f"/gordo/v0/{project_name}/{sanitized_name}/healthcheck"
-        for sanitized_name in target_names_sanitized
+        f"/gordo/v0/{project_name}/{target_name}/healthcheck"
+        for target_name in target_names
     ]
     PROJECT_NAME = project_name
     TARGET_NAMES = target_names
@@ -89,13 +85,8 @@ def build_app(
 
 
 def run_server(
-    host: str,
-    port: int,
-    debug: bool,
-    project_name: str,
-    target_names: Iterable[str],
-    target_names_sanitized: Iterable[str],
+    host: str, port: int, debug: bool, project_name: str, target_names: Iterable[str]
 ):
 
-    app = build_app(project_name, target_names, target_names_sanitized)
+    app = build_app(project_name, target_names)
     app.run(host, port, debug=debug)
