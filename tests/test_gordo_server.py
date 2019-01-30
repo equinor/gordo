@@ -68,8 +68,8 @@ class GordoServerTestCase(unittest.TestCase):
             resp = self.app.get("/metadata")
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertTrue("model-metadata" in data)
-        self.assertEqual(data["model-metadata"]["model-name"], "test-model")
+        self.assertTrue("metadata" in data)
+        self.assertEqual(data["metadata"]["model-name"], "test-model")
 
     def test_predictions_endpoint(self):
         """
