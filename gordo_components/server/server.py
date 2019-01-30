@@ -125,8 +125,8 @@ class MetaDataView(Resource):
         """
         return {
             "version": __version__,
-            "model-metadata": self.metadata,
-            MODEL_LOCATION_ENV_VAR: os.environ.get(MODEL_LOCATION_ENV_VAR),
+            "metadata": self.metadata,
+            "env": {MODEL_LOCATION_ENV_VAR: os.environ.get(MODEL_LOCATION_ENV_VAR)},
         }
 
 
