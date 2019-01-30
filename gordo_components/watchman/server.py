@@ -2,7 +2,7 @@
 
 import requests
 import logging
-from typing import Iterable
+from typing import Iterable, Optional
 from flask import Flask, jsonify, make_response
 from flask.views import MethodView
 from concurrent.futures import ThreadPoolExecutor
@@ -27,15 +27,32 @@ class WatchmanApi(MethodView):
     """
 
     @staticmethod
-    def _check_endpoint(endpoint: str):
+    def _check_endpoint(endpoint: str) -> Optional[dict]:
+        """
+        Check if a given endpoint is healthy, if so, return its metadata
+
+        Parameters
+        ----------
+        endpoint: str - Enpoint to check. ie. /gordo/v0/test-project/test-machine
+
+        Returns
+        -------
+        Optional[dict] - Will return None if endpoint is not healthy
+        """
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
+        endpoint = endpoint.rstrip("/")
         try:
-            return requests.get(f"http://ambassador/{endpoint}", timeout=2).ok
+            if requests.get(f"http://ambassador/{endpoint}/healthcheck", timeout=2).ok:
+                resp = requests.get(f"http://ambassador/{endpoint}/metadata", timeout=2)
+                if resp.ok:  # No reason to suspect it wouldn't be by now
+                    return resp.json()
+                else:
+                    return dict()  # Empty metadata then.
         except Exception as exc:
             logger.error(
                 f"Failed to check health of gordo-server: {endpoint} --> Error: {exc}"
             )
-            return False
+        return None  # pedantic mypy
 
     def get(self):
         with ThreadPoolExecutor(max_workers=25) as executor:
@@ -44,8 +61,19 @@ class WatchmanApi(MethodView):
                 for endpoint in ENDPOINTS
             }
 
-            # List of dicts: [{'endpoint': /path/to/endpoint, 'healthy': bool}]
-            results = [{"endpoint": futures[f], "healthy": f.result()} for f in futures]
+            # List of dicts: [{'endpoint': /path/to/endpoint, 'healthy': bool, 'metadata': dict}]
+            results = []
+            for f in futures:
+
+                metadata = f.result()
+
+                results.append(
+                    {
+                        "endpoint": futures[f],
+                        "healthy": True if metadata is not None else False,
+                        "metadata": metadata,
+                    }
+                )
 
         payload = jsonify({"endpoints": results, "project_name": PROJECT_NAME})
         resp = make_response(payload, 200)
@@ -69,8 +97,7 @@ def build_app(project_name: str, target_names: Iterable[str]):
     # Precompute list of expected endpoints from config file and other global env
     global ENDPOINTS, PROJECT_NAME, TARGET_NAMES
     ENDPOINTS = [
-        f"/gordo/v0/{project_name}/{target_name}/healthcheck"
-        for target_name in target_names
+        f"/gordo/v0/{project_name}/{target_name}/" for target_name in target_names
     ]
     PROJECT_NAME = project_name
     TARGET_NAMES = target_names

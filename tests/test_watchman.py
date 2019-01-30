@@ -11,16 +11,26 @@ from gordo_components.watchman import server
 TARGET_NAMES = ["CT-machine-name-456", "CT-machine-name-123"]
 PROJECT_NAME = "some-project-name"
 AMBASSADORHOST = "ambassador"
-URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{target_name}/healthcheck"
+URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{target_name}/"
 
 
-def request_callback(_request):
+def healthcheck_request_callback(_request):
     """
-    Mock the Sentinel request to check if a given endpoint is alive or not.
+    Mock the Watchman request to check if a given endpoint is alive or not.
     This imitating a simple /healtcheck endpoint,
     """
     headers = {}
     payload = {"version": __version__}
+    return 200, headers, json.dumps(payload)
+
+
+def metadata_request_callback(_request):
+    """
+    Mock the Watchman request to get metadata from a given gordo server
+    This imitating a simple /metadata endpoint,
+    """
+    headers = {}
+    payload = {"version": __version__, "metadata": {"model": "test-model"}}
     return 200, headers, json.dumps(payload)
 
 
@@ -46,7 +56,14 @@ class WatchmanTestCase(unittest.TestCase):
         responses.add_callback(
             responses.GET,
             re.compile(rf".*{AMBASSADORHOST}.*/healthcheck"),
-            callback=request_callback,
+            callback=healthcheck_request_callback,
+            content_type="application/json",
+        )
+
+        responses.add_callback(
+            responses.GET,
+            re.compile(rf".*{AMBASSADORHOST}.*/metadata"),
+            callback=metadata_request_callback,
             content_type="application/json",
         )
 
@@ -73,3 +90,5 @@ class WatchmanTestCase(unittest.TestCase):
                 expected.replace(f"http://{AMBASSADORHOST}", ""), actual["endpoint"]
             )
             self.assertTrue(actual["healthy"])
+            self.assertTrue("metadata" in actual)
+            self.assertTrue(isinstance(actual["metadata"], dict))
