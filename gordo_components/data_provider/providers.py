@@ -208,16 +208,33 @@ class DataLakeProvider(GordoBaseDataProvider):
 
 
 class InfluxDataProvider(GordoBaseDataProvider):
-    def __init__(self, measurement: str, **kwargs):
+    def __init__(
+        self,
+        measurement: str,
+        api_key: str = None,
+        api_key_header: str = None,
+        value_name: str = "Value",
+        **kwargs,
+    ):
         """
         Parameters
         ----------
         measurement: str - Name of the measurement to select from in Influx
+        value_name: str - Name of value to select, default to 'Value'
+        api_key: str - Api key to use in header
+        api_key_header: str - key of header to insert the api key for requests
         kwargs: dict - These are passed directly to the init args of influxdb.DataFrameClient
         """
         self.measurement = measurement
+        self.value_name = value_name
         self.influx_config = kwargs
         self.influx_client = DataFrameClient(**kwargs)
+        if api_key:
+            if not api_key_header:
+                raise ValueError(
+                    "If supplying an api key, you must supply the header key to insert it under."
+                )
+            self.influx_client._headers[api_key_header] = api_key
 
     def load_dataframes(
         self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
@@ -250,27 +267,23 @@ class InfluxDataProvider(GordoBaseDataProvider):
         logger.info(f"Reading tag: {tag}")
         logger.info(f"Fetching data from {from_ts} to {to_ts}")
         query_string = f"""
-            SELECT "Value" as "{tag}" 
+            SELECT "{self.value_name}" as "{tag}" 
             FROM "{measurement}" 
             WHERE("tag" =~ /^{tag}$/) 
                 {f"AND time >= {int(from_ts.timestamp())}s" if from_ts else ""} 
                 {f"AND time <= {int(to_ts.timestamp())}s" if to_ts else ""}
         """
+
         logger.info(f"Query string: {query_string}")
         dataframes = self.influx_client.query(query_string)
 
-        list_of_tags = self._list_of_tags_from_influx()
-        if tag not in list_of_tags:
-            raise ValueError(
-                f"tag {tag} is not a valid tag.  List of tags = {list_of_tags}"
-            )
-
         try:
-            vals = dataframes.values()
-            result = list(vals)[0]
-            return result
+            return list(dataframes.values())[0]
 
         except IndexError as e:
+            list_of_tags = self._list_of_tags_from_influx()
+            if tag not in list_of_tags:
+                raise ValueError(f"tag {tag} is not found in influx")
             logger.error(
                 f"Unable to find data for tag {tag} in the time range {from_ts} - {to_ts}"
             )
