@@ -35,11 +35,10 @@ class TimeSeriesDataset(GordoBaseDataset):
             )
 
     def get_data(self) -> pd.DataFrame:
-        dataframe_generator = self.data_provider.load_dataframes(
+        dataframes = self.data_provider.load_dataframes(
             from_ts=self.from_ts, to_ts=self.to_ts, tag_list=self.tag_list
         )
-
-        X = self.join_timeseries(dataframe_generator, self.from_ts, self.resolution)
+        X = self.join_timeseries(dataframes, self.from_ts, self.resolution)
         y = None
         return X, y
 
