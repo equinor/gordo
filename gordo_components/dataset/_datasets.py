@@ -2,96 +2,88 @@
 
 import os
 import re
+from typing import Iterable
 import logging
-import datetime
 import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
 from azure.datalake.store import lib
 from azure.datalake.store import core
+from datetime import datetime
+
 from gordo_components.dataset.base import GordoBaseDataset
 
 logger = logging.getLogger(__name__)
 
 
-def resample(tag_frame: pd.DataFrame, resolution: str) -> pd.DataFrame:
+def join_timeseries(
+    dataframe_iterator: Iterable[pd.DataFrame],
+    resampling_startpoint: datetime,
+    resolution: str,
+) -> pd.DataFrame:
     """
-    Resample dataframe with a given resolution, using mean as the aggregating function.
 
     Parameters
     ----------
-    tag_frame: pd.DataFrame - dataframe to be resampled.
-    resolution: str - using Pandas resample nomenclature (e.g. "10T" is 10 minutes).
+    dataframe_iterator - An iterator supplying [timestamp, value] dataframes
+
+    resampling_startpoint - The starting point for resampling. Most data
+    frames will not have this in their datetime index, and it will be inserted with a
+    NaN as the value.
+    The resulting NaNs will be removed, so the only important requirement for this is
+    that this resampling_startpoint datetime must be before or equal to the first
+    (earliest) datetime in the data to be resampled.
+
+    resolution - The bucket size for grouping all incoming time data (e.g. "10T")
 
     Returns
     -------
-    pd.DataFrame: Resampled dataframe. Contains NaN if time groups are empty.
+    pd.DataFrame - A dataframe without NaNs, a common time index, and one column per
+    element in the dataframe_generator
 
     """
-    tag_frame = tag_frame.resample(resolution).mean()
-    return tag_frame
+    resampled_frames = []
 
-
-def fillnan(tag_frame: pd.DataFrame) -> pd.DataFrame:
-    """
-    Forward fill NaN in (typically resampled) dataframe.
-
-    Parameters
-    ----------
-    tag_frame: pd.DataFrame - dataframe to be filled.
-
-    Returns
-    -------
-    pd.DataFrame: Frame where the NaNs have been filled
-    """
-    tag_frame = tag_frame.fillna(method="ffill")
-    return tag_frame
-
-
-def join_resampled_frames(tag_frames: list) -> pd.DataFrame:
-    """
-    Join a list of Pandas dataframes with another.
-    The start and end timestamps of the dataframes might differ.
-    We select only the common range immediately by using an "inner" join.
-
-    Parameters
-    ----------
-    tag_frames: list of pd.DataFrame - list of (resampled)
-                dataframes (for different tags)
-
-    Returns
-    -------
-    pd.DataFrame: One dataframe with as many columns as elements in the original list
-
-    """
-    return pd.concat(tag_frames, axis=1, join="inner")
-
-
-def get_datalake_token(interactive=True, dl_service_auth_str=None):
-    logger.info("Looking for ways to authenticate with data lake")
-    if interactive:
-        return lib.auth()
-
-    elif dl_service_auth_str:
-        logger.info("Attempting to use datalake service authentication")
-        dl_service_auth_elems = dl_service_auth_str.split(":")
-        tenant = dl_service_auth_elems[0]
-        client_id = dl_service_auth_elems[1]
-        client_secret = dl_service_auth_elems[2]
-        token = lib.auth(
-            tenant_id=tenant,
-            client_secret=client_secret,
-            client_id=client_id,
-            resource="https://datalake.azure.net/",
+    for dataframe in dataframe_iterator:
+        startpoint_sametz = resampling_startpoint.astimezone(
+            tz=dataframe.index[0].tzinfo
         )
-        return token
+        if dataframe.index[0] > startpoint_sametz:
+            # Insert a NaN at the startpoint, to make sure that all resampled
+            # indexes are the same. This approach will "pad" most frames with
+            # NaNs, that will be removed at the end.
+            startpoint = pd.DataFrame(
+                [np.NaN], index=[startpoint_sametz], columns=dataframe.columns
+            )
+            dataframe = startpoint.append(dataframe)
+            logging.debug(
+                f"Appending NaN to {dataframe.columns[0]} "
+                f"at time {startpoint_sametz}"
+            )
 
-    else:
-        raise ValueError(
-            f"Either interactive (value: {interactive}) must be True, "
-            f"or dl_service_auth_str (value: {dl_service_auth_str}) "
-            "must be set. "
-        )
+        elif dataframe.index[0] < resampling_startpoint:
+            msg = (
+                f"Error - for {dataframe.columns[0]}, first timestamp "
+                f"{dataframe.index[0]} is before resampling start point "
+                f"{startpoint_sametz}"
+            )
+            logging.error(msg)
+            raise RuntimeError(msg)
+
+        logging.debug("Head (3) and tail(3) of dataframe to be resampled:")
+        logging.debug(dataframe.head(3))
+        logging.debug(dataframe.tail(3))
+
+        resampled = dataframe.resample(resolution).mean()
+
+        filled = resampled.fillna(method="ffill")
+        resampled_frames.append(filled)
+
+    joined = pd.concat(resampled_frames, axis=1, join="inner")
+    # Before returning, delete all rows with NaN, they were introduced by the
+    # insertion of NaNs in the beginning of all timeseries
+
+    return joined.dropna()
 
 
 class DataLakeBackedDataset(GordoBaseDataset):
@@ -121,8 +113,8 @@ class DataLakeBackedDataset(GordoBaseDataset):
     def __init__(
         self,
         datalake_config: dict,
-        from_ts: datetime.datetime,
-        to_ts: datetime.datetime,
+        from_ts: datetime,
+        to_ts: datetime,
         tag_list: list,
         resolution: str = "10T",
     ):
@@ -155,6 +147,13 @@ class DataLakeBackedDataset(GordoBaseDataset):
             )
 
     def get_data(self) -> pd.DataFrame:
+        dataframe_generator = self.make_dataframe_generator()
+
+        X = join_timeseries(dataframe_generator, self.from_ts, self.resolution)
+        y = None
+        return X, y
+
+    def make_dataframe_generator(self):
         """
         Based on the config set in the constructor, return a data-frame with all data.
         The data will be resampled, and not contain NaNs.
@@ -166,7 +165,6 @@ class DataLakeBackedDataset(GordoBaseDataset):
 
         years = range(self.from_ts.year, self.to_ts.year + 1)
 
-        resampled_tag_frames = []
         for tag in self.tag_list:
             logger.info(f"Processing tag {tag}")
 
@@ -177,39 +175,7 @@ class DataLakeBackedDataset(GordoBaseDataset):
                 (tag_frame_all_years.index >= self.from_ts)
                 & (tag_frame_all_years.index < self.to_ts)
             ]
-            resampled = resample(filtered, self.resolution)
-            filled = fillnan(resampled)
-            resampled_tag_frames.append(filled)
-
-        X = join_resampled_frames(resampled_tag_frames)
-        y = None
-        return X, y
-
-    def create_adls_client(self, interactive) -> core.AzureDLFileSystem:
-        """
-        Create ADLS file system client based on the 'datalake_config' object
-
-        Returns
-        -------
-        core.AzureDLFileSystem: Instance of AzureDLFileSystem, ready for use
-        """
-        azure_data_store = self.datalake_config.get("storename")
-
-        if interactive:
-            token = get_datalake_token(interactive=True)
-
-        else:
-            dl_service_auth_str = self.datalake_config.get(
-                "dl_service_auth_str", os.environ.get("DL_SERVICE_AUTH_STR")
-            )
-            token = get_datalake_token(
-                interactive=False, dl_service_auth_str=dl_service_auth_str
-            )
-
-        adls_file_system_client = core.AzureDLFileSystem(
-            token, store_name=azure_data_store
-        )
-        return adls_file_system_client
+            yield filtered
 
     def read_tag_files(
         self, adls_file_system_client: core.AzureDLFileSystem, tag: str, years: range
@@ -245,23 +211,79 @@ class DataLakeBackedDataset(GordoBaseDataset):
                     f,
                     sep=";",
                     header=None,
-                    names=["Sensor", "Value", "Timestamp", "Status"],
-                    usecols=["Value", "Timestamp"],
-                    dtype={"Value": np.float32},
+                    names=["Sensor", tag, "Timestamp", "Status"],
+                    usecols=[tag, "Timestamp"],
+                    dtype={tag: np.float32},
                     parse_dates=["Timestamp"],
                     date_parser=lambda col: pd.to_datetime(col, utc=True),
                     index_col="Timestamp",
                 )
 
-                # There comes duplicated timestamps, keep the last
-                if df.index.duplicated().any():
-                    df = df[~df.index.duplicated(keep="last")]
-
                 all_years.append(df)
                 logger.info(f"Done parsing file {file_path}")
 
         combined = pd.concat(all_years)
+
+        # There often comes duplicated timestamps, keep the last
+        if combined.index.duplicated().any():
+            combined = combined[~combined.index.duplicated(keep="last")]
+
         return combined
+
+    def create_adls_client(self, interactive) -> core.AzureDLFileSystem:
+        """
+        Create ADLS file system client based on the 'datalake_config' object
+
+        Returns
+        -------
+        core.AzureDLFileSystem: Instance of AzureDLFileSystem, ready for use
+        """
+        azure_data_store = self.datalake_config.get("storename")
+
+        if interactive:
+            token = self.get_datalake_token(interactive=True)
+
+        else:
+            dl_service_auth_str = self.datalake_config.get(
+                "dl_service_auth_str", os.environ.get("DL_SERVICE_AUTH_STR")
+            )
+            token = self.get_datalake_token(
+                interactive=False, dl_service_auth_str=dl_service_auth_str
+            )
+
+        adls_file_system_client = core.AzureDLFileSystem(
+            token, store_name=azure_data_store
+        )
+        return adls_file_system_client
+
+    @staticmethod
+    def get_datalake_token(
+        interactive=True, dl_service_auth_str=None
+    ) -> lib.DataLakeCredential:
+        logger.info("Looking for ways to authenticate with data lake")
+        if interactive:
+            return lib.auth()
+
+        elif dl_service_auth_str:
+            logger.info("Attempting to use datalake service authentication")
+            dl_service_auth_elems = dl_service_auth_str.split(":")
+            tenant = dl_service_auth_elems[0]
+            client_id = dl_service_auth_elems[1]
+            client_secret = dl_service_auth_elems[2]
+            token = lib.auth(
+                tenant_id=tenant,
+                client_secret=client_secret,
+                client_id=client_id,
+                resource="https://datalake.azure.net/",
+            )
+            return token
+
+        else:
+            raise ValueError(
+                f"Either interactive (value: {interactive}) must be True, "
+                f"or dl_service_auth_str (value: {dl_service_auth_str}) "
+                "must be set. "
+            )
 
     def get_metadata(self):
         metadata = {

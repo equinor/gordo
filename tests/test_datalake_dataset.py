@@ -6,7 +6,7 @@ import unittest
 import adal
 
 from gordo_components.dataset import dataset
-from gordo_components.dataset._datasets import get_datalake_token
+from gordo_components.dataset._datasets import DataLakeBackedDataset
 
 
 class DataLakeTestCase(unittest.TestCase):
@@ -70,6 +70,9 @@ class DataLakeTestCase(unittest.TestCase):
         self.dataset_config["resolution"] = "10T"
         dl_backed = dataset.get_dataset(self.dataset_config)
         data, _ = dl_backed.get_data()
+
+        self.assertListEqual(self.tag_list, list(data.columns.values))
+
         expected_rows = 7
         self.assertEqual(
             len(data),
@@ -83,4 +86,4 @@ class DataLakeTestCase(unittest.TestCase):
 
     def test_get_datalake_token_wrong_args(self):
         with self.assertRaises(ValueError):
-            get_datalake_token(interactive=False)
+            DataLakeBackedDataset.get_datalake_token(interactive=False)
