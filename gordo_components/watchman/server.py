@@ -42,8 +42,12 @@ class WatchmanApi(MethodView):
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
         endpoint = endpoint.rstrip("/")
         try:
-            if requests.get(f"http://ambassador/{endpoint}/healthcheck", timeout=2).ok:
-                resp = requests.get(f"http://ambassador/{endpoint}/metadata", timeout=2)
+            if requests.get(
+                f"http://ambassador.ambassador/{endpoint}/healthcheck", timeout=2
+            ).ok:
+                resp = requests.get(
+                    f"http://ambassador.ambassador/{endpoint}/metadata", timeout=2
+                )
                 if resp.ok:  # No reason to suspect it wouldn't be by now
                     return resp.json()
                 else:
