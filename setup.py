@@ -21,7 +21,7 @@ install_requires = [
     "azure-datalake-store~=0.0",
 ]
 
-setup_requirements = ["pytest-runner", "setuptools_scm"]
+setup_requirements = ["pytest-runner", "setuptools_scm", "pytest-xdist==1.26.1"]
 
 # Test requirements
 test_requirements = [
