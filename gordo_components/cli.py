@@ -45,7 +45,8 @@ DEFAULT_MODEL_CONFIG = "{'gordo_components.model.models.KerasAutoEncoder': {'kin
 @click.argument(
     "data-config",
     envvar="DATA_CONFIG",
-    default='{"type": "InfluxBackedDataset"}',
+    default='{"type": "DataLakeBackedDataset", "datalake_config": {"storename": '
+    '"dataplatformdlsprod", "interactive": "True"}}',
     type=literal_eval,
 )
 @click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
