@@ -58,7 +58,7 @@ class GordoServerTestCase(unittest.TestCase):
 
         data = resp.get_json()
         logger.debug(f"Got resulting JSON response: {data}")
-        self.assertTrue("version" in data)
+        self.assertTrue("gordo-server-version" in data)
 
     def test_metadata_endpoint(self):
         """

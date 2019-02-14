@@ -124,7 +124,7 @@ class MetaDataView(Resource):
         Get metadata about this endpoint, also serves as /healthcheck endpoint
         """
         return {
-            "version": __version__,
+            "gordo-server-version": __version__,
             "metadata": self.metadata,
             "env": {MODEL_LOCATION_ENV_VAR: os.environ.get(MODEL_LOCATION_ENV_VAR)},
         }
