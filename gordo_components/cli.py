@@ -12,6 +12,7 @@ from ast import literal_eval
 import yaml
 import click
 from gordo_components.builder import build_model
+from gordo_components.builder.build_model import _save_model_for_workflow
 from gordo_components.server import server
 from gordo_components import watchman
 
@@ -80,12 +81,13 @@ def build(output_dir, model_config, data_config, metadata):
     logger.info(f"Model config: {model_config}")
     logger.info(f"Data config: {data_config}")
 
-    build_model(
-        output_dir=output_dir,
-        model_config=model_config,
-        data_config=data_config,
-        metadata=metadata,
+    model, metadata = build_model(
+        model_config=model_config, data_config=data_config, metadata=metadata
     )
+
+    logger.debug(f"Saving model to output dir: {output_dir}")
+    _save_model_for_workflow(model=model, metadata=metadata, output_dir=output_dir)
+
     logger.info(f"Successfully built model, and deposited at {output_dir}")
     return 0
 
