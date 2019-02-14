@@ -3,6 +3,7 @@
 import unittest
 import os
 from tempfile import TemporaryDirectory
+from gordo_components.builder.build_model import _save_model_for_workflow
 
 
 class ModelBuilderTestCase(unittest.TestCase):
@@ -26,11 +27,12 @@ class ModelBuilderTestCase(unittest.TestCase):
             data_config = {"type": "RandomDataset"}
             output_dir = os.path.join(tmpdir, "some", "sub", "directories")
 
-            build_model(
-                output_dir=output_dir,
-                model_config=model_config,
-                data_config=data_config,
-                metadata={},
+            model, metadata = build_model(
+                model_config=model_config, data_config=data_config, metadata={}
+            )
+
+            _save_model_for_workflow(
+                model=model, metadata=metadata, output_dir=output_dir
             )
 
             # Assert the model was saved at the location

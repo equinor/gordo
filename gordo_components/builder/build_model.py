@@ -7,6 +7,7 @@ import datetime
 import time
 
 from typing import Dict, Any
+from sklearn.base import BaseEstimator
 
 from gordo_components import serializer, __version__
 from gordo_components.dataset import _get_dataset
@@ -15,22 +16,22 @@ from gordo_components.dataset import _get_dataset
 logger = logging.getLogger(__name__)
 
 
-def build_model(output_dir: str, model_config: dict, data_config: dict, metadata: dict):
+def build_model(model_config: dict, data_config: dict, metadata: dict):
     """
     Build a model and serialize to a directory for later serving.
 
     Parameters
     ----------
-        output_dir: str - The path to the directory to save the trained model
         model_config: dict - mapping of Model to initialize and any additional
                              kwargs which are to be used in it's initialization
                              Example: {'type': 'KerasAutoEncoder',
                                        'kind': 'feedforward_symetric'}
         data_config: dict - mapping of the Dataset to initialize, following the
                             same logic as model_config
+        metadata: dict - mapping of arbitrary metadata data
     Returns
     -------
-        None
+        Tuple[sklearn.base.BaseEstimator, dict]
     """
     # Get the dataset from config
     logger.debug(f"Initializing Dataset with config {data_config}")
@@ -52,7 +53,6 @@ def build_model(output_dir: str, model_config: dict, data_config: dict, metadata
     end = time.time()
     time_elapsed_model = end - start
 
-    # Save the model/pipeline + metadata
     metadata = {"user-defined": metadata}
     metadata["dataset"] = dataset.get_metadata()
     utc_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -63,12 +63,26 @@ def build_model(output_dir: str, model_config: dict, data_config: dict, metadata
         "data_query_duration_sec": time_elapsed_data,
         "model_training_duration_sec": time_elapsed_model,
     }
+    return model, metadata
 
+
+def _save_model_for_workflow(model: BaseEstimator, metadata: dict, output_dir: str):
+    """
+    Save a model according to the expected Argo workflow procedure.
+
+    Parameters
+    ----------
+    model: BaseEstimator - The model to save to the directory with gordo serializer
+    metadata: dict - Various mappings of metadata to save alongside model
+    output_dir: str - The directory where to save the model, will create directories if needed
+
+    Returns
+    -------
+    None
+    """
     os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
-    logger.debug(f"Saving model to output dir: {output_dir}")
     serializer.dump(model, output_dir, metadata=metadata)
 
     # Let argo & subsequent model loader know where the model will be saved.
     with open("/tmp/model-location.txt", "w") as f:
         f.write(output_dir)
-    logger.info(f'Successfully trained model, dumped to "{output_dir}, exiting.')
