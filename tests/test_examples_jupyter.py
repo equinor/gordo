@@ -4,8 +4,6 @@ import os
 import glob
 import unittest
 import logging
-import contextlib
-import copy
 import nbformat
 import tempfile
 import dateutil.parser
@@ -76,10 +74,6 @@ class ExampleNotebooksTestCase(unittest.TestCase):
                     module_dir = os.path.join(tmpdir, "..")
                     sys.path.insert(0, module_dir)
 
-                    if "TestFail" in notebook:
-                        with self.assertRaises(ImportError):
-                            importlib.import_module(os.path.basename(tmpdir), ".")
-                    else:
-                        importlib.import_module(os.path.basename(tmpdir), ".")
+                    importlib.import_module(os.path.basename(tmpdir), ".")
 
                     sys.path.remove(module_dir)
