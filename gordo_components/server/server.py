@@ -210,7 +210,7 @@ def build_app():
     """
     app = Flask(__name__)
     api.init_app(app)
-    api.add_resource(PredictionApiView, "/predictions")
+    api.add_resource(PredictionApiView, "/prediction")
     api.add_resource(MetaDataView, "/metadata", "/healthcheck")
 
     app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)
