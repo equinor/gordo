@@ -8,8 +8,7 @@ import dateutil.parser
 
 from gordo_components.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
-from gordo_components.dataset._datasets import RandomDataset
-from gordo_components.dataset._datasets import join_timeseries
+from gordo_components.dataset.datasets import RandomDataset, join_timeseries
 
 
 class DatasetTestCase(unittest.TestCase):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from gordo_components.dataset import _datasets
+from gordo_components.dataset import datasets
 
 
 def _get_dataset(config):
@@ -9,7 +9,7 @@ def _get_dataset(config):
     """
     dataset_config = dict(config)
     kind = dataset_config.pop("type", "")
-    Dataset = getattr(_datasets, kind, None)
+    Dataset = getattr(datasets, kind, None)
     if Dataset is None:
         raise ValueError(f'Dataset type "{kind}" is not supported!')
 

@@ -12,7 +12,7 @@ import numpy as np
 from influxdb import InfluxDBClient
 from click.testing import CliRunner
 
-from gordo_components.dataset._datasets import InfluxBackedDataset
+from gordo_components.dataset.datasets import InfluxBackedDataset
 from gordo_components.dataset import _get_dataset
 
 import pytest
