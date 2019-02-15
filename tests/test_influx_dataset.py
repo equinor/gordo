@@ -13,7 +13,7 @@ from influxdb import InfluxDBClient
 from click.testing import CliRunner
 
 from gordo_components.dataset._datasets import InfluxBackedDataset
-from gordo_components.dataset import get_dataset
+from gordo_components.dataset import _get_dataset
 
 import pytest
 
@@ -189,7 +189,7 @@ class PredictionInfluxTestCase(unittest.TestCase):
             "influx_config": influx_config,
             "tag_list": tag_list,
         }
-        dataset = get_dataset(config)
+        dataset = _get_dataset(config)
         self.assertTrue(hasattr(dataset, "get_metadata"))
 
         metadata = dataset.get_metadata()

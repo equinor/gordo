@@ -3,7 +3,7 @@
 from gordo_components.dataset import _datasets
 
 
-def get_dataset(config):
+def _get_dataset(config):
     """
     Return a GordoBaseDataSet object of a certain type, given a config dict
     """

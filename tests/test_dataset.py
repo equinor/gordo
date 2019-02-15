@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import dateutil.parser
 
-from gordo_components.dataset import get_dataset
+from gordo_components.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.dataset._datasets import RandomDataset
 from gordo_components.dataset._datasets import join_timeseries
@@ -19,7 +19,7 @@ class DatasetTestCase(unittest.TestCase):
         """
         config = {"type": "RandomDataset"}
 
-        dataset = get_dataset(config)
+        dataset = _get_dataset(config)
 
         self.assertTrue(isinstance(dataset, GordoBaseDataset))
         self.assertTrue(isinstance(dataset, RandomDataset))
