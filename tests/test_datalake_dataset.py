@@ -27,7 +27,7 @@ class DataLakeTestCase(unittest.TestCase):
         }
 
     def test_init(self):
-        dl_backed = dataset.get_dataset(self.dataset_config)
+        dl_backed = dataset._get_dataset(self.dataset_config)
         self.assertIsNotNone(
             dl_backed,
             f"Failed to create dataset object of type {self.dataset_config['type']}",
@@ -35,11 +35,11 @@ class DataLakeTestCase(unittest.TestCase):
 
     def test_get_data_serviceauth_fail(self):
         self.datalake_config["dl_service_auth_str"] = "TENTANT_UNKNOWN:BOGUS:PASSWORD"
-        dl_backed = dataset.get_dataset(self.dataset_config)
+        dl_backed = dataset._get_dataset(self.dataset_config)
         self.assertRaises(adal.adal_error.AdalError, dl_backed.get_data)
 
     def test_get_metadata(self):
-        dl_backed = dataset.get_dataset(self.dataset_config)
+        dl_backed = dataset._get_dataset(self.dataset_config)
         metadata = dl_backed.get_metadata()
         self.assertEqual(metadata["train_start_date"], self.dataset_config["from_ts"])
         self.assertEqual(metadata["train_end_date"], self.dataset_config["to_ts"])
@@ -47,7 +47,7 @@ class DataLakeTestCase(unittest.TestCase):
         self.assertEqual(metadata["resolution"], "10T")
 
         self.dataset_config["resolution"] = "10M"
-        dl_backed = dataset.get_dataset(self.dataset_config)
+        dl_backed = dataset._get_dataset(self.dataset_config)
         metadata = dl_backed.get_metadata()
         self.assertEqual(metadata["resolution"], self.dataset_config["resolution"])
 
@@ -57,7 +57,7 @@ class DataLakeTestCase(unittest.TestCase):
     )
     def test_get_data_interactive(self):
         self.datalake_config["interactive"] = True
-        dl_backed = dataset.get_dataset(self.dataset_config)
+        dl_backed = dataset._get_dataset(self.dataset_config)
         data = dl_backed.get_data()
         self.assertGreaterEqual(len(data), 0)
 
@@ -68,7 +68,7 @@ class DataLakeTestCase(unittest.TestCase):
     def test_get_data_serviceauth_in_config(self):
         self.datalake_config["dl_service_auth_str"] = os.getenv("TEST_SERVICE_AUTH")
         self.dataset_config["resolution"] = "10T"
-        dl_backed = dataset.get_dataset(self.dataset_config)
+        dl_backed = dataset._get_dataset(self.dataset_config)
         data, _ = dl_backed.get_data()
 
         self.assertListEqual(self.tag_list, list(data.columns.values))

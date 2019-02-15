@@ -9,7 +9,7 @@ import time
 from typing import Dict, Any
 
 from gordo_components import serializer, __version__
-from gordo_components.dataset import get_dataset
+from gordo_components.dataset import _get_dataset
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def build_model(output_dir: str, model_config: dict, data_config: dict, metadata
     """
     # Get the dataset from config
     logger.debug(f"Initializing Dataset with config {data_config}")
-    dataset = get_dataset(data_config)
+    dataset = _get_dataset(data_config)
 
     logger.debug("Fetching training data")
     start = time.time()
