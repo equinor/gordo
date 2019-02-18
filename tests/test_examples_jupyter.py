@@ -17,7 +17,7 @@ import numpy as np
 
 from nbconvert.exporters import PythonExporter
 
-from gordo_components.dataset._datasets import DataLakeBackedDataset
+from gordo_components.dataset.datasets import DataLakeBackedDataset
 
 
 logger = logging.getLogger(__name__)
