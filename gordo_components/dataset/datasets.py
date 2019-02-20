@@ -45,6 +45,9 @@ def join_timeseries(
     resampled_frames = []
 
     for dataframe in dataframe_iterator:
+        if dataframe is None:
+            continue
+
         startpoint_sametz = resampling_startpoint.astimezone(
             tz=dataframe.index[0].tzinfo
         )
@@ -78,6 +81,9 @@ def join_timeseries(
 
         filled = resampled.fillna(method="ffill")
         resampled_frames.append(filled)
+
+    if len(resampled_frames) == 0:
+        return None
 
     joined = pd.concat(resampled_frames, axis=1, join="inner")
     # Before returning, delete all rows with NaN, they were introduced by the
@@ -117,6 +123,7 @@ class DataLakeBackedDataset(GordoBaseDataset):
         to_ts: datetime,
         tag_list: list,
         resolution: str = "10T",
+        require_all_tags: bool = True,
     ):
         """
         Instantiates a DataLakeBackedDataset, for fetching of data from the data lake
@@ -132,6 +139,7 @@ class DataLakeBackedDataset(GordoBaseDataset):
         to_ts: datetime.datetime - end time for returned data (non-inclusive)
         tag_list: list - list of tags to fetch data for
         resolution: str - the resolution to be used for resampling, in Pandas syntax
+        require_all_tags: bool - fail if a tag file is not found
         """
         self.datalake_config = datalake_config
         self.from_ts = from_ts
@@ -139,6 +147,7 @@ class DataLakeBackedDataset(GordoBaseDataset):
         self.tag_list = tag_list
         self.resolution = resolution
         self.interactive = self.datalake_config.get("interactive", False)
+        self.require_all_tags = require_all_tags
 
         if not self.from_ts.tzinfo or not self.to_ts.tzinfo:
             raise ValueError(
@@ -171,11 +180,15 @@ class DataLakeBackedDataset(GordoBaseDataset):
             tag_frame_all_years = self.read_tag_files(
                 adls_file_system_client, tag, years
             )
-            filtered = tag_frame_all_years[
-                (tag_frame_all_years.index >= self.from_ts)
-                & (tag_frame_all_years.index < self.to_ts)
-            ]
-            yield filtered
+            if tag_frame_all_years is None:
+                yield None
+
+            else:
+                filtered = tag_frame_all_years[
+                    (tag_frame_all_years.index >= self.from_ts)
+                    & (tag_frame_all_years.index < self.to_ts)
+                ]
+                yield filtered
 
     def read_tag_files(
         self, adls_file_system_client: core.AzureDLFileSystem, tag: str, years: range
@@ -201,6 +214,16 @@ class DataLakeBackedDataset(GordoBaseDataset):
         for year in years:
             file_path = tag_base_path + f"/{tag}/{tag}_{year}.csv"
             logger.info(f"Parsing file {file_path}")
+            if not adls_file_system_client.exists(file_path):
+                if self.require_all_tags:
+                    error = (
+                        f"File {file_path} does not exist. Set require_all_tags to "
+                        f"True to allow missing tags"
+                    )
+                    logger.error(error)
+                    raise ValueError(error)
+                else:
+                    continue
 
             info = adls_file_system_client.info(file_path)
             file_size = info.get("length") / (1024 ** 2)
@@ -221,6 +244,9 @@ class DataLakeBackedDataset(GordoBaseDataset):
 
                 all_years.append(df)
                 logger.info(f"Done parsing file {file_path}")
+
+        if len(all_years) == 0:
+            return None
 
         combined = pd.concat(all_years)
 

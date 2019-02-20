@@ -84,6 +84,26 @@ class DataLakeTestCase(unittest.TestCase):
             data.isnull().values.any(), "Resulting dataframe should not have any NaNs"
         )
 
+    @unittest.skipIf(
+        os.getenv("TEST_SERVICE_AUTH") is None,
+        "Skipping test, TEST_SERVICE_AUTH not set in environment variable",
+    )
+    def test_get_missing_tag_data_serviceauth_in_config(self):
+        self.datalake_config["dl_service_auth_str"] = os.getenv("TEST_SERVICE_AUTH")
+        self.dataset_config["require_all_tags"] = False
+        self.dataset_config["resolution"] = "10T"
+        self.dataset_config["tag_list"].append("GRA-THIS-IS-MISSING")
+
+        dl_backed = dataset._get_dataset(self.dataset_config)
+        data_one_tag_missing, _ = dl_backed.get_data()
+        self.tag_list.remove("GRA-THIS-IS-MISSING")
+        self.assertListEqual(self.tag_list, list(data_one_tag_missing.columns.values))
+
+        self.dataset_config["tag_list"] = ["GRA-MISSING-1", "GRA-MISSING-2"]
+        dl_backed = dataset._get_dataset(self.dataset_config)
+        data_all_missing, _ = dl_backed.get_data()
+        self.assertIsNone(data_all_missing)
+
     def test_get_datalake_token_wrong_args(self):
         with self.assertRaises(ValueError):
             DataLakeBackedDataset.get_datalake_token(interactive=False)
