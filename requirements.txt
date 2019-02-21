@@ -31,6 +31,7 @@ keras-preprocessing==1.0.5  # via keras, tensorflow
 keras==2.2.4
 markdown==3.0.1           # via tensorboard
 markupsafe==1.1.0         # via jinja2
+numexpr==2.6.9
 numpy==1.16.0
 pandas==0.23.4
 pip-tools==3.2.0

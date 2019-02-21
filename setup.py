@@ -9,6 +9,7 @@ install_requires = [
     "Keras~=2.2",
     "numpy~=1.15",
     "pandas~=0.23",
+    "numexpr>=2.6.1",
     "pip-tools~=3.1",
     "python-dateutil~=2.7",
     "pyyaml>=4.2b1",
