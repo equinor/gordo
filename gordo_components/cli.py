@@ -69,13 +69,15 @@ def build(output_dir, model_config, data_config, metadata):
     # TODO: Move all data related input from environment variable to data_config,
     # TODO: thereby removing all these data_config['variable'] lines
 
-    data_config["tag_list"] = literal_eval(os.environ.get("TAGS", "[]"))
+    data_config["tag_list"] = data_config.pop("tags")
 
     # TODO: Move parsing from here, into the InfluxDataSet class
-    data_config["from_ts"] = dateutil.parser.isoparse(os.environ["TRAIN_START_DATE"])
+    data_config["from_ts"] = dateutil.parser.isoparse(
+        data_config.pop("train_start_date")
+    )
 
     # TODO: Move parsing from here, into the InfluxDataSet class
-    data_config["to_ts"] = dateutil.parser.isoparse(os.environ["TRAIN_END_DATE"])
+    data_config["to_ts"] = dateutil.parser.isoparse(data_config.pop("train_end_date"))
 
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Model config: {model_config}")
