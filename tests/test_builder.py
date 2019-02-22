@@ -21,7 +21,7 @@ class ModelBuilderTestCase(unittest.TestCase):
 
             model_config = {
                 "gordo_components.model.models.KerasAutoEncoder": {
-                    "kind": "feedforward_model"
+                    "kind": "feedforward_hourglass"
                 }
             }
             data_config = {"type": "RandomDataset"}

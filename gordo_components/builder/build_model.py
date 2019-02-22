@@ -25,7 +25,7 @@ def build_model(model_config: dict, data_config: dict, metadata: dict):
         model_config: dict - mapping of Model to initialize and any additional
                              kwargs which are to be used in it's initialization
                              Example: {'type': 'KerasAutoEncoder',
-                                       'kind': 'feedforward_model'}
+                                       'kind': 'feedforward_hourglass'}
         data_config: dict - mapping of the Dataset to initialize, following the
                             same logic as model_config
         metadata: dict - mapping of arbitrary metadata data

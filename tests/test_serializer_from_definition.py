@@ -64,7 +64,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         n_jobs: 1
                         transformer_weights:
                     - gordo_components.model.models.KerasAutoEncoder:
-                        kind: feedforward_model
+                        kind: feedforward_hourglass
             """,
             # This has only some named parameters included
             """
@@ -85,7 +85,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                             - sklearn.decomposition.truncated_svd.TruncatedSVD:
                                 n_components: 2
                     - gordo_components.model.models.KerasAutoEncoder:
-                        kind: feedforward_model
+                        kind: feedforward_hourglass
             """,
             # Define pipeline memory with something other than None w/o metadata
             """
@@ -130,7 +130,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                     n_jobs: 1
                     transformer_weights:
                 - gordo_components.model.models.KerasAutoEncoder:
-                    kind: feedforward_model
+                    kind: feedforward_hourglass
             """,
         ]
 
@@ -193,4 +193,4 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         # STEP 4 TEST:  Finally, the last step should be a KerasModel
         step4 = pipe.steps[3][1]
         self.assertIsInstance(step4, KerasAutoEncoder)
-        self.assertTrue(step4.kind, "feedforward_model")
+        self.assertTrue(step4.kind, "feedforward_hourglass")

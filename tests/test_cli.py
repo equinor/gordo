@@ -32,7 +32,7 @@ class CliTestCase(unittest.TestCase):
 
         model_config = {
             "gordo_components.model.models.KerasAutoEncoder": {
-                "kind": "feedforward_model"
+                "kind": "feedforward_hourglass"
             }
         }
 

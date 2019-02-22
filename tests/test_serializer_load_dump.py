@@ -68,7 +68,7 @@ class PipelineSerializationTestCase(unittest.TestCase):
                         ]
                     ),
                 ),
-                ("ae", KerasAutoEncoder(kind="feedforward_model")),
+                ("ae", KerasAutoEncoder(kind="feedforward_hourglass")),
             ]
         )
 
@@ -162,7 +162,7 @@ class PipelineSerializationTestCase(unittest.TestCase):
 
     def test_dump_load_keras_directly(self):
 
-        model = KerasAutoEncoder(kind="feedforward_model")
+        model = KerasAutoEncoder(kind="feedforward_hourglass")
 
         X = np.random.random(size=100).reshape(10, 10)
         model.fit(X.copy(), X.copy())

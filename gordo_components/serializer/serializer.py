@@ -241,7 +241,7 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     ...     # PCA is picklable
     ...     ('pca', PCA(3)),
     ...     # KerasAutoEncoder implements both `save_to_dir` and `load_from_dir`
-    ...     ('model', KerasAutoEncoder(kind='feedforward_model'))])
+    ...     ('model', KerasAutoEncoder(kind='feedforward_hourglass'))])
     >>> with TemporaryDirectory() as tmp:
     ...     serializer.dump(obj=pipe, dest_dir=tmp)
     ...     pipe_clone = serializer.load(source_dir=tmp)
