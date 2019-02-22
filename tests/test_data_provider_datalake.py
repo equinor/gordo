@@ -6,24 +6,23 @@ import unittest
 import adal
 
 from gordo_components.dataset import dataset
-from gordo_components.dataset.datasets import DataLakeBackedDataset
+from gordo_components.data_provider.providers import DataLakeProvider
 
 
 class DataLakeTestCase(unittest.TestCase):
     @classmethod
     def setUp(self):
-        self.datalake_config = {"storename": "dataplatformdlsprod"}
         self.tag_list = ["TRC-FIQ -39-0706", "GRA-EM  -23-0003ARV.PV"]
 
         from_ts = dateutil.parser.isoparse("2017-01-01T08:56:00+00:00")
         to_ts = dateutil.parser.isoparse("2017-01-01T10:01:00+00:00")
 
         self.dataset_config = {
-            "type": "DataLakeBackedDataset",
+            "type": "TimeSeriesDataset",
             "from_ts": from_ts,
             "to_ts": to_ts,
-            "datalake_config": self.datalake_config,
             "tag_list": self.tag_list,
+            "data_provider": DataLakeProvider(),
         }
 
     def test_init(self):
@@ -34,7 +33,9 @@ class DataLakeTestCase(unittest.TestCase):
         )
 
     def test_get_data_serviceauth_fail(self):
-        self.datalake_config["dl_service_auth_str"] = "TENTANT_UNKNOWN:BOGUS:PASSWORD"
+        self.dataset_config["data_provider"] = DataLakeProvider(
+            dl_service_auth_str="TENTANT_UNKNOWN:BOGUS:PASSWORD"
+        )
         dl_backed = dataset._get_dataset(self.dataset_config)
         self.assertRaises(adal.adal_error.AdalError, dl_backed.get_data)
 
@@ -56,7 +57,7 @@ class DataLakeTestCase(unittest.TestCase):
         "Skipping test, INTERACTIVE not set in environment variable",
     )
     def test_get_data_interactive(self):
-        self.datalake_config["interactive"] = True
+        self.dataset_config["data_provider"] = DataLakeProvider(interactive=True)
         dl_backed = dataset._get_dataset(self.dataset_config)
         data = dl_backed.get_data()
         self.assertGreaterEqual(len(data), 0)
@@ -66,7 +67,9 @@ class DataLakeTestCase(unittest.TestCase):
         "Skipping test, TEST_SERVICE_AUTH not set in environment variable",
     )
     def test_get_data_serviceauth_in_config(self):
-        self.datalake_config["dl_service_auth_str"] = os.getenv("TEST_SERVICE_AUTH")
+        self.dataset_config["data_provider"] = DataLakeProvider(
+            dl_service_auth_str=os.getenv("TEST_SERVICE_AUTH")
+        )
         self.dataset_config["resolution"] = "10T"
         dl_backed = dataset._get_dataset(self.dataset_config)
         data, _ = dl_backed.get_data()
@@ -86,4 +89,4 @@ class DataLakeTestCase(unittest.TestCase):
 
     def test_get_datalake_token_wrong_args(self):
         with self.assertRaises(ValueError):
-            DataLakeBackedDataset.get_datalake_token(interactive=False)
+            DataLakeProvider.get_datalake_token(interactive=False)

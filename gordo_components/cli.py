@@ -13,6 +13,7 @@ import yaml
 import click
 from gordo_components.builder import build_model
 from gordo_components.builder.build_model import _save_model_for_workflow
+from gordo_components.data_provider.providers import DataLakeProvider
 from gordo_components.server import server
 from gordo_components import watchman
 
@@ -49,8 +50,7 @@ DEFAULT_MODEL_CONFIG = (
 @click.argument(
     "data-config",
     envvar="DATA_CONFIG",
-    default='{"type": "DataLakeBackedDataset", "datalake_config": {"storename": '
-    '"dataplatformdlsprod", "interactive": "True"}}',
+    default='{"type": "TimeSeriesDataset"}',
     type=literal_eval,
 )
 @click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
@@ -81,6 +81,9 @@ def build(output_dir, model_config, data_config, metadata):
 
     # TODO: Move parsing from here, into the InfluxDataSet class
     data_config["to_ts"] = dateutil.parser.isoparse(data_config.pop("train_end_date"))
+
+    # Set default data provider for data config
+    data_config["data_provider"] = DataLakeProvider()
 
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Model config: {model_config}")

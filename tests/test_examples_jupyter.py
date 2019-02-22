@@ -17,8 +17,8 @@ import numpy as np
 
 from nbconvert.exporters import PythonExporter
 
-from gordo_components.dataset.datasets import DataLakeBackedDataset
-
+from gordo_components.data_provider.providers import DataLakeProvider
+from gordo_components.dataset.datasets import TimeSeriesDataset
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,10 @@ def _fake_data():
 
 
 class ExampleNotebooksTestCase(unittest.TestCase):
-    @mock.patch.object(DataLakeBackedDataset, "get_data", return_value=_fake_data())
+    @mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
     def test_faked_DataLakeBackedDataset(self, _mocked_method):
 
-        dataset = DataLakeBackedDataset(
-            datalake_config={"storename": "dataplatformdlsprod", "interactive": True},
+        config = dict(
             from_ts=dateutil.parser.isoparse("2014-07-01T00:10:00+00:00"),
             to_ts=dateutil.parser.isoparse("2015-01-01T00:00:00+00:00"),
             tag_list=[
@@ -42,10 +41,13 @@ class ExampleNotebooksTestCase(unittest.TestCase):
             ],
         )
 
+        provider = DataLakeProvider(storename="dataplatformdlsprod", interactive=True)
+        dataset = TimeSeriesDataset(data_provider=provider, **config)
+
         # Should be able to call get_data without being asked to authenticate in tests
         X, y = dataset.get_data()
 
-    @mock.patch.object(DataLakeBackedDataset, "get_data", return_value=_fake_data())
+    @mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
     def test_notebooks(self, _mocked_method):
         """
         Ensures all notebooks will run without error
