@@ -19,7 +19,7 @@ class KerasModelTestCase(unittest.TestCase):
         """
         config = {
             "type": "KerasAutoEncoder",
-            "kind": "feedforward_symetric",
+            "kind": "feedforward_model",
             "n_features": 10,
             "enc_dim": [8, 4, 2],
             "dec_dim": [2, 4, 8],
@@ -36,7 +36,7 @@ class KerasModelTestCase(unittest.TestCase):
     def test_keras_autoencoder_type(self):
         config = {
             "type": "KerasAutoEncoder",
-            "kind": "feedforward_symetric",
+            "kind": "feedforward_model",
             "n_features": 10,
             "enc_dim": [8, 4, 2],
             "dec_dim": [2, 4, 8],
@@ -50,7 +50,7 @@ class KerasModelTestCase(unittest.TestCase):
     def test_save_load(self):
         config = {
             "type": "KerasBaseEstimator",
-            "kind": "feedforward_symetric",
+            "kind": "feedforward_model",
             "n_features": 10,
             "enc_dim": [8, 4, 2],
             "dec_dim": [2, 4, 8],

@@ -32,7 +32,7 @@ class GordoServerTestCase(unittest.TestCase):
                 steps:
                     - sklearn.preprocessing.data.MinMaxScaler
                     - gordo_components.model.models.KerasAutoEncoder:
-                        kind: feedforward_symetric
+                        kind: feedforward_model
                 memory:
             """,
             Loader=ruamel.yaml.Loader,

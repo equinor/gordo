@@ -4,6 +4,7 @@ from typing import List
 
 from keras import regularizers
 from keras.layers import Dense
+import keras
 from keras.models import Sequential as KerasSequential
 
 from gordo_components.model.register import register_model_builder
@@ -11,14 +12,14 @@ from gordo_components.model.register import register_model_builder
 
 @register_model_builder(type="KerasAutoEncoder")
 @register_model_builder(type="KerasBaseEstimator")
-def feedforward_symetric(
+def feedforward_model(
     n_features: int,
     enc_dim: List[int] = None,
     dec_dim: List[int] = None,
     enc_func: List[str] = None,
     dec_func: List[str] = None,
     **kwargs,
-):
+) -> keras.models.Sequential:
     """
     Builds a customized keras neural network auto-encoder based on a config dict
     Args:

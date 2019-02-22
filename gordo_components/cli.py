@@ -35,7 +35,9 @@ def gordo():
     pass
 
 
-DEFAULT_MODEL_CONFIG = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': 'feedforward_symetric'}}"
+DEFAULT_MODEL_CONFIG = (
+    "{'gordo_components.model.models.KerasAutoEncoder': {'kind': 'feedforward_model'}}"
+)
 
 
 @click.command()
