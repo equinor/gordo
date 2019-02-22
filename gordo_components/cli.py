@@ -8,15 +8,14 @@ import logging
 import ast
 import os
 from ast import literal_eval
+from dateutil import parser
 
-import yaml
 import click
 from gordo_components.builder import build_model
 from gordo_components.builder.build_model import _save_model_for_workflow
 from gordo_components.server import server
 from gordo_components import watchman
 
-import dateutil.parser
 
 # Set log level, defaulting to DEBUG
 log_level = os.getenv("LOG_LEVEL", "DEBUG").upper()
@@ -35,53 +34,77 @@ def gordo():
     pass
 
 
-DEFAULT_MODEL_CONFIG = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': 'feedforward_symetric'}}"
-
-
-@click.command()
-@click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
-@click.argument(
-    "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=yaml.load
-)
-@click.argument(
-    "data-config",
-    envvar="DATA_CONFIG",
-    default='{"type": "DataLakeBackedDataset", "datalake_config": {"storename": '
-    '"dataplatformdlsprod", "interactive": "True"}}',
-    type=literal_eval,
-)
+@click.group("build")
 @click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
-def build(output_dir, model_config, data_config, metadata):
+@click.pass_context
+def build(ctx: click.Context, metadata: dict):
+    ctx.obj = dict()
+    ctx.obj["metadata"] = metadata
+    pass
+
+
+def date_string_or_literal(val):
+    """
+    Given a value, attempt to parse it as iso datetime object -> literal -> string
+    in that order.
+    """
+    logger.info(f'Parsing "{val}" of type {type(val)}')
+    try:
+        return parser.isoparse(val)
+    except ValueError:
+        try:
+            return literal_eval(str(val))
+        except (SyntaxError, ValueError):
+            return val
+
+
+@click.command("timeseries")
+@click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
+@click.argument("model-type", default="KerasAutoEncoder")
+@click.argument("dataset-type", default="DataLakeBackedDataset")
+@click.option(
+    "--model-kwarg",
+    type=(str, date_string_or_literal),
+    multiple=True,
+    help="Set a specific model kwargs, ie. --model-kwarg n_epoch 5",
+)
+@click.option(
+    "--dataset-kwarg",
+    type=(str, date_string_or_literal),
+    multiple=True,
+    help="Set a specific dataset kwargs ie. --dataset-kwarg resoluiton 2T"
+)
+@click.pass_context
+def timeseries(ctx: click.Context, output_dir, model_type, dataset_type, model_kwarg, dataset_kwarg):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
 
+    \b
     Parameters
     ----------
     output_dir: str - Directory to save model & metadata to.
-    model_config: dict - kwargs to be used in initializing the model. Should also
-                         contain kwarg 'type' which references the model to use. ie. KerasAutoEncoder
-    data_config: dict - kwargs to be used in intializing the dataset. Should also
-                         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
-    metadata: dict - Any additional metadata to save under the key 'user-defined'
+
+    TODO: Fill the remainer of this in.
     """
 
-    # TODO: Move all data related input from environment variable to data_config,
-    # TODO: thereby removing all these data_config['variable'] lines
+    logger.info(f"Got this context: {ctx.obj}")
 
-    data_config["tag_list"] = data_config.pop("tags")
+    # Create the model config
+    model_config = {k: v for k, v in model_kwarg}
+    model_config.update({"type": model_type})
 
-    # TODO: Move parsing from here, into the InfluxDataSet class
-    data_config["from_ts"] = dateutil.parser.isoparse(
-        data_config.pop("train_start_date")
-    )
+    # Create the dataset config
+    data_config = {k: v for k, v in dataset_kwarg}
+    data_config.update({"type": dataset_type})
 
-    # TODO: Move parsing from here, into the InfluxDataSet class
-    data_config["to_ts"] = dateutil.parser.isoparse(data_config.pop("train_end_date"))
+    # Create metadata
+    metadata = ctx.obj.get('metadata', {})
 
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Model config: {model_config}")
     logger.info(f"Data config: {data_config}")
+    logger.info(f"Metadata: {metadata}")
 
     model, metadata = build_model(
         model_config=model_config, data_config=data_config, metadata=metadata
@@ -122,6 +145,8 @@ def run_watchman_cli(project_name, target_names, host, port, debug):
     """
     watchman.server.run_server(host, port, debug, project_name, target_names)
 
+
+build.add_command(timeseries)
 
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
