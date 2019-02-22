@@ -70,3 +70,32 @@ def feedforward_model(
 
     model.compile(optimizer="adam", loss="mean_squared_error", metrics=["accuracy"])
     return model
+
+
+@register_model_builder(type="KerasAutoEncoder")
+@register_model_builder(type="KerasBaseEstimator")
+def feedforward_symmetric(
+    n_features: int, dims: List[int], funcs: List[str], **kwargs
+) -> keras.models.Sequential:
+    """
+    Builds a symmetrical feedforward model
+
+    Parameters:
+    ----------
+        n_features: int
+                    Number of input and output neurons
+        dim: List[int]
+             Number of neurons per layers for the encoder, reversed for the decoder.
+             Must have len > 0
+        funcs: List[str]
+            Activation functions for the internal layers
+
+    Returns:
+    -------
+    keras.models.Sequential
+
+    """
+    if len(dims) == 0:
+        raise ValueError("Parameter dims must have len > 0")
+    return feedforward_model(n_features, dims, dims[::-1], funcs, funcs[::-1], **kwargs)
+
