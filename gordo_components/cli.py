@@ -36,7 +36,8 @@ def gordo():
 
 
 DEFAULT_MODEL_CONFIG = (
-    "{'gordo_components.model.models.KerasAutoEncoder': {'kind': 'feedforward_model'}}"
+    "{'gordo_components.model.models.KerasAutoEncoder': {'kind': "
+    "'feedforward_hourglass'}} "
 )
 
 

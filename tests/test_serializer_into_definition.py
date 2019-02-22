@@ -43,7 +43,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                             ]
                         ),
                     ),
-                    ("ae", KerasAutoEncoder(kind="feedforward_model")),
+                    ("ae", KerasAutoEncoder(kind="feedforward_hourglass")),
                 ]
             ),
             # MinMax initialized (wrongly) with a list
@@ -67,7 +67,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                             ]
                         ),
                     ),
-                    ("ae", KerasAutoEncoder(kind="feedforward_model")),
+                    ("ae", KerasAutoEncoder(kind="feedforward_hourglass")),
                 ]
             ),
             # MinMax initialized with tuple
@@ -91,7 +91,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                             ]
                         ),
                     ),
-                    ("ae", KerasAutoEncoder(kind="feedforward_model")),
+                    ("ae", KerasAutoEncoder(kind="feedforward_hourglass")),
                 ]
             ),
             # First pipeline without explicit steps param, other with.
@@ -115,7 +115,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                             ]
                         ),
                     ),
-                    ("ae", KerasAutoEncoder(kind="feedforward_model")),
+                    ("ae", KerasAutoEncoder(kind="feedforward_hourglass")),
                 ]
             ),
         ]
@@ -161,7 +161,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         n_jobs:
                         transformer_weights:
                     - gordo_components.model.models.KerasAutoEncoder:
-                        kind: feedforward_model
+                        kind: feedforward_hourglass
                 memory:
             """.rstrip()
             .strip()
@@ -214,7 +214,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                     "step_2",
                     FunctionTransformer(func=multiply_by, kw_args={"factor": 1}),
                 ),
-                ("step_3", KerasAutoEncoder(kind="feedforward_model")),
+                ("step_3", KerasAutoEncoder(kind="feedforward_hourglass")),
             ]
         )
 
@@ -269,7 +269,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         n_jobs: 1
                         transformer_weights:
                     - gordo_components.model.models.KerasAutoEncoder:
-                        kind: feedforward_model
+                        kind: feedforward_hourglass
                 memory:
             """
         definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
