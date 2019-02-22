@@ -2,6 +2,7 @@ import logging
 import inspect
 from typing import Dict, Callable, Any  # pragma: no flakes
 from gordo_components.model.models import GordoBase
+import keras
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +42,12 @@ class register_model_builder:
     }
     """
 
-    factories = dict()  # type: Dict[str, Dict[str, Callable[[int, Any], GordoBase]]]
+    factories = dict()  # type: Dict[str, Dict[str, Callable[..., keras.models.Model]]]
 
     def __init__(self, type: str):
         self.type = type
 
-    def __call__(self, build_fn: Callable[[int, Any], GordoBase]):
+    def __call__(self, build_fn: Callable[..., keras.models.Model]):
         self._register(self.type, build_fn)
         return build_fn
 
