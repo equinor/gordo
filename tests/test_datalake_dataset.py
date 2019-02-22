@@ -6,7 +6,7 @@ import unittest
 import adal
 
 from gordo_components.dataset import dataset
-from gordo_components.dataset.datasets import DataLakeBackedDataset
+from gordo_components.data_provider.providers import DataLakeBackedDataset
 
 
 class DataLakeTestCase(unittest.TestCase):

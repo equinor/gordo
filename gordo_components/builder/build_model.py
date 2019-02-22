@@ -6,17 +6,18 @@ import logging
 import datetime
 import time
 
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from sklearn.base import BaseEstimator
 
 from gordo_components import serializer, __version__
 from gordo_components.dataset import _get_dataset
+from gordo_components.dataset.base import GordoBaseDataset
 
 
 logger = logging.getLogger(__name__)
 
 
-def build_model(model_config: dict, data_config: dict, metadata: dict):
+def build_model(model_config: dict, data_config: Union[GordoBaseDataset, dict], metadata: dict):
     """
     Build a model and serialize to a directory for later serving.
 
@@ -35,7 +36,8 @@ def build_model(model_config: dict, data_config: dict, metadata: dict):
     """
     # Get the dataset from config
     logger.debug(f"Initializing Dataset with config {data_config}")
-    dataset = _get_dataset(data_config)
+
+    dataset = data_config if isinstance(data_config, GordoBaseDataset) else _get_dataset(data_config)
 
     logger.debug("Fetching training data")
     start = time.time()

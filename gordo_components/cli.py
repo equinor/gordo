@@ -14,6 +14,8 @@ import click
 from gordo_components.builder import build_model
 from gordo_components.builder.build_model import _save_model_for_workflow
 from gordo_components.server import server
+from gordo_components.dataset.datasets import TimeSeriesDataset
+from gordo_components.data_provider.providers import DataLakeProvider
 from gordo_components import watchman
 
 
@@ -61,21 +63,18 @@ def date_string_or_literal(val):
 @click.command("timeseries")
 @click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
 @click.argument("model-type", default="KerasAutoEncoder")
-@click.argument("dataset-type", default="DataLakeBackedDataset")
+@click.argument("from_ts", type=parser.isoparse)
+@click.argument("to_ts", type=parser.isoparse)
+@click.argument("tag_list", type=list)
+@click.option('--resoluiton', type=str, help="Pandas frequency string, ie. '2T'")
 @click.option(
     "--model-kwarg",
     type=(str, date_string_or_literal),
     multiple=True,
     help="Set a specific model kwargs, ie. --model-kwarg n_epoch 5",
 )
-@click.option(
-    "--dataset-kwarg",
-    type=(str, date_string_or_literal),
-    multiple=True,
-    help="Set a specific dataset kwargs ie. --dataset-kwarg resoluiton 2T"
-)
 @click.pass_context
-def timeseries(ctx: click.Context, output_dir, model_type, dataset_type, model_kwarg, dataset_kwarg):
+def timeseries(ctx: click.Context, output_dir, model_type, from_ts, to_ts, resolution, tag_list, model_kwarg):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
@@ -94,9 +93,9 @@ def timeseries(ctx: click.Context, output_dir, model_type, dataset_type, model_k
     model_config = {k: v for k, v in model_kwarg}
     model_config.update({"type": model_type})
 
-    # Create the dataset config
-    data_config = {k: v for k, v in dataset_kwarg}
-    data_config.update({"type": dataset_type})
+    # Build the timeseries dataset
+    provider = DataLakeProvider({"storename": "dataplatformdlsprod"}, from_ts=from_ts, to_ts=to_ts, resolution=resolution, tag_list=tag_list)
+    dataset = TimeSeriesDataset(from_ts=from_ts, to_ts=to_ts, resolution=resolution, data_provider=provider)
 
     # Create metadata
     metadata = ctx.obj.get('metadata', {})
@@ -107,7 +106,7 @@ def timeseries(ctx: click.Context, output_dir, model_type, dataset_type, model_k
     logger.info(f"Metadata: {metadata}")
 
     model, metadata = build_model(
-        model_config=model_config, data_config=data_config, metadata=metadata
+        model_config=model_config, data_config=dataset, metadata=metadata
     )
 
     logger.debug(f"Saving model to output dir: {output_dir}")
