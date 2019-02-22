@@ -35,7 +35,7 @@ def dumps(model: GordoBase) -> bytes:
 
     >>> from gordo_components.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
-    >>> model = KerasAutoEncoder('feedforward_model')
+    >>> model = KerasAutoEncoder('feedforward_symmetric')
     >>> serialized = serializer.dumps(model)
     >>> assert isinstance(serialized, bytes)
     >>> model_clone = serializer.loads(serialized)
