@@ -68,7 +68,7 @@ class PipelineSerializationTestCase(unittest.TestCase):
                         ]
                     ),
                 ),
-                ("ae", KerasAutoEncoder(kind="feedforward_symetric")),
+                ("ae", KerasAutoEncoder(kind="feedforward_model")),
             ]
         )
 
@@ -162,7 +162,7 @@ class PipelineSerializationTestCase(unittest.TestCase):
 
     def test_dump_load_keras_directly(self):
 
-        model = KerasAutoEncoder(kind="feedforward_symetric")
+        model = KerasAutoEncoder(kind="feedforward_model")
 
         X = np.random.random(size=100).reshape(10, 10)
         model.fit(X.copy(), X.copy())

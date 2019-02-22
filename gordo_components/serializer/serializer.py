@@ -35,7 +35,7 @@ def dumps(model: GordoBase) -> bytes:
 
     >>> from gordo_components.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
-    >>> model = KerasAutoEncoder('feedforward_symetric')
+    >>> model = KerasAutoEncoder('feedforward_model')
     >>> serialized = serializer.dumps(model)
     >>> assert isinstance(serialized, bytes)
     >>> model_clone = serializer.loads(serialized)
@@ -241,8 +241,7 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     ...     # PCA is picklable
     ...     ('pca', PCA(3)),
     ...     # KerasAutoEncoder implements both `save_to_dir` and `load_from_dir`
-    ...     ('model', KerasAutoEncoder(kind='feedforward_symetric'))
-    ... ])
+    ...     ('model', KerasAutoEncoder(kind='feedforward_model'))])
     >>> with TemporaryDirectory() as tmp:
     ...     serializer.dump(obj=pipe, dest_dir=tmp)
     ...     pipe_clone = serializer.load(source_dir=tmp)
