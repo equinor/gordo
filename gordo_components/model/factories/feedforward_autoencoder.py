@@ -5,8 +5,8 @@ from typing import List
 from keras import regularizers
 from keras.layers import Dense
 import keras
+import math
 from keras.models import Sequential as KerasSequential
-
 from gordo_components.model.register import register_model_builder
 
 
@@ -99,3 +99,81 @@ def feedforward_symmetric(
         raise ValueError("Parameter dims must have len > 0")
     return feedforward_model(n_features, dims, dims[::-1], funcs, funcs[::-1], **kwargs)
 
+
+@register_model_builder(type="KerasAutoEncoder")
+@register_model_builder(type="KerasBaseEstimator")
+def feedforward_hourglass(
+    n_features: int,
+    encoding_layers: int = 3,
+    compression_factor: float = 0.5,
+    func: str = "relu",
+    **kwargs,
+) -> keras.models.Sequential:
+    """
+    Builds an hourglass shaped neural network, with decreasing number of neurons
+    as one gets deeper into the encoder network and increasing number
+    of neurons as one gets out of the decoder network.
+
+    The resulting model will look like this when n_features = 10, encoding_layers= 3,
+    and compression_factor = 0.3
+
+                * * * * * * * * * *
+                  * * * * * * * *
+                     * * * * *
+                       * * *
+                       * * *
+                     * * * * *
+                  * * * * * * * *
+                * * * * * * * * * *
+
+    Parameters
+    ----------
+    n_features          : int
+                        Number of input and output neurons
+    encoding_layers     : int
+                        Number of layers from the input layer (exclusive) to the
+                        narrowest layer (inclusive). Must be > 0. The total nr of layers
+                        including input and output layer will be 2*encoding_layers + 1.
+    compression_factor  : float
+                        How small the smallest layer is as a ratio of n_features
+                        (rounded up to nearest integer). Must satisfy
+                        0 <= compression_factor <= 1.
+    func                : str
+                        Activation function for the internal layers
+
+
+    Returns
+    -------
+    keras.models.Sequential
+
+    Examples
+    --------
+    >>> model = feedforward_hourglass(10)
+    >>> len(model.layers)
+    7
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [8, 7, 5, 5, 7, 8, 10]
+    >>> model = feedforward_hourglass(5)
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [4, 4, 3, 3, 4, 4, 5]
+    >>> model = feedforward_hourglass(10, compression_factor=0.2)
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [7, 5, 2, 2, 5, 7, 10]
+    >>> model = feedforward_hourglass(10, encoding_layers=1)
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [5, 5, 10]
+
+
+    """
+    if (compression_factor < 0) or (compression_factor > 1):
+        raise ValueError("compression_factor must be 0 <= compression_factor <= 1")
+    if encoding_layers < 1:
+        raise ValueError("encoding_layers must be >= 1")
+    smallest_layer = max(min(math.ceil(compression_factor * n_features), n_features), 1)
+
+    diff = n_features - smallest_layer
+    average_slope = diff / encoding_layers
+    dims = [
+        round(n_features - (i * average_slope)) for i in range(1, encoding_layers + 1)
+    ]
+    return feedforward_symmetric(n_features, dims, [func] * len(dims), **kwargs)
