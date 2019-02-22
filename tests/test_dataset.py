@@ -8,7 +8,7 @@ import dateutil.parser
 
 from gordo_components.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
-from gordo_components.dataset.datasets import RandomDataset, join_timeseries
+from gordo_components.dataset.datasets import RandomDataset
 
 
 class DatasetTestCase(unittest.TestCase):
@@ -44,7 +44,9 @@ class DatasetTestCase(unittest.TestCase):
         frequency = "7T"
         timedelta = pd.Timedelta("7 minutes")
         resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
-        all_in_frame = join_timeseries(timeseries_list, resampling_start, frequency)
+        all_in_frame = GordoBaseDataset.join_timeseries(
+            timeseries_list, resampling_start, frequency
+        )
 
         # Check that first resulting resampled, joined row is within "frequency" from
         # the real first data point
@@ -57,7 +59,9 @@ class DatasetTestCase(unittest.TestCase):
         timeseries_list, latest_start, earliest_end = self.create_timeseries_list()
         frequency = "7T"
         resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00+07:00")
-        all_in_frame = join_timeseries(timeseries_list, resampling_start, frequency)
+        all_in_frame = GordoBaseDataset.join_timeseries(
+            timeseries_list, resampling_start, frequency
+        )
         self.assertEqual(len(all_in_frame), 413)
 
     def test_join_timeseries_with_gaps(self):
@@ -75,7 +79,7 @@ class DatasetTestCase(unittest.TestCase):
 
         frequency = "10T"
         resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
-        all_in_frame = join_timeseries(
+        all_in_frame = GordoBaseDataset.join_timeseries(
             timeseries_with_holes, resampling_start, frequency
         )
         self.assertEqual(all_in_frame.index[0], pd.Timestamp(latest_start))

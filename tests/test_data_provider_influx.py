@@ -12,7 +12,7 @@ import numpy as np
 from influxdb import InfluxDBClient
 from click.testing import CliRunner
 
-from gordo_components.dataset.datasets import InfluxBackedDataset
+from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.dataset import _get_dataset
 
 import pytest
@@ -121,13 +121,13 @@ class PredictionInfluxTestCase(unittest.TestCase):
         to_ts = "2017-01-01T10:30:00+00:00"
         from_ts = dateutil.parser.isoparse(from_ts)
         to_ts = dateutil.parser.isoparse(to_ts)
-        ds = InfluxBackedDataset(
-            influx_config=self.influx_config, from_ts=from_ts, to_ts=to_ts
-        )
+        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
         tag = "TRC-FIQ -23-0453N"
         with self.caplog.at_level(logging.CRITICAL):
             with self.assertRaises(IndexError):
-                ds.read_single_sensor(tag)
+                ds.read_single_sensor(
+                    from_ts=from_ts, to_ts=to_ts, tag=tag, measurement=SOURCE_DB_NAME
+                )
 
     def test_read_single_sensor_empty_data_invalid_tag_name_valueerror(self):
         """
@@ -138,21 +138,19 @@ class PredictionInfluxTestCase(unittest.TestCase):
         to_ts = "2016-01-01T10:30:00+00:00"
         from_ts = dateutil.parser.isoparse(from_ts)
         to_ts = dateutil.parser.isoparse(to_ts)
-        ds = InfluxBackedDataset(
-            influx_config=self.influx_config, from_ts=from_ts, to_ts=to_ts
-        )
+        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
         tag = "TRC-FIQ -23-045N"
         with self.assertRaises(ValueError):
-            ds.read_single_sensor(tag)
+            ds.read_single_sensor(
+                from_ts=from_ts, to_ts=to_ts, tag=tag, measurement=SOURCE_DB_NAME
+            )
 
     def test__list_of_tags_from_influx_validate_tag_names(self):
         from_ts = "2016-01-01T09:11:00+00:00"
         to_ts = "2016-01-01T10:30:00+00:00"
         from_ts = dateutil.parser.isoparse(from_ts)
         to_ts = dateutil.parser.isoparse(to_ts)
-        ds = InfluxBackedDataset(
-            influx_config=self.influx_config, from_ts=from_ts, to_ts=to_ts
-        )
+        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
         expected_tags = {
             "TRC-FIQ -23-0453N",
             "TRC-FIQ -80-0303N",
@@ -175,7 +173,6 @@ class PredictionInfluxTestCase(unittest.TestCase):
         to_ts = "2016-01-01T10:30:00+00:00"
         from_ts = dateutil.parser.isoparse(from_ts)
         to_ts = dateutil.parser.isoparse(to_ts)
-        influx_config = self.influx_config
         tag_list = [
             "TRC-FIQ -23-0453N",
             "TRC-FIQ -80-0303N",
@@ -183,12 +180,14 @@ class PredictionInfluxTestCase(unittest.TestCase):
             "TRC-FIQ -80-0704N",
         ]
         config = {
-            "type": "InfluxBackedDataset",
+            "type": "TimeSeriesDataset",
             "from_ts": from_ts,
             "to_ts": to_ts,
-            "influx_config": influx_config,
             "tag_list": tag_list,
         }
+        config["data_provider"] = InfluxDataProvider(
+            measurement=SOURCE_DB_NAME, **self.influx_config
+        )
         dataset = _get_dataset(config)
         self.assertTrue(hasattr(dataset, "get_metadata"))
 

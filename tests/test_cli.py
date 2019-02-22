@@ -41,8 +41,8 @@ class CliTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             with temp_env_vars(
                 OUTPUT_DIR=tmpdir,
-                DATA_CONFIG='{"type": "RandomDataset", "train_start_date": "2015-01-01",'
-                ' "train_end_date": "2015-06-01", "tags": ["tag1", "tag2"]}',
+                DATA_CONFIG='{"type": "RandomDataset", "train_start_date": "2015-01-01T00:00:00+00:00",'
+                ' "train_end_date": "2015-06-01T00:00:00+00:00", "tags": ["tag1", "tag2"]}',
                 MODEL_CONFIG=json.dumps(model_config),
             ):
                 result = self.runner.invoke(cli.gordo, ["build"])
