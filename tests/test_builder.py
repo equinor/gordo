@@ -2,6 +2,7 @@
 
 import unittest
 import os
+import dateutil
 from tempfile import TemporaryDirectory
 from gordo_components.builder.build_model import _save_model_for_workflow
 
@@ -24,7 +25,12 @@ class ModelBuilderTestCase(unittest.TestCase):
                     "kind": "feedforward_hourglass"
                 }
             }
-            data_config = {"type": "RandomDataset"}
+            data_config = {
+                "type": "RandomDataset",
+                "from_ts": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+                "to_ts": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
+                "tag_list": ["Tag 1", "Tag 2"],
+            }
             output_dir = os.path.join(tmpdir, "some", "sub", "directories")
 
             model, metadata = build_model(
