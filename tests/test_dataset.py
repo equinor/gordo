@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+from typing import List, Iterable
 
 import numpy as np
 import pandas as pd
 import dateutil.parser
+from datetime import datetime
 
+from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.dataset.datasets import RandomDataset, TimeSeriesDataset
 from gordo_components.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
-from gordo_components.dataset.datasets import RandomDataset
 
 
 class DatasetTestCase(unittest.TestCase):
@@ -133,3 +136,53 @@ class DatasetTestCase(unittest.TestCase):
             latest_start,
             earliest_end,
         )
+
+
+class TimeSeriesDatasetTest(unittest.TestCase):
+    """
+    Tests the TimeSeriesDataset implementation with a mock datasource
+    """
+
+    def test_row_filter(self):
+        """Tests that row_filter filters away rows"""
+
+        start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+        end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+        X, _ = TimeSeriesDataset(
+            MockDataSource(), start, end, tag_list=["Tag 1", "Tag 2", "Tag 3"]
+        ).get_data()
+
+        self.assertEqual(577, len(X))
+
+        X, _ = TimeSeriesDataset(
+            MockDataSource(),
+            start,
+            end,
+            tag_list=["Tag 1", "Tag 2", "Tag 3"],
+            row_filter="'Tag 1' < 5000",
+        ).get_data()
+
+        self.assertEqual(8, len(X))
+
+        X, _ = TimeSeriesDataset(
+            MockDataSource(),
+            start,
+            end,
+            tag_list=["Tag 1", "Tag 2", "Tag 3"],
+            row_filter="'Tag 1' / 'Tag 3' < 0.999",
+        ).get_data()
+
+        self.assertEqual(3, len(X))
+
+
+class MockDataSource(GordoBaseDataProvider):
+    def load_dataframes(
+        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
+    ) -> Iterable[pd.DataFrame]:
+        days = pd.date_range(from_ts, to_ts, freq="s")
+
+        for i, column in enumerate(tag_list):
+            df = pd.DataFrame(
+                index=days, data=list(range(i, len(days) + i)), columns=[column]
+            )
+            yield df

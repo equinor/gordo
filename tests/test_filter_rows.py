@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from gordo_components.dataset.filter_rows import filter_rows
+from gordo_components.dataset.filter_rows import pandas_filter_rows
 
 
 class TestFilterRows(unittest.TestCase):
@@ -12,24 +12,24 @@ class TestFilterRows(unittest.TestCase):
 
     def test_filter_rows_basic(self):
         df = self.df
-        self.assertEqual(len(filter_rows(df, "'Tag  1' <= 'Tag 2'")), 3)
-        self.assertEqual(len(filter_rows(df, "'Tag  1' == 'Tag 2'")), 2)
+        self.assertEqual(len(pandas_filter_rows(df, "'Tag  1' <= 'Tag 2'")), 3)
+        self.assertEqual(len(pandas_filter_rows(df, "'Tag  1' == 'Tag 2'")), 2)
         self.assertEqual(
-            len(filter_rows(df, "('Tag  1' <= 'Tag 2') | 'Tag 2' < 2 ")), 20
+            len(pandas_filter_rows(df, "('Tag  1' <= 'Tag 2') | 'Tag 2' < 2 ")), 20
         )
         self.assertEqual(
-            len(filter_rows(df, "('Tag  1' <= 'Tag 2') | 'Tag 2' < 0.9 ")), 9
+            len(pandas_filter_rows(df, "('Tag  1' <= 'Tag 2') | 'Tag 2' < 0.9 ")), 9
         )
 
         assert_frame_equal(
-            filter_rows(df, "('Tag  1' <= 'Tag 2')"),
-            filter_rows(df, "~('Tag  1' > 'Tag 2')"),
+            pandas_filter_rows(df, "('Tag  1' <= 'Tag 2')"),
+            pandas_filter_rows(df, "~('Tag  1' > 'Tag 2')"),
         )
 
     def test_filter_rows_catches_illegal(self):
         with self.assertRaises(ValueError):
-            filter_rows(self.df, "sys.exit(0)")
+            pandas_filter_rows(self.df, "sys.exit(0)")
         with self.assertRaises(ValueError):
-            filter_rows(self.df, "lambda x:x")
+            pandas_filter_rows(self.df, "lambda x:x")
         with self.assertRaises(ValueError):
-            filter_rows(self.df, "__import__('os').system('clear')"), ValueError
+            pandas_filter_rows(self.df, "__import__('os').system('clear')"), ValueError
