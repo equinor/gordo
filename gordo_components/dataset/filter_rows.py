@@ -41,21 +41,24 @@ class _DfNameInserter(ast.NodeTransformer):
         )
 
 
-def filter_rows(df, filt):
+def pandas_filter_rows(df, filter_str: str):
     """
 
     Parameters
     ----------
     df: pandas.Dataframe
-        Dataframe to filter rows from. Does not modify the parameter
-    filt: str
-          String representing the filter. Can be a boolean combination of conditions,
-          where conditions are comparisons of column names and either other columns
-          or numeric values. The rows matching the filter are kept.
+      Dataframe to filter rows from. Does not modify the parameter
+    filter_str: str
+      String representing the filter. Can be a boolean combination of conditions,
+      where conditions are comparisons of column names and either other columns
+      or numeric values. The rows matching the filter are kept. Column names must be
+      quoted in single strings. Example of a legal filter is " 'Tag A' > 5 "
+
 
     Returns
     -------
-    pandas.Dataframe The dataframe with any rows matching the filter removed
+    pandas.Dataframe
+        The dataframe containing only rows matching the filter
 
     Examples
     --------
@@ -73,17 +76,17 @@ def filter_rows(df, filt):
     6  2  0
     7  2  1
     8  2  2
-    >>> filter_rows(df, "'A'>1")
+    >>> pandas_filter_rows(df, "'A'>1")
        A  B
     6  2  0
     7  2  1
     8  2  2
-    >>> filter_rows(df, "'A'>'B'")
+    >>> pandas_filter_rows(df, "'A'>'B'")
        A  B
     3  1  0
     6  2  0
     7  2  1
-    >>> filter_rows(df, "('A'>1) | ('B'<1)")
+    >>> pandas_filter_rows(df, "('A'>1) | ('B'<1)")
        A  B
     0  0  0
     3  1  0
@@ -93,9 +96,9 @@ def filter_rows(df, filt):
 
     """
 
-    parsed_filter = ast.parse(filt, mode="eval")
+    parsed_filter = ast.parse(filter_str, mode="eval")
     if not _safe_ast(parsed_filter):
-        raise ValueError(f"Unsafe expression {filt}")
+        raise ValueError(f"Unsafe expression {filter_str}")
     # Replaces strings (assumed to represent column names) with df[..]. df_name _must_
     # match the parameter name of this function
     parsed_filter = _DfNameInserter(df_name="df").visit(parsed_filter)
