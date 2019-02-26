@@ -3,10 +3,10 @@
 import logging
 from typing import Tuple, List
 
-import numpy as np
 import pandas as pd
 from datetime import datetime
 
+from gordo_components.data_provider.providers import RandomDataProvider
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.dataset.filter_rows import pandas_filter_rows
@@ -83,22 +83,18 @@ class TimeSeriesDataset(GordoBaseDataset):
         return metadata
 
 
-class RandomDataset(GordoBaseDataset):
+class RandomDataset(TimeSeriesDataset):
     """
-    Get a GordoBaseDataset which returns random values for X and y
+    Get a TimeSeriesDataset backed by
+    gordo_components.data_provider.providers.RandomDataProvider
     """
 
-    def __init__(self, size=100, n_features=20, **kwargs):
-        self.size = size
-        self.n_features = n_features
-
-    def get_data(self):
-        """return X and y data"""
-        X = np.random.random(size=self.size * self.n_features).reshape(
-            -1, self.n_features
+    def __init__(self, from_ts: datetime, to_ts: datetime, tag_list: list, **kwargs):
+        kwargs.pop("data_provider", None)  # Dont care what you ask for, you get random!
+        super().__init__(
+            data_provider=RandomDataProvider(),
+            from_ts=from_ts,
+            to_ts=to_ts,
+            tag_list=tag_list,
+            **kwargs,
         )
-        return X, X.copy()
-
-    def get_metadata(self):
-        metadata = {"size": self.size, "n_features": self.n_features}
-        return metadata

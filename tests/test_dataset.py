@@ -10,7 +10,6 @@ from datetime import datetime
 
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.dataset.datasets import RandomDataset, TimeSeriesDataset
-from gordo_components.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 
 
@@ -19,20 +18,21 @@ class DatasetTestCase(unittest.TestCase):
         """
         Test expected attributes
         """
-        config = {"type": "RandomDataset"}
 
-        dataset = _get_dataset(config)
+        start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+        end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+
+        dataset = RandomDataset(from_ts=start, to_ts=end, tag_list=["Tag 1", "Tag 2"])
 
         self.assertTrue(isinstance(dataset, GordoBaseDataset))
-        self.assertTrue(isinstance(dataset, RandomDataset))
         self.assertTrue(hasattr(dataset, "get_data"))
         self.assertTrue(hasattr(dataset, "get_metadata"))
 
         X, y = dataset.get_data()
-        self.assertTrue(isinstance(X, np.ndarray))
+        self.assertTrue(isinstance(X, pd.DataFrame))
 
         # y can either be None or an numpy array
-        self.assertTrue(isinstance(y, np.ndarray) or y is None)
+        self.assertTrue(isinstance(y, pd.DataFrame) or y is None)
 
         metadata = dataset.get_metadata()
         self.assertTrue(isinstance(metadata, dict))
@@ -176,6 +176,12 @@ class TimeSeriesDatasetTest(unittest.TestCase):
 
 
 class MockDataSource(GordoBaseDataProvider):
+    def __init__(self, **kwargs):
+        pass
+
+    def can_handle_tag(self, tag):
+        return True
+
     def load_dataframes(
         self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
     ) -> Iterable[pd.DataFrame]:

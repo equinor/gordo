@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-import logging
 import os
-from datetime import datetime
+import random
+import logging
 
+from datetime import datetime
 import typing
 
 from cachetools import cached, TTLCache
+import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
 
@@ -261,3 +263,46 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
     def can_handle_tag(self, tag):
         return tag in self.get_list_of_tags()
+
+
+class RandomDataProvider(GordoBaseDataProvider):
+    """
+    Get a GordoBaseDataset which returns unstructed values for X and y. Each instance
+    uses the same seed, so should be a function (same input -> same output)
+    """
+
+    def can_handle_tag(self, tag):
+        return True  # We can be random about everything
+
+    def __init__(self, min_size=100, max_size=300, **kwargs):
+        super().__init__(**kwargs)
+        self.max_size = max_size
+        self.min_size = min_size
+        np.random.seed(0)
+
+    # Thanks stackoverflow
+    # https://stackoverflow.com/questions/50559078/generating-random-dates-within-a-given-range-in-pandas
+    @staticmethod
+    def _random_dates(start, end, n=10):
+        start = pd.to_datetime(start)
+        end = pd.to_datetime(end)
+        start_u = start.value // 10 ** 9
+        end_u = end.value // 10 ** 9
+
+        return sorted(
+            pd.to_datetime(np.random.randint(start_u, end_u, n), unit="s", utc=True)
+        )
+
+    def load_dataframes(
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
+    ) -> typing.Iterable[pd.DataFrame]:
+        for tag in tag_list:
+            nr = random.randint(self.min_size, self.max_size)
+
+            random_index = self._random_dates(from_ts, to_ts, n=nr)
+            df = pd.DataFrame(
+                index=random_index,
+                columns=[tag],
+                data=np.random.random(size=len(random_index)),
+            )
+            yield df
