@@ -7,6 +7,8 @@ import tempfile
 import ruamel.yaml
 import numpy as np
 
+from sklearn.pipeline import Pipeline
+
 from gordo_components.server import server
 from gordo_components import serializer
 from tests.utils import temp_env_vars
@@ -104,3 +106,19 @@ class GordoServerTestCase(unittest.TestCase):
             # Providing mismatching record lengths should cause 400
             resp = self.app.post("/prediction", json={"X": [[1, 2, 3], [1, 2]]})
             self.assertEqual(resp.status_code, 400)
+
+    def test_download_model(self):
+        """
+        Test we can download a model, loadable via serializer.loads()
+        """
+        with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
+            resp = self.app.get("/download-model")
+
+        serialized_model = resp.get_data()
+        model = serializer.loads(serialized_model)
+
+        # All models have a fit method
+        self.assertTrue(hasattr(model, "fit"))
+
+        # Models MUST have either predict or transform
+        self.assertTrue(hasattr(model, "predict") or hasattr(model, "transform"))
