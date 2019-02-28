@@ -1,210 +1,139 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
-import re
-
 from datetime import datetime
-from typing import List, Iterable
 
-import numpy as np
+import typing
+
+from cachetools import cached, TTLCache
 import pandas as pd
-from azure.datalake.store import core, lib
 from influxdb import DataFrameClient
 
+from gordo_components.data_provider.azure_utils import create_adls_client
 from gordo_components.data_provider.base import GordoBaseDataProvider
-from gordo_components.dataset.datasets import logger
+
+from gordo_components.data_provider.iroc_reader import IrocReader
+from gordo_components.data_provider.ncs_reader import NcsReader
+
+logger = logging.getLogger(__name__)
+
+
+def load_dataframes_from_multiple_providers(
+    data_providers: typing.List[GordoBaseDataProvider],
+    from_ts: datetime,
+    to_ts: datetime,
+    tag_list: typing.List[str],
+) -> typing.Iterable[pd.DataFrame]:
+    """
+    Loads the tags in `tag_list` using multiple instances of
+    :class:`gordo_components.data_provider.base.GordoBaseDataProvider` provided in the
+    parameter `data_providers`. Will load a tag from the first data provider in the list
+    which claims it. See
+    :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_dataframes`.
+
+    Returns
+    -------
+    Iterable[pd.DataFrame]
+        The required tags as an iterable of dataframes where each is a single column
+        dataframe with time index
+
+    """
+    readers_to_tags = {
+        reader: [] for reader in data_providers
+    }  # type: typing.Dict[GordoBaseDataProvider, typing.List[str]]
+    for tag in tag_list:
+        for tag_reader in data_providers:
+            if tag_reader.can_handle_tag(tag):
+                readers_to_tags[tag_reader].append(tag)
+                # In case of a tag matching two readers, we let the "first"
+                # one handle it
+                break
+        # The else branch is executed if the break is not called
+        else:
+            raise ValueError(f"Found no data providers able to download the tag {tag}")
+    for tag_reader, readers_tags in readers_to_tags.items():
+        for df in tag_reader.load_dataframes(
+            from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
+        ):
+            yield df
 
 
 class DataLakeProvider(GordoBaseDataProvider):
-    TAG_TO_PATH = [
-        (
-            re.compile(r"^asgb."),
-            "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
-        ),
-        (
-            re.compile(r"^gra."),
-            "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
-        ),
-        (
-            re.compile(r"^1125."),
-            "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
-        ),
-        (
-            re.compile(r"^trb."),
-            "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
-        ),
-        (
-            re.compile(r"^trc."),
-            "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
-        ),
-    ]
+
+    _SUB_READER_CLASSES = [
+        NcsReader,
+        IrocReader,
+    ]  # type: typing.List[typing.Type[GordoBaseDataProvider]]
+
+    def can_handle_tag(self, tag):
+        for r in self._get_sub_dataproviders():
+            if r.can_handle_tag(tag):
+                return True
+        return False
 
     def __init__(
         self,
         storename: str = "dataplatformdlsprod",
         interactive: bool = False,
         dl_service_auth_str: str = None,
+        **kwargs,
     ):
         """
         Instantiates a DataLakeBackedDataset, for fetching of data from the data lake
+
         Parameters
         ----------
-        storename: str - The store name to read data from
-        interactive: bool - To perform authentication interactively, or attempt to do it automatically,
-                            in such a case must provide 'del_service_authS_tr' parameter or as 'DL_SERVICE_AUTH_STR'
-                            env var.
-        dl_service_auth_str: Optional[str] - string on the format 'tenant_id:service_id:service_secret'. To perform
-                                             authentication automatically; will default to DL_SERVICE_AUTH_STR env var or None
+        storename
+            The store name to read data from
+        interactive: bool
+            To perform authentication interactively, or attempt to do it a
+            automatically, in such a case must provide 'del_service_authS_tr'
+            parameter or as 'DL_SERVICE_AUTH_STR' env var.
+        dl_service_auth_str: Optional[str]
+            string on the format 'tenant_id:service_id:service_secret'. To
+            perform authentication automatically; will default to
+            DL_SERVICE_AUTH_STR env var or None
 
         """
+        super().__init__(**kwargs)
         self.storename = storename
         self.interactive = interactive
         self.dl_service_auth_str = dl_service_auth_str or os.environ.get(
             "DL_SERVICE_AUTH_STR"
         )
+        self.client = None
 
     def load_dataframes(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
-    ) -> Iterable[pd.DataFrame]:
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
+    ) -> typing.Iterable[pd.DataFrame]:
         """
-        See GordoBaseDataProvider for documentation
+        See
+        :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_dataframes`
+        for documentation
         """
-        adls_file_system_client = self.create_adls_client()
+        # We create them here so we only try to get a auth-token once we actually need
+        # it, otherwise we would have constructed them in the constructor.
+        data_providers = self._get_sub_dataproviders()
 
-        years = range(from_ts.year, to_ts.year + 1)
-
-        for tag in tag_list:
-            logger.info(f"Processing tag {tag}")
-
-            tag_frame_all_years = self.read_tag_files(
-                adls_file_system_client, tag, years
-            )
-            filtered = tag_frame_all_years[
-                (tag_frame_all_years.index >= from_ts)
-                & (tag_frame_all_years.index < to_ts)
-            ]
-            yield filtered
-
-    def read_tag_files(
-        self, adls_file_system_client: core.AzureDLFileSystem, tag: str, years: range
-    ) -> pd.DataFrame:
-        """
-        Download tag files for the given years into dataframes,
-        and return as one dataframe.
-
-        Parameters
-        ----------
-        adls_file_system_client: core.AzureDLFileSystem -
-                                 the AzureDLFileSystem client to use
-        tag: str - the tag to download data for
-        years: range - range object providing years to include
-
-        Returns
-        -------
-        pd.DataFrame: Single dataframe with all years for one tag.
-
-        """
-        tag_base_path = self.base_path_from_tag(tag)
-        all_years = []
-        for year in years:
-            file_path = tag_base_path + f"/{tag}/{tag}_{year}.csv"
-            logger.info(f"Parsing file {file_path}")
-
-            info = adls_file_system_client.info(file_path)
-            file_size = info.get("length") / (1024 ** 2)
-            logger.info(f"File size: {file_size:.2f}MB")
-
-            with adls_file_system_client.open(file_path, "rb") as f:
-                df = pd.read_csv(
-                    f,
-                    sep=";",
-                    header=None,
-                    names=["Sensor", tag, "Timestamp", "Status"],
-                    usecols=[tag, "Timestamp"],
-                    dtype={tag: np.float32},
-                    parse_dates=["Timestamp"],
-                    date_parser=lambda col: pd.to_datetime(col, utc=True),
-                    index_col="Timestamp",
-                )
-
-                all_years.append(df)
-                logger.info(f"Done parsing file {file_path}")
-
-        combined = pd.concat(all_years)
-
-        # There often comes duplicated timestamps, keep the last
-        if combined.index.duplicated().any():
-            combined = combined[~combined.index.duplicated(keep="last")]
-
-        return combined
-
-    def create_adls_client(self) -> core.AzureDLFileSystem:
-        """
-        Create ADLS file system client
-
-        Returns
-        -------
-        core.AzureDLFileSystem: Instance of AzureDLFileSystem, ready for use
-        """
-
-        if self.interactive:
-            token = self.get_datalake_token(interactive=True)
-
-        else:
-            token = self.get_datalake_token(
-                interactive=False, dl_service_auth_str=self.dl_service_auth_str
-            )
-
-        adls_file_system_client = core.AzureDLFileSystem(
-            token, store_name=self.storename
+        yield from load_dataframes_from_multiple_providers(
+            data_providers, from_ts, to_ts, tag_list
         )
-        return adls_file_system_client
 
-    @staticmethod
-    def get_datalake_token(
-        interactive=True, dl_service_auth_str=None
-    ) -> lib.DataLakeCredential:
-        logger.info("Looking for ways to authenticate with data lake")
-        if interactive:
-            return lib.auth()
-
-        elif dl_service_auth_str:
-            logger.info("Attempting to use datalake service authentication")
-            dl_service_auth_elems = dl_service_auth_str.split(":")
-            tenant = dl_service_auth_elems[0]
-            client_id = dl_service_auth_elems[1]
-            client_secret = dl_service_auth_elems[2]
-            token = lib.auth(
-                tenant_id=tenant,
-                client_secret=client_secret,
-                client_id=client_id,
-                resource="https://datalake.azure.net/",
+    def _get_client(self):
+        if not self.client:
+            self.client = create_adls_client(
+                storename=self.storename,
+                dl_service_auth_str=self.dl_service_auth_str,
+                interactive=self.interactive,
             )
-            return token
+        return self.client
 
-        else:
-            raise ValueError(
-                f"Either interactive (value: {interactive}) must be True, "
-                f"or dl_service_auth_str (value: {dl_service_auth_str}) "
-                "must be set. "
-            )
-
-    def base_path_from_tag(self, tag):
-        """
-
-        :param tag:
-        :return:
-        """
-        tag = tag.lower()
-        logger.debug(f"Looking for pattern for tag {tag}")
-
-        for pattern in self.TAG_TO_PATH:
-            if pattern[0].match(tag):
-                logger.info(
-                    f"Found pattern {pattern[0]} in tag {tag}, returning {pattern[1]}"
-                )
-                return pattern[1]
-
-        raise ValueError(f"Unable to find base path from tag {tag}")
+    def _get_sub_dataproviders(self):
+        data_providers = [
+            t_reader(client=self._get_client())
+            for t_reader in DataLakeProvider._SUB_READER_CLASSES
+        ]
+        return data_providers
 
 
 class InfluxDataProvider(GordoBaseDataProvider):
@@ -219,12 +148,18 @@ class InfluxDataProvider(GordoBaseDataProvider):
         """
         Parameters
         ----------
-        measurement: str - Name of the measurement to select from in Influx
-        value_name: str - Name of value to select, default to 'Value'
-        api_key: str - Api key to use in header
-        api_key_header: str - key of header to insert the api key for requests
-        kwargs: dict - These are passed directly to the init args of influxdb.DataFrameClient
+        measurement: str
+            Name of the measurement to select from in Influx
+        value_name: str
+            Name of value to select, default to 'Value'
+        api_key: str
+            Api key to use in header
+        api_key_header: str
+            Key of header to insert the api key for requests
+        kwargs: dict
+            These are passed directly to the init args of influxdb.DataFrameClient
         """
+        super().__init__(**kwargs)
         self.measurement = measurement
         self.value_name = value_name
         self.influx_config = kwargs
@@ -237,8 +172,8 @@ class InfluxDataProvider(GordoBaseDataProvider):
             self.influx_client._headers[api_key_header] = api_key
 
     def load_dataframes(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
-    ) -> Iterable[pd.DataFrame]:
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
+    ) -> typing.Iterable[pd.DataFrame]:
         """
         See GordoBaseDataProvider for documentation
         """
@@ -255,10 +190,14 @@ class InfluxDataProvider(GordoBaseDataProvider):
         """
         Parameters
         ----------
-            from_ts: datetime - Datetime to start querying for data
-            to_ts: datetime - Datetime to stop query for data
-            tag: str - Name of the tag to match in influx
-            measurement: str - name of the measurement to select from
+            from_ts: datetime
+                Datetime to start querying for data
+            to_ts: datetime
+                Datetime to stop query for data
+            tag: str
+                Name of the tag to match in influx
+            measurement: str
+                name of the measurement to select from
         Returns
         -------
             One column DataFrame
@@ -298,3 +237,20 @@ class InfluxDataProvider(GordoBaseDataProvider):
         for item in list(result.get_points()):
             list_of_tags.append(item["value"])
         return list_of_tags
+
+    @cached(cache=TTLCache(maxsize=10, ttl=600))
+    def get_list_of_tags(self) -> typing.List[str]:
+        """
+        Queries Influx for the list of tags, using a TTL cache of 600 seconds. The
+        cache can be cleared with :func:`cache_clear()` as is usual with cachetools.
+
+        Returns
+        -------
+        List[str]
+            The list of tags in Influx
+
+        """
+        return self._list_of_tags_from_influx()
+
+    def can_handle_tag(self, tag):
+        return tag in self.get_list_of_tags()

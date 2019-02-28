@@ -28,3 +28,16 @@ class GordoBaseDataProvider(abc.ABC):
         Iterable[pd.DataFrame]
         """
         ...
+
+    @abc.abstractmethod
+    def __init__(self, **kwargs):
+        ...
+
+    @abc.abstractmethod
+    def can_handle_tag(self, tag):
+        """ Returns true if the dataprovider thinks it can possibly read this tag.
+
+        Does not guarantee success, but is should be a pretty good guess
+        (typically a regular expression is used to determine of the reader can read the
+        tag)"""
+        ...

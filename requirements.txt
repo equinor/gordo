@@ -11,6 +11,7 @@ asn1crypto==0.24.0        # via cryptography
 astor==0.7.1              # via tensorflow
 attrs==19.1.0             # via jsonschema
 azure-datalake-store==0.0.43
+cachetools==3.1.0
 certifi==2018.11.29       # via requests
 cffi==1.12.2              # via azure-datalake-store, cryptography
 chardet==3.0.4            # via requests
