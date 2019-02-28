@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 # Install requirements
 install_requires = [
     "Click~=7.0",
+    "cachetools~=3.1",
     "h5py~=2.8",
     "influxdb~=5.2",
     "joblib~=0.13",

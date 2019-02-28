@@ -165,6 +165,21 @@ class PredictionInfluxTestCase(unittest.TestCase):
             msg=f"Expected tags = {expected_tags}" f"outputted {tags}",
         )
 
+    def test_get_list_of_tags(self):
+        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
+        expected_tags = {
+            "TRC-FIQ -23-0453N",
+            "TRC-FIQ -80-0303N",
+            "TRC-FIQ -80-0703N",
+            "TRC-FIQ -80-0704N",
+            "TRC-FIQ -80-0705N",
+        }
+        tags = set(ds.get_list_of_tags())
+        self.assertSetEqual(expected_tags, tags)
+        # The cache does not screw stuff up
+        tags = set(ds.get_list_of_tags())
+        self.assertSetEqual(expected_tags, tags)
+
     def test_influx_dataset_attrs(self):
         """
         Test expected attributes

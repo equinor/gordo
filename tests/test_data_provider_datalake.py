@@ -1,11 +1,10 @@
 import os
-
 import dateutil.parser
 import unittest
 import adal
 
-from gordo_components.dataset import dataset
 from gordo_components.data_provider.providers import DataLakeProvider
+from gordo_components.dataset import dataset
 
 
 class DataLakeTestCase(unittest.TestCase):
@@ -85,7 +84,3 @@ class DataLakeTestCase(unittest.TestCase):
         self.assertFalse(
             data.isnull().values.any(), "Resulting dataframe should not have any NaNs"
         )
-
-    def test_get_datalake_token_wrong_args(self):
-        with self.assertRaises(ValueError):
-            DataLakeProvider.get_datalake_token(interactive=False)
