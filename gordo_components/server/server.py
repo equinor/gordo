@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import io
 import os
 import logging
 import timeit
@@ -8,7 +9,7 @@ from typing import Callable
 
 import numpy as np
 
-from flask import Flask, request
+from flask import Flask, request, send_file
 from flask_restplus import Resource, fields, Api
 from gordo_components import __version__, serializer
 
@@ -36,10 +37,10 @@ API_MODEL_OUTPUT = api.model(
 )
 
 
-class PredictionApiView(Resource):
-    """
-    Serve model predictions
-    """
+class Base(Resource):
+
+    model = None
+    metadata = dict()  # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -50,6 +51,12 @@ class PredictionApiView(Resource):
 
         self.model = MODEL
         self.metadata = MODEL_METADATA
+
+
+class PredictionApiView(Base):
+    """
+    Serve model predictions
+    """
 
     @api.response(200, "Success", API_MODEL_OUTPUT)
     @api.expect(API_MODEL_INPUT, validate=False)
@@ -106,18 +113,10 @@ class PredictionApiView(Resource):
         return context, context["status-code"]
 
 
-class MetaDataView(Resource):
+class MetaDataView(Base):
     """
     Serve model / server metadata
     """
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Set the global variables for MODEL and MODEL_METADATA if they haven't been set already.
-        if MODEL_METADATA is None:
-            load_model_and_metadata()
-        self.metadata = MODEL_METADATA
 
     def get(self):
         """
@@ -128,6 +127,25 @@ class MetaDataView(Resource):
             "metadata": self.metadata,
             "env": {MODEL_LOCATION_ENV_VAR: os.environ.get(MODEL_LOCATION_ENV_VAR)},
         }
+
+
+class DownloadModel(Base):
+    """
+    Download the trained model
+
+    suitable for reloading via gordo_components.serializer.loads()
+    """
+
+    @api.doc(
+        description="Download model, loadable via gordo_components.serializer.loads"
+    )
+    def get(self):
+        """
+        Download model - loadable via gordo_components.serializer.loads
+        """
+        serialized_model = serializer.dumps(self.model)
+        buff = io.BytesIO(serialized_model)
+        return send_file(buff, attachment_filename="model.tar.gz")
 
 
 def adapt_proxy_deployment(wsgi_app: Callable):
@@ -212,6 +230,7 @@ def build_app():
     api.init_app(app)
     api.add_resource(PredictionApiView, "/prediction")
     api.add_resource(MetaDataView, "/metadata", "/healthcheck")
+    api.add_resource(DownloadModel, "/download-model")
 
     app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
