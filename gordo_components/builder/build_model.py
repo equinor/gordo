@@ -60,16 +60,15 @@ def build_model(
     logger.debug(f"Starting to do cross validation")
     start = time.time()
     cv_scores = cross_val_score(
-        model, X, y if y is not None else X, cv=TimeSeriesSplit(n_splits=5)
+        model, X, y if y is not None else X, cv=TimeSeriesSplit(n_splits=3)
     )
-    cv_time = time.time() - start
+    cv_duration_sec = time.time() - start
 
     # Train
     logger.debug("Starting to train model.")
     start = time.time()
     model.fit(X, y)
-    end = time.time()
-    time_elapsed_model = end - start
+    time_elapsed_model = time.time() - start
 
     metadata = {"user-defined": metadata}
     metadata["dataset"] = dataset.get_metadata()
@@ -81,12 +80,15 @@ def build_model(
         "data-query-duration-sec": time_elapsed_data,
         "model-training-duration-sec": time_elapsed_model,
         "cross-validation": {
-            "time": cv_time,
+            "cv-duration-sec": cv_duration_sec,
             "scores": {
-                "mean": cv_scores.mean(),
-                "std": cv_scores.std(),
-                "max": cv_scores.max(),
-                "min": cv_scores.min(),
+                "explained-variance": {
+                    "mean": cv_scores.mean(),
+                    "std": cv_scores.std(),
+                    "max": cv_scores.max(),
+                    "min": cv_scores.min(),
+                    "raw-scores": cv_scores.tolist(),
+                }
             },
         },
     }
