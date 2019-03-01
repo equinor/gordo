@@ -35,7 +35,9 @@ class ModelBuilderTestCase(unittest.TestCase):
             self.assertTrue("model" in metadata)
             self.assertTrue("cross-validation" in metadata["model"])
             self.assertTrue("scores" in metadata["model"]["cross-validation"])
-            self.assertTrue("mean" in metadata["model"]["cross-validation"]["scores"])
+            self.assertTrue(
+                "explained-variance" in metadata["model"]["cross-validation"]["scores"]
+            )
 
             _save_model_for_workflow(
                 model=model, metadata=metadata, output_dir=output_dir
