@@ -2,14 +2,22 @@
 
 import unittest
 import tempfile
+import logging
 
 import numpy as np
+
+from sklearn.exceptions import NotFittedError
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 
 from keras.wrappers.scikit_learn import BaseWrapper
 
 from gordo_components.model import get_model
 from gordo_components.model.models import KerasAutoEncoder
 from gordo_components.model.base import GordoBase
+
+
+logger = logging.getLogger(__name__)
 
 
 class KerasModelTestCase(unittest.TestCase):
@@ -46,6 +54,42 @@ class KerasModelTestCase(unittest.TestCase):
         model = get_model(config)
         self.assertTrue(isinstance(model, KerasAutoEncoder))
         self.assertTrue(isinstance(model, GordoBase))
+
+    def test_keras_autoencoder_scoring(self):
+        """
+        Test the KerasAutoEncoder has a working scoring function
+        """
+        raw_model = KerasAutoEncoder(kind="feedforward_model")
+        pipe = Pipeline([("ae", KerasAutoEncoder(kind="feedforward_model"))])
+
+        X = np.random.random(size=1000).reshape(-1, 10)
+
+        for model in (raw_model, pipe):
+
+            with self.assertRaises(NotFittedError):
+                model.score(X.copy(), X.copy())
+
+            model.fit(X)
+
+            score = model.score(X)
+            logger.info(f"Score: {score:.4f}")
+
+    def test_keras_autoencoder_crossval(self):
+        """
+        Test ability for cross validation
+        """
+        raw_model = KerasAutoEncoder(kind="feedforward_model")
+        pipe = Pipeline([("ae", KerasAutoEncoder(kind="feedforward_model"))])
+
+        X = np.random.random(size=1000).reshape(-1, 10)
+
+        for model in (raw_model, pipe):
+            scores = cross_val_score(
+                model, X, X, cv=TimeSeriesSplit(n_splits=5, max_train_size=100)
+            )
+            logger.info(
+                f"Mean score: {scores.mean():.4f} - Std score: {scores.std():.4f}"
+            )
 
     def test_save_load(self):
         config = {
