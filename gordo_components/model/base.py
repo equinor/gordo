@@ -3,7 +3,8 @@
 import abc
 
 
-class GordoBase:
+class GordoBase(abc.ABC):
+
     @abc.abstractmethod
     def __init__(self, **kwargs):
         """Initialize the model"""
