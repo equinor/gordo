@@ -2,14 +2,17 @@
 
 import logging
 import json
-from typing import Union, Callable, Dict, Any
+from typing import Union, Callable, Dict, Any, Optional
 from os import path
 from contextlib import contextmanager
 
 import keras.backend as K
 import numpy as np
+import pandas as pd
 
 from sklearn.base import TransformerMixin
+from sklearn.metrics import explained_variance_score
+from sklearn.exceptions import NotFittedError
 from keras.wrappers.scikit_learn import BaseWrapper
 import keras.models
 from keras.models import load_model
@@ -132,6 +135,29 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
             with possible_tf_mgmt(self):
                 self.model.save(path.join(directory, "model.h5"))
 
+    def score(
+        self,
+        X: Union[np.ndarray, pd.DataFrame],
+        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
+        """
+        Returns the appropriate scoring metric for a given model
+
+        Parameters
+        ----------
+        X: Union[np.ndarray, pd.DataFrame] - Input data to the model
+        y: Union[np.ndarray, pd.DataFrame] - Target
+        sample_weight: Optional[np.ndarray] - sample weights
+
+        Returns
+        -------
+        score: float
+        """
+        raise NotImplementedError(
+            f"Subclasses of {self.__class__.__name__} must implement the .score(...) method."
+        )
+
     @classmethod
     def load_from_dir(cls, directory: str):
         with open(path.join(directory, "params.json"), "r") as f:
@@ -172,3 +198,32 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
             sample_input.extend(sample_output)
             results.append(sample_input)
         return np.asarray(results)
+
+    def score(
+        self,
+        X: Union[np.ndarray, pd.DataFrame],
+        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
+        """
+        Returns the explained variance score between auto encoder's input vs output
+
+        Parameters
+        ----------
+        X: Union[np.ndarray, pd.DataFrame] - Input data to the model
+        y: Union[np.ndarray, pd.DataFrame] - Target
+        sample_weight: Optional[np.ndarray] - sample weights
+
+        Returns
+        -------
+        score: float
+        """
+        if not hasattr(self, "model"):
+            raise NotFittedError(
+                f"This {self.__class__.__name__} has not been fitted yet."
+            )
+
+        with possible_tf_mgmt(self):
+            out = self.model.predict(X)
+
+        return explained_variance_score(X if y is None else y, out)

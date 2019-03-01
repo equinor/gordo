@@ -31,6 +31,12 @@ class ModelBuilderTestCase(unittest.TestCase):
                 model_config=model_config, data_config=data_config, metadata={}
             )
 
+            # cross val metadata checks
+            self.assertTrue("model" in metadata)
+            self.assertTrue("cross-validation" in metadata["model"])
+            self.assertTrue("scores" in metadata["model"]["cross-validation"])
+            self.assertTrue("mean" in metadata["model"]["cross-validation"]["scores"])
+
             _save_model_for_workflow(
                 model=model, metadata=metadata, output_dir=output_dir
             )
