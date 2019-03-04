@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 
-from gordo_components.model.models import KerasAutoEncoder, KerasLSTMAutoEncoder
+from gordo_components.model.models import KerasAutoEncoder
 from gordo_components.serializer import (
     pipeline_into_definition,
     pipeline_from_definition,
@@ -193,7 +193,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
 
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model is not "KerasBaseEstimator":
+            if model != "KerasBaseEstimator":
                 for model_kind in self.factories[model].keys():
 
                     pipe = Pipeline(
@@ -242,7 +242,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
         """
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model is not "KerasBaseEstimator":
+            if model != "KerasBaseEstimator":
                 for model_kind in self.factories[model].keys():
                     definition = f"""
                         sklearn.pipeline.Pipeline:

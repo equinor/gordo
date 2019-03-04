@@ -8,7 +8,6 @@ import dateutil.parser  # type: ignore
 import typing
 
 from functools import wraps
-from typing import Callable
 from datetime import datetime
 
 import numpy as np
