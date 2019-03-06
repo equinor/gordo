@@ -20,6 +20,11 @@ install_requires = [
     "Flask~=1.0",
     "flask-restplus~=0.12",
     "azure-datalake-store~=0.0",
+    "sphinx-rtd-theme~=0.4",
+    "sphinxcontrib-websupport~=1.1",
+    "sphinx~=1.8",
+    "recommonmark~=0.5.0",
+    "sphinx-click~=2.0",
 ]
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]

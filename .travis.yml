@@ -12,6 +12,7 @@ cache: pip
 os:
   - linux
 
+
 jobs:
   include:
   - stage: test
@@ -24,7 +25,11 @@ jobs:
     install: skip
     script:
       - make images
-
+  - name: "make docs"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - make docs
 
 deploy:
   - provider: script

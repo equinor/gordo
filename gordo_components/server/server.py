@@ -65,6 +65,10 @@ API_MODEL_OUTPUT_GET = api.model(
 
 
 class Base(Resource):
+    """
+    Base Resource which sets module level globals for ``MODEL`` and ``MODEL_METADATA``
+    upon first invokation.
+    """
 
     model = None
     metadata = dict()  # type: ignore
@@ -82,7 +86,48 @@ class Base(Resource):
 
 class PredictionApiView(Base):
     """
-    Serve model predictions
+    Serve model predictions via GET and POST methods
+
+    If ``GET``
+        Will take a ``start`` and ``end`` ISO format datetime string
+        and give back predictions in the following example::
+
+            {'output': [
+                {'end': '2016-01-01 00:20:00+00:00',
+                 'start': '2016-01-01 00:10:00+00:00',
+                 'tags': {'tag-0': 0.6031807382481357,
+                          'tag-1': 0.6850933943812884,
+                          'tag-2': 0.37281826556659486,
+                          'tag-3': 0.6688453143800668,
+                          'tag-4': 0.3860472585679212,
+                          'tag-5': 0.6704775418728366,
+                          'tag-6': 0.36539023141775234,
+                          'tag-7': 0.929348645859519,
+                          'tag-8': 0.555020406599076,
+                          'tag-9': 0.3908480506569232},
+                 'total_anomaly': 1.8644325873977061}
+             ],
+             'status-code': 200,
+             'time-seconds': '2.5015'}
+    if ``POST``
+        Will take the raw data in ``X`` and expected to be of the correct shape.
+        This is much lower level, and reflects that raw input for the model.
+
+        Returned example format::
+
+            {'output': [
+                [0.9620815728153441,
+                 0.48481952794697486,
+                 0.10449727234407678,
+                 0.5820399931840917,],
+                [0.7328459309239063,
+                 0.7933340297343985,
+                 0.4012604048104457,
+                 0.9799145817366233,],
+             'status-code': 200,
+             'time-seconds': '0.0568'}
+
+        where ``output`` represents the actual output of the model.
     """
 
     @staticmethod
@@ -103,11 +148,13 @@ class PredictionApiView(Base):
 
         Parameters
         ----------
-        X: np.ndarray - 2d array of sample(s)
+        X: np.ndarray
+            2d array of sample(s)
 
         Returns
         -------
         np.ndarray
+            The raw output of the model in numpy array form.
         """
         try:
             return self.model.predict(X)  # type: ignore
@@ -287,7 +334,7 @@ class DownloadModel(Base):
     """
     Download the trained model
 
-    suitable for reloading via gordo_components.serializer.loads()
+    suitable for reloading via ``gordo_components.serializer.loads()``
     """
 
     @api.doc(
@@ -295,33 +342,60 @@ class DownloadModel(Base):
     )
     def get(self):
         """
-        Download model - loadable via gordo_components.serializer.loads
+        Responds with a serialized copy of the current model being served.
+
+        Returns
+        -------
+        bytes
+            Results from ``gordo_components.serializer.dumps()``
         """
         serialized_model = serializer.dumps(self.model)
         buff = io.BytesIO(serialized_model)
         return send_file(buff, attachment_filename="model.tar.gz")
 
 
-def adapt_proxy_deployment(wsgi_app: typing.Callable):
+def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     """
+    Decorator specific to fixing behind-proxy-issues when on Kubernetes and
+    using Envoy proxy.
+
+    Parameters
+    ----------
+    wsgi_app: typing.Callable
+        The underlying WSGI application of a flask app, for example
+
+    Notes
+    -----
     Special note about deploying behind Ambassador, or prefixed proxy paths in general:
 
-        When deployed on kubernetes/ambassador there is a prefix in-front of the
-        server. ie. /gordo/v0/some-project-name/some-target.
+    When deployed on kubernetes/ambassador there is a prefix in-front of the
+    server. ie::
 
-        The server itself only knows about routes to the right of such a prefix:
-        such as '/metadata' or '/predictions when in reality, the full path is
+        /gordo/v0/some-project-name/some-target
+
+    The server itself only knows about routes to the right of such a prefix:
+    such as ``/metadata`` or ``/predictions`` when in reality, the full path is::
+
         /gordo/v0/some-project-name/some-target/metadata
 
-        This is solved by getting the current application's assigned prefix,
-        where HTTP_X_ENVOY_ORIGINAL_PATH is the *full* path, including the prefix.
-        and PATH_INFO is the actual relative path the server knows about.
+    This is solved by getting the current application's assigned prefix,
+    where ``HTTP_X_ENVOY_ORIGINAL_PATH`` is the *full* path, including the prefix.
+    and ``PATH_INFO`` is the actual relative path the server knows about.
 
-        This function wraps the WSGI app itself to map the current full path
-        to the assigned route function.
+    This function wraps the WSGI app itself to map the current full path
+    to the assigned route function.
 
-        ie. /metadata -> metadata route function, by default, but updates
-        /gordo/v0/some-project-name/some-target/metadata -> metadata route function
+    ie. ``/metadata`` -> metadata route function, by default, but updates
+    ``/gordo/v0/some-project-name/some-target/metadata`` -> metadata route function
+
+    Returns
+    -------
+    Callable
+
+    Example
+    -------
+    >>> app = Flask(__name__)
+    >>> app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)
     """
 
     @wraps(wsgi_app)

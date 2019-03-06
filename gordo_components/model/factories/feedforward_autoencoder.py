@@ -23,9 +23,8 @@ def feedforward_model(
     """
     Builds a customized keras neural network auto-encoder based on a config dict
 
-    Parameters:
+    Parameters
     ----------
-
     n_features: int
         Number of features the dataset X will contain.
     enc_dim: list
@@ -37,7 +36,7 @@ def feedforward_model(
     dec_func: list
         Activation functions for the decoder part
 
-    Returns:
+    Returns
     -------
     keras.models.Sequential
 
@@ -94,7 +93,7 @@ def feedforward_symmetric(
     """
     Builds a symmetrical feedforward model
 
-    Parameters:
+    Parameters
     ----------
     n_features: int
          Number of input and output neurons
@@ -104,7 +103,7 @@ def feedforward_symmetric(
     funcs: List[str]
         Activation functions for the internal layers
 
-    Returns:
+    Returns
     -------
     keras.models.Sequential
 
@@ -124,23 +123,11 @@ def feedforward_hourglass(
     **kwargs,
 ) -> keras.models.Sequential:
     """
-
     Builds an hourglass shaped neural network, with decreasing number of neurons
     as one gets deeper into the encoder network and increasing number
     of neurons as one gets out of the decoder network.
 
-    The resulting model will look like this when n_features = 10, encoding_layers= 3,
-    and compression_factor = 0.3
-
-                * * * * * * * * * *
-                  * * * * * * * *
-                     * * * * *
-                       * * *
-                       * * *
-                     * * * * *
-                  * * * * * * * *
-                * * * * * * * * * *
-    Parameters:
+    Parameters
     ----------
     n_features: int
         Number of input and output neurons
@@ -155,8 +142,22 @@ def feedforward_hourglass(
     func: str
         Activation function for the internal layers
 
+    Notes
+    -----
+    The resulting model will look like this when n_features = 10, encoding_layers= 3,
+    and compression_factor = 0.3::
 
-    Returns:
+                * * * * * * * * * *
+                  * * * * * * * *
+                     * * * * *
+                       * * *
+                       * * *
+                     * * * * *
+                  * * * * * * * *
+                * * * * * * * * * *
+
+
+    Returns
     -------
     keras.models.Sequential
 
@@ -176,8 +177,6 @@ def feedforward_hourglass(
     >>> model = feedforward_hourglass(10, encoding_layers=1)
     >>> [model.layers[i].units for i in range(len(model.layers))]
     [5, 5, 10]
-
-
     """
     if (compression_factor < 0) or (compression_factor > 1):
         raise ValueError("compression_factor must be 0 <= compression_factor <= 1")

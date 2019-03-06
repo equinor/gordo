@@ -9,16 +9,16 @@ from typing import Union, Callable, Dict, Any, Optional, Generator
 from os import path
 from contextlib import contextmanager
 
+import keras.models
 import keras.backend as K
+from keras.wrappers.scikit_learn import BaseWrapper
+from keras.models import load_model
 import numpy as np
 import pandas as pd
 
 from sklearn.base import TransformerMixin
 from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
-from keras.wrappers.scikit_learn import BaseWrapper
-import keras.models
-from keras.models import load_model
 from gordo_components.model.base import GordoBase
 
 
@@ -34,9 +34,19 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def possible_tf_mgmt(keras_model):
     """
-    When serving a Keras model backed by tensorflow, the object is expected
-    to have `_tf_graph` and `_tf_session` stored attrs. Which will be used
-    as the default when calling the Keras model
+    Decorator - When serving a Keras model backed by tensorflow, the object is expected
+    to have ``_tf_graph`` and ``_tf_session`` stored attrs. Which will be used as the
+    default when calling the Keras model
+
+    Notes
+    -----
+    Should only be needed by those developing new Keras models wrapped to behave like
+    Scikit-Learn Esitmators
+
+    Parameters
+    ----------
+    keras_model: KerasBaseEstimator
+        An instance of a `KerasBaseEstimator` which can potentially have a tensorflow backend
     """
     logger.info(f"Keras backend: {K.backend()}")
     if K.backend() == "tensorflow":
@@ -57,33 +67,19 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         Initialized a Scikit-Learn API compatitble Keras model with a pre-registered function or a builder function
         directly.
 
-        Example use:
-        ```
-        from gordo_components.model import models
-
-
-        def this_function_returns_a_special_keras_model(n_features, extra_param1, extra_param2):
-            ...
-
-        scikit_based_transformer = KerasAutoEncoder(kind=this_function_returns_a_special_keras_model,
-                                        extra_param1='special_parameter',
-                                        extra_param2='another_parameter')
-
-        scikit_based_transformer.fit(X, y)
-        scikit_based_transformer.transform(X)
-        ```
-
+        Parameters
+        ----------
         kind: Union[callable, str]
             The structure of the model to build. As designated by any registered builder
-            functions, registered with gordo_components.model.register.register_model_builder
+            functions, registered with gordo_compontents.model.register.register_model_builder
             Alternatively, one may pass a builder function directly to this argument. Such a
             function should accept `n_features` as it's first argument, and pass any additional
-            parameters to `**kwargs`.
+            parameters to `**kwargs`
 
         kwargs: dict
             Any additional args which are passed to the factory
             building function and/or any additional args to be passed
-            to Keras' fit() method.
+            to Keras' fit() method
         """
         # Tensorflow requires managed graph/session as to not default to global
         if K.backend() == "tensorflow":
@@ -114,9 +110,30 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
 
     @property
     def sk_params(self):
+        """
+        Parameters used for scikit learn kwargs"""
         return self.kwargs
 
     def fit(self, X: np.ndarray, y: Optional[np.ndarray], **kwargs):
+        """
+        Fit the model to X given y.
+
+        Parameters
+        ----------
+        X: np.ndarray
+            numpy array or pandas dataframe
+        y: np.ndarray
+            numpy array or pandas dataframe
+        sample_weight: np.ndarray
+            array like - weight to assign to samples
+        kwargs
+            Any additional kwargs to supply to keras fit method.
+
+        Returns
+        -------
+        self
+            'KerasAutoEncoder'
+        """
         logger.debug(f"Fitting to data of length: {len(X)}")
         if len(X.shape) == 2:
             self.kwargs.update({"n_features": X.shape[1]})
@@ -128,6 +145,19 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         return self
 
     def get_params(self, **params):
+        """
+        Gets the parameters for this estimator
+
+        Parameters
+        ----------
+        params
+            ignored (exists for API compatibility).
+
+        Returns
+        -------
+        Dict[str, Any]
+            Parameters used in this estimator
+        """
         params = super().get_params(**params)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
@@ -175,6 +205,19 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
 
     @classmethod
     def load_from_dir(cls, directory: str):
+        """
+        Load an instance of this class from a directory, such that it was dumped to
+        using :func:`gordo_components.model.models.KerasBaseEstimator.save_to_dir`
+
+        Parameters
+        ----------
+        directory: str
+            The directory to save this model to, must have write access
+
+        Returns
+        -------
+        None
+        """
         with open(path.join(directory, "params.json"), "r") as f:
             params = json.load(f)
         obj = cls(**params)
@@ -204,7 +247,27 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: np.ndarray, **kwargs) -> np.ndarray:
+        """
 
+        Parameters
+        ----------
+        X: np.ndarray
+            Input data
+        kwargs: dict
+            kwargs which are passed to Kera's ``predict`` method
+
+        Notes
+        -----
+        The data returns from this method is double the feature length of its input.
+        The first half of each sample output is the _input_ of the model, and the
+        output is concatenated (axis=1) with the input. ie. If the input has 4 features,
+        the output will have 8, where the first 4 are the values which went into the model.
+
+        Returns
+        -------
+        np.ndarray
+
+        """
         with possible_tf_mgmt(self):
             xhat = self.model.predict(X, **kwargs)
 
