@@ -25,13 +25,18 @@ def build_model(
 
     Parameters
     ----------
-        model_config: dict - mapping of Model to initialize and any additional
-                             kwargs which are to be used in it's initialization
-                             Example: {'type': 'KerasAutoEncoder',
-                                       'kind': 'feedforward_hourglass'}
-        data_config: dict - mapping of the Dataset to initialize, following the
-                            same logic as model_config
-        metadata: dict - mapping of arbitrary metadata data
+    model_config: dict
+        Mapping of Model to initialize and any additional kwargs which are to be used in it's initialization.
+        Example::
+
+          {'type': 'KerasAutoEncoder',
+           'kind': 'feedforward_hourglass'}
+
+    data_config: dict
+        Mapping of the Dataset to initialize, following the same logic as model_config.
+    metadata: dict
+        Mapping of arbitrary metadata data.
+
     Returns
     -------
         Tuple[sklearn.base.BaseEstimator, dict]
@@ -100,9 +105,12 @@ def _save_model_for_workflow(model: BaseEstimator, metadata: dict, output_dir: s
 
     Parameters
     ----------
-    model: BaseEstimator - The model to save to the directory with gordo serializer
-    metadata: dict - Various mappings of metadata to save alongside model
-    output_dir: str - The directory where to save the model, will create directories if needed
+    model: BaseEstimator
+        The model to save to the directory with gordo serializer.
+    metadata: dict
+        Various mappings of metadata to save alongside model.
+    output_dir: str
+        The directory where to save the model, will create directories if needed.
 
     Returns
     -------

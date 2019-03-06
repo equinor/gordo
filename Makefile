@@ -48,6 +48,9 @@ images: model-builder model-server watchman
 test:
 	python setup.py test
 
+docs:
+	cd ./docs && $(MAKE) html
+
 all: test images push-dev-images
 
-.PHONY: model-builder model-server push-server push-builder push-dev-images push-prod-images images test all
+.PHONY: model-builder model-server push-server push-builder push-dev-images push-prod-images images test all docs

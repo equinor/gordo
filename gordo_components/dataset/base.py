@@ -35,21 +35,24 @@ class GordoBaseDataset:
 
         Parameters
         ----------
-        dataframes - An iterator supplying [timestamp, value] dataframes
+        dataframes
+            An iterator supplying [timestamp, value] dataframes
 
-        resampling_startpoint - The starting point for resampling. Most data
-        frames will not have this in their datetime index, and it will be inserted with a
-        NaN as the value.
-        The resulting NaNs will be removed, so the only important requirement for this is
-        that this resampling_startpoint datetime must be before or equal to the first
-        (earliest) datetime in the data to be resampled.
+        resampling_startpoint
+            The starting point for resampling. Most data frames will not have this
+            in their datetime index, and it will be inserted with a NaN as the value.
+            The resulting NaNs will be removed, so the only important requirement for this is
+            that this resampling_startpoint datetime must be before or equal to the first
+            (earliest) datetime in the data to be resampled.
 
-        resolution - The bucket size for grouping all incoming time data (e.g. "10T")
+        resolution
+            The bucket size for grouping all incoming time data (e.g. "10T")
 
         Returns
         -------
-        pd.DataFrame - A dataframe without NaNs, a common time index, and one column per
-        element in the dataframe_generator
+        pd.DataFrame
+            A dataframe without NaNs, a common time index, and one column per
+            element in the dataframe_generator
 
         """
         resampled_frames = []

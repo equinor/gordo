@@ -15,20 +15,48 @@ def pipeline_into_definition(
     pipeline: Pipeline, prune_default_params: bool = False
 ) -> dict:
     """
-    Convert an instance of sklearn.pipeline.Pipeline into a dict definition
+    Convert an instance of ``sklearn.pipeline.Pipeline`` into a dict definition
     capable of being reconstructed with
-    gordo_components.serializer.pipeline_from_definition
+    ``gordo_components.serializer.pipeline_from_definition``
 
     Parameters
     ----------
-        pipeline: sklearn.pipeline.Pipeline - Instance of pipeline to decompose
-        prune_default_params: bool - Whether to prune the default parameters
-                                     found in current instance of the transformers
-                                     vs what their default params are.
+    pipeline: sklearn.pipeline.Pipeline
+        Instance of pipeline to decompose
+    prune_default_params: bool
+        Whether to prune the default parameters found in current instance of the transformers
+        vs what their default params are.
+
     Returns
     -------
-        dict - definitions for the pipeline, compatible to be reconstructed with
-               gordo_components.pipeline_translator.pipeline_from_definition
+    dict
+        definitions for the pipeline, compatible to be reconstructed with
+        gordo_components.pipeline_translator.pipeline_from_definition
+
+    Example
+    -------
+    >>> import yaml
+    >>> from sklearn.pipeline import Pipeline
+    >>> from sklearn.decomposition import PCA
+    >>> from gordo_components.model.models import KerasAutoEncoder
+    >>>
+    >>> pipe = Pipeline([('pca', PCA(4)), ('ae', KerasAutoEncoder(kind='feedforward_model'))])
+    >>> pipe_definition = pipeline_into_definition(pipe)  # It is now a standard python dict of primitives.
+    >>> print(yaml.dump(pipe_definition))
+    sklearn.pipeline.Pipeline:
+      memory: null
+      steps:
+      - sklearn.decomposition.pca.PCA:
+          copy: true
+          iterated_power: auto
+          n_components: 4
+          random_state: null
+          svd_solver: auto
+          tol: 0.0
+          whiten: false
+      - gordo_components.model.models.KerasAutoEncoder:
+          kind: feedforward_model
+    <BLANKLINE>
     """
     steps = _decompose_node(pipeline, prune_default_params)
     return steps
@@ -41,15 +69,17 @@ def _decompose_node(step: object, prune_default_params: bool = False):
 
     Parameters
     ----------
-        step: object -  An instance of a Scikit-Learn transformer class
-        prune_default_params: bool - Whether to output the default parameter
-                                     values into the definition. If True,
-                                     only those parameters differing from the
-                                     default params will be output.
+    step
+        An instance of a Scikit-Learn transformer class
+    prune_default_params
+        Whether to output the default parameter values into the definition. If True,
+        only those parameters differing from the default params will be output.
+
     Returns
     -------
-        dict - Where key is the import string for the class and associated value
-               is a dict of parameters for that class.
+    dict
+        decomposed node - Where key is the import string for the class and associated value
+        is a dict of parameters for that class.
     """
 
     import_str = f"{step.__module__}.{step.__class__.__name__}"

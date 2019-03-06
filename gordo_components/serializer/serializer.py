@@ -9,8 +9,8 @@ import os
 import pydoc
 import re
 import pickle
-import tempfile
 import tarfile
+import tempfile
 
 from os import path
 from typing import Tuple, Union, Dict, Any, IO  # pragma: no flakes
@@ -26,18 +26,30 @@ N_STEP_REGEX = re.compile(r".*n_step=([0-9]+)")
 CLASS_REGEX = re.compile(r".*class=(.*$)")
 
 
-def dumps(model: GordoBase) -> bytes:
+def dumps(model: Union[Pipeline, GordoBase]) -> bytes:
     """
     Dump a model into a bytes representation suitable for loading from
-    gordo_components.serializer.loads
+    ``gordo_components.serializer.loads``
 
-    Example:
+    Parameters
+    ----------
+    model: Union[Pipeline, GordoBase]
+        A gordo model/pipeline
 
+    Returns
+    -------
+    bytes
+        Serialized model which supports loading via ``serializer.loads()``
+
+    Example
+    -------
     >>> from gordo_components.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
+    >>>
     >>> model = KerasAutoEncoder('feedforward_symmetric')
     >>> serialized = serializer.dumps(model)
     >>> assert isinstance(serialized, bytes)
+    >>>
     >>> model_clone = serializer.loads(serialized)
     >>> assert isinstance(model_clone, KerasAutoEncoder)
     """
@@ -52,7 +64,17 @@ def dumps(model: GordoBase) -> bytes:
 
 def loads(bytes_object: bytes) -> GordoBase:
     """
-    Load a GordoBase model from bytes dumped from gordo_components.serializer.dumps
+    Load a GordoBase model from bytes dumped from ``gordo_components.serializer.dumps``
+
+    Parameters
+    ----------
+    bytes_object: bytes
+        Bytes to be loaded, should be the result of `serializer.dumps(model)`
+
+    Returns
+    -------
+    Union[GordoBase, Pipeline, BaseEstimator]
+        Custom gordo model, scikit learn pipeline or other scikit learn like object.
     """
     with tempfile.TemporaryDirectory() as tmp:
 
@@ -66,18 +88,18 @@ def loads(bytes_object: bytes) -> GordoBase:
 
 def load_metadata(source_dir: str) -> dict:
     """
-    Load the given metadata.json which was saved during the `serializer.dump`
+    Load the given metadata.json which was saved during the ``serializer.dump``
     will return the loaded metadata as a dict, or empty dict if no file was found
 
     Parameters
     ----------
-        source_dir: str - Directory of the saved model, As with serializer.load(source_dir)
-                          this source_dir can be the top level, or the first dir
-                          into the serialized model.
+    source_dir: str
+        Directory of the saved model, As with serializer.load(source_dir) this
+        source_dir can be the top level, or the first dir into the serialized model.
 
     Returns
     -------
-        dict
+    dict
     """
     # Since this function can take the top level dir, or a dir directly
     # into the first step of the pipeline, we need to check both for metadata
@@ -98,8 +120,7 @@ def load_metadata(source_dir: str) -> dict:
 def load(source_dir: str) -> Any:
     """
     Load an object from a directory, saved by
-    gordo_components.serializer.pipeline_serializer.dump
-
+    ``gordo_components.serializer.pipeline_serializer.dump``
 
     This take a directory, which is either top-level, meaning it contains
     a sub directory in the naming scheme: "n_step=<int>-class=<path.to.Class>"
@@ -109,11 +130,12 @@ def load(source_dir: str) -> Any:
 
     Parameters
     ----------
-        source_dir: str - Location of the top level dir the pipeline was saved
+    source_dir: str
+        Location of the top level dir the pipeline was saved
 
     Returns
     -------
-        object
+    Union[GordoBase, Pipeline, BaseEstimator]
     """
     # This source dir should have a single pipeline entry directory.
     # may have been passed a top level dir, containing such an entry:
@@ -136,7 +158,7 @@ def load(source_dir: str) -> Any:
 def _parse_dir_name(source_dir: str) -> Tuple[int, str]:
     """
     Parses the required params from a directory name for loading
-    Expected name format "n_step=<int>-class=<path.to.class.Model>"
+    Expected name format ``n_step=<int>-class=<path.to.class.Model>``
     """
     match = N_STEP_REGEX.search(source_dir)
     if match is None:
@@ -225,12 +247,27 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     """
     Serialize an object into a directory
 
-    The object must either be picklable or implement BOTH a `save_to_dir` AND
-    `load_from_dir` methods. This object can hold multiple objects, specifically
+    The object must either be picklable or implement BOTH a ``GordoBase.save_to_dir`` AND
+    ``GordoBase.load_from_dir`` methods. This object can hold multiple objects, specifically
     it can be a sklearn.pipeline.[FeatureUnion, Pipeline] object, in such a case
     it's sub transformers (steps/transformer_list) will be serialized recursively.
 
-    Example:
+    Parameters
+    ----------
+    obj
+        The object to dump. Must be picklable or implement
+        a ``save_to_dir`` AND ``load_from_dir`` method.
+    dest_dir
+        The directory to which to save the model metadata: dict - any additional
+        metadata to be saved alongside this model if it exists, will be returned
+        from the corresponding "load" function
+
+    Returns
+    -------
+    None
+
+    Example
+    -------
 
     >>> from sklearn.pipeline import Pipeline
     >>> from sklearn.decomposition import PCA
@@ -245,18 +282,6 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     >>> with TemporaryDirectory() as tmp:
     ...     serializer.dump(obj=pipe, dest_dir=tmp)
     ...     pipe_clone = serializer.load(source_dir=tmp)
-
-    Parameters
-    ----------
-        obj: object - The object to dump. Must be picklable or implement
-                      a `save_to_dir` AND `load_from_dir` method.
-        dest_dir: str - The directory to which to save the model
-        metadata: dict - any additional metadata to be saved alongside this model
-                         if it exists, will be returned from the corresponding
-                         "load" function
-    Returns
-    -------
-        None
     """
     _dump_step(step=("obj", obj), n_step=0, dest_dir=dest_dir)
     if metadata is not None:
@@ -273,16 +298,18 @@ def _dump_step(
 
     Parameters
     ----------
-        step: Tuple[str, sklearn.base.BaseEstimator] - The step to dump
-        dest_dir: str - The path to the top level directory to start the
-                        potentially recursive saving of steps.
-        n_step: int - The order of this step in the pipeline, default to 0
+    step
+        The step to dump
+    dest_dir
+        The path to the top level directory to start the potentially recursive saving of steps.
+    n_step
+        The order of this step in the pipeline, default to 0
 
     Returns
     -------
-        None - Creates a new directory at the `dest_dir` in the format:
-               `n_step=000-class=<full.path.to.Object` with any required files
-               for recovery stored there.
+    None
+        Creates a new directory at the `dest_dir` in the format:
+        `n_step=000-class=<full.path.to.Object` with any required files for recovery stored there.
     """
     step_name, step_transformer = step
     step_import_str = (

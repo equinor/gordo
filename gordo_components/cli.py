@@ -62,14 +62,19 @@ def build(output_dir, model_config, data_config, metadata):
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
 
+    \b
     Parameters
     ----------
-    output_dir: str - Directory to save model & metadata to.
-    model_config: dict - kwargs to be used in initializing the model. Should also
-                         contain kwarg 'type' which references the model to use. ie. KerasAutoEncoder
-    data_config: dict - kwargs to be used in intializing the dataset. Should also
-                         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
-    metadata: dict - Any additional metadata to save under the key 'user-defined'
+    output_dir: str
+        Directory to save model & metadata to.
+    model_config: dict
+        kwargs to be used in initializing the model. Should also
+        contain kwarg 'type' which references the model to use. ie. KerasAutoEncoder
+    data_config: dict
+        kwargs to be used in intializing the dataset. Should also
+        contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
+    metadata: dict
+        Any additional metadata to save under the key 'user-defined'
     """
 
     # TODO: Move all data related input from environment variable to data_config,

@@ -18,7 +18,8 @@ def pipeline_from_definition(
     """
     Construct a Pipeline or FeatureUnion from a definition.
 
-    Example:
+    Example
+    -------
     >>> import yaml
     >>> from gordo_components import serializer
     >>> raw_config = '''
@@ -42,13 +43,16 @@ def pipeline_from_definition(
 
     Parameters
     ---------
-        pipe_definition: list - List of steps for the Pipeline / FeatureUnion
-        constructor_class: object - What to place the list of transformers into,
-                                    either sklearn.pipeline.Pipeline/FeatureUnion
+    pipe_definition
+        List of steps for the Pipeline / FeatureUnion
+    constructor_class
+        What to place the list of transformers into,
+        either sklearn.pipeline.Pipeline/FeatureUnion
 
     Returns
     -------
-        sklearn.pipeline.Pipeline
+    sklearn.pipeline.Pipeline
+        pipeline
     """
     # Avoid some mutation
     definition = copy.deepcopy(pipe_definition)
