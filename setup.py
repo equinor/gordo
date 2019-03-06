@@ -21,12 +21,13 @@ install_requires = [
     "azure-datalake-store~=0.0",
 ]
 
-setup_requirements = ["pytest-runner", "setuptools_scm", "pytest-xdist==1.26.1"]
+setup_requirements = ["pytest-runner", "setuptools_scm"]
 
 # Test requirements
 test_requirements = [
     "docker==3.6.0",
     "pytest==4.0.0",
+    "pytest-xdist==1.26.1",  # Parallelises the test-runs
     "ruamel.yaml==0.15.76",
     "pytest-mypy==0.3.2",
     "responses==0.10.5",
