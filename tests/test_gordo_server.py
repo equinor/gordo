@@ -14,8 +14,6 @@ import pandas as pd
 
 from influxdb import InfluxDBClient
 
-from sklearn.pipeline import Pipeline
-
 from gordo_components.server import server
 from gordo_components import serializer
 from gordo_components.data_provider.providers import InfluxDataProvider

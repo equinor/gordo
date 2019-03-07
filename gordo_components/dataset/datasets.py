@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import Iterable
 import logging
 import numpy as np
 import pandas as pd

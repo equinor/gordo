@@ -2,14 +2,13 @@
 
 import io
 import os
-import math
 import logging
 import timeit
 import dateutil.parser  # type: ignore
+import typing
 
-from enum import Enum
 from functools import wraps
-from typing import Callable, Optional, Tuple, List, Dict, Any
+
 from datetime import datetime
 
 import numpy as np
@@ -134,7 +133,7 @@ class PredictionApiView(Base):
         Get predictions
         """
 
-        context = dict()  # type: Dict[str, Any]
+        context = dict()  # type: typing.Dict[str, typing.Any]
         context["status-code"] = 200
         start_time = timeit.default_timer()
 
@@ -179,7 +178,7 @@ class PredictionApiView(Base):
     )
     def get(self):
 
-        context = dict()  # type: Dict[str, Any]
+        context = dict()  # type: typing.Dict[str, typing.Any]
         context["status-code"] = 200
         start_time = timeit.default_timer()
 
@@ -301,7 +300,7 @@ class DownloadModel(Base):
         return send_file(buff, attachment_filename="model.tar.gz")
 
 
-def adapt_proxy_deployment(wsgi_app: Callable):
+def adapt_proxy_deployment(wsgi_app: typing.Callable):
     """
     Special note about deploying behind Ambassador, or prefixed proxy paths in general:
 
@@ -375,7 +374,7 @@ def load_model_and_metadata():
     MODEL_METADATA = serializer.load_metadata(model_location)
 
 
-def build_app(data_provider: Optional[GordoBaseDataProvider] = None):
+def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
     """
     Build app and any associated routes
     """
@@ -399,7 +398,7 @@ def run_server(
     host: str = "0.0.0.0",
     port: int = 5555,
     debug: bool = False,
-    data_provider: Optional[GordoBaseDataProvider] = None,
+    data_provider: typing.Optional[GordoBaseDataProvider] = None,
 ):
     app = build_app(data_provider=data_provider)
     app.run(host, port, debug=debug)
