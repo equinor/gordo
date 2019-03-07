@@ -12,12 +12,18 @@ cache: pip
 os:
   - linux
 
-install: 
-  - pip install -r requirements.txt
-
-script:
-  - python setup.py testall
-  - make images
+jobs:
+  include:
+  - stage: test
+    name: "setup.py testall"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testall
+  - name: "make images"
+    install: skip
+    script:
+      - make images
 
 
 deploy:
