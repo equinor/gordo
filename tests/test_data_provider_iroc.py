@@ -92,6 +92,30 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
                 )
             )
 
+    def test_load_dataframes_no_tag_list(self):
+        """load_dataframe will return an empty generator when called with no tags"""
+        iroc_reader = IrocReader(client=None, threads=1)
+        res = list(
+            iroc_reader.load_dataframes(
+                from_ts=isoparse("2018-05-02T01:56:00+00:00"),
+                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                tag_list=[],
+            )
+        )
+        self.assertEqual([], res)
+
+    def test_load_dataframes_checks_date(self):
+        """load_dataframe will raise ValueError if to_ts<from_ts"""
+        iroc_reader = IrocReader(client=None, threads=1)
+        with self.assertRaises(ValueError):
+            list(
+                iroc_reader.load_dataframes(
+                    from_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    to_ts=isoparse("2018-05-02T01:56:00+00:00"),
+                    tag_list=["jalla"],  # Not a tag in the input
+                )
+            )
+
     @mock.patch.object(
         IrocReader,
         "_fetch_all_iroc_files_from_paths",

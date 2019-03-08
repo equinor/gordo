@@ -55,6 +55,10 @@ class NcsReader(GordoBaseDataProvider):
         """
         See GordoBaseDataProvider for documentation
         """
+        if to_ts < from_ts:
+            raise ValueError(
+                f"NCS reader called with to_ts: {to_ts} before from_ts: {from_ts}"
+            )
         adls_file_system_client = self.client
 
         years = range(from_ts.year, to_ts.year + 1)
