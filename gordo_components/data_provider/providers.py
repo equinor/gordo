@@ -45,6 +45,7 @@ def load_dataframes_from_multiple_providers(
         for tag_reader in data_providers:
             if tag_reader.can_handle_tag(tag):
                 readers_to_tags[tag_reader].append(tag)
+                logger.info(f"Assigning tag: {tag} to reader {tag_reader}")
                 # In case of a tag matching two readers, we let the "first"
                 # one handle it
                 break
@@ -52,10 +53,12 @@ def load_dataframes_from_multiple_providers(
         else:
             raise ValueError(f"Found no data providers able to download the tag {tag}")
     for tag_reader, readers_tags in readers_to_tags.items():
-        for df in tag_reader.load_dataframes(
-            from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
-        ):
-            yield df
+        if readers_tags:
+            logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
+            for df in tag_reader.load_dataframes(
+                from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
+            ):
+                yield df
 
 
 class DataLakeProvider(GordoBaseDataProvider):
@@ -113,6 +116,10 @@ class DataLakeProvider(GordoBaseDataProvider):
         """
         # We create them here so we only try to get a auth-token once we actually need
         # it, otherwise we would have constructed them in the constructor.
+        if to_ts < from_ts:
+            raise ValueError(
+                f"DataLakeReader called with to_ts: {to_ts} before from_ts: {from_ts}"
+            )
         data_providers = self._get_sub_dataproviders()
 
         yield from load_dataframes_from_multiple_providers(

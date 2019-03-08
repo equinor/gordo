@@ -40,6 +40,14 @@ class IrocReader(GordoBaseDataProvider):
         See GordoBaseDataProvider for documentation
         """
 
+        if not tag_list:
+            logger.warning("Iroc reader called with empty tag_list, returning none")
+            return
+        if to_ts < from_ts:
+            raise ValueError(
+                f"Iroc reader called with to_ts: {to_ts} before from_ts: {from_ts}"
+            )
+
         base_path = base_path.strip("/")
 
         # We query with an extra day on both sides since the way the files are
