@@ -77,7 +77,7 @@ class FeedForwardAutoEncoderTestCase(unittest.TestCase):
     )
     def test_feedforward_hourglass_compression_factors(self, _):
         """
-        Test that feedforward_symmetric handles compression_factor=1 and
+        Test that feedforward_hourglass handles compression_factor=1 and
         compression_factor=0 correctly.
         """
 
@@ -103,14 +103,14 @@ class FeedForwardAutoEncoderTestCase(unittest.TestCase):
 
     def test_feedforward_hourglass_checks_enc_layers(self):
         """
-        Test that feedforward_symmetric validates parameter requirements
+        Test that feedforward_hourglass validates parameter requirements
         """
         with self.assertRaises(ValueError):
             feedforward_hourglass(3, encoding_layers=0)
 
     def test_feedforward_hourglass_checks_compression_factor(self):
         """
-        Test that feedforward_symmetric validates parameter requirements
+        Test that feedforward_hourglass validates parameter requirements
         """
         with self.assertRaises(ValueError):
             feedforward_hourglass(3, compression_factor=2)

@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
 from typing import Tuple, Union, Dict, Any
+import math
 
 import keras.optimizers
 from keras.optimizers import Optimizer
 from keras.layers import Dense, LSTM
 from keras.models import Sequential as KerasSequential
 
-
 from gordo_components.model.register import register_model_builder
 
 
 @register_model_builder(type="KerasLSTMAutoEncoder")
-def lstm_autoencoder(
+def lstm_model(
     n_features: int,
     lookback_window: int = 1,
     encoding_dim: Tuple[int, ...] = (256, 128, 64),
@@ -33,7 +33,10 @@ def lstm_autoencoder(
     n_features: int
         Number of features the dataset X will contain.
     lookback_window: int
-        Number of timestamps (lags) used to train the model.
+        Number of timesteps used to train the model.
+        One timestep = current observation in the sample.
+        Two timesteps = current observation + previous observation in the sample.
+        ...
     encoding_func: list
         Activation functions for the encoder part.
     decoding_func: list
@@ -112,3 +115,178 @@ def lstm_autoencoder(
     model.add(Dense(units=input_dim, activation=out_func))
     model.compile(optimizer=optimizer, loss=loss)
     return model
+
+
+@register_model_builder(type="KerasLSTMAutoEncoder")
+def lstm_symmetric(
+    n_features: int,
+    lookback_window: int = 1,
+    dims: Tuple[int, ...] = (256, 128, 64),
+    funcs: Tuple[str, ...] = ("relu", "relu", "relu"),
+    out_func: str = "linear",
+    optimizer: Union[str, Optimizer] = "adam",
+    optimizer_kwargs: Dict[str, Any] = dict(),
+    loss: str = "mse",
+    **kwargs,
+) -> keras.models.Sequential:
+    """
+    Builds a symmetrical lstm model
+
+    Parameters
+    ----------
+    n_features: int
+         Number of input and output neurons
+    lookback_window: int
+        Number of timesteps used to train the model.
+        One timestep = sample contains current observation.
+        Two timesteps = sample contains current and previous observation.
+        ...
+    dims: Tuple[int,...]
+         Number of neurons per layers for the encoder, reversed for the decoder.
+         Must have len > 0
+    funcs: List[str]
+        Activation functions for the internal layers
+    out_func: str
+        Activation function for the output Dense layer.
+    optimizer: str or keras optimizer
+        If str then the name of the optimizer must be provided (e.x. "adam").
+        The arguments of the optimizer can be supplied in optimization_kwargs.
+        If a Keras optimizer call the instance of the respective
+        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        provided Keras default values will be set.
+    optimizer_kwargs: dict
+        The arguments for the chosen optimizer. If not provided Keras'
+        default values will be used.
+    loss: str
+        Keras' supported loss functions (e.x. "mse", "MSE", "mean_squared_error"
+                                              for mean squared error,
+                                              "mae", "MAE", "mean_absolute_error"
+                                              for mean absolute error,
+                                              for other supported loss functions
+                                              refer to https://keras.io/losses/).
+
+    Returns
+    -------
+    keras.models.Sequential
+        Returns Keras sequential model.
+
+
+    """
+
+    if len(dims) == 0:
+        raise ValueError("Parameter dims must have len > 0")
+    return lstm_model(
+        n_features,
+        lookback_window,
+        dims,
+        dims[::-1],
+        funcs,
+        funcs[::-1],
+        out_func,
+        optimizer,
+        optimizer_kwargs,
+        loss,
+        **kwargs,
+    )
+
+
+@register_model_builder(type="KerasLSTMAutoEncoder")
+def lstm_hourglass(
+    n_features: int,
+    lookback_window: int = 1,
+    encoding_layers: int = 3,
+    compression_factor: float = 0.5,
+    func: str = "relu",
+    out_func: str = "linear",
+    optimizer: Union[str, Optimizer] = "adam",
+    optimizer_kwargs: Dict[str, Any] = dict(),
+    loss: str = "mse",
+    **kwargs,
+) -> keras.models.Sequential:
+
+    """
+
+    Builds an hourglass shaped neural network, with decreasing number of neurons
+    as one gets deeper into the encoder network and increasing number
+    of neurons as one gets out of the decoder network.
+
+
+    Parameters
+    ----------
+    n_features: int
+        Number of input and output neurons
+    encoding_layers: int
+        Number of layers from the input layer (exclusive) to the
+        narrowest layer (inclusive). Must be > 0. The total nr of layers
+        including input and output layer will be 2*encoding_layers + 1.
+     compression_factor: float
+        How small the smallest layer is as a ratio of n_features
+        (smallest layer is rounded up to nearest integer). Must satisfy
+        0 <= compression_factor <= 1.
+    func: str
+        Activation function for the internal layers
+    out_func: str
+        Activation function for the output Dense layer.
+    optimizer: str or keras optimizer
+        If str then the name of the optimizer must be provided (e.x. "adam").
+        The arguments of the optimizer can be supplied in optimization_kwargs.
+        If a Keras optimizer call the instance of the respective
+        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        provided Keras default values will be set.
+    optimizer_kwargs: dict
+        The arguments for the chosen optimizer. If not provided Keras'
+        default values will be used.
+    loss: str
+        Keras' supported loss functions (e.x. "mse", "MSE", "mean_squared_error"
+                                              for mean squared error,
+                                              "mae", "MAE", "mean_absolute_error"
+                                              for mean absolute error,
+                                              for other supported loss functions
+                                              refer to https://keras.io/losses/).
+
+
+    Returns
+    -------
+    keras.models.Sequential
+
+    Examples
+    --------
+    >>> model = lstm_hourglass(10)
+    >>> len(model.layers)
+    7
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [8, 7, 5, 5, 7, 8, 10]
+    >>> model = lstm_hourglass(5)
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [4, 4, 3, 3, 4, 4, 5]
+    >>> model = lstm_hourglass(10, compression_factor=0.2)
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [7, 5, 2, 2, 5, 7, 10]
+    >>> model = lstm_hourglass(10, encoding_layers=1)
+    >>> [model.layers[i].units for i in range(len(model.layers))]
+    [5, 5, 10]
+
+
+    """
+    if (compression_factor < 0) or (compression_factor > 1):
+        raise ValueError("compression_factor must be 0 <= compression_factor <= 1")
+    if encoding_layers < 1:
+        raise ValueError("encoding_layers must be >= 1")
+    smallest_layer = max(min(math.ceil(compression_factor * n_features), n_features), 1)
+
+    diff = n_features - smallest_layer
+    average_slope = diff / encoding_layers
+    dims = [
+        round(n_features - (i * average_slope)) for i in range(1, encoding_layers + 1)
+    ]
+    return lstm_symmetric(
+        n_features,
+        lookback_window,
+        dims,
+        [func] * len(dims),
+        out_func,
+        optimizer,
+        optimizer_kwargs,
+        loss,
+        **kwargs,
+    )
