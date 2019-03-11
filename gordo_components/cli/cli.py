@@ -19,6 +19,7 @@ from gordo_components.data_provider.providers import (
 )
 from gordo_components.server import server
 from gordo_components import watchman
+from gordo_components.cli import mgmt
 
 import dateutil.parser
 
@@ -139,6 +140,9 @@ def run_server_cli(
     src_influx_api_key: str,
     src_influx_api_key_header: str,
 ):
+    """
+    Run the ML Server
+    """
 
     # We have have a hostname, then we make a data provider
     if src_influx_host:
@@ -193,6 +197,9 @@ def run_watchman_cli(project_name, target_names, host, port, debug):
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
 gordo.add_command(run_watchman_cli)
+gordo.add_command(mgmt.cluster)
+gordo.add_command(mgmt.argocd)
+
 
 if __name__ == "__main__":
     gordo()
