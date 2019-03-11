@@ -150,7 +150,7 @@ class KerasModelTestCase(unittest.TestCase):
         lookback_window = 11
         with self.assertRaises(ValueError):
             model = KerasLSTMAutoEncoder(
-                kind=lstm_autoencoder.lstm_autoencoder, lookback_window=lookback_window
+                kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
             )
             gen = model._generate_window(X)
             next(gen)
@@ -162,7 +162,7 @@ class KerasModelTestCase(unittest.TestCase):
 
         lookback_window = 4
         model = KerasLSTMAutoEncoder(
-            kind=lstm_autoencoder.lstm_autoencoder, lookback_window=lookback_window
+            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
         gen = model._generate_window(X)
         gen_out_1 = next(gen)
@@ -175,7 +175,7 @@ class KerasModelTestCase(unittest.TestCase):
         X = np.random.random(size=40).reshape(4, 10)
         lookback_window = 2
         model = KerasLSTMAutoEncoder(
-            kind=lstm_autoencoder.lstm_autoencoder, lookback_window=lookback_window
+            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
         gen_no_y = model._generate_window(X, output_y=False)
         gen_no_y_out_1 = next(gen_no_y)
@@ -192,7 +192,7 @@ class KerasModelTestCase(unittest.TestCase):
         X_train = np.random.random(size=30).reshape(5, 6)
         lookback_window = 3
         model = KerasLSTMAutoEncoder(
-            kind=lstm_autoencoder.lstm_autoencoder, lookback_window=lookback_window
+            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
         model = model.fit(X_train)
         X_test = np.random.random(size=24).reshape(4, 6)
@@ -206,7 +206,7 @@ class KerasModelTestCase(unittest.TestCase):
         X_train = np.random.random(size=15).reshape(5, 3)
         lookback_window = 3
         model = KerasLSTMAutoEncoder(
-            kind=lstm_autoencoder.lstm_autoencoder, lookback_window=lookback_window
+            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
         model = model.fit(X_train)
         X_test = np.random.random(size=12).reshape(4, 3)

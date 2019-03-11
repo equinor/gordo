@@ -137,7 +137,7 @@ def feedforward_hourglass(
         including input and output layer will be 2*encoding_layers + 1.
     compression_factor: float
         How small the smallest layer is as a ratio of n_features
-        (rounded up to nearest integer). Must satisfy
+        (smallest layer is rounded up to nearest integer). Must satisfy
         0 <= compression_factor <= 1.
     func: str
         Activation function for the internal layers

@@ -351,10 +351,10 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
 
         Example
         -------
-        >>> from gordo_components.model.factories.lstm_autoencoder import lstm_autoencoder
+        >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
         >>> import numpy as np
         >>> from gordo_components.model.models import KerasLSTMAutoEncoder
-        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_autoencoder",
+        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
         ...                                   lookback_window = 2,verbose=0)
         >>> X_train = np.random.random(size=300).reshape(100,3)
         >>> model_fit = lstm_ae.fit(X_train)
