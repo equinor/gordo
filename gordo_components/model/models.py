@@ -4,7 +4,6 @@ import logging
 import json
 import math
 
-
 from typing import Union, Callable, Dict, Any, Optional, Generator
 from os import path
 from contextlib import contextmanager
@@ -323,8 +322,6 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
         kind: Union[Callable, str],
         lookback_window: int = 1,
         batch_size: int = 32,
-        epochs: int = 1,
-        verbose: int = 1,
         **kwargs,
     ) -> None:
         """
@@ -367,12 +364,8 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
 
         self.lookback_window = lookback_window
         self.batch_size = batch_size
-        self.epochs = epochs
-        self.verbose = verbose
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
-        kwargs["epochs"] = epochs
-        kwargs["verbose"] = verbose
         kwargs["batch_size"] = batch_size
         super().__init__(**kwargs)
 
@@ -428,25 +421,36 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
         if not hasattr(self, "model"):
             # these are only used for the intermediate fit method (fit method of base class),
             # called only to initiate the model
-            self.kwargs["epochs"] = 1
-            self.kwargs["verbose"] = 0
-            super().fit(*next(gen), **kwargs)
-
-        self.kwargs["epochs"] = self.epochs
+            super().fit(*next(gen), epochs=1, verbose=0, **kwargs)
 
         steps_per_epoch = math.ceil(
             (X.shape[0] - (self.lookback_window - 1)) / self.batch_size
         )
+        self.kwargs["steps_per_epoch"] = steps_per_epoch
+
+        # Keras' fit_generator keyword arguments (excluding shuffle as this will be hard coded to false)
+        # Note: The decorator "@interfaces.legacy_generator_methods_support" to Keras' fit_generator method
+        # does not forward any arguments to the inspect module
+        fit_generator_params = {
+            "steps_per_epoch",
+            "epochs",
+            "verbose",
+            "callbacks",
+            "validation_data",
+            "validation_steps",
+            "validation_freq",
+            "class_weight",
+            "max_queue_size",
+            "workers",
+            "use_multiprocessing",
+            "initial_epoch",
+        }
+        gen_kwargs = {k: v for k, v in self.kwargs.items() if k in fit_generator_params}
 
         with possible_tf_mgmt(self):
-            # this is the actual Keras fit_generator method
-            self.model.fit_generator(
-                gen,
-                steps_per_epoch=steps_per_epoch,
-                epochs=self.epochs,
-                shuffle=False,
-                verbose=self.verbose,
-            )
+            # shuffle is set to False since we are dealing with time series data and
+            # so training data will not be shuffled before each epoch.
+            self.model.fit_generator(gen, shuffle=False, **gen_kwargs)
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
