@@ -118,7 +118,9 @@ class KerasModelTestCase(unittest.TestCase):
                     # AutoEncoder is fine without a y target
                     config["type"] = model
                     model_out = get_model(config)
+                    self.assertFalse("history" in model_out.get_model_metadata().keys())
                     model_out.fit(X)
+                    self.assertTrue("history" in model_out.get_model_metadata().keys())
 
                     xTest = np.random.random(size=6).reshape(3, 2)
                     xHat = model_out.transform(xTest)
@@ -140,6 +142,35 @@ class KerasModelTestCase(unittest.TestCase):
                                 xHat.flatten(),
                                 model_out_clone.transform(xTest).flatten(),
                             )
+                        )
+
+                        self.assertEqual(
+                            model_out.get_model_metadata(),
+                            model_out_clone.get_model_metadata(),
+                            "Metadata from model is not same after "
+                            "saving and loading",
+                        )
+                        # Assert that epochs list, history dict and params dict in
+                        # the History object are the same
+                        self.assertEqual(
+                            model_out.model.history.epoch,
+                            model_out_clone.model.history.epoch,
+                            "Epoch lists differ between original and "
+                            "loaded model history",
+                        )
+                        self.assertEqual(
+                            model_out.model.history.history,
+                            model_out_clone.model.history.history,
+                            "History dictionary with losses and "
+                            "accuracies differ "
+                            "between original and loaded model history",
+                        )
+                        self.assertEqual(
+                            model_out.model.history.params,
+                            model_out_clone.model.history.params,
+                            "Params dictionaries differ between "
+                            "original and loaded "
+                            "model history",
                         )
 
     def test__generate_window_valueerror(self):

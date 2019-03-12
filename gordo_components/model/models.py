@@ -7,6 +7,7 @@ import math
 from typing import Union, Callable, Dict, Any, Optional, Generator
 from os import path
 from contextlib import contextmanager
+import pickle
 
 import keras.models
 import keras.backend as K
@@ -174,6 +175,10 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         if hasattr(self, "model") and self.model is not None:
             with possible_tf_mgmt(self):
                 self.model.save(path.join(directory, "model.h5"))
+                if hasattr(self.model, "history") and self.model.history is not None:
+                    f_name = path.join(directory, "history.pkl")
+                    with open(f_name, "wb") as history_file:
+                        pickle.dump(self.model.history, history_file)
 
     def score(
         self,
@@ -225,7 +230,22 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
             with possible_tf_mgmt(obj):
                 K.set_learning_phase(0)
                 obj.model = load_model(model_file)
+                f_name = path.join(directory, "history.pkl")
+                with open(f_name, "rb") as history_file:
+                    obj.model.history = pickle.load(history_file)
+
         return obj
+
+    def get_model_metadata(self):
+        if (
+            hasattr(self, "model")
+            and hasattr(self.model, "history")
+            and self.model.history
+        ):
+            # TODO: Pick out what we want
+            return {"history": "insert metadata dicts and things"}
+        else:
+            return {}
 
 
 class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
