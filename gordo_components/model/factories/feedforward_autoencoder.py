@@ -5,9 +5,10 @@ from typing import List, Tuple
 from keras import regularizers
 from keras.layers import Dense
 import keras
-import math
+
 from keras.models import Sequential as KerasSequential
 from gordo_components.model.register import register_model_builder
+from gordo_components.model.factories.model_factories_utils import hourglass_calc_dims
 
 
 @register_model_builder(type="KerasAutoEncoder")
@@ -178,15 +179,6 @@ def feedforward_hourglass(
     >>> [model.layers[i].units for i in range(len(model.layers))]
     [5, 5, 10]
     """
-    if (compression_factor < 0) or (compression_factor > 1):
-        raise ValueError("compression_factor must be 0 <= compression_factor <= 1")
-    if encoding_layers < 1:
-        raise ValueError("encoding_layers must be >= 1")
-    smallest_layer = max(min(math.ceil(compression_factor * n_features), n_features), 1)
+    dims = hourglass_calc_dims(compression_factor, encoding_layers, n_features)
 
-    diff = n_features - smallest_layer
-    average_slope = diff / encoding_layers
-    dims = [
-        round(n_features - (i * average_slope)) for i in range(1, encoding_layers + 1)
-    ]
     return feedforward_symmetric(n_features, dims, [func] * len(dims), **kwargs)

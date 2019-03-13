@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from typing import Tuple, Union, Dict, Any
-import math
 
 import keras.optimizers
 from keras.optimizers import Optimizer
@@ -9,6 +8,7 @@ from keras.layers import Dense, LSTM
 from keras.models import Sequential as KerasSequential
 
 from gordo_components.model.register import register_model_builder
+from gordo_components.model.factories.model_factories_utils import hourglass_calc_dims
 
 
 @register_model_builder(type="KerasLSTMAutoEncoder")
@@ -47,13 +47,13 @@ def lstm_model(
         List of numbers with the number of neurons in the encoding part.
     dec_dim: list
         List of numbers with the number of neurons in the decoding part.
-    optimizer: str or keras optimizer
+    optimizer: Union[str, Optimizer]
         If str then the name of the optimizer must be provided (e.x. "adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
-    optimizer_kwargs: dict
+    optimizer_kwargs: Dict[str, Any]
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
     loss: str
@@ -148,13 +148,13 @@ def lstm_symmetric(
         Activation functions for the internal layers
     out_func: str
         Activation function for the output Dense layer.
-    optimizer: str or keras optimizer
+    optimizer: Union[str, Optimizer]
         If str then the name of the optimizer must be provided (e.x. "adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
-    optimizer_kwargs: dict
+    optimizer_kwargs: Dict[str, Any]
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
     loss: str
@@ -169,8 +169,6 @@ def lstm_symmetric(
     -------
     keras.models.Sequential
         Returns Keras sequential model.
-
-
     """
 
     if len(dims) == 0:
@@ -227,13 +225,13 @@ def lstm_hourglass(
         Activation function for the internal layers
     out_func: str
         Activation function for the output Dense layer.
-    optimizer: str or keras optimizer
+    optimizer: Union[str, Optimizer]
         If str then the name of the optimizer must be provided (e.x. "adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
-    optimizer_kwargs: dict
+    optimizer_kwargs: Dict[str, Any]
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
     loss: str
@@ -265,20 +263,9 @@ def lstm_hourglass(
     >>> model = lstm_hourglass(10, encoding_layers=1)
     >>> [model.layers[i].units for i in range(len(model.layers))]
     [5, 5, 10]
-
-
     """
-    if (compression_factor < 0) or (compression_factor > 1):
-        raise ValueError("compression_factor must be 0 <= compression_factor <= 1")
-    if encoding_layers < 1:
-        raise ValueError("encoding_layers must be >= 1")
-    smallest_layer = max(min(math.ceil(compression_factor * n_features), n_features), 1)
+    dims = hourglass_calc_dims(compression_factor, encoding_layers, n_features)
 
-    diff = n_features - smallest_layer
-    average_slope = diff / encoding_layers
-    dims = [
-        round(n_features - (i * average_slope)) for i in range(1, encoding_layers + 1)
-    ]
     return lstm_symmetric(
         n_features,
         lookback_window,
