@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from unittest import mock
+
+import keras.backend as K
+from keras import optimizers
 
 from gordo_components.model.factories.lstm_autoencoder import (
     lstm_symmetric,
@@ -9,71 +11,66 @@ from gordo_components.model.factories.lstm_autoencoder import (
 )
 
 
-def lstm_model_mocker(
-    n_features: int,
-    lookback_window,
-    enc_dim,
-    dec_dim,
-    enc_func,
-    dec_func,
-    out_func,
-    optimizer,
-    optimizer_kwargs,
-    loss,
-):
-    return (
-        n_features,
-        lookback_window,
-        enc_dim,
-        dec_dim,
-        enc_func,
-        dec_func,
-        out_func,
-        optimizer,
-        optimizer_kwargs,
-        loss,
-    )
-
-
 class LSTMAutoEncoderTestCase(unittest.TestCase):
-    @mock.patch(
-        "gordo_components.model.factories.lstm_autoencoder.lstm_model",
-        side_effect=lstm_model_mocker,
-    )
-    def test_lstm_symmetric_basic(self, _):
+    def test_lstm_symmetric_basic(self):
         """
-        Test that lstm_symmetric calls lstm_model correctly
+        Tests that lstm_symmetric implements the correct parameters
         """
-        (
-            n_features,
-            lookback_window,
-            enc_dim,
-            dec_dim,
-            enc_func,
-            dec_func,
-            out_func,
-            optimizer,
-            optimizer_kwargs,
-            loss,
-        ) = lstm_symmetric(
-            5,
-            3,
-            [4, 3, 2, 1],
-            ["relu", "relu", "tanh", "tanh"],
-            "relu",
-            "sgd",
-            {"lr": 0.01},
-            "mse",
+        model = lstm_symmetric(
+            n_features=5,
+            lookback_window=3,
+            dims=(4, 3, 2, 1),
+            funcs=("relu", "relu", "tanh", "tanh"),
+            out_func="linear",
+            optimizer="sgd",
+            optimizer_kwargs={"lr": 0.01},
+            loss="mse",
         )
-        self.assertEqual(n_features, 5)
-        self.assertEqual(enc_dim, [4, 3, 2, 1])
-        self.assertEqual(dec_dim, [1, 2, 3, 4])
-        self.assertEqual(enc_func, ["relu", "relu", "tanh", "tanh"])
-        self.assertEqual(dec_func, ["tanh", "tanh", "relu", "relu"])
-        self.assertEqual(out_func, "relu")
-        self.assertEqual(optimizer, "sgd")
-        self.assertEqual(optimizer_kwargs, {"lr": 0.01})
-        self.assertEqual(loss, "mse")
+
+        # Ensure that the input dimension to Keras model matches the number of features.
+        self.assertEqual(model.layers[0].input_shape[2], 5)
+
+        # Ensure that the dimension of each encoding layer matches the expected dimension.
+        self.assertEqual(
+            [model.layers[i].input_shape[2] for i in range(1, 5)], [4, 3, 2, 1]
+        )
+
+        # Ensure that the dimension of each decoding layer (excluding last decoding layer)
+        # matches the expected dimension.
+        self.assertEqual(
+            [model.layers[i].input_shape[2] for i in range(5, 8)], [1, 2, 3]
+        )
+
+        # Ensure that the dimension of last decoding layer matches the expected dimension.
+        self.assertEqual(model.layers[8].input_shape[1], 4)
+
+        # Ensure activation functions in the encoding part (layers 0-3)
+        # match expected activation functions.
+        self.assertEqual(
+            [model.layers[i].activation.__name__ for i in range(0, 4)],
+            ["relu", "relu", "tanh", "tanh"],
+        )
+
+        # Ensure activation functions in the decoding part (layers 4-7)
+        # match expected activation functions.
+        self.assertEqual(
+            [model.layers[i].activation.__name__ for i in range(4, 8)],
+            ["tanh", "tanh", "relu", "relu"],
+        )
+
+        # Ensure activation function for the output layer matches expected activation function.
+        self.assertEqual(model.layers[8].activation.__name__, "linear")
+
+        # Assert that the expected Keras optimizer is used
+        self.assertEqual(model.optimizer.__class__, optimizers.SGD)
+
+        # Assert equality of difference up to 7 decimal places
+        # Note that AlmostEquality is used as Keras can use a value approximately equal
+        # to the given learning rate rather than the exact value.
+        self.assertAlmostEqual(K.eval(model.optimizer.lr), 0.01)
+
+        # Assert that the correct loss function is used.
+        self.assertEqual(model.loss, "mse")
 
     def test_lstm_symmetric_checks_dims(self):
         """
@@ -82,142 +79,63 @@ class LSTMAutoEncoderTestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
             lstm_symmetric(4, dims=[], funcs=[])
 
-    @mock.patch(
-        "gordo_components.model.factories.lstm_autoencoder.lstm_model",
-        side_effect=lstm_model_mocker,
-    )
-    def test_lstm_hourglass_basic(self, _):
+    def test_lstm_hourglass_basic(self):
         """
-        Test that lstm_hourglass calls lstm_model correctly
+        Test that lstm_hourglass implements the correct parameters
         """
-        (
-            n_features,
-            lookback_window,
-            enc_dim,
-            dec_dim,
-            enc_func,
-            dec_func,
-            out_func,
-            optimizer,
-            optimizer_kwargs,
-            loss,
-        ) = lstm_hourglass(10)
-        self.assertEqual(n_features, 10)
-        self.assertEqual(enc_dim, [8, 7, 5])
-        self.assertEqual(dec_dim, [5, 7, 8])
-        self.assertEqual(enc_func, ["relu", "relu", "relu"])
-        self.assertEqual(dec_func, ["relu", "relu", "relu"])
-        self.assertEqual(out_func, "linear")
-        self.assertEqual(optimizer, "adam")
-        self.assertEqual(optimizer_kwargs, dict())
-        self.assertEqual(loss, "mse")
 
-        (
-            n_features,
-            lookback_window,
-            enc_dim,
-            dec_dim,
-            enc_func,
-            dec_func,
-            out_func,
-            optimizer,
-            optimizer_kwargs,
-            loss,
-        ) = lstm_hourglass(
+        model = lstm_hourglass(
             3,
             func="tanh",
             out_func="relu",
             optimizer="sgd",
-            optimizer_kwargs={"lr": 0.03},
+            optimizer_kwargs={"lr": 0.02, "momentum": 0.001},
             loss="mae",
         )
-        self.assertEqual(n_features, 3)
-        self.assertEqual(enc_dim, [3, 2, 2])
-        self.assertEqual(dec_dim, [2, 2, 3])
-        self.assertEqual(enc_func, ["tanh", "tanh", "tanh"])
-        self.assertEqual(dec_func, ["tanh", "tanh", "tanh"])
-        self.assertEqual(out_func, "relu")
-        self.assertEqual(optimizer, "sgd")
-        self.assertEqual(optimizer_kwargs, {"lr": 0.03})
-        self.assertEqual(loss, "mae")
 
-        (
-            n_features,
-            lookback_window,
-            enc_dim,
-            dec_dim,
-            enc_func,
-            dec_func,
-            out_func,
-            optimizer,
-            optimizer_kwargs,
-            loss,
-        ) = lstm_hourglass(10, compression_factor=0.3)
-        self.assertEqual(n_features, 10)
-        self.assertEqual(enc_dim, [8, 5, 3])
-        self.assertEqual(dec_dim, [3, 5, 8])
-        self.assertEqual(enc_func, ["relu", "relu", "relu"])
-        self.assertEqual(dec_func, ["relu", "relu", "relu"])
-        self.assertEqual(out_func, "linear")
-        self.assertEqual(optimizer, "adam")
-        self.assertEqual(optimizer_kwargs, dict())
-        self.assertEqual(loss, "mse")
+        # Ensure that the input dimension to Keras model matches the number of features.
+        self.assertEqual(model.layers[0].input_shape[2], 3)
 
-    @mock.patch(
-        "gordo_components.model.factories.lstm_autoencoder.lstm_model",
-        side_effect=lstm_model_mocker,
-    )
-    def test_lstm_hourglass_compression_factors(self, _):
-        """
-        Test that lstm_hourglass handles compression_factor=1 and
-        compression_factor=0 correctly.
-        """
+        # Ensure that the dimension of each encoding layer matches the expected dimension.
+        self.assertEqual(
+            [model.layers[i].input_shape[2] for i in range(1, 4)], [3, 2, 2]
+        )
 
-        # compression_factor=1 is no compression
-        (
-            n_features,
-            lookback_window,
-            enc_dim,
-            dec_dim,
-            enc_func,
-            dec_func,
-            out_func,
-            optimizer,
-            optimizer_kwargs,
-            loss,
-        ) = lstm_hourglass(10, compression_factor=1)
-        self.assertEqual(n_features, 10)
-        self.assertEqual(enc_dim, [10, 10, 10])
-        self.assertEqual(dec_dim, [10, 10, 10])
-        self.assertEqual(enc_func, ["relu", "relu", "relu"])
-        self.assertEqual(dec_func, ["relu", "relu", "relu"])
-        self.assertEqual(out_func, "linear")
-        self.assertEqual(optimizer, "adam")
-        self.assertEqual(optimizer_kwargs, dict())
-        self.assertEqual(loss, "mse")
+        # Ensure that the dimension of each decoding layer (excluding last decoding layer)
+        # matches the expected dimension.
+        self.assertEqual([model.layers[i].input_shape[2] for i in range(4, 6)], [2, 2])
 
-        # compression_factor=0 has smallest layer with 1 node.
-        (
-            n_features,
-            lookback_window,
-            enc_dim,
-            dec_dim,
-            enc_func,
-            dec_func,
-            out_func,
-            optimizer,
-            optimizer_kwargs,
-            loss,
-        ) = lstm_hourglass(100000, compression_factor=0)
-        self.assertEqual(n_features, 100000)
-        self.assertEqual(enc_dim, [66667, 33334, 1])
-        self.assertEqual(dec_dim, [1, 33334, 66667])
-        self.assertEqual(enc_func, ["relu", "relu", "relu"])
-        self.assertEqual(dec_func, ["relu", "relu", "relu"])
-        self.assertEqual(out_func, "linear")
-        self.assertEqual(optimizer, "adam")
-        self.assertEqual(optimizer_kwargs, dict())
-        self.assertEqual(loss, "mse")
+        # Ensure that the dimension of last decoding layer matches the expected dimension.
+        self.assertEqual(model.layers[6].input_shape[1], 3)
+
+        # Ensure activation functions in the encoding part (layers 0-2)
+        # match expected activation functions
+        self.assertEqual(
+            [model.layers[i].activation.__name__ for i in range(0, 3)],
+            ["tanh", "tanh", "tanh"],
+        )
+
+        # Ensure activation functions in the decoding part (layers 3-5)
+        # match expected activation functions
+        self.assertEqual(
+            [model.layers[i].activation.__name__ for i in range(3, 6)],
+            ["tanh", "tanh", "tanh"],
+        )
+
+        # Ensure activation function for the output layer matches expected activation function
+        self.assertEqual(model.layers[6].activation.__name__, "relu")
+
+        # Assert that the expected Keras optimizer is used
+        self.assertEqual(model.optimizer.__class__, optimizers.SGD)
+
+        # Assert equality of difference up to 7 decimal places
+        # Note that AlmostEquality is used as Keras can use a value approximately equal
+        # to the given parameter rather than the exact value.
+        self.assertAlmostEqual(K.eval(model.optimizer.lr), 0.02)
+        self.assertAlmostEqual(K.eval(model.optimizer.momentum), 0.001)
+
+        # Assert that the correct loss function is used.
+        self.assertEqual(model.loss, "mae")
 
     def test_lstm_hourglass_checks_enc_layers(self):
         """
