@@ -25,6 +25,7 @@ install_requires = [
     "sphinx~=1.8",
     "recommonmark~=0.5.0",
     "sphinx-click~=2.0",
+    "coverage~=4.5",
 ]
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]

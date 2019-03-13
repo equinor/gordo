@@ -48,6 +48,10 @@ images: model-builder model-server watchman
 test:
 	python setup.py test
 
+coverage:
+	coverage run --source=gordo_components setup.py testall
+	coverage report -m
+
 docs:
 	cd ./docs && $(MAKE) html
 

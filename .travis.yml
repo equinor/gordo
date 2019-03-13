@@ -20,7 +20,7 @@ jobs:
     install:
       - pip install -r requirements.txt
     script:
-      - python setup.py testall
+      - make coverage
   - name: "make images"
     install: skip
     script:
