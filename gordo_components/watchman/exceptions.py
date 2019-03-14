@@ -1,0 +1,2 @@
+class WorkflowNotFoundError(Exception):
+    pass

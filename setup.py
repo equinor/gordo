@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
 
 
+setup_requirements = ["pytest-runner", "setuptools_scm"]
+
+
 def requirements(fp: str):
     with open(fp) as f:
         return [r.strip() for r in f.readlines()]
 
-
-setup_requirements = ["pytest-runner", "setuptools_scm"]
 
 setup(
     author="Miles Granger",
