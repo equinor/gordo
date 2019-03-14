@@ -4,12 +4,15 @@ import re
 
 import responses
 
+
 from gordo_components import __version__
 from gordo_components.watchman import server
+from tests.mocking.k8s_mocking import mocked_kubernetes
 
 
 TARGET_NAMES = ["CT-machine-name-456", "CT-machine-name-123"]
 PROJECT_NAME = "some-project-name"
+PROJECT_VERSION = "1"
 AMBASSADORHOST = "ambassador"
 URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{target_name}/"
 
@@ -36,7 +39,11 @@ def metadata_request_callback(_request):
 
 class WatchmanTestCase(unittest.TestCase):
     def setUp(self):
-        app = server.build_app(project_name=PROJECT_NAME, target_names=TARGET_NAMES)
+        app = server.build_app(
+            project_name=PROJECT_NAME,
+            project_version=PROJECT_VERSION,
+            target_names=TARGET_NAMES,
+        )
         app.testing = True
         self.app = app.test_client()
 
@@ -47,7 +54,8 @@ class WatchmanTestCase(unittest.TestCase):
         self.assertTrue("version" in resp)
 
     @responses.activate
-    def test_api(self):
+    @mocked_kubernetes()
+    def test_api(self, *_args):
         """
         Ensure Sentinel API gives a list of expected endpoints and if they are healthy or not.
         """
@@ -81,7 +89,7 @@ class WatchmanTestCase(unittest.TestCase):
         data = resp.get_json()
 
         # Gives back project name as well.
-        self.assertEqual(data["project_name"], PROJECT_NAME)
+        self.assertEqual(data["project-name"], PROJECT_NAME)
 
         for expected, actual in zip(expected_endpoints, data["endpoints"]):
 
@@ -92,3 +100,37 @@ class WatchmanTestCase(unittest.TestCase):
             self.assertTrue(actual["healthy"])
             self.assertTrue("metadata" in actual)
             self.assertTrue(isinstance(actual["metadata"], dict))
+
+    @mocked_kubernetes()
+    def test_gordo_k8s_workflow(self, *_args):
+        """
+        Test we can construct a workflow representation for Watchman to use
+        """
+        from gordo_components.watchman.gordo_k8s_interface import list_model_builders
+
+        model_builders = list_model_builders(
+            namespace="default", project_name="gordo-test", project_version="1"
+        )
+
+        self.assertEqual(len(model_builders), 1)
+
+        self.assertTrue(
+            "test-machine-name" in (pod.target_name for pod in model_builders)
+        )
+        self.assertTrue(all(pod.is_healthy for pod in model_builders))
+        self.assertTrue(
+            "gordo-test-pod-name-1234" in (pod.name for pod in model_builders)
+        )
+
+    @mocked_kubernetes()
+    def test_gordo_k8s_service(self, *_args):
+        """
+        Test we can construct a service representation for Watchman to use
+        """
+        from gordo_components.watchman.gordo_k8s_interface import Service
+
+        service = Service(
+            namespace="default", name="gordoserver-gordo-test-test-machine-name"
+        )
+        self.assertEqual(len(service), 1)
+        self.assertEqual(service.status, 1.0)

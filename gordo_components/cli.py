@@ -173,13 +173,14 @@ def run_server_cli(
 
 @click.command("run-watchman")
 @click.argument("project-name", envvar="PROJECT_NAME", type=str)
+@click.argument("project-version", envvar="PROJECT_VERSION", type=str)
 @click.argument("target-names", envvar="TARGET_NAMES", type=ast.literal_eval)
 @click.option(
     "--host", type=str, help="The host to run the server on.", default="0.0.0.0"
 )
 @click.option("--port", type=int, help="The port to run the server on.", default=5555)
 @click.option("--debug", type=bool, help="Run in debug mode", default=False)
-def run_watchman_cli(project_name, target_names, host, port, debug):
+def run_watchman_cli(project_name, project_version, target_names, host, port, debug):
     """
     Start the Gordo Watchman server for this project. Which is responsible
     for dynamically comparing expected URLs derived from a project config fle
@@ -190,7 +191,9 @@ def run_watchman_cli(project_name, target_names, host, port, debug):
         PROJECT_NAME: project_name for the config file
         TARGET_NAMES: A list of non-sanitized machine / target names
     """
-    watchman.server.run_server(host, port, debug, project_name, target_names)
+    watchman.server.run_server(
+        host, port, debug, project_name, project_version, target_names
+    )
 
 
 gordo.add_command(build)
