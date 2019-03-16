@@ -25,12 +25,19 @@ jobs:
   - script: |
       pip install pytest
       pip install pytest-cov
-      python setup.py alltests
+      python setup.py testall
   - task: PublishTestResults@2
     condition: succeededOrFailed()
     inputs:
       testResultsFiles: '**/test-*.xml'
       testRunTitle: $(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)]'
+  - task: PublishCodeCoverageResults@1
+    inputs:
+       codeCoverageTool: Cobertura
+       summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+       reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+      
+      
 - job: "make_images"
   pool:
     vmImage: 'Ubuntu-16.04'
