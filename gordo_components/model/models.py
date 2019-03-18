@@ -239,22 +239,23 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
 
     def get_metadata(self):
         """
-        Get metadata for the KerasBaseEstimator
-
-        Returns
-        -------
-        Dictionary with key "history". The key's value is a a dictionary
+        Get metadata for the KerasBaseEstimator.
+        Includes a dictionary with key "history". The key's value is a a dictionary
         with a key "params" pointing another dictionary with various parameters.
         The metrics are defined in the params dictionary under "metrics".
         For each of the metrics there is a key who's value is a list of values for this
         metric per epoch.
+
+        Returns
+        -------
+        Dict
+            Metadata dictionary, including a history object if present
         """
         if (
             hasattr(self, "model")
             and hasattr(self.model, "history")
             and self.model.history
         ):
-            # TODO: Pick out what we want
             history = self.model.history.history
             history["params"] = self.model.history.params
             return {"history": history}
