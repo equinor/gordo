@@ -118,9 +118,9 @@ class KerasModelTestCase(unittest.TestCase):
                     # AutoEncoder is fine without a y target
                     config["type"] = model
                     model_out = get_model(config)
-                    self.assertFalse("history" in model_out.get_model_metadata().keys())
+                    self.assertFalse("history" in model_out.get_model_metadata())
                     model_out.fit(X)
-                    self.assertTrue("history" in model_out.get_model_metadata().keys())
+                    self.assertTrue("history" in model_out.get_model_metadata())
 
                     xTest = np.random.random(size=6).reshape(3, 2)
                     xHat = model_out.transform(xTest)
@@ -144,9 +144,10 @@ class KerasModelTestCase(unittest.TestCase):
                             )
                         )
 
+                        self.assertTrue("history" in model_out.get_metadata())
                         self.assertEqual(
-                            model_out.get_model_metadata(),
-                            model_out_clone.get_model_metadata(),
+                            model_out.get_metadata(),
+                            model_out_clone.get_metadata(),
                             "Metadata from model is not same after "
                             "saving and loading",
                         )

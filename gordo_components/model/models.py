@@ -230,20 +230,34 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
             with possible_tf_mgmt(obj):
                 K.set_learning_phase(0)
                 obj.model = load_model(model_file)
-                f_name = path.join(directory, "history.pkl")
-                with open(f_name, "rb") as history_file:
-                    obj.model.history = pickle.load(history_file)
+                history_file = path.join(directory, "history.pkl")
+                if path.isfile(history_file):
+                    with open(history_file, "rb") as hist_f:
+                        obj.model.history = pickle.load(hist_f)
 
         return obj
 
-    def get_model_metadata(self):
+    def get_metadata(self):
+        """
+        Get metadata for the KerasBaseEstimator
+
+        Returns
+        -------
+        Dictionary with key "history". The key's value is a a dictionary
+        with a key "params" pointing another dictionary with various parameters.
+        The metrics are defined in the params dictionary under "metrics".
+        For each of the metrics there is a key who's value is a list of values for this
+        metric per epoch.
+        """
         if (
             hasattr(self, "model")
             and hasattr(self.model, "history")
             and self.model.history
         ):
             # TODO: Pick out what we want
-            return {"history": "insert metadata dicts and things"}
+            history = self.model.history.history
+            history["params"] = self.model.history.params
+            return {"history": history}
         else:
             return {}
 

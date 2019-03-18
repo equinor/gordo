@@ -96,6 +96,7 @@ def build_model(
             },
         },
     }
+    metadata["model"].update(model.get_metadata())
     return model, metadata
 
 
