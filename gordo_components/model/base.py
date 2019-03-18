@@ -41,5 +41,5 @@ class GordoBase(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def get_model_metadata(self):
+    def get_metadata(self):
         """Get model specific metadata, if any"""

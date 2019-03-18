@@ -40,6 +40,12 @@ class ModelBuilderTestCase(unittest.TestCase):
             # cross val metadata checks
             self.assertTrue("model" in metadata)
             self.assertTrue("cross-validation" in metadata["model"])
+
+            print(metadata)
+            self.assertTrue("history" in metadata["model"])
+            self.assertTrue("params" in metadata["model"]["history"])
+            self.assertTrue("loss" in metadata["model"]["history"])
+            self.assertTrue("acc" in metadata["model"]["history"])
             self.assertTrue("scores" in metadata["model"]["cross-validation"])
             self.assertTrue(
                 "explained-variance" in metadata["model"]["cross-validation"]["scores"]
