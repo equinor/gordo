@@ -7,11 +7,13 @@ import time
 
 from typing import Union
 from sklearn.base import BaseEstimator
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 
 from gordo_components import serializer, __version__
 from gordo_components.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
+from gordo_components.model.base import GordoBase
 
 
 logger = logging.getLogger(__name__)
@@ -96,7 +98,11 @@ def build_model(
             },
         },
     }
-    metadata["model"].update(model.get_metadata())
+
+    gordobase_final_step = _get_final_gordo_base_step(model)
+    if gordobase_final_step:
+        metadata["model"].update(gordobase_final_step.get_metadata())
+
     return model, metadata
 
 
@@ -123,3 +129,30 @@ def _save_model_for_workflow(model: BaseEstimator, metadata: dict, output_dir: s
     # Let argo & subsequent model loader know where the model will be saved.
     with open("/tmp/model-location.txt", "w") as f:
         f.write(output_dir)
+
+
+def _get_final_gordo_base_step(model: BaseEstimator):
+    """
+    Get the final GordoBase step in a (potential) Pipeline, if it exists.
+    Parameters
+    ----------
+    model: BaseEstimator
+        The input model or Pipeline to investigate. If a Pipeline is given, look for
+        the last step in (the possibly nested) Pipeline.
+
+    Returns
+    -------
+    GordoBase
+        The final GordoBase object in the pipeline, or None if not found.
+
+    """
+    if isinstance(model, GordoBase):
+        return model
+
+    elif isinstance(model, Pipeline):
+        last_step_tuple = model.steps[-1]  # Get the last step tuple
+        estimator = last_step_tuple[1]  # The actual step is the second element
+        return _get_final_gordo_base_step(estimator)
+
+    else:
+        return None
