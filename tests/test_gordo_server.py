@@ -82,18 +82,30 @@ def influxdatabase(sensors: List[str], db_name: str, user: str, password: str):
     logger.info("Killed influx container")
 
 
-class GordoServerTestCase(unittest.TestCase):
+class GordoServerBaseTestCase(unittest.TestCase):
     """
-    Test expected functionality of the gordo server
+    GordoServerBaseTestCase provides the setup of training and serving a model
+    via the Gordo ML Server
+
+    The model (nothing special) is a simple auto encoder
+    which takes 10 features as input.
+
+    Can use `self.app` as a reference to the Flask testing app instance
     """
+
+    measurement = INFLUX_DB
+    database = INFLUX_DB
+    username = INFLUX_ADMIN_USER
+    password = INFLUX_ADMIN_PASSWORD
+    sensors = SENSORS
+    tmpdir = tempfile.TemporaryDirectory()
 
     @classmethod
     def setUpClass(cls):
-        cls.tmpdir = tempfile.TemporaryDirectory()
-        cls._build_model(cls.tmpdir.name)
+        cls._build_model(cls.tmpdir.name, cls.sensors)
 
     @staticmethod
-    def _build_model(target_dir):
+    def _build_model(target_dir: str, sensors: List[str]):
         definition = ruamel.yaml.load(
             """
             sklearn.pipeline.Pipeline:
@@ -112,7 +124,7 @@ class GordoServerTestCase(unittest.TestCase):
             model,
             target_dir,
             metadata={
-                "dataset": {"tag_list": SENSORS, "resolution": "10T"},
+                "dataset": {"tag_list": sensors, "resolution": "10T"},
                 "user-defined": {"model-name": "test-model"},
             },
         )
@@ -120,14 +132,20 @@ class GordoServerTestCase(unittest.TestCase):
     def setUp(self):
         with temp_env_vars(MODEL_LOCATION=self.tmpdir.name):
             provider = InfluxDataProvider(
-                measurement=INFLUX_DB,
+                measurement=self.measurement,
                 value_name="Value",
                 proxies={"https": "", "http": ""},
-                database=INFLUX_DB,
+                database=self.database,
             )
             app = server.build_app(data_provider=provider)
             app.testing = True
             self.app = app.test_client()
+
+
+class GordoServerTestCase(GordoServerBaseTestCase):
+    """
+    Test expected functionality of the gordo server
+    """
 
     def test_healthcheck_endpoint(self):
         """
