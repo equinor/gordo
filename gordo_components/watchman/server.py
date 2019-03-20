@@ -23,7 +23,7 @@ ENDPOINTS = None
 PROJECT_NAME = None
 PROJECT_VERSION = None
 TARGET_NAMES = None
-NAMESPACE = "kubeflow"
+NAMESPACE = None
 
 
 logger = logging.getLogger(__name__)
@@ -192,19 +192,22 @@ def healthcheck():
     return payload, 200
 
 
-def build_app(project_name: str, project_version: str, target_names: Iterable[str]):
+def build_app(
+    project_name: str, project_version: str, target_names: Iterable[str], namespace: str
+):
     """
     Build app and any associated routes
     """
 
     # Precompute list of expected endpoints from config file and other global env
-    global ENDPOINTS, PROJECT_NAME, TARGET_NAMES, PROJECT_VERSION
+    global ENDPOINTS, PROJECT_NAME, TARGET_NAMES, NAMESPACE, PROJECT_VERSION
     ENDPOINTS = [
         f"/gordo/v0/{project_name}/{target_name}/" for target_name in target_names
     ]
     PROJECT_NAME = project_name
     PROJECT_VERSION = project_version
     TARGET_NAMES = target_names
+    NAMESPACE = namespace
 
     # App and routes
     app = Flask(__name__)
@@ -222,6 +225,7 @@ def run_server(
     project_name: str,
     project_version: str,
     target_names: Iterable[str],
+    namespace: str = "ambassador",
 ):
-    app = build_app(project_name, project_version, target_names)
+    app = build_app(project_name, project_version, target_names, namespace=namespace)
     app.run(host, port, debug=debug)

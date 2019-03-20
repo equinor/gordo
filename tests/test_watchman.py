@@ -4,7 +4,6 @@ import re
 
 import responses
 
-
 from gordo_components import __version__
 from gordo_components.watchman import server
 from tests.mocking.k8s_mocking import mocked_kubernetes
@@ -43,6 +42,7 @@ class WatchmanTestCase(unittest.TestCase):
             project_name=PROJECT_NAME,
             project_version=PROJECT_VERSION,
             target_names=TARGET_NAMES,
+            namespace=AMBASSADORHOST,
         )
         app.testing = True
         self.app = app.test_client()
