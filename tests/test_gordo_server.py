@@ -5,6 +5,7 @@ import logging
 import tempfile
 import time
 from contextlib import contextmanager
+from typing import List
 
 import pytest
 import docker
@@ -29,9 +30,9 @@ INFLUX_ADMIN_PASSWORD = "root"
 
 
 @contextmanager
-def influxdatabase():
+def influxdatabase(sensors: List[str], db_name: str, user: str, password: str):
     """
-    Setup a docker based InfluxDB
+    Setup a docker based InfluxDB with data points from 2016-01-1 until 2016-01-02 by minute
     """
 
     client = docker.from_env()
@@ -40,9 +41,9 @@ def influxdatabase():
     influx = client.containers.run(
         image="influxdb:1.7-alpine",
         environment={
-            "INFLUXDB_DB": INFLUX_DB,
-            "INFLUXDB_ADMIN_USER": INFLUX_ADMIN_USER,
-            "INFLUXDB_ADMIN_PASSWORD": INFLUX_ADMIN_PASSWORD,
+            "INFLUXDB_DB": db_name,
+            "INFLUXDB_ADMIN_USER": user,
+            "INFLUXDB_ADMIN_PASSWORD": password,
         },
         ports={"8086/tcp": "8086"},
         remove=True,
@@ -53,19 +54,14 @@ def influxdatabase():
 
     # Seed database with some records
     influx_client = InfluxDBClient(
-        "localhost",
-        8086,
-        INFLUX_ADMIN_USER,
-        INFLUX_ADMIN_PASSWORD,
-        INFLUX_DB,
-        proxies={"http": "", "https": ""},
+        "localhost", 8086, user, password, db_name, proxies={"http": "", "https": ""}
     )
     dates = pd.date_range(
         start="2016-01-01", periods=2880, freq="min"
     )  # Minute intervals for 2 days
 
     logger.info("Seeding database")
-    for sensor in SENSORS:
+    for sensor in sensors:
         logger.info(f"Loading tag: {sensor}")
         points = np.random.random(size=dates.shape[0])
         data = [
@@ -206,7 +202,7 @@ class GordoServerTestCase(unittest.TestCase):
         # Models MUST have either predict or transform
         self.assertTrue(hasattr(model, "predict") or hasattr(model, "transform"))
 
-    @influxdatabase()
+    @influxdatabase(SENSORS, INFLUX_DB, INFLUX_ADMIN_USER, INFLUX_ADMIN_PASSWORD)
     @pytest.mark.dockertest
     def test_prediction_endpoint_get(self):
         """
