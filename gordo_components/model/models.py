@@ -384,7 +384,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
             Any arguments which are passed to the factory building function and/or any
             additional args to be passed to the intermediate fit method.
         """
-
+        self.steps_per_epoch = None
         self.lookback_window = lookback_window
         self.batch_size = batch_size
         kwargs["lookback_window"] = lookback_window
@@ -413,8 +413,34 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
         }
         super().__init__(**kwargs)
 
+    def generate_window(
+        self, X: np.ndarray, architecture: str, output_y: bool = True
+    ) -> Generator[Union[np.ndarray, tuple], None, None]:
+        """Returns the generator _generate_window.  Purpose of this function is to do the required checks
+            prior to evaluate the generator.  If only _generate_window is used, ValueErrors may not be
+            raised when implementing the transform method."""
+
+        if architecture not in ["lstm_autoencoder", "lstm_forecast"]:
+            raise ValueError(
+                "invalid LSTM architecture. Choose either lstm_autoencoder or lstm_forecast "
+            )
+
+        if architecture == "lstm_autoencoder":
+            if self.lookback_window > X.shape[0]:
+                raise ValueError(
+                    "For KerasLSTMAutoEncoder lookback_window must be <= size of X"
+                )
+
+        if architecture == "lstm_forecast":
+            if self.lookback_window >= X.shape[0]:
+                raise ValueError(
+                    "For KerasLSTMForecast lookback_window must be < size of X"
+                )
+
+        return self._generate_window(X, architecture, output_y)
+
     def _generate_window(
-        self, X: np.ndarray, output_y: bool = True
+        self, X: np.ndarray, architecture: str, output_y: bool = True
     ) -> Generator[Union[np.ndarray, tuple], None, None]:
         """
 
@@ -425,6 +451,20 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
         output_y: bool
             If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
             If false, sample_in for Keras LSTM predict_generator will be generated.
+        architecture: str
+            "lstm_autoencoder" or "lstm_forecast"
+            Type of LSTM architecture.
+            If "lstm_autoencoder" then a many-one architecture will be
+            implemented where the input will be the 3D array
+            np.array([X[0 : lookback_window], X[1 : lookback_window+1],...])
+            and the output is given by the 2D array:
+            np.array([X[lookback_window-1], X[lookback_window],...])
+
+            If "lstm_forecast" then a one-step forecast LSTM architecture will be
+            implemented where the input will be the 3D array
+            np.array([X[0 : lookback_window], X[1 : lookback_window],...])
+            and the output is given by the 2D array:
+            np.array([X[lookback_window], X[lookback_window+1],...])
 
         Returns:
         -------
@@ -436,20 +476,36 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
 
         """
 
-        if self.lookback_window > X.shape[0]:
-            raise ValueError("Lookback_window cannot be larger than the size of X")
+        n_feat = X.shape[1]
         while True:
-            for i in range(X.shape[0] - (self.lookback_window - 1)):
-                sample_in = X[i : self.lookback_window + i]
-                sample_out = sample_in[-1]
-                n_feat = X.shape[1]
-                if output_y:
-                    yield (
-                        sample_in.reshape(1, self.lookback_window, n_feat),
-                        sample_out.reshape(1, n_feat),
-                    )
-                else:
-                    yield sample_in.reshape(1, self.lookback_window, n_feat)
+            if architecture == "lstm_autoencoder":
+                for i in range(X.shape[0] - (self.lookback_window - 1)):
+                    sample_in = X[i : self.lookback_window + i]
+                    sample_out = sample_in[-1]
+                    if output_y:
+                        yield self._reshape_samples(n_feat, sample_in, sample_out)
+                    else:
+                        yield self._reshape_samples(n_feat, sample_in, sample_out)[0]
+            if architecture == "lstm_forecast":
+                for i in range(X.shape[0] - self.lookback_window):
+                    sample_in = X[i : self.lookback_window + i]
+                    sample_out = X[self.lookback_window + i, :]
+                    if output_y:
+                        yield self._reshape_samples(n_feat, sample_in, sample_out)
+                    else:
+                        yield self._reshape_samples(n_feat, sample_in, sample_out)[0]
+
+    def _reshape_samples(self, n_feat, sample_in, sample_out):
+        return (
+            sample_in.reshape(1, self.lookback_window, n_feat),
+            sample_out.reshape(1, n_feat),
+        )
+
+    def calc_steps_per_epoch(self, X):
+        self.steps_per_epoch = math.ceil(
+            (X.shape[0] - (self.lookback_window - 1)) / self.batch_size
+        )
+        return self.steps_per_epoch
 
 
 class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
@@ -476,16 +532,15 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
                 f"This is a many-to-one LSTM AutoEncoder that does not need a "
                 f"target, but a y was supplied. It will not be used."
             )
-        gen = self._generate_window(X, output_y=True)
+        gen = self.generate_window(X, architecture="lstm_autoencoder", output_y=True)
 
         if not hasattr(self, "model"):
-            # these are only used for the intermediate fit method (fit method of base class),
+            # these are only used for the intermediate fit method (fit method of KerasBaseEstimator),
             # called only to initiate the model
             super().fit(*next(gen), epochs=1, verbose=0, **kwargs)
 
-        steps_per_epoch = math.ceil(
-            (X.shape[0] - (self.lookback_window - 1)) / self.batch_size
-        )
+        steps_per_epoch = self.calc_steps_per_epoch(X)
+
         self.kwargs["steps_per_epoch"] = steps_per_epoch
 
         gen_kwargs = {
@@ -499,7 +554,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
-        gen = self._generate_window(X, output_y=False)
+        gen = self.generate_window(X, architecture="lstm_autoencoder", output_y=False)
         with possible_tf_mgmt(self):
             xhat = self.model.predict_generator(
                 gen, steps=X.shape[0] - (self.lookback_window - 1)
@@ -521,6 +576,98 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
     ) -> float:
         """
         Returns the explained variance score between auto encoder's input vs output
+        (note: for LSTM X is offset by lookback_window).
+
+        Parameters
+        ----------
+        X: Union[np.ndarray, pd.DataFrame]
+            Input data to the model.
+        y: Union[np.ndarray, pd.DataFrame]
+            Target
+        sample_weight: Optional[np.ndarray]
+            Sample weights
+
+        Returns
+        -------
+        score: float
+            Returns the explained variance score.
+        """
+        if not hasattr(self, "model"):
+            raise NotFittedError(
+                f"This {self.__class__.__name__} has not been fitted yet."
+            )
+
+        out = self.transform(X)
+
+        return explained_variance_score(out[:, : X.shape[1]], out[:, X.shape[1] :])
+
+
+class KerasLSTMForecast(KerasLSTMBaseEstimator):
+
+    """
+    Example
+    -------
+    >>> from gordo_components.model.factories.lstm_autoencoder import lstm_hourglass
+    >>> import numpy as np
+    >>> from gordo_components.model.models import KerasLSTMForecast
+    >>> lstm_ae = KerasLSTMForecast(kind="lstm_hourglass",
+    ...                                   lookback_window = 2,verbose=0,architecture='lstm_forecast')
+    >>> X_train = np.random.random(size=30).reshape(10, 3)
+    >>> model_fit = lstm_ae.fit(X_train)
+    """
+
+    def fit(
+        self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
+    ) -> "KerasLSTMForecast":
+        if y is not None:
+            logger.warning(
+                f"This is a forecast based LSTM AutoEncoder that does not need a "
+                f"target, but a y was supplied. It will not be used."
+            )
+        gen = self.generate_window(X, architecture="lstm_forecast", output_y=True)
+
+        if not hasattr(self, "model"):
+            # these are only used for the intermediate fit method (fit method of KerasBaseEstimator),
+            # called only to initiate the model
+            super().fit(*next(gen), epochs=1, verbose=0, **kwargs)
+
+        steps_per_epoch = self.calc_steps_per_epoch(X)
+
+        self.kwargs["steps_per_epoch"] = steps_per_epoch
+
+        gen_kwargs = {
+            k: v for k, v in self.kwargs.items() if k in self.fit_generator_params
+        }
+
+        with possible_tf_mgmt(self):
+            # shuffle is set to False since we are dealing with time series data and
+            # so training data will not be shuffled before each epoch.
+            self.model.fit_generator(gen, shuffle=False, **gen_kwargs)
+        return self
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        gen = self.generate_window(X, architecture="lstm_forecast", output_y=False)
+        with possible_tf_mgmt(self):
+            xhat = self.model.predict_generator(
+                gen, steps=X.shape[0] - self.lookback_window
+            )
+        X = X[self.lookback_window :]
+        results = list()
+        for sample_input, sample_output in zip(
+            X.tolist(), xhat.reshape(X.shape).tolist()
+        ):
+            sample_input.extend(sample_output)
+            results.append(sample_input)
+        return np.asarray(results)
+
+    def score(
+        self,
+        X: Union[np.ndarray, pd.DataFrame],
+        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        sample_weight: Optional[np.ndarray] = None,
+    ) -> float:
+        """
+        Returns the explained variance score between 1 step forecasted input and true input at next time step
         (note: for LSTM X is offset by lookback_window).
 
         Parameters
