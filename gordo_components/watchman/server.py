@@ -77,7 +77,7 @@ class WatchmanApi(MethodView):
         EndpointStatus
         """
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
-        base_url = f'http://ambassador.ambassador/{endpoint.rstrip("/")}'
+        base_url = f'http://{NAMESPACE}.ambassador/{endpoint.rstrip("/")}'
         healthcheck_resp = requests.get(f"{base_url}/healthcheck", timeout=2)
 
         if healthcheck_resp.ok:
@@ -98,7 +98,7 @@ class WatchmanApi(MethodView):
 
         # Get server (a Kubernetes service) status / logs
         if n_logs is not None:
-            service = Service(
+            service = Service(  # type: ignore
                 namespace=NAMESPACE, name=f"gordoserver-{PROJECT_NAME}-{target}"
             )
             service_status, service_logs = service.status, service.logs(n_logs)

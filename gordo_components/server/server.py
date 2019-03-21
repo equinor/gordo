@@ -6,7 +6,6 @@ import logging
 import timeit
 import dateutil.parser  # type: ignore
 import typing
-
 from functools import wraps
 from datetime import datetime
 
@@ -231,7 +230,7 @@ class PredictionApiView(Base):
         context["status-code"] = 200
         start_time = timeit.default_timer()
 
-        params = request.get_json() or request.args or request.get_data()
+        params = request.get_json() or request.args
 
         if not all(k in params for k in ("start", "end")):
             return (
@@ -295,7 +294,7 @@ class PredictionApiView(Base):
         # specific timestamp and additionally match the predictions to the corresponding tags.
         data = []
         tags = self.metadata["dataset"]["tag_list"]
-        for prediction, time_stamp in zip(xhat, X.index):
+        for prediction, time_stamp in zip(xhat, X.index[-len(xhat) :]):
 
             # Auto encoders return double their input.
             # First half is input to model, second half is output of model
