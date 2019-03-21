@@ -23,14 +23,20 @@ from tests.utils import temp_env_vars
 logger = logging.getLogger(__name__)
 
 
-SENSORS = [f"tag-{i}" for i in range(10)]
+SENSORS = [f"tag-{i}" for i in range(4)]
 INFLUX_DB = "sensors"
 INFLUX_ADMIN_USER = "root"
 INFLUX_ADMIN_PASSWORD = "root"
 
 
 @contextmanager
-def influxdatabase(sensors: List[str], db_name: str, user: str, password: str):
+def influxdatabase(
+    sensors: List[str],
+    db_name: str,
+    user: str,
+    password: str,
+    measurement: str = INFLUX_DB,
+):
     """
     Setup a docker based InfluxDB with data points from 2016-01-1 until 2016-01-02 by minute
     """
@@ -49,7 +55,7 @@ def influxdatabase(sensors: List[str], db_name: str, user: str, password: str):
         remove=True,
         detach=True,
     )
-    time.sleep(4)  # Give Influx some time to initialize
+    time.sleep(2)  # Give Influx some time to initialize
     logger.info(f"Started influx DB: {influx.name}")
 
     # Seed database with some records
@@ -66,7 +72,7 @@ def influxdatabase(sensors: List[str], db_name: str, user: str, password: str):
         points = np.random.random(size=dates.shape[0])
         data = [
             {
-                "measurement": INFLUX_DB,
+                "measurement": measurement,
                 "tags": {"tag": sensor},
                 "time": f"{date}",
                 "fields": {"Value": point},
@@ -74,12 +80,12 @@ def influxdatabase(sensors: List[str], db_name: str, user: str, password: str):
             for point, date in zip(points, dates)
         ]
         influx_client.write_points(data)
-
-    yield
-
-    logger.info("Killing influx container")
-    influx.kill()
-    logger.info("Killed influx container")
+    try:
+        yield
+    finally:
+        logger.info("Killing influx container")
+        influx.kill()
+        logger.info("Killed influx container")
 
 
 class GordoServerBaseTestCase(unittest.TestCase):
@@ -118,14 +124,17 @@ class GordoServerBaseTestCase(unittest.TestCase):
             Loader=ruamel.yaml.Loader,
         )
         model = serializer.pipeline_from_definition(definition)
-        X = np.random.random(size=100).reshape(-10, 10)
+        X = np.random.random(size=40).reshape(-1, 4)
         model.fit(X, X)
         serializer.dump(
             model,
             target_dir,
             metadata={
                 "dataset": {"tag_list": sensors, "resolution": "10T"},
-                "user-defined": {"model-name": "test-model"},
+                "user-defined": {
+                    "model-name": "test-model",
+                    "machine-name": "machine-1",
+                },
             },
         )
 
@@ -136,6 +145,8 @@ class GordoServerBaseTestCase(unittest.TestCase):
                 value_name="Value",
                 proxies={"https": "", "http": ""},
                 database=self.database,
+                username=self.username,
+                password=self.password,
             )
             app = server.build_app(data_provider=provider)
             app.testing = True
@@ -185,8 +196,10 @@ class GordoServerTestCase(GordoServerBaseTestCase):
 
             # These should be fine; multi-record and single record prediction requests.
             for data in [
-                np.random.random(size=20).reshape(2, 10).tolist(),
-                np.random.random(size=10).tolist(),
+                np.random.random(size=len(SENSORS) * 10)
+                .reshape((10, len(SENSORS)))
+                .tolist(),
+                np.random.random(size=len(SENSORS)).tolist(),
             ]:
 
                 resp = self.app.post("/prediction", json={"X": data})
@@ -220,8 +233,14 @@ class GordoServerTestCase(GordoServerBaseTestCase):
         # Models MUST have either predict or transform
         self.assertTrue(hasattr(model, "predict") or hasattr(model, "transform"))
 
-    @influxdatabase(SENSORS, INFLUX_DB, INFLUX_ADMIN_USER, INFLUX_ADMIN_PASSWORD)
     @pytest.mark.dockertest
+    @influxdatabase(
+        sensors=GordoServerBaseTestCase.sensors,
+        db_name=GordoServerBaseTestCase.database,
+        user=GordoServerBaseTestCase.username,
+        password=GordoServerBaseTestCase.password,
+        measurement=GordoServerBaseTestCase.measurement,
+    )
     def test_prediction_endpoint_get(self):
         """
         Client can ask for a timerange based prediction
@@ -235,7 +254,7 @@ class GordoServerTestCase(GordoServerBaseTestCase):
                 },
             )
 
-        self.assertTrue(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
         self.assertTrue("output" in resp.json)
 
         # Verify keys & structure of one output record output contains a list of:

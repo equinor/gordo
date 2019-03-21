@@ -153,9 +153,9 @@ class InfluxDataProvider(GordoBaseDataProvider):
     def __init__(
         self,
         measurement: str,
+        value_name: str = "Value",
         api_key: str = None,
         api_key_header: str = None,
-        value_name: str = "Value",
         client: DataFrameClient = None,
         uri: str = None,
         **kwargs,
@@ -184,7 +184,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
         if self.influx_client is None:
             if uri:
-                self.influx_client = gordo_components.client.utils.influx_client_from_uri(
+                self.influx_client = gordo_components.client.utils.influx_client_from_uri(  # type: ignore
                     uri,
                     api_key=api_key,
                     api_key_header=api_key_header,
@@ -242,7 +242,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
         """
 
         logger.info(f"Query string: {query_string}")
-        dataframes = self.influx_client.query(query_string)
+        dataframes = self.influx_client.query(query_string)  # type: ignore
 
         try:
             return list(dataframes.values())[0]

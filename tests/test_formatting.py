@@ -28,5 +28,5 @@ class FormattingTestCase(unittest.TestCase):
         self.assertEqual(
             resp.exit_code,
             0,
-            msg=f"Black would still reformat one or ore files:\n{resp.output}",
+            msg=f"Black would still reformat one or ore files:\n{resp.output} \n{resp.exc_info}",
         )

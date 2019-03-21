@@ -18,6 +18,7 @@ from gordo_components.data_provider.providers import (
 )
 from gordo_components.server import server
 from gordo_components import watchman
+from gordo_components.cli.client import client as gordo_client
 
 import dateutil.parser
 
@@ -223,6 +224,7 @@ def run_watchman_cli(
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
 gordo.add_command(run_watchman_cli)
+gordo.add_command(gordo_client)
 
 if __name__ == "__main__":
     gordo()
