@@ -231,8 +231,9 @@ class PredictionApiView(Base):
         context["status-code"] = 200
         start_time = timeit.default_timer()
 
-        parameters = request.get_json()
-        if not any(k in parameters for k in ("start", "end")):
+        params = request.get_json() or request.args or request.get_data()
+
+        if not all(k in params for k in ("start", "end")):
             return (
                 {
                     "error": "must provide iso8601 formatted dates with "
@@ -242,12 +243,12 @@ class PredictionApiView(Base):
             )
 
         try:
-            start = self._parse_iso_datetime(parameters["start"])
-            end = self._parse_iso_datetime(parameters["end"])
+            start = self._parse_iso_datetime(params["start"])
+            end = self._parse_iso_datetime(params["end"])
         except ValueError:
             logger.error(
                 f"Failed to parse start and/or end date to ISO: start: "
-                f"{parameters['start']} - end: {parameters['end']}"
+                f"{params['start']} - end: {params['end']}"
             )
             return (
                 {
