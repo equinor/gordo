@@ -152,6 +152,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
         api_key: str = None,
         api_key_header: str = None,
         value_name: str = "Value",
+        client: DataFrameClient = None,
         **kwargs,
     ):
         """
@@ -171,13 +172,15 @@ class InfluxDataProvider(GordoBaseDataProvider):
         super().__init__(**kwargs)
         self.measurement = measurement
         self.value_name = value_name
-        self.influx_config = kwargs
-        self.influx_client = DataFrameClient(**kwargs)
-        if api_key:
-            if not api_key_header:
-                raise ValueError(
-                    "If supplying an api key, you must supply the header key to insert it under."
-                )
+        self.influx_client = client
+
+        if self.influx_client is None:
+            self.influx_client = DataFrameClient(**kwargs)
+            if api_key:
+                if not api_key_header:
+                    raise ValueError(
+                        "If supplying an api key, you must supply the header key to insert it under."
+                    )
             self.influx_client._headers[api_key_header] = api_key
 
     def load_dataframes(
@@ -239,7 +242,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
     def _list_of_tags_from_influx(self):
         query_tags = (
-            f"""SHOW TAG VALUES ON {self.influx_config["database"]} WITH KEY="tag" """
+            f"""SHOW TAG VALUES ON {self.influx_client._database} WITH KEY="tag" """
         )
         result = self.influx_client.query(query_tags)
         list_of_tags = []
