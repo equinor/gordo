@@ -347,9 +347,10 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         return explained_variance_score(X if y is None else y, out)
 
 
-class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
+class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
     """
-       Subclass of the KerasBaseEstimator to allow to train a many-one LSTM autoencoder
+       Subclass of the KerasBaseEstimator to allow to train a many-one LSTM autoencoder and an LSTM
+       1 step forecast
     """
 
     def __init__(
@@ -382,19 +383,6 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
         kwargs: dict
             Any arguments which are passed to the factory building function and/or any
             additional args to be passed to the intermediate fit method.
-
-
-        Example
-        -------
-        >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
-        >>> import numpy as np
-        >>> from gordo_components.model.models import KerasLSTMAutoEncoder
-        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
-        ...                                   lookback_window = 2,verbose=0)
-        >>> X_train = np.random.random(size=300).reshape(100,3)
-        >>> model_fit = lstm_ae.fit(X_train)
-        >>> X_test = np.random.random(size=12).reshape(4,3)
-        >>> model_transform = lstm_ae.transform(X_test)
         """
 
         self.lookback_window = lookback_window
@@ -402,9 +390,29 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
+
+        # fit_generator_params is a set of strings with the keyword arguments of Keras fit_generator method (excluding
+        # "shuffle" as this will be hard coded).  This will be used in the fit method of the respective subclasses
+        # to match the kwargs supplied when instantiating the subclass.
+        # The matched kwargs will override the default kwargs of Keras fit_generator method when training the model.
+        # Note: The decorator "@interfaces.legacy_generator_methods_support" to Keras' fit_generator method
+        # does not forward any arguments to the inspect module
+        self.fit_generator_params = {
+            "steps_per_epoch",
+            "epochs",
+            "verbose",
+            "callbacks",
+            "validation_data",
+            "validation_steps",
+            "validation_freq",
+            "class_weight",
+            "max_queue_size",
+            "workers",
+            "use_multiprocessing",
+            "initial_epoch",
+        }
         super().__init__(**kwargs)
 
-    # many to one architecture
     def _generate_window(
         self, X: np.ndarray, output_y: bool = True
     ) -> Generator[Union[np.ndarray, tuple], None, None]:
@@ -443,6 +451,23 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
                 else:
                     yield sample_in.reshape(1, self.lookback_window, n_feat)
 
+
+class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
+
+    """
+    Example
+    -------
+    >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
+    >>> import numpy as np
+    >>> from gordo_components.model.models import KerasLSTMAutoEncoder
+    >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
+    ...                                   lookback_window = 2,verbose=0)
+    >>> X_train = np.random.random(size=300).reshape(100, 3)
+    >>> model_fit = lstm_ae.fit(X_train)
+    >>> X_test = np.random.random(size=12).reshape(4, 3)
+    >>> model_transform = lstm_ae.transform(X_test)
+    """
+
     def fit(
         self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
     ) -> "KerasLSTMAutoEncoder":
@@ -463,24 +488,9 @@ class KerasLSTMAutoEncoder(KerasBaseEstimator, TransformerMixin):
         )
         self.kwargs["steps_per_epoch"] = steps_per_epoch
 
-        # Keras' fit_generator keyword arguments (excluding shuffle as this will be hard coded to false)
-        # Note: The decorator "@interfaces.legacy_generator_methods_support" to Keras' fit_generator method
-        # does not forward any arguments to the inspect module
-        fit_generator_params = {
-            "steps_per_epoch",
-            "epochs",
-            "verbose",
-            "callbacks",
-            "validation_data",
-            "validation_steps",
-            "validation_freq",
-            "class_weight",
-            "max_queue_size",
-            "workers",
-            "use_multiprocessing",
-            "initial_epoch",
+        gen_kwargs = {
+            k: v for k, v in self.kwargs.items() if k in self.fit_generator_params
         }
-        gen_kwargs = {k: v for k, v in self.kwargs.items() if k in fit_generator_params}
 
         with possible_tf_mgmt(self):
             # shuffle is set to False since we are dealing with time series data and
