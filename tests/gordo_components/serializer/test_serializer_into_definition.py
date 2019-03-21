@@ -193,7 +193,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
 
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model != "KerasBaseEstimator":
+            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
                 for model_kind in self.factories[model].keys():
 
                     pipe = Pipeline(
@@ -242,7 +242,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
         """
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model != "KerasBaseEstimator":
+            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
                 for model_kind in self.factories[model].keys():
                     definition = f"""
                         sklearn.pipeline.Pipeline:

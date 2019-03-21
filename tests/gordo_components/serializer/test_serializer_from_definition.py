@@ -21,7 +21,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
     def setup_gen(self):
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model != "KerasBaseEstimator":
+            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
                 for model_kind in self.factories[model].keys():
                     templates = [
                         # This has full parameter names define
@@ -153,7 +153,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
     def test_pydoc_locate_class(self):
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model != "KerasBaseEstimator":
+            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
                 self.assertTrue(pydoc.locate(f"gordo_components.model.models.{model}"))
 
     def test_pipeline_from_definition(self):
