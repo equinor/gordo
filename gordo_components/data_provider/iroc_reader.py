@@ -129,7 +129,7 @@ class IrocReader(GordoBaseDataProvider):
                 df = read_iroc_file(f, from_ts, to_ts, tag_list)
             return df
         except:
-            print("Encountered empty file, jumping to the next one!")
+            logger.warning(f"Problem parsing file {file_path}, skipping.")
             return None
 
 
