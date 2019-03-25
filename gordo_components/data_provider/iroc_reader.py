@@ -112,6 +112,8 @@ class IrocReader(GordoBaseDataProvider):
                     _all_files(),
                 )
             )
+            fetched_tags = [tags for tags in fetched_tags if not tags is None]
+
         return fetched_tags
 
     def _read_iroc_df_from_azure(
@@ -120,10 +122,15 @@ class IrocReader(GordoBaseDataProvider):
         adls_file_system_client = self.client
 
         logger.info("Attempting to open IROC file {}".format(file_path))
-        with adls_file_system_client.open(file_path, "rb") as f:
-            logger.info("Parsing file {}".format(file_path))
-            df = read_iroc_file(f, from_ts, to_ts, tag_list)
-        return df
+
+        try:
+            with adls_file_system_client.open(file_path, "rb") as f:
+                logger.info("Parsing file {}".format(file_path))
+                df = read_iroc_file(f, from_ts, to_ts, tag_list)
+            return df
+        except:
+            logger.warning(f"Problem parsing file {file_path}, skipping.")
+            return None
 
 
 def read_iroc_file(
