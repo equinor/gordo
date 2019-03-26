@@ -51,19 +51,19 @@ class KerasModelTestCase(unittest.TestCase):
         X = np.random.random(size=8).reshape(-1, 2)
         for model_str in self.factories.keys():
             if model_str not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                for model_kind in self.factories[model_str].keys():
-                    Model = pydoc.locate(f"gordo_components.model.models.{model_str}")
-                    raw_model = Model(kind=model_kind)
-                    pipe = Pipeline([("ae", Model(kind=model_kind))])
+                model_kind = list(self.factories[model_str].keys())[0]
+                Model = pydoc.locate(f"gordo_components.model.models.{model_str}")
+                raw_model = Model(kind=model_kind)
+                pipe = Pipeline([("ae", Model(kind=model_kind))])
 
-                    for model in (raw_model, pipe):
+                for model in (raw_model, pipe):
 
-                        with self.assertRaises(NotFittedError):
-                            model.score(X.copy(), X.copy())
+                    with self.assertRaises(NotFittedError):
+                        model.score(X.copy(), X.copy())
 
-                        model.fit(X)
-                        score = model.score(X)
-                        logger.info(f"Score: {score:.4f}")
+                    model.fit(X)
+                    score = model.score(X)
+                    logger.info(f"Score: {score:.4f}")
 
     def test_keras_autoencoder_forecast_crossval(self):
         """
@@ -73,20 +73,17 @@ class KerasModelTestCase(unittest.TestCase):
         X = np.random.random(size=(15, 2))
         for model_str in self.factories.keys():
             if model_str not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                for model_kind in self.factories[model_str].keys():
-                    Model = pydoc.locate(f"gordo_components.model.models.{model_str}")
-                    raw_model = Model(kind=model_kind)
-                    pipe = Pipeline([("ae", Model(kind=model_kind))])
-                    for model in (raw_model, pipe):
-                        scores = cross_val_score(
-                            model,
-                            X,
-                            X,
-                            cv=TimeSeriesSplit(n_splits=2, max_train_size=2),
-                        )
-                        logger.info(
-                            f"Mean score: {scores.mean():.4f} - Std score: {scores.std():.4f}"
-                        )
+                model_kind = list(self.factories[model_str].keys())[0]
+                Model = pydoc.locate(f"gordo_components.model.models.{model_str}")
+                raw_model = Model(kind=model_kind)
+                pipe = Pipeline([("ae", Model(kind=model_kind))])
+                for model in (raw_model, pipe):
+                    scores = cross_val_score(
+                        model, X, X, cv=TimeSeriesSplit(n_splits=2, max_train_size=2)
+                    )
+                    logger.info(
+                        f"Mean score: {scores.mean():.4f} - Std score: {scores.std():.4f}"
+                    )
 
     def test_expected_target_in_fit(
         self
@@ -108,7 +105,7 @@ class KerasModelTestCase(unittest.TestCase):
         X = np.random.random(size=10).reshape(5, 2)
         for model in self.factories.keys():
             if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                for model_kind in self.factories[model].keys():
+                for model_kind in sorted(list(self.factories[model].keys()))[:1]:
                     config = {"type": model, "kind": model_kind}
 
                     # Have to call fit, since model production is lazy
