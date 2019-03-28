@@ -13,7 +13,7 @@ from influxdb import DataFrameClient
 
 import gordo_components
 from gordo_components.data_provider.azure_utils import create_adls_client
-from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.data_provider.base import GordoBaseDataProvider, capture_args
 
 from gordo_components.data_provider.iroc_reader import IrocReader
 from gordo_components.data_provider.ncs_reader import NcsReader
@@ -78,6 +78,7 @@ class DataLakeProvider(GordoBaseDataProvider):
                 return True
         return False
 
+    @capture_args
     def __init__(
         self,
         storename: str = "dataplatformdlsprod",
@@ -148,6 +149,7 @@ class DataLakeProvider(GordoBaseDataProvider):
 
 
 class InfluxDataProvider(GordoBaseDataProvider):
+    @capture_args
     def __init__(
         self,
         measurement: str,
@@ -291,6 +293,7 @@ class RandomDataProvider(GordoBaseDataProvider):
     def can_handle_tag(self, tag):
         return True  # We can be random about everything
 
+    @capture_args
     def __init__(self, min_size=100, max_size=300, **kwargs):
         super().__init__(**kwargs)
         self.max_size = max_size
