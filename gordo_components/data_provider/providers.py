@@ -11,11 +11,13 @@ import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
 
+import gordo_components
 from gordo_components.data_provider.azure_utils import create_adls_client
 from gordo_components.data_provider.base import GordoBaseDataProvider
 
 from gordo_components.data_provider.iroc_reader import IrocReader
 from gordo_components.data_provider.ncs_reader import NcsReader
+
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +155,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
         api_key_header: str = None,
         value_name: str = "Value",
         client: DataFrameClient = None,
+        uri: str = None,
         **kwargs,
     ):
         """
@@ -166,6 +169,9 @@ class InfluxDataProvider(GordoBaseDataProvider):
             Api key to use in header
         api_key_header: str
             Key of header to insert the api key for requests
+        uri: str
+            Create a client from a URI
+            format: <username>:<password>@<host>:<port>/<optional-path>/<db_name>
         kwargs: dict
             These are passed directly to the init args of influxdb.DataFrameClient
         """
@@ -175,13 +181,21 @@ class InfluxDataProvider(GordoBaseDataProvider):
         self.influx_client = client
 
         if self.influx_client is None:
-            self.influx_client = DataFrameClient(**kwargs)
-            if api_key:
-                if not api_key_header:
-                    raise ValueError(
-                        "If supplying an api key, you must supply the header key to insert it under."
-                    )
-            self.influx_client._headers[api_key_header] = api_key
+            if uri:
+                self.influx_client = gordo_components.client.utils.influx_client_from_uri(
+                    uri,
+                    api_key=api_key,
+                    api_key_header=api_key_header,
+                    dataframe_client=True,
+                )
+            else:
+                self.influx_client = DataFrameClient(**kwargs)
+                if api_key is not None:
+                    if not api_key_header:
+                        raise ValueError(
+                            "If supplying an api key, you must supply the header key to insert it under."
+                        )
+                    self.influx_client._headers[api_key_header] = api_key
 
     def load_dataframes(
         self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
