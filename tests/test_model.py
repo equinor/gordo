@@ -171,57 +171,65 @@ class KerasModelTestCase(unittest.TestCase):
                             "model history",
                         )
 
-    def test__generate_window_lookback_window_ae_valueerror(self):
+    def test_lookback_window_ae_valueerror_during_fit(self):
 
         # Assert that (for LSTMAutoEncoder) ValueError
-        # is raised if lookback_window > number of readings (rows of X)
+        # is raised in fit method if lookback_window > number of readings (rows of X)
 
-        X = np.random.random(size=20).reshape(10, 2)
-        lookback_window = 11
+        lookback_window = 6
         with self.assertRaises(ValueError):
             model = KerasLSTMAutoEncoder(
                 kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
             )
-            gen = model.generate_window(X, architecture="lstm_autoencoder")
-            next(gen)
+            X = np.random.random(size=(10,))
+            model.fit(X)
 
-    def test_generate_window_lookback_window_forecast_valueerror(self):
-        # Assert that (for LSTMForecast) ValueError is raised if lookback_window >= number of readings (rows of X)
-        X = np.random.random(size=20).reshape(10, 2)
-        for lookback_window in [10, 11]:
-            with self.assertRaises(ValueError):
-                model = KerasLSTMForecast(
-                    kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
-                )
-                gen = model.generate_window(X, architecture="lstm_forecast")
-                next(gen)
+    def test_lookback_window_ae_valueerror_during_transform(self):
 
-    def test_generate_window_architecture_valueerror(self):
-        # Assert that ValueError is raised if architecture not 'lstm_autoencoder' or 'lstm_forecast'
+        # Assert that (for LSTMAutoEncoder) ValueError
+        # is raised in fit method if lookback_window > number of readings (rows of X)
 
-        X = np.random.random(size=(5, 2))
-        lookback_window = 5
+        lookback_window = 3
+        model = KerasLSTMAutoEncoder(
+            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
+        )
+        X_train = np.random.random(size=(4, 2))
+        model.fit(X_train)
         with self.assertRaises(ValueError):
+            X_test = X_train[-3:-1, :]
+            model.transform(X_test)
+
+    def test_lookback_window_forecast_valueerror_during_fit(self):
+        # Assert that (for LSTMForecast) ValueError is raised
+        # in fit method if lookback_window >= number of readings (rows of X)
+        for lookback_window in [5, 6]:
             model = KerasLSTMForecast(
                 kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
             )
-            gen = model.generate_window(X, architecture="forecast")
-            next(gen)
-            model = KerasLSTMAutoEncoder(
+            with self.assertRaises(ValueError):
+                X = np.random.random(size=(5, 2))
+                model.fit(X)
+
+    def test_lookback_window_forecast_valueerror_during_transform(self):
+        # Assert that (for LSTMForecast) ValueError is raised
+        # in fit method if lookback_window >= number of readings (rows of X)
+        X = np.random.random(size=(5, 2))
+        for lookback_window in [5, 6]:
+            model = KerasLSTMForecast(
                 kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
             )
-            gen = model.generate_window(X, architecture="autoencoder")
-            next(gen)
+            with self.assertRaises(ValueError):
+                model.fit(X)
 
     def test_generate_window_lstm_ae_output(self):
-        # Check that right output is generated from generate_window (architecture = 'lstm_autoencoder')
+        # Check that right output is generated from generate_window (for KerasLSTMAutoEncoder)
         X = np.random.random(size=10).reshape(5, 2)
 
         lookback_window = 4
         model = KerasLSTMAutoEncoder(
             kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
-        gen = model.generate_window(X, architecture="lstm_autoencoder")
+        gen = model.generate_window(X)
         gen_out_1 = next(gen)
         gen_out_2 = next(gen)
         self.assertEqual(gen_out_1[0].tolist(), X[0:4].reshape(1, 4, 2).tolist())
@@ -234,9 +242,7 @@ class KerasModelTestCase(unittest.TestCase):
         model = KerasLSTMAutoEncoder(
             kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
-        gen_no_y = model.generate_window(
-            X, architecture="lstm_autoencoder", output_y=False
-        )
+        gen_no_y = model.generate_window(X, output_y=False)
         gen_no_y_out_1 = next(gen_no_y)
         gen_no_y_out_2 = next(gen_no_y)
         gen_no_y_out_3 = next(gen_no_y)
@@ -245,14 +251,14 @@ class KerasModelTestCase(unittest.TestCase):
         self.assertEqual(gen_no_y_out_3.tolist(), X[2:4].reshape(1, 2, 2).tolist())
 
     def test_generate_window_lstm_forecast_output(self):
-        # Check that right output is generated from generate_window (architecture = 'lstm_forecast')
+        # Check that right output is generated from generate_window (for KerasLSTMForecast)
         X = np.random.random(size=(5, 2))
 
         lookback_window = 3
         model = KerasLSTMForecast(
             kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
-        gen = model.generate_window(X, architecture="lstm_forecast")
+        gen = model.generate_window(X)
         gen_out_1 = next(gen)
         gen_out_2 = next(gen)
         self.assertEqual(gen_out_1[0].tolist(), X[0:3].reshape(1, 3, 2).tolist())
@@ -265,9 +271,7 @@ class KerasModelTestCase(unittest.TestCase):
         model = KerasLSTMForecast(
             kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
         )
-        gen_no_y = model.generate_window(
-            X, architecture="lstm_forecast", output_y=False
-        )
+        gen_no_y = model.generate_window(X, output_y=False)
         gen_no_y_out_1 = next(gen_no_y)
         gen_no_y_out_2 = next(gen_no_y)
         self.assertEqual(gen_no_y_out_1.tolist(), X[0:2].reshape(1, 2, 2).tolist())

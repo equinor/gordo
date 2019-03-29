@@ -4,10 +4,11 @@ import logging
 import json
 import math
 
-from typing import Union, Callable, Dict, Any, Optional, Generator
+from typing import Union, Callable, Dict, Any, Optional
 from os import path
 from contextlib import contextmanager
 import pickle
+from abc import ABCMeta
 
 import keras.models
 import keras.backend as K
@@ -290,17 +291,18 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         kwargs: dict
             kwargs which are passed to Kera's ``predict`` method
 
+
+        Returns
+        -------
+        results:
+            np.ndarray
+
         Notes
         -----
         The data returns from this method is double the feature length of its input.
         The first half of each sample output is the _input_ of the model, and the
         output is concatenated (axis=1) with the input. ie. If the input has 4 features,
         the output will have 8, where the first 4 are the values which went into the model.
-
-        Returns
-        -------
-        np.ndarray
-
         """
         with possible_tf_mgmt(self):
             xhat = self.model.predict(X, **kwargs)
@@ -347,9 +349,9 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         return explained_variance_score(X if y is None else y, out)
 
 
-class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
+class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):
     """
-       Subclass of the KerasBaseEstimator to allow to train a many-one LSTM autoencoder and an LSTM
+       Abstract Base Class to allow to train a many-one LSTM autoencoder and an LSTM
        1 step forecast
     """
 
@@ -384,7 +386,9 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
             Any arguments which are passed to the factory building function and/or any
             additional args to be passed to the intermediate fit method.
         """
-        self.steps_per_epoch = None
+        # default 1 for steps_per_epoch is only used to initiate an integer-type value. Actual value will be computed
+        # later
+        self.steps_per_epoch = 1  # type: int
         self.lookback_window = lookback_window
         self.batch_size = batch_size
         kwargs["lookback_window"] = lookback_window
@@ -413,95 +417,49 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
         }
         super().__init__(**kwargs)
 
-    def generate_window(
-        self, X: np.ndarray, architecture: str, output_y: bool = True
-    ) -> Generator[Union[np.ndarray, tuple], None, None]:
-        """Returns the generator _generate_window.  Purpose of this function is to do the required checks
-            prior to evaluate the generator.  If only _generate_window is used, ValueErrors may not be
-            raised when implementing the transform method."""
+    def generate_window(self, X: np.ndarray, output_y: bool = True):
+        return
+        yield
 
-        if architecture not in ["lstm_autoencoder", "lstm_forecast"]:
-            raise ValueError(
-                "invalid LSTM architecture. Choose either lstm_autoencoder or lstm_forecast "
-            )
-
-        if architecture == "lstm_autoencoder":
-            if self.lookback_window > X.shape[0]:
-                raise ValueError(
-                    "For KerasLSTMAutoEncoder lookback_window must be <= size of X"
-                )
-
-        if architecture == "lstm_forecast":
-            if self.lookback_window >= X.shape[0]:
-                raise ValueError(
-                    "For KerasLSTMForecast lookback_window must be < size of X"
-                )
-
-        return self._generate_window(X, architecture, output_y)
-
-    def _generate_window(
-        self, X: np.ndarray, architecture: str, output_y: bool = True
-    ) -> Generator[Union[np.ndarray, tuple], None, None]:
+    def _reshape_samples(
+        self, n_feat: int, sample_in: np.ndarray, sample_out: np.ndarray
+    ):
         """
 
-        Parameters:
+        This method is used to reshape one input sample to a 3D array of size 1 x lookback_window x number_features
+        and one output sample to a 2D array of size 1 x number_features.  Such reshapes are required
+        for the fit method (in Keras fit_generator).
+
+        Parameters
         ----------
-        X: 2D np array
-            Data to predict/transform on (n_samples x n_features).
-        output_y: bool
-            If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
-            If false, sample_in for Keras LSTM predict_generator will be generated.
-        architecture: str
-            "lstm_autoencoder" or "lstm_forecast"
-            Type of LSTM architecture.
-            If "lstm_autoencoder" then a many-one architecture will be
-            implemented where the input will be the 3D array
-            np.array([X[0 : lookback_window], X[1 : lookback_window+1],...])
-            and the output is given by the 2D array:
-            np.array([X[lookback_window-1], X[lookback_window],...])
+        n_feat: int
+            number of features
+        sample_in: 2D np array
+            one input sample of dimension lookback_window x n_features
+        sample_out:
+            one output sample of dimension 1 x n_features
 
-            If "lstm_forecast" then a one-step forecast LSTM architecture will be
-            implemented where the input will be the 3D array
-            np.array([X[0 : lookback_window], X[1 : lookback_window],...])
-            and the output is given by the 2D array:
-            np.array([X[lookback_window], X[lookback_window+1],...])
-
-        Returns:
+        Returns
         -------
-        sample_in: 3D np array
-            Each iterate generates a window of data points of size 1 x lookback_window
-            x n_features to use within fit/transform methods.
-        sample_out: 3D np array
-            The last data point of sample_in (1 x 1 x n_features).
+        reshaped input/output samples. A tuple of length 2 with first element being the reshaped
+        input sample and the second element the reshaped output sample.
 
         """
 
-        n_feat = X.shape[1]
-        while True:
-            if architecture == "lstm_autoencoder":
-                for i in range(X.shape[0] - (self.lookback_window - 1)):
-                    sample_in = X[i : self.lookback_window + i]
-                    sample_out = sample_in[-1]
-                    if output_y:
-                        yield self._reshape_samples(n_feat, sample_in, sample_out)
-                    else:
-                        yield self._reshape_samples(n_feat, sample_in, sample_out)[0]
-            if architecture == "lstm_forecast":
-                for i in range(X.shape[0] - self.lookback_window):
-                    sample_in = X[i : self.lookback_window + i]
-                    sample_out = X[self.lookback_window + i, :]
-                    if output_y:
-                        yield self._reshape_samples(n_feat, sample_in, sample_out)
-                    else:
-                        yield self._reshape_samples(n_feat, sample_in, sample_out)[0]
-
-    def _reshape_samples(self, n_feat, sample_in, sample_out):
         return (
             sample_in.reshape(1, self.lookback_window, n_feat),
             sample_out.reshape(1, n_feat),
         )
 
     def calc_steps_per_epoch(self, X):
+        """
+        This method calculates the number of steps to yield from the generator prior to declaring one epoch
+        finished and starting the next epoch.
+
+        References
+            https://keras.io/models/model/#fit_generator
+        """
+
         self.steps_per_epoch = math.ceil(
             (X.shape[0] - (self.lookback_window - 1)) / self.batch_size
         )
@@ -509,30 +467,103 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin):
 
 
 class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
+    def generate_window(self, X: np.ndarray, output_y: bool = True):
+        """
+        Parameters
+        ----------
+        X: 2D np array
+            Data to predict/transform on (n_samples x n_features).
+        output_y: bool
+            If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
+            If false, sample_in for Keras LSTM predict_generator will be generated.
 
-    """
-    Example
-    -------
-    >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
-    >>> import numpy as np
-    >>> from gordo_components.model.models import KerasLSTMAutoEncoder
-    >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
-    ...                                   lookback_window = 2,verbose=0)
-    >>> X_train = np.random.random(size=300).reshape(100, 3)
-    >>> model_fit = lstm_ae.fit(X_train)
-    >>> X_test = np.random.random(size=12).reshape(4, 3)
-    >>> model_transform = lstm_ae.transform(X_test)
-    """
+        Returns
+        -------
+        if output_y is True, it returns a tuple of length 2 with first element being the input sample and second element
+        the output sample.
+        The input sample is a 3D np array. Each iterate generates a window of data points of
+        size 1 x lookback_window x n_features to use within fit/transform methods.
+        The output sample is the last data point on the input sample, reshaped to a 2D np array
+        of size 1 x n_features.
+
+        if output_y is False then only the input sample is returned.
+        """
+        n_feat = X.shape[1]
+        while True:
+            for i in range(X.shape[0] - (self.lookback_window - 1)):
+                sample_in = X[i : self.lookback_window + i]
+                sample_out = sample_in[-1]
+                samples = self._reshape_samples(n_feat, sample_in, sample_out)
+                if output_y:
+                    yield samples
+                else:
+                    yield samples[0]
+
+    def _validate_size_of_X(self, X):
+        if X.ndim == 1:
+            X = X.reshape(1, len(X))
+
+        if self.lookback_window > X.shape[0]:
+            raise ValueError(
+                "For KerasLSTMAutoEncoder lookback_window must be <= size of X"
+            )
 
     def fit(
         self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
     ) -> "KerasLSTMAutoEncoder":
+
+        """
+        Notes
+        -----
+            A many-one architecture is implemented where the input sample will be the 3D array
+            np.array([X[0 : lookback_window], X[1 : lookback_window+1],...]) and the output sample
+            is given by the 2D array:
+            np.array([X[lookback_window-1], X[lookback_window],...])
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
+        >>> lookback_window = 2
+        >>> input_sample = np.array([X[0 : lookback_window], X[1 : lookback_window+1],X[2 : lookback_window+2]])
+        >>> input_sample
+        array([[[1. , 0.1],
+                [0.5, 0.7]],
+        <BLANKLINE>
+               [[0.5, 0.7],
+                [2. , 1. ]],
+        <BLANKLINE>
+               [[2. , 1. ],
+                [1. , 1.5]]])
+        >>> output_sample = np.array([[X[lookback_window-1], X[lookback_window],X[lookback_window+1]]])
+        >>> output_sample
+        array([[[0.5, 0.7],
+                [2. , 1. ],
+                [1. , 1.5]]])
+
+        Parameters
+        ----------
+        X: 2D np array of dimension n_samples x n_features
+            Input data to train.
+        y: This is an LSTM Autoencoder and will be ignored.
+        kwargs: dict
+            Any additional args to be passed to Keras fit_generator method.
+
+        Returns
+        -------
+        class:
+            KerasLSTMAutoEncoder
+
+        """
+
         if y is not None:
             logger.warning(
                 f"This is a many-to-one LSTM AutoEncoder that does not need a "
                 f"target, but a y was supplied. It will not be used."
             )
-        gen = self.generate_window(X, architecture="lstm_autoencoder", output_y=True)
+
+        self._validate_size_of_X(X)
+        gen = self.generate_window(X, output_y=True)
 
         if not hasattr(self, "model"):
             # these are only used for the intermediate fit method (fit method of KerasBaseEstimator),
@@ -554,7 +585,53 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
-        gen = self.generate_window(X, architecture="lstm_autoencoder", output_y=False)
+        """
+
+        Parameters
+        ----------
+         X: 2D np array
+            Data to autoencode.
+            Dimension = n_samples x n_features where n_samples must be >= lookback_window.
+
+
+        Returns
+        -------
+        results: 2D np array
+                 Dimension = (n_samples - (lookback_window - 1)) x 2*n_features.  The first half
+                 of the array (results[:,:n_features]) corresponds to X offset by the lookback_window
+                 (i.e., X[lookback_window - 1:,:]) whereas the second half corresponds to the autoencoded values
+                 of X[lookback_window - 1:,:].
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> import tensorflow as tf
+        >>> import random as rn
+        >>> from keras import backend as K
+        >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
+        >>> from gordo_components.model.models import KerasLSTMAutoEncoder
+        >>> #Setting seeds to get reproducible results
+        >>> session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+        ...                               inter_op_parallelism_threads=1)
+        >>> sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+        >>> K.set_session(sess)
+        >>> np.random.seed(42)
+        >>> rn.seed(12345)
+        >>> tf.set_random_seed(1234)
+        >>> #Define train/test data
+        >>> X_train = np.array([[1, 1], [2, 3], [0.5, 0.6], [0.3, 1], [0.6, 0.7]])
+        >>> X_test = np.array([[2, 3], [1, 1], [0.1, 1], [0.5, 2]])
+        >>> #Initiate model, fit and transform
+        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model", lookback_window=2, verbose=0)
+        >>> model_fit = lstm_ae.fit(X_train)
+        >>> model_transform = lstm_ae.transform(X_test)
+        >>> np.allclose(model_transform, np.array([[1., 1., 0.00503557, 0.00501121],[0.1, 1.,0.00503096, 0.00500809],
+        ...                                        [0.5, 2.,0.00503031, 0.00500737]]))
+        True
+        """
+        self._validate_size_of_X(X)
+        gen = self.generate_window(X, output_y=False)
+
         with possible_tf_mgmt(self):
             xhat = self.model.predict_generator(
                 gen, steps=X.shape[0] - (self.lookback_window - 1)
@@ -603,28 +680,97 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 
 
 class KerasLSTMForecast(KerasLSTMBaseEstimator):
+    def generate_window(self, X: np.ndarray, output_y: bool = True):
+        """
 
-    """
-    Example
-    -------
-    >>> from gordo_components.model.factories.lstm_autoencoder import lstm_hourglass
-    >>> import numpy as np
-    >>> from gordo_components.model.models import KerasLSTMForecast
-    >>> lstm_ae = KerasLSTMForecast(kind="lstm_hourglass",
-    ...                                   lookback_window = 2,verbose=0,architecture='lstm_forecast')
-    >>> X_train = np.random.random(size=30).reshape(10, 3)
-    >>> model_fit = lstm_ae.fit(X_train)
-    """
+        Parameters
+        ----------
+        X: 2D np array
+            Data to predict/transform on (n_samples x n_features).
+        output_y: bool
+            If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
+            If false, sample_in for Keras LSTM predict_generator will be generated.
+
+        Returns
+        -------
+        if output_y is True, it returns a tuple of length 2 with the first element being the input sample and
+        the second element being the output sample.
+
+        The input sample is a 3D np array. Each iterate generates a window of data points of
+        size 1 x lookback_window x n_features to use within fit/transform methods.
+        The output sample is X[lookback+i,:], where i is the index of the current window (i.e. the (lookback_window+i)th
+        sample from X)
+
+        """
+
+        n_feat = X.shape[1]
+        while True:
+            for i in range(X.shape[0] - self.lookback_window):
+                sample_in = X[i : self.lookback_window + i]
+                sample_out = X[self.lookback_window + i, :]
+                samples = self._reshape_samples(n_feat, sample_in, sample_out)
+                if output_y:
+                    yield samples
+                else:
+                    yield samples[0]
+
+    def _validate_size_of_X(self, X):
+        if self.lookback_window >= X.shape[0]:
+            raise ValueError(
+                "For KerasLSTMForecast lookback_window must be < size of X"
+            )
 
     def fit(
         self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
     ) -> "KerasLSTMForecast":
+
+        """
+        Notes
+        -----
+            A one step forecast LSTM architecture is implemented where the input sample will be the 3D array
+            np.array([X[0 : lookback_window], X[1 : lookback_window+1],...]) and the output sample
+            is given by the 2D array:
+            np.array([X[lookback_window], X[lookback_window+1],...])
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
+        >>> lookback_window = 2
+        >>> input_sample = np.array([X[0 : lookback_window], X[1 : lookback_window+1]])
+        >>> input_sample
+        array([[[1. , 0.1],
+                [0.5, 0.7]],
+        <BLANKLINE>
+               [[0.5, 0.7],
+                [2. , 1. ]]])
+        >>> output_sample = np.array([[X[lookback_window], X[lookback_window+1]]])
+        >>> output_sample
+        array([[[2. , 1. ],
+                [1. , 1.5]]])
+
+        Parameters
+        ----------
+        X: 2D np array of dimension n_samples x n_features
+            Input data to train.
+        y: This is a forecast based LSTM model which does not need a y. Thus it will be ignored.
+        kwargs: dict
+            Any additional args to be passed to Keras fit_generator method.
+
+        Returns
+        -------
+        class:
+            KerasLSTMForecast
+
+                """
         if y is not None:
             logger.warning(
                 f"This is a forecast based LSTM AutoEncoder that does not need a "
                 f"target, but a y was supplied. It will not be used."
             )
-        gen = self.generate_window(X, architecture="lstm_forecast", output_y=True)
+
+        self._validate_size_of_X(X)
+        gen = self.generate_window(X, output_y=True)
 
         if not hasattr(self, "model"):
             # these are only used for the intermediate fit method (fit method of KerasBaseEstimator),
@@ -646,7 +792,52 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
-        gen = self.generate_window(X, architecture="lstm_forecast", output_y=False)
+        """
+        Parameters
+        ----------
+         X: 2D np array
+            Data to predict.
+            Dimension = n_samples x n_features where n_samples must be >= lookback_window.
+
+
+        Returns
+        -------
+        results: 2D np array
+                 Dimension = (n_samples - lookback_window) x 2*n_features.  The first half
+                 of the array (results[:,:n_features]) corresponds to X offset by lookback_window+1
+                 (i.e., X[lookback_window:,:]) whereas the second half corresponds to the predicted values
+                 of X[lookback_window:,:].
+
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> import tensorflow as tf
+        >>> import random as rn
+        >>> from keras import backend as K
+        >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
+        >>> from gordo_components.model.models import KerasLSTMForecast
+        >>> #Setting seeds to get reproducible results
+        >>> session_conf = tf.ConfigProto(intra_op_parallelism_threads=1,
+        ...                               inter_op_parallelism_threads=1)
+        >>> sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+        >>> K.set_session(sess)
+        >>> np.random.seed(42)
+        >>> rn.seed(12345)
+        >>> tf.set_random_seed(1234)
+        >>> #Define train/test data
+        >>> X_train = np.array([[1, 1], [2, 3], [0.5, 0.6], [0.3, 1], [0.6, 0.7]])
+        >>> X_test = np.array([[2, 3], [1, 1], [0.1, 1], [0.5, 2]])
+        >>> #Initiate model, fit and transform
+        >>> lstm_ae = KerasLSTMForecast(kind="lstm_model", lookback_window=2, verbose=0)
+        >>> model_fit = lstm_ae.fit(X_train)
+        >>> model_transform = lstm_ae.transform(X_test)
+        >>> np.allclose(model_transform, np.array([[0.1       , 1.        , 0.00467027, 0.00561625],
+        ...                                     [0.5       , 2.        , 0.00466603, 0.00561359]]))
+        True
+        """
+        self._validate_size_of_X(X)
+        gen = self.generate_window(X, output_y=False)
         with possible_tf_mgmt(self):
             xhat = self.model.predict_generator(
                 gen, steps=X.shape[0] - self.lookback_window
