@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from typing import Tuple, List
-
+from typing import Tuple, List, Dict, Union
 import pandas as pd
 from datetime import datetime
 
@@ -10,6 +9,8 @@ from gordo_components.data_provider.providers import RandomDataProvider
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.dataset.filter_rows import pandas_filter_rows
+from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         data_provider: GordoBaseDataProvider,
         from_ts: datetime,
         to_ts: datetime,
-        tag_list: List[str],
+        tag_list: List[Union[str, Dict, SensorTag]],
         resolution: str = "10T",
         row_filter: str = "",
         **_kwargs,
@@ -39,8 +40,9 @@ class TimeSeriesDataset(GordoBaseDataset):
             Earliest possible point in the dataset (inclusive)
         to_ts: datetime
             Earliest possible point in the dataset (exclusive)
-        tag_list: List[Str]
-            List of tags to include in the dataset
+        tag_list: List[Union[str, Dict, sensor_tag.SensorTag]]
+            List of tags to include in the dataset. The elements can be strings,
+            dictionaries or SensorTag namedtuples.
         resolution: str
             The bucket size for grouping all incoming time data (e.g. "10T").
         row_filter: str
@@ -51,7 +53,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         """
         self.from_ts = from_ts
         self.to_ts = to_ts
-        self.tag_list = tag_list
+        self.tag_list = normalize_sensor_tags(tag_list)
         self.resolution = resolution
         self.data_provider = data_provider
         self.row_filter = row_filter

@@ -19,6 +19,8 @@ from gordo_components.data_provider.providers import (
 from gordo_components.server import server
 from gordo_components import watchman
 from gordo_components.cli.client import client as gordo_client
+from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 import dateutil.parser
 
@@ -107,6 +109,14 @@ def build(output_dir, model_config, data_config, metadata, model_register_dir):
 
     # Set default data provider for data config
     data_config["data_provider"] = DataLakeProvider()
+    asset = data_config.pop("asset", None)
+
+    if asset:
+        tag_list = [SensorTag(tag_name, asset) for tag_name in data_config["tag_list"]]
+    else:
+        tag_list = normalize_sensor_tags(data_config["tag_list"])
+
+    data_config["tag_list"] = tag_list
 
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Model config: {model_config}")

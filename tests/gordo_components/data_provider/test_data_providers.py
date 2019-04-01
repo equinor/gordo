@@ -9,20 +9,21 @@ import pytest
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.data_provider import providers
 from gordo_components.data_provider.providers import load_series_from_multiple_providers
+from gordo_components.dataset.sensor_tag import SensorTag
 
 
 class MockProducerRegExp(GordoBaseDataProvider):
-    def can_handle_tag(self, tag):
-        return self.regexp.match(tag)
+    def can_handle_tag(self, tag: SensorTag):
+        return self.regexp.match(tag.name)
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
     ) -> Iterable[pd.Series]:
         for tag in tag_list:
-            if self.regexp.match(tag):
+            if self.regexp.match(tag.name):
                 yield pd.Series(name=str(self.regexp.pattern))
             else:
-                raise ValueError(f"Unable to find base path from tag {tag}")
+                raise ValueError(f"Unable to find base path from tag {tag.name}")
 
     def __init__(self, regexp: Pattern[Any], **kwargs):
         """
@@ -55,7 +56,10 @@ class LoadMultipleDataFramesTest(unittest.TestCase):
                     [self.ab_producer, self.containing_b_producer],
                     None,
                     None,
-                    ["ab", "tag_not_matching_any_of_the_regexps"],
+                    [
+                        SensorTag("ab", None),
+                        SensorTag("tag_not_matching_any_of_the_regexps", None),
+                    ],
                 )
             )
 
@@ -64,7 +68,10 @@ class LoadMultipleDataFramesTest(unittest.TestCase):
         the list of providers which gets the job"""
         series_collection = list(
             load_series_from_multiple_providers(
-                [self.ab_producer, self.containing_b_producer], None, None, ["abba"]
+                [self.ab_producer, self.containing_b_producer],
+                None,
+                None,
+                [SensorTag("abba", None)],
             )
         )
         self.assertEqual(series_collection[0].name, "ab.*")
@@ -77,7 +84,7 @@ class LoadMultipleDataFramesTest(unittest.TestCase):
                 [self.ab_producer, self.containing_b_producer],
                 None,
                 None,
-                ["abba", "cba"],
+                [SensorTag("abba", None), SensorTag("cba", None)],
             )
         )
         self.assertEqual(series_collection[0].name, "ab.*")

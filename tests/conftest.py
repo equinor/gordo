@@ -3,8 +3,8 @@
 import asyncio
 import logging
 import tempfile
-import typing
 import time
+from typing import List
 
 import docker
 import ruamel.yaml
@@ -15,8 +15,8 @@ import requests
 from gordo_components.server import server
 from gordo_components import serializer
 from gordo_components.data_provider.providers import InfluxDataProvider
+from gordo_components.dataset.sensor_tag import SensorTag
 from tests import utils as tu
-
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def check_event_loop():
 
 @pytest.fixture(scope="session")
 def sensors():
-    return tu.SENSORS
+    return tu.SENSORTAG_LIST
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def tmp_dir():
 
 
 @pytest.fixture(scope="session")
-def trained_model_directory(sensors: typing.List[str]):
+def trained_model_directory(sensors: List[SensorTag]):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
