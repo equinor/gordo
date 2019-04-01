@@ -18,8 +18,8 @@ from sklearn.base import BaseEstimator
 
 from gordo_components import __version__, serializer
 from gordo_components.dataset.datasets import TimeSeriesDataset
+import gordo_components.dataset.sensor_tag as sensor_tag
 from gordo_components.data_provider.base import GordoBaseDataProvider
-
 
 logger = logging.getLogger(__name__)
 
@@ -259,7 +259,10 @@ class PredictionApiView(Resource):
             from_ts=start - freq.delta,
             to_ts=end,
             resolution=current_app.metadata["dataset"]["resolution"],
-            tag_list=current_app.metadata["dataset"]["tag_list"],
+            tag_list=[
+                sensor_tag.normalize_sensor_tag(sensor_dict)
+                for sensor_dict in current_app.metadata["dataset"]["tag_list"]
+            ],
         )
         X, _y = dataset.get_data()
 
@@ -284,7 +287,10 @@ class PredictionApiView(Resource):
         # In GET requests we need to pair the resulting predictions with their
         # specific timestamp and additionally match the predictions to the corresponding tags.
         data = []
-        tags = current_app.metadata["dataset"]["tag_list"]
+
+        # This tags list is just for display/informative purposes, skipping the asset
+        tags = [tag["name"] for tag in current_app.metadata["dataset"]["tag_list"]]
+
         for prediction, time_stamp in zip(xhat, X.index[-len(xhat) :]):
 
             # Auto encoders return double their input.

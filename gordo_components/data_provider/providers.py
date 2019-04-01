@@ -16,6 +16,7 @@ from gordo_components.data_provider.base import GordoBaseDataProvider, capture_a
 
 from gordo_components.data_provider.iroc_reader import IrocReader
 from gordo_components.data_provider.ncs_reader import NcsReader
+from gordo_components.dataset.sensor_tag import SensorTag
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ def load_series_from_multiple_providers(
     data_providers: typing.List[GordoBaseDataProvider],
     from_ts: datetime,
     to_ts: datetime,
-    tag_list: typing.List[str],
+    tag_list: typing.List[SensorTag],
 ) -> typing.Iterable[pd.DataFrame]:
     """
     Loads the tags in `tag_list` using multiple instances of
@@ -36,13 +37,15 @@ def load_series_from_multiple_providers(
 
     Returns
     -------
-    Iterable[pd.Series]
-        The required tags as an iterable of series where each is series contains
+    typing.Iterable[pd.Series]
+        The required tags as an iterable of series where each series contains
         the tag values along with a datetime index.
+
     """
     readers_to_tags = {
         reader: [] for reader in data_providers
-    }  # type: typing.Dict[GordoBaseDataProvider, typing.List[str]]
+    }  # type: typing.Dict[GordoBaseDataProvider, typing.List[SensorTag]]
+
     for tag in tag_list:
         for tag_reader in data_providers:
             if tag_reader.can_handle_tag(tag):
@@ -53,7 +56,7 @@ def load_series_from_multiple_providers(
                 break
         # The else branch is executed if the break is not called
         else:
-            raise ValueError(f"Found no data providers able to download the tag {tag}")
+            raise ValueError(f"Found no data providers able to download the tag {tag} ")
     for tag_reader, readers_tags in readers_to_tags.items():
         if readers_tags:
             logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
@@ -71,6 +74,7 @@ class DataLakeProvider(GordoBaseDataProvider):
     ]  # type: typing.List[typing.Type[GordoBaseDataProvider]]
 
     def can_handle_tag(self, tag):
+        """Implements base method, see Gordo"""
         for r in self._get_sub_dataproviders():
             if r.can_handle_tag(tag):
                 return True
@@ -110,7 +114,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         self.client = None
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
     ) -> typing.Iterable[pd.Series]:
         """
         See
@@ -205,14 +209,14 @@ class InfluxDataProvider(GordoBaseDataProvider):
                     self.influx_client._headers[api_key_header] = api_key
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
     ) -> typing.Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
         """
         return (
             self.read_single_sensor(
-                from_ts=from_ts, to_ts=to_ts, tag=tag, measurement=self.measurement
+                from_ts=from_ts, to_ts=to_ts, tag=tag.name, measurement=self.measurement
             )
             for tag in tag_list
         )
@@ -280,14 +284,14 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
         Returns
         -------
-        List[str]
+        typing.List[str]
             The list of tags in Influx
 
         """
         return self._list_of_tags_from_influx()
 
-    def can_handle_tag(self, tag):
-        return tag in self.get_list_of_tags()
+    def can_handle_tag(self, tag: SensorTag):
+        return tag.name in self.get_list_of_tags()
 
 
 class RandomDataProvider(GordoBaseDataProvider):
@@ -296,7 +300,7 @@ class RandomDataProvider(GordoBaseDataProvider):
     uses the same seed, so should be a function (same input -> same output)
     """
 
-    def can_handle_tag(self, tag):
+    def can_handle_tag(self, tag: SensorTag):
         return True  # We can be random about everything
 
     @capture_args
@@ -320,7 +324,7 @@ class RandomDataProvider(GordoBaseDataProvider):
         )
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
     ) -> typing.Iterable[pd.Series]:
         for tag in tag_list:
             nr = random.randint(self.min_size, self.max_size)
@@ -328,7 +332,7 @@ class RandomDataProvider(GordoBaseDataProvider):
             random_index = self._random_dates(from_ts, to_ts, n=nr)
             series = pd.Series(
                 index=random_index,
-                name=tag,
+                name=tag.name,
                 data=np.random.random(size=len(random_index)),
             )
             yield series

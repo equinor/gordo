@@ -10,6 +10,7 @@ from azure.datalake.store import core
 
 from gordo_components.data_provider.azure_utils import walk_azure
 from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class IrocReader(GordoBaseDataProvider):
     REGEXP_FOR_TAGS = re.compile(r"^NINENINE.+::.+")
 
     def can_handle_tag(self, tag):
-        return IrocReader.REGEXP_FOR_TAGS.match(tag)
+        return IrocReader.REGEXP_FOR_TAGS.match(tag.name)
 
     def __init__(self, client: core.AzureDLFileSystem, threads: int = 50, **kwargs):
         """
@@ -33,7 +34,7 @@ class IrocReader(GordoBaseDataProvider):
         self,
         from_ts: datetime,
         to_ts: datetime,
-        tag_list: List[str],
+        tag_list: List[SensorTag],
         base_path="raw/plant/uon/cygnet/ninenine/history",
     ):
         """
@@ -47,6 +48,10 @@ class IrocReader(GordoBaseDataProvider):
             raise ValueError(
                 f"Iroc reader called with to_ts: {to_ts} before from_ts: {from_ts}"
             )
+
+        # Dropping the asset part of the tag_list elements, don't need them here for
+        # now.
+        tag_list_as_strings = [tag.name for tag in tag_list]
 
         base_path = base_path.strip("/")
 
@@ -64,20 +69,20 @@ class IrocReader(GordoBaseDataProvider):
         )
 
         fetched_tags = self._fetch_all_iroc_files_from_paths(
-            all_base_paths, from_ts, to_ts, tag_list
+            all_base_paths, from_ts, to_ts, tag_list_as_strings
         )
         if len(fetched_tags) < 0:
             raise ValueError(
-                f"Found no data for tags {tag_list} in the daterange {from_ts} to "
+                f"Found no data for tags {tag_list_as_strings} in the daterange {from_ts} to "
                 f"{to_ts}"
             )
 
         concatted = pd.concat(fetched_tags, copy=False)
 
-        if len(concatted.columns) != len(tag_list):
+        if len(concatted.columns) != len(tag_list_as_strings):
             raise ValueError(
                 f"Did not find data for all tags, the missing tags are "
-                f"{set(tag_list)-set(concatted.columns)}"
+                f"{set(tag_list_as_strings)-set(concatted.columns)}"
             )
 
         for col in concatted.columns:

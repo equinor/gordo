@@ -11,6 +11,8 @@ from datetime import datetime
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.dataset.datasets import RandomDataset, TimeSeriesDataset
 from gordo_components.dataset.base import GordoBaseDataset
+from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.dataset.sensor_tag import normalize_sensor_tag
 
 
 class DatasetTestCase(unittest.TestCase):
@@ -22,7 +24,11 @@ class DatasetTestCase(unittest.TestCase):
         start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
         end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
 
-        dataset = RandomDataset(from_ts=start, to_ts=end, tag_list=["Tag 1", "Tag 2"])
+        dataset = RandomDataset(
+            from_ts=start,
+            to_ts=end,
+            tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        )
 
         self.assertTrue(isinstance(dataset, GordoBaseDataset))
         self.assertTrue(hasattr(dataset, "get_data"))
@@ -152,20 +158,21 @@ class TimeSeriesDatasetTest(unittest.TestCase):
     def test_row_filter(self):
         """Tests that row_filter filters away rows"""
 
+        tag_list = [
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ]
         start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
         end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
         X, _ = TimeSeriesDataset(
-            MockDataSource(), start, end, tag_list=["Tag 1", "Tag 2", "Tag 3"]
+            MockDataSource(), start, end, tag_list=tag_list
         ).get_data()
 
         self.assertEqual(577, len(X))
 
         X, _ = TimeSeriesDataset(
-            MockDataSource(),
-            start,
-            end,
-            tag_list=["Tag 1", "Tag 2", "Tag 3"],
-            row_filter="'Tag 1' < 5000",
+            MockDataSource(), start, end, tag_list=tag_list, row_filter="'Tag 1' < 5000"
         ).get_data()
 
         self.assertEqual(8, len(X))
@@ -174,7 +181,7 @@ class TimeSeriesDatasetTest(unittest.TestCase):
             MockDataSource(),
             start,
             end,
-            tag_list=["Tag 1", "Tag 2", "Tag 3"],
+            tag_list=tag_list,
             row_filter="'Tag 1' / 'Tag 3' < 0.999",
         ).get_data()
 
@@ -189,11 +196,11 @@ class MockDataSource(GordoBaseDataProvider):
         return True
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
     ) -> Iterable[pd.Series]:
         days = pd.date_range(from_ts, to_ts, freq="s")
-
-        for i, name in enumerate(tag_list):
+        tag_list_strings = [tag.name for tag in tag_list]
+        for i, name in enumerate(tag_list_strings):
             series = pd.Series(
                 index=days, data=list(range(i, len(days) + i)), name=name
             )
