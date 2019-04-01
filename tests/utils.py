@@ -17,11 +17,13 @@ from asynctest import mock as async_mock
 from influxdb import InfluxDBClient
 
 from gordo_components.watchman import server as watchman_server
-
+from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.dataset.sensor_tag import to_list_of_strings
 
 logger = logging.getLogger(__name__)
 
-SENSORS = [f"tag-{i}" for i in range(4)]
+SENSORTAG_LIST = [SensorTag(f"tag-{i}", None) for i in range(4)]
+SENSORS_STR_LIST = to_list_of_strings(SENSORTAG_LIST)
 INFLUXDB_NAME = "testdb"
 INFLUXDB_USER = "root"
 INFLUXDB_PASSWORD = "root"
@@ -30,11 +32,11 @@ INFLUXDB_MEASUREMENT = "sensors"
 INFLUXDB_URI = f"{INFLUXDB_USER}:{INFLUXDB_PASSWORD}@localhost:8086/{INFLUXDB_NAME}"
 
 INFLUXDB_FIXTURE_ARGS = (
-    SENSORS,
+    SENSORS_STR_LIST,
     INFLUXDB_NAME,
     INFLUXDB_USER,
     INFLUXDB_PASSWORD,
-    SENSORS,
+    SENSORS_STR_LIST,
 )
 
 GORDO_HOST = "localhost"
@@ -240,7 +242,7 @@ def temp_env_vars(**kwargs):
 
 @contextmanager
 def influxdatabase(
-    sensors: List[str], db_name: str, user: str, password: str, measurement: str
+    sensors: List[SensorTag], db_name: str, user: str, password: str, measurement: str
 ):
     """
     Setup a docker based InfluxDB with data points from 2016-01-1 until 2016-01-02 by minute
@@ -293,7 +295,7 @@ class InfluxDB:
 
     def __init__(
         self,
-        sensors: List[str],
+        sensors: List[SensorTag],
         db_name: str,
         user: str,
         password: str,
@@ -329,12 +331,12 @@ class InfluxDB:
 
         logger.info("Seeding database")
         for sensor in self.sensors:
-            logger.info(f"Loading tag: {sensor}")
+            logger.info(f"Loading tag: {sensor.name}")
             points = np.random.random(size=dates.shape[0])
             data = [
                 {
                     "measurement": self.measurement,
-                    "tags": {"tag": sensor},
+                    "tags": {"tag": sensor.name},
                     "time": f"{date}",
                     "fields": {"Value": point},
                 }

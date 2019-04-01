@@ -20,7 +20,7 @@ from gordo_components.client.forwarders import PredictionForwarder
 from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
-
+from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +122,9 @@ class Client:
                 ],
                 healthy=data["healthy"],
                 endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                tag_list=data["metadata"]["metadata"]["dataset"]["tag_list"],
+                tag_list=normalize_sensor_tags(
+                    data["metadata"]["metadata"]["dataset"]["tag_list"]
+                ),
                 resolution=data["metadata"]["metadata"]["dataset"]["resolution"],
             )
             for data in resp.json()["endpoints"]

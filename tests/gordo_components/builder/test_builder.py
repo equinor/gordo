@@ -4,6 +4,8 @@ import unittest
 import pytest
 import os
 import dateutil
+import yaml
+
 from typing import List, Optional, Dict
 from tempfile import TemporaryDirectory
 from gordo_components.builder.build_model import (
@@ -11,7 +13,7 @@ from gordo_components.builder.build_model import (
     provide_saved_model,
 )
 from gordo_components.builder import build_model
-import yaml
+from gordo_components.dataset.sensor_tag import SensorTag
 
 
 def get_random_data():
@@ -19,7 +21,7 @@ def get_random_data():
         "type": "RandomDataset",
         "from_ts": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         "to_ts": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
-        "tag_list": ["Tag 1", "Tag 2"],
+        "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
     }
     return data
 
@@ -176,11 +178,11 @@ class ModelBuilderTestCase(unittest.TestCase):
     [
         (True, None, None),
         (False, {"metadata": "something"}, None),
-        (False, None, ["extra_tag"]),
+        (False, None, [SensorTag("extra_tag", None)]),
     ],
 )
 def test_provide_saved_model_caching(
-    should_be_equal: bool, metadata: Optional[Dict], tag_list: Optional[List[str]]
+    should_be_equal: bool, metadata: Optional[Dict], tag_list: Optional[List[SensorTag]]
 ):
     """
     Test provide_saved_model with caching and possible cache busting if metadata or

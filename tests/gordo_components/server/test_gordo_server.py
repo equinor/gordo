@@ -54,8 +54,8 @@ def test_prediction_endpoint_post_fail(
 @pytest.mark.parametrize(
     "data_to_post",
     [
-        {"X": np.random.random(size=(10, len(tu.SENSORS))).tolist()},
-        {"X": np.random.random(size=len(tu.SENSORS)).tolist()},
+        {"X": np.random.random(size=(10, len(tu.SENSORTAG_LIST))).tolist()},
+        {"X": np.random.random(size=len(tu.SENSORTAG_LIST)).tolist()},
     ],
 )
 def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_post):

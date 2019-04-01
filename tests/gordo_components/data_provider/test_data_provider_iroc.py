@@ -5,11 +5,12 @@ from unittest import mock
 from dateutil.parser import isoparse  # type: ignore
 
 from gordo_components.data_provider.iroc_reader import IrocReader, read_iroc_file
+from gordo_components.dataset.sensor_tag import SensorTag
 
 IROC_HAPPY_TAG_LIST = [
-    "NINENINE.OPCIS::NNFCDPC01.AI1410J0",
-    "NINENINE.OPCIS::NNFCDPC01.AI1840C1J0",
-    "NINENINE.OPCIS::NNFCDPC01.AI1840E1J0",
+    SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1410J0", None),
+    SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1840C1J0", None),
+    SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1840E1J0", None),
 ]
 
 HAPPY_FROM_TS = isoparse("2018-05-02T01:56:00+00:00")
@@ -38,7 +39,7 @@ class IrocDataSourceTestCase(unittest.TestCase):
             tag_list=IROC_HAPPY_TAG_LIST,
         )
         for tag in IROC_HAPPY_TAG_LIST:
-            self.assertIn(tag, res_df.columns)
+            self.assertIn(tag.name, res_df.columns)
         # We have one row per distinct timestamp in the input-csv
         self.assertEqual(5, len(res_df))
 
@@ -55,15 +56,15 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,wtf,2018-05-02T06:43:59.7240000Z,Analog Nor
 NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Analog Normal
                 """
         )
-        tags = IROC_HAPPY_TAG_LIST
+
         res_df = read_iroc_file(
             file_obj=f,
             from_ts=isoparse("2018-05-02T01:56:00+00:00"),
             to_ts=isoparse("2018-05-03T01:56:00+00:00"),
-            tag_list=tags,
+            tag_list=IROC_HAPPY_TAG_LIST,
         )
-        for tag in tags:
-            self.assertIn(tag, res_df.columns)
+        for tag in IROC_HAPPY_TAG_LIST:
+            self.assertIn(tag.name, res_df.columns)
         # Two of the lines have invalid values (non-numeric), so those are ignored
         # and there are only 3 distinct timestamps left.
         self.assertEqual(3, len(res_df))
@@ -88,7 +89,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
                 iroc_reader.load_series(
                     from_ts=isoparse("2018-05-02T01:56:00+00:00"),
                     to_ts=isoparse("2018-05-03T01:56:00+00:00"),
-                    tag_list=["jalla"],  # Not a tag in the input
+                    tag_list=[SensorTag("jalla", None)],  # Not a tag in the input
                 )
             )
 
@@ -112,7 +113,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
                 iroc_reader.load_series(
                     from_ts=isoparse("2018-05-03T01:56:00+00:00"),
                     to_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                    tag_list=["jalla"],  # Not a tag in the input
+                    tag_list=[SensorTag("jalla", None)],  # Not a tag in the input
                 )
             )
 
@@ -137,7 +138,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
                 iroc_reader.load_series(
                     from_ts=isoparse("2018-05-02T01:56:00+00:00"),
                     to_ts=isoparse("2018-05-03T01:56:00+00:00"),
-                    tag_list=IROC_HAPPY_TAG_LIST + ["jalla"],  # "jalla" is not a tag
+                    tag_list=IROC_HAPPY_TAG_LIST + [SensorTag("jalla", None)],
+                    # "jalla" is not a tag
                 )
             )
 

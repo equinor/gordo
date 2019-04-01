@@ -1,0 +1,84 @@
+import re
+import logging
+from collections import namedtuple
+from typing import Union, List, Dict
+
+
+logger = logging.getLogger(__name__)
+
+SensorTag = namedtuple("SensorTag", ["name", "asset"])
+
+TagPatternToAsset = namedtuple("TagToAsset", ["tag_regexp", "asset_name"])
+
+TAG_TO_ASSET = [
+    TagPatternToAsset(re.compile(r"^asgb."), "1191-asgb"),
+    TagPatternToAsset(re.compile(r"^gra."), "1755-gra"),
+    TagPatternToAsset(re.compile(r"^1125."), "1125-kvb"),
+    TagPatternToAsset(re.compile(r"^trb."), "1775-trob"),
+    TagPatternToAsset(re.compile(r"^trc."), "1776-troc"),
+    TagPatternToAsset(re.compile(r"^tra."), "1130-troa"),
+    TagPatternToAsset(re.compile(r"^ninenine.+::.+"), "ninenine"),
+]
+
+
+def _asset_from_tag_name(tag_name: str):
+    """
+    Resolves a tag to the asset it belongs to, if possible.
+    Returns None if it does not match any of the tag-regexps we know.
+    """
+
+    tag_name = tag_name.lower()
+    logger.debug(f"Looking for pattern for tag {tag_name}")
+
+    for pattern in TAG_TO_ASSET:
+        if pattern.tag_regexp.match(tag_name):
+            logger.info(
+                f"Found pattern {pattern.tag_regexp} in tag {tag_name}, "
+                f"returning {pattern.asset_name}"
+            )
+            return pattern.asset_name
+    raise ValueError(f"Unable to find asset for tag with name {tag_name}")
+
+
+def _normalize_sensor_tag(sensor: Union[Dict, str, SensorTag]):
+    if isinstance(sensor, Dict):
+        return SensorTag(sensor["name"], sensor["asset"])
+
+    elif isinstance(sensor, str):
+        return SensorTag(sensor, _asset_from_tag_name(sensor))
+
+    elif isinstance(sensor, SensorTag):
+        return sensor
+
+    raise ValueError(
+        f"Sensor {sensor} with type {type(sensor)}cannot be converted to a valid "
+        f"SensorTag"
+    )
+
+
+def normalize_sensor_tags(
+    sensors: List[Union[Dict, str, SensorTag]]
+) -> List[SensorTag]:
+    """
+    Converts a list of sensors in different formats, into a list of SensorTag elements.
+    Note, if you input a list of SensorTag elements, these will just be returned.
+
+    Parameters
+    ----------
+    sensors : List[Union[Mapping, str, SensorTag]]
+            List of sensors
+
+    Returns
+    -------
+    List[SensorTag]
+            List of SensorTags
+
+    """
+    logging.info(
+        f"Normalizing list of sensors in some format into SensorTags: {sensors}"
+    )
+    return [_normalize_sensor_tag(sensor_tag_element) for sensor_tag_element in sensors]
+
+
+def to_list_of_strings(sensor_tag_list: List[SensorTag]):
+    return [sensor_tag.name for sensor_tag in sensor_tag_list]

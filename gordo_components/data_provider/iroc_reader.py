@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -10,16 +9,17 @@ from azure.datalake.store import core
 
 from gordo_components.data_provider.azure_utils import walk_azure
 from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.dataset.sensor_tag import to_list_of_strings
 
 logger = logging.getLogger(__name__)
 
 
 class IrocReader(GordoBaseDataProvider):
-
-    REGEXP_FOR_TAGS = re.compile(r"^NINENINE.+::.+")
+    ASSET_TO_PATH = {"ninenine": "/raw/plant/uon/cygnet/ninenine/history"}
 
     def can_handle_tag(self, tag):
-        return IrocReader.REGEXP_FOR_TAGS.match(tag)
+        return tag.asset in IrocReader.ASSET_TO_PATH
 
     def __init__(self, client: core.AzureDLFileSystem, threads: int = 50, **kwargs):
         """
@@ -33,7 +33,7 @@ class IrocReader(GordoBaseDataProvider):
         self,
         from_ts: datetime,
         to_ts: datetime,
-        tag_list: List[str],
+        tag_list: List[SensorTag],
         base_path="raw/plant/uon/cygnet/ninenine/history",
     ):
         """
@@ -77,7 +77,7 @@ class IrocReader(GordoBaseDataProvider):
         if len(concatted.columns) != len(tag_list):
             raise ValueError(
                 f"Did not find data for all tags, the missing tags are "
-                f"{set(tag_list)-set(concatted.columns)}"
+                f"{set(to_list_of_strings(tag_list))-set(concatted.columns)}"
             )
 
         for col in concatted.columns:
@@ -90,7 +90,7 @@ class IrocReader(GordoBaseDataProvider):
         all_base_paths: Iterable[str],
         from_ts: datetime,
         to_ts: datetime,
-        tag_list: List[str],
+        tag_list: List[SensorTag],
     ):
         # Generator over all files in all of the base_paths
         def _all_files():
@@ -134,7 +134,7 @@ class IrocReader(GordoBaseDataProvider):
 
 
 def read_iroc_file(
-    file_obj, from_ts: datetime, to_ts: datetime, tag_list: List[str]
+    file_obj, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
 ) -> pd.DataFrame:
     """
     Reads a single iroc timeseries csv, and returns it as a pandas.DataFrame.
@@ -161,7 +161,7 @@ def read_iroc_file(
 
     """
     df = pd.read_csv(file_obj, sep=",", usecols=["tag", "value", "timestamp"])
-    df = df[df["tag"].isin(tag_list)]
+    df = df[df["tag"].isin(to_list_of_strings(tag_list))]
     # Note, there are some "digital" sensors with string values,
     # now they are just NaN converted
     df["value"] = df["value"].apply(pd.to_numeric, errors="coerce", downcast="float")

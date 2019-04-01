@@ -7,6 +7,7 @@ import adal
 
 from gordo_components.data_provider.providers import DataLakeProvider
 from gordo_components.dataset import dataset
+from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 
 def _get_default_dataset_config():
@@ -16,7 +17,7 @@ def _get_default_dataset_config():
         "type": "TimeSeriesDataset",
         "from_ts": from_ts,
         "to_ts": to_ts,
-        "tag_list": ["TRC-FIQ -39-0706", "GRA-EM  -23-0003ARV.PV"],
+        "tag_list": normalize_sensor_tags(["TRC-FIQ -39-0706", "GRA-EM-23-0003ARV.PV"]),
         "data_provider": DataLakeProvider(),
     }
 

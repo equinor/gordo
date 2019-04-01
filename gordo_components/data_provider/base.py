@@ -10,6 +10,8 @@ from typing import Iterable, List, Callable
 
 import pandas as pd
 
+from gordo_components.dataset.sensor_tag import SensorTag
+
 
 # TODO: Move this to a more appropriate module
 def capture_args(method: Callable):
@@ -50,7 +52,7 @@ def capture_args(method: Callable):
 class GordoBaseDataProvider(object):
     @abc.abstractmethod
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
     ) -> Iterable[pd.Series]:
         """
         Load the required data as an iterable of series where each
@@ -60,7 +62,8 @@ class GordoBaseDataProvider(object):
         ----------
         from_ts: datetime - Datetime object representing the start of fetching data
         to_ts: datetime - Datetime object representing the end of fetching data
-        tag_list: List[str] - List of tags to fetch, where each will end up being its own dataframe
+        tag_list: List[SensorTag] - List of tags to fetch,
+                  where each will end up being its own dataframe
 
         Returns
         -------
@@ -73,12 +76,20 @@ class GordoBaseDataProvider(object):
         ...
 
     @abc.abstractmethod
-    def can_handle_tag(self, tag):
-        """ Returns true if the dataprovider thinks it can possibly read this tag.
+    def can_handle_tag(self, tag: SensorTag):
+        """
+        Returns true if the dataprovider thinks it can possibly read this tag.
+        Typically checks if the asset part of the tag is known to the reader.
 
-        Does not guarantee success, but is should be a pretty good guess
-        (typically a regular expression is used to determine of the reader can read the
-        tag)"""
+        Parameters
+        ----------
+        tag: SensorTag - Dictionary with a "tag" key and optional "asset"
+
+        Returns
+        -------
+        bool
+
+        """
         ...
 
     def to_dict(self):

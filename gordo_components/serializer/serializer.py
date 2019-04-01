@@ -289,6 +289,14 @@ def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
     """
     _dump_step(step=("obj", obj), n_step=0, dest_dir=dest_dir)
     if metadata is not None:
+        try:
+            tag_list_as_dict = [
+                sensor_tag._asdict() for sensor_tag in metadata["dataset"]["tag_list"]
+            ]
+            metadata["dataset"]["tag_list"] = tag_list_as_dict
+        except KeyError:
+            logger.info("Dumping model without tag_list in metadata")
+
         with open(os.path.join(dest_dir, "metadata.json"), "w") as f:
             json.dump(metadata, f, default=str)
 
