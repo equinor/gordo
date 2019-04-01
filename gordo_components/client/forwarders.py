@@ -120,18 +120,17 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             List of points ready to be written to influx
         """
         results = []
-
         # Dealing with input_/output_ predictions dataframe
         if any(c.startswith("input_") for c in record.keys() if isinstance(c, str)):
             for sensor in endpoint.tag_list:
-                input = record[f"input_{sensor}"]
-                output = record[f"output_{sensor}"]
+                input = record[f"input_{sensor.name}"]
+                output = record[f"output_{sensor.name}"]
                 error = abs(input - output)
 
                 # Setup tags; metadata (if any) and other key value pairs.
                 tags = {
                     "machine": f"{endpoint.target_name}",
-                    "sensor": f"{sensor}",
+                    "sensor": f"{sensor.name}",
                     "prediction-method": "POST",
                 }
                 tags.update({k: v for k, v in metadata})
@@ -155,7 +154,9 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             data_per_machine_tag = {
                 "measurement": "predictions",
                 "tags": tags,
-                "fields": {sensor: record[sensor] for sensor in endpoint.tag_list},
+                "fields": {
+                    sensor.name: record[sensor.name] for sensor in endpoint.tag_list
+                },
                 "time": f"{record.name}",
             }
             results.append(data_per_machine_tag)

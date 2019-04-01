@@ -29,7 +29,10 @@ def test_read_single_sensor_empty_data_time_range_indexerror(influxdb, caplog):
     with caplog.at_level(logging.CRITICAL):
         with pytest.raises(IndexError):
             ds.read_single_sensor(
-                from_ts=from_ts, to_ts=to_ts, tag=tu.SENSORS[0], measurement="sensors"
+                from_ts=from_ts,
+                to_ts=to_ts,
+                tag=tu.SENSORTAG_LIST[0].name,
+                measurement="sensors",
             )
 
 
@@ -64,10 +67,10 @@ def test__list_of_tags_from_influx_validate_tag_names(influxdb):
         client=influx_client_from_uri(uri=tu.INFLUXDB_URI, dataframe_client=True),
     )
     list_of_tags = ds._list_of_tags_from_influx()
-    expected_tags = tu.SENSORS
+    expected_tags = [sensor.name for sensor in tu.SENSORTAG_LIST]
     tags = set(list_of_tags)
     assert set(expected_tags) == tags, (
-        f"Expected tags = {tu.SENSORS}" f"outputted {tags}"
+        f"Expected tags = {expected_tags}" f"outputted {tags}"
     )
 
 
@@ -77,7 +80,7 @@ def test_get_list_of_tags(influxdb):
         value_name="Value",
         client=influx_client_from_uri(uri=tu.INFLUXDB_URI, dataframe_client=True),
     )
-    expected_tags = set(tu.SENSORS)
+    expected_tags = set([sensor.name for sensor in tu.SENSORTAG_LIST])
 
     tags = set(ds.get_list_of_tags())
     assert expected_tags == tags
@@ -93,7 +96,7 @@ def test_influx_dataset_attrs(influxdb):
     """
     from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
     to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
-    tag_list = tu.SENSORS
+    tag_list = tu.SENSORTAG_LIST
     config = {
         "type": "TimeSeriesDataset",
         "from_ts": from_ts,
