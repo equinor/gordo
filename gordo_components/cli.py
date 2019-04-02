@@ -11,8 +11,7 @@ from ast import literal_eval
 
 import yaml
 import click
-from gordo_components.builder import build_model
-from gordo_components.builder.build_model import _save_model_for_workflow
+from gordo_components.builder.build_model import provide_saved_model
 from gordo_components.data_provider.providers import (
     DataLakeProvider,
     InfluxDataProvider,
@@ -60,7 +59,15 @@ DEFAULT_MODEL_CONFIG = (
     type=literal_eval,
 )
 @click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
-def build(output_dir, model_config, data_config, metadata):
+@click.option(
+    "--model-register-dir",
+    default=None,
+    envvar="MODEL_REGISTER_DIR",
+    type=click.Path(
+        exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
+    ),
+)
+def build(output_dir, model_config, data_config, metadata, model_register_dir):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
@@ -78,6 +85,10 @@ def build(output_dir, model_config, data_config, metadata):
         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
     metadata: dict
         Any additional metadata to save under the key 'user-defined'
+    model_register_dir: path
+        Path to a directory which will index existing models and their locations, used
+        for re-using old models instead of rebuilding them. If omitted then always
+        rebuild
     """
 
     # TODO: Move all data related input from environment variable to data_config,
@@ -99,15 +110,13 @@ def build(output_dir, model_config, data_config, metadata):
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Model config: {model_config}")
     logger.info(f"Data config: {data_config}")
+    logger.info(f"Register dir: {model_register_dir}")
 
-    model, metadata = build_model(
-        model_config=model_config, data_config=data_config, metadata=metadata
+    model_location = provide_saved_model(
+        model_config, data_config, metadata, output_dir, model_register_dir
     )
-
-    logger.debug(f"Saving model to output dir: {output_dir}")
-    _save_model_for_workflow(model=model, metadata=metadata, output_dir=output_dir)
-
-    logger.info(f"Successfully built model, and deposited at {output_dir}")
+    with open("/tmp/model-location.txt", "w") as f:
+        f.write(model_location)
     return 0
 
 
