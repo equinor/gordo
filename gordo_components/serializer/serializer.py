@@ -245,7 +245,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
             return step_name, pickle.load(f)
 
 
-def dump(obj: object, dest_dir: str, metadata: dict = None):
+def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
     """
     Serialize an object into a directory
 
@@ -259,10 +259,12 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     obj
         The object to dump. Must be picklable or implement
         a ``save_to_dir`` AND ``load_from_dir`` method.
-    dest_dir
+    dest_dir: Union[os.PathLike, str]
         The directory to which to save the model metadata: dict - any additional
         metadata to be saved alongside this model if it exists, will be returned
         from the corresponding "load" function
+    metadata: Optional dict of metadata which will be serialized to a file together
+        with the model, and loaded again by :func:`load_metadata`.
 
     Returns
     -------
@@ -292,7 +294,9 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
 
 
 def _dump_step(
-    step: Tuple[str, Union[GordoBase, TransformerMixin]], dest_dir: str, n_step: int = 0
+    step: Tuple[str, Union[GordoBase, TransformerMixin]],
+    dest_dir: Union[os.PathLike, str],
+    n_step: int = 0,
 ):
     """
     Accepts any Scikit-Learn transformer and dumps it into a directory
