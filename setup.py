@@ -42,7 +42,7 @@ test_requirements = [
     "pytest-flakes~=4.0",
     "adal~=1.2",
     "jupyter==1.0.0",
-    "notebook==5.7.4",
+    "notebook==5.7.8",
     "nbconvert==5.4.0",
     "tornado>=4, <6",  # https://github.com/jupyter/notebook/pull/4310#issuecomment-452368841
 ]
