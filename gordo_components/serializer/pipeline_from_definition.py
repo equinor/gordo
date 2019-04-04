@@ -3,6 +3,7 @@
 import logging
 import pydoc
 import copy
+import typing  # noqa
 from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import FunctionTransformer
@@ -114,7 +115,9 @@ def _build_step(
         import_str = list(step.keys())[0]
         params = step.get(import_str, dict())
 
-        StepClass = pydoc.locate(import_str)
+        StepClass = pydoc.locate(
+            import_str
+        )  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
 
         if StepClass is None:
             raise ImportError(f'Could not locate path: "{import_str}"')
@@ -159,8 +162,8 @@ def _build_step(
     # If step is just a string, can initialize it without any params
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
-        StepClass = pydoc.locate(step)
-        return StepClass()
+        Step = pydoc.locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
+        return Step()
 
     else:
         raise ValueError(

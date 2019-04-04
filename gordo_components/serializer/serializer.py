@@ -16,7 +16,7 @@ from os import path
 from typing import Tuple, Union, Dict, Any, IO  # pragma: no flakes
 
 from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.base import TransformerMixin
+from sklearn.base import TransformerMixin, BaseEstimator  # noqa
 
 from gordo_components.model.models import GordoBase
 
@@ -193,7 +193,9 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
         Tuple[str, object]
     """
     n_step, class_path = _parse_dir_name(source_dir)
-    StepClass = pydoc.locate(class_path)
+    StepClass = pydoc.locate(
+        class_path
+    )  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
     if StepClass is None:
         logger.warning(
             f'Specified a class path of "{class_path}" but it does '
