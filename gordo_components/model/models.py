@@ -625,9 +625,12 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model", lookback_window=2, verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
         >>> model_transform = lstm_ae.transform(X_test)
-        >>> np.allclose(model_transform, np.array([[1., 1., 0.00503557, 0.00501121],[0.1, 1.,0.00503096, 0.00500809],
-        ...                                        [0.5, 2.,0.00503031, 0.00500737]]))
-        True
+        >>> output_example = np.array([[1., 1., 0.00503557, 0.00501121],[0.1, 1.,0.00503096, 0.00500809],
+        ...                                        [0.5, 2.,0.00503031, 0.00500737]]) #Note: output can be non
+        ...                                                                           #deterministic so an example
+        ...                                                                           #output is provided
+        >>> model_transform.shape
+        (3, 4)
         """
         self._validate_size_of_X(X)
         gen = self.generate_window(X, output_y=False)
@@ -832,10 +835,14 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         >>> lstm_ae = KerasLSTMForecast(kind="lstm_model", lookback_window=2, verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
         >>> model_transform = lstm_ae.transform(X_test)
-        >>> np.allclose(model_transform, np.array([[0.1       , 1.        , 0.00467027, 0.00561625],
-        ...                                     [0.5       , 2.        , 0.00466603, 0.00561359]]))
-        True
+        >>> output_example = np.array([[0.1       , 1.        , 0.00467027, 0.00561625],
+        ...                            [0.5       , 2.        , 0.00466603, 0.00561359]]) #Note: output can be non
+        ...                                                                               #deterministic so an example
+        ...                                                                               #output is provided
+        >>> model_transform.shape
+        (2, 4)
         """
+
         self._validate_size_of_X(X)
         gen = self.generate_window(X, output_y=False)
         with possible_tf_mgmt(self):
