@@ -12,8 +12,8 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from flask import Flask, request, send_file, g
-from flask_restplus import Resource, fields, Api
+from flask import Flask, request, send_file, g, url_for
+from flask_restplus import Resource, fields, Api as BaseApi
 
 from gordo_components import __version__, serializer
 from gordo_components.dataset.datasets import TimeSeriesDataset
@@ -26,6 +26,13 @@ logger = logging.getLogger(__name__)
 MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
 MODEL = None
 MODEL_METADATA = None
+
+
+class Api(BaseApi):
+    @property
+    def specs_url(self):
+        return url_for(self.endpoint("specs"), _external=False)
+
 
 api = Api(
     title="Gordo API Docs",
