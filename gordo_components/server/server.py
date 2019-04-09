@@ -12,8 +12,9 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from flask import Flask, request, send_file, g, url_for
+from flask import Flask, request, send_file, g, url_for, current_app
 from flask_restplus import Resource, fields, Api as BaseApi
+from sklearn.base import BaseEstimator
 
 from gordo_components import __version__, serializer
 from gordo_components.dataset.datasets import TimeSeriesDataset
@@ -23,9 +24,10 @@ from gordo_components.data_provider.base import GordoBaseDataProvider
 logger = logging.getLogger(__name__)
 
 
-MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
-MODEL = None
-MODEL_METADATA = None
+class Config:
+    """Server config"""
+
+    MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
 
 
 class Api(BaseApi):
@@ -70,27 +72,7 @@ API_MODEL_OUTPUT_GET = api.model(
 )
 
 
-class Base(Resource):
-    """
-    Base Resource which sets module level globals for ``MODEL`` and ``MODEL_METADATA``
-    upon first invokation.
-    """
-
-    model = None
-    metadata = dict()  # type: ignore
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Set the global variables for MODEL and MODEL_METADATA if they haven't been set already.
-        if MODEL is None:
-            load_model_and_metadata()
-
-        self.model = MODEL
-        self.metadata = MODEL_METADATA
-
-
-class PredictionApiView(Base):
+class PredictionApiView(Resource):
     """
     Serve model predictions via GET and POST methods
 
@@ -163,12 +145,12 @@ class PredictionApiView(Base):
             The raw output of the model in numpy array form.
         """
         try:
-            return self.model.predict(X)  # type: ignore
+            return current_app.model.predict(X)  # type: ignore
 
         # Model may only be a transformer
         except AttributeError:
             try:
-                return self.model.transform(X)  # type: ignore
+                return current_app.model.transform(X)  # type: ignore
             except Exception as exc:
                 logger.error(f"Failed to predict or transform; error: {exc}")
                 raise
@@ -268,14 +250,16 @@ class PredictionApiView(Base):
         if (end - start).days:
             return {"error": "Need to request a time span less than 24 hours."}, 400
 
-        freq = pd.tseries.frequencies.to_offset(self.metadata["dataset"]["resolution"])
+        freq = pd.tseries.frequencies.to_offset(
+            current_app.metadata["dataset"]["resolution"]
+        )
 
         dataset = TimeSeriesDataset(
             data_provider=g.data_provider,
             from_ts=start - freq.delta,
             to_ts=end,
-            resolution=self.metadata["dataset"]["resolution"],
-            tag_list=self.metadata["dataset"]["tag_list"],
+            resolution=current_app.metadata["dataset"]["resolution"],
+            tag_list=current_app.metadata["dataset"]["tag_list"],
         )
         X, _y = dataset.get_data()
 
@@ -300,7 +284,7 @@ class PredictionApiView(Base):
         # In GET requests we need to pair the resulting predictions with their
         # specific timestamp and additionally match the predictions to the corresponding tags.
         data = []
-        tags = self.metadata["dataset"]["tag_list"]
+        tags = current_app.metadata["dataset"]["tag_list"]
         for prediction, time_stamp in zip(xhat, X.index[-len(xhat) :]):
 
             # Auto encoders return double their input.
@@ -321,7 +305,7 @@ class PredictionApiView(Base):
         return context, context["status-code"]
 
 
-class MetaDataView(Base):
+class MetaDataView(Resource):
     """
     Serve model / server metadata
     """
@@ -330,14 +314,15 @@ class MetaDataView(Base):
         """
         Get metadata about this endpoint, also serves as /healthcheck endpoint
         """
+        model_location_env_var = current_app.config["MODEL_LOCATION_ENV_VAR"]
         return {
             "gordo-server-version": __version__,
-            "metadata": self.metadata,
-            "env": {MODEL_LOCATION_ENV_VAR: os.environ.get(MODEL_LOCATION_ENV_VAR)},
+            "metadata": current_app.metadata,
+            "env": {model_location_env_var: os.environ.get(model_location_env_var)},
         }
 
 
-class DownloadModel(Base):
+class DownloadModel(Resource):
     """
     Download the trained model
 
@@ -356,7 +341,7 @@ class DownloadModel(Base):
         bytes
             Results from ``gordo_components.serializer.dumps()``
         """
-        serialized_model = serializer.dumps(self.model)
+        serialized_model = serializer.dumps(current_app.model)
         buff = io.BytesIO(serialized_model)
         return send_file(buff, attachment_filename="model.tar.gz")
 
@@ -437,24 +422,36 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
-def load_model_and_metadata():
+def load_model_and_metadata(
+    model_dir_env_var: str
+) -> typing.Tuple[BaseEstimator, dict]:
     """
-    Loads a model from having the 'MODEL_LOCATION' environment variable
-    and sets the global variables 'MODEL' to the loaded model, and 'MODEL_METADATA'
-    to any existing metadata for that model.
+    Loads a model and metadata from the path found in ``model_dir_env_var``
+    environment variable
+
+    Parameters
+    ----------
+    model_dir_env_var: str
+        The name of the environment variable which stores the location of the model
+
+    Returns
+    -------
+    BaseEstimator, dict
+        Tuple where the 0th element is the model, and the 1st element is the metadata
+        associated with the model
     """
     logger.debug("Determining model location...")
-    model_location = os.getenv(MODEL_LOCATION_ENV_VAR)
+    model_location = os.getenv(model_dir_env_var)
     if model_location is None:
-        raise ValueError(f'Environment variable "{MODEL_LOCATION_ENV_VAR}" not set!')
+        raise ValueError(f'Environment variable "{model_dir_env_var}" not set!')
     if not os.path.isdir(model_location):
         raise NotADirectoryError(
             f'The supplied directory: "{model_location}" does not exist!'
         )
 
-    global MODEL, MODEL_METADATA
-    MODEL = serializer.load(model_location)
-    MODEL_METADATA = serializer.load_metadata(model_location)
+    model = serializer.load(model_location)
+    metadata = serializer.load_metadata(model_location)
+    return model, metadata
 
 
 def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
@@ -462,6 +459,7 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
     Build app and any associated routes
     """
     app = Flask(__name__)
+    app.config.from_object(Config())
     api.init_app(app)
     api.add_resource(PredictionApiView, "/prediction")
     api.add_resource(MetaDataView, "/metadata", "/healthcheck")
@@ -473,6 +471,11 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
     @app.before_request
     def _reg_data_provider():
         g.data_provider = data_provider
+
+    with app.app_context():
+        app.model, app.metadata = load_model_and_metadata(
+            app.config["MODEL_LOCATION_ENV_VAR"]
+        )
 
     return app
 
