@@ -1,0 +1,6 @@
+Hierarchy_L1|Hierarchy_L2|Hierarchy_L3|Hierarchy_L4|Hierarchy_L5|Tag_Type|Tag_Source_Address
+System 13 - Topside wells|Production wells|8081|1. stage||Database|OLJ-33
+1995 - Olje|General - Olje|Olje prod|||Database|OLJ-BB
+1125 - Olje|Exergy|Air > rec|1. stage|BB-23-99|Database|OLJ-33
+1125 - Olje|Exergy|Air > rec|1. stage|BB-23-98|Database|OLJ-23
+1125 - Olje|Inergy|Gas|1. stage|HB-23-0001|Shared|

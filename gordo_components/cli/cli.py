@@ -11,6 +11,7 @@ from ast import literal_eval
 
 import yaml
 import click
+
 from gordo_components.builder.build_model import provide_saved_model
 from gordo_components.data_provider.providers import (
     DataLakeProvider,
@@ -20,6 +21,10 @@ from gordo_components.server import server
 from gordo_components import watchman
 from gordo_components.cli.client import client as gordo_client
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
+from gordo_components.workflow.workflow_generator.workflow_generator import (
+    machine_config_unique_tags_cli,
+    workflow_generator_cli,
+)
 
 import dateutil.parser
 
@@ -245,6 +250,9 @@ gordo.add_command(build)
 gordo.add_command(run_server_cli)
 gordo.add_command(run_watchman_cli)
 gordo.add_command(gordo_client)
+gordo.add_command(workflow_generator_cli)
+gordo.add_command(machine_config_unique_tags_cli)
+
 
 if __name__ == "__main__":
     gordo()

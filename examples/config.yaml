@@ -1,0 +1,37 @@
+machines:
+
+  - name: ct-23-0001 #1st machine
+    dataset:
+      tags: #list of tags for 1st machine
+        - GRA-TE  -23-0733.PV
+        - GRA-TT  -23-0719.PV
+        - GRA-YE  -23-0751X.PV
+      train_start_date: 2016-11-07T09:11:30+01:00
+      train_end_date: 2018-09-15T03:01:00+01:00
+
+  - name: ct-23-0002 #2nd machine
+    dataset:
+      resolution: 2T
+      tags: #list of tags for 2nd machine
+        - GRA-YE  -23-0751X.PV
+        - GRA-TE  -23-0698.PV
+        - GRA-PIT -23-0619B.PV
+      train_start_date: 2011-05-20T01:00:04+02:00
+      train_end_date: 2018-05-10T15:05:50+02:00
+
+  - name: ct-23-0003 #3rd machine
+    dataset:
+      tags: #list of tags for 3rd machine
+        - GRA-YE  -23-0751X.PV
+        - GRA-TE  -23-0699.PV
+        - GRA-PIT -23-0619B.PV
+      train_start_date: 2012-09-15T13:03:04+02:00
+      train_end_date: 2018-03-11T11:05:10+02:00
+
+globals:
+  model:
+    sklearn.pipeline.Pipeline:
+      steps:
+        - sklearn.preprocessing.data.MinMaxScaler
+        - gordo_components.model.models.KerasAutoEncoder:
+            kind: feedforward_hourglass

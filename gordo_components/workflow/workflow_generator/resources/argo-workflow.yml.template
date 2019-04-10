@@ -1,0 +1,460 @@
+# Requires the following variables to render properly
+# tag_fetcher_version: version of tag fetcher, e.g. latest
+# model_builder_version: -||-
+# model_server_version:  -||-
+# cleanup_version: -||-
+# project_name: Name of the project this workflow is linked up to (e.g. "Grane")
+# project_version: Current version of this project, e.g. the git commit-sha.
+# containing start and end dates (if tags are shared across machines the earliest train start date and latest train end date is taken)
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: {{project_name}}-{{project_version}}-
+  labels:
+    app.kubernetes.io/managed-by: gordo
+    applications.gordo.equinor.com/project-name: "{{project_name}}"
+    applications.gordo.equinor.com/project-version: "{{project_version}}"
+spec:
+  ttlSecondsAfterFinished: 115200 # 32 hours
+  entrypoint: do-all
+  onExit: cleanup             #Removes old seldondeployments for the same project
+  volumes:
+  - name: azurefile
+    persistentVolumeClaim:
+      claimName: azurefile
+  - name: datalake-access-token
+    secret:
+      secretName: datalake-access-token # Must be saved
+  templates:
+  - name: model-builder
+    metadata:
+      labels:
+        app: gordo-model-builder
+        applications.gordo.equinor.com/project-name: {{project_name}}
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
+    inputs:
+      parameters:
+      - name: machine-name
+      - name: metadata
+      - name: model-config
+      - name: data-config
+    container:
+      image: auroradevacr.azurecr.io/gordo-components/gordo-model-builder:{{model_builder_version}}
+      env:
+      - name: OUTPUT_DIR
+        value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.machine-name}}'}}"
+      - name: MODEL_REGISTER_DIR
+        value: "/gordo/models/{{project_name}}/model_register"
+      - name: MACHINE_NAME
+        value: {{ '"{{inputs.parameters.machine-name}}" '}}
+      - name: METADATA
+        value: {{ '"{{inputs.parameters.metadata}}"' }}
+      - name: MODEL_CONFIG
+        value: {{ '"{{inputs.parameters.model-config}}"' }}
+      - name: DL_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dlserviceauth
+            key: tenant_id_secret
+      - name: DATA_CONFIG
+        value: {{ '"{{inputs.parameters.data-config}}"' }}
+      volumeMounts:
+      - name: azurefile
+        mountPath: /gordo
+      resources:
+        requests:
+          memory: 1G
+          cpu: 10m
+        limits:
+          memory: 3G
+
+    outputs:
+      parameters:
+      - name: model-location #name of output parameter
+        valueFrom:
+          path: /tmp/model-location.txt #set the value of model-location to the contents of this file
+
+
+  - name: gordo-server-hpa
+    inputs:
+      parameters:
+      - name: machine-name
+    resource:
+      action: apply
+      manifest: |
+        ---
+        apiVersion: autoscaling/v1
+        kind: HorizontalPodAutoscaler
+        metadata:
+          name: "gordoserver-scaler-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+          labels:
+            app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+            app.kubernetes.io/name: model-server
+            app.kubernetes.io/component: service
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+            applications.gordo.equinor.com/machine-name: "{{'{{inputs.parameters.machine-name}}'}}"
+        spec:
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+          minReplicas: 1
+          maxReplicas: 5
+          targetCPUUtilizationPercentage: 50
+
+
+  - name: gordo-server-svc
+    inputs:
+      parameters:
+      - name: machine-name
+    resource:
+      action: apply
+      manifest: |
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+          annotations:
+            getambassador.io/config: |
+              ---
+              apiVersion: ambassador/v0
+              kind:  Mapping
+              name:  "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+              prefix: "/gordo/v0/{{project_name}}/{{'{{inputs.parameters.machine-name}}'}}/"
+              service: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}.{{namespace}}"
+              timeout_ms: 600000  # 10 mins
+          labels:
+            app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+            app.kubernetes.io/name: model-server
+            app.kubernetes.io/component: service
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+            applications.gordo.equinor.com/machine-name: "{{'{{inputs.parameters.machine-name}}'}}"
+        spec:
+          selector:
+            app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+          ports:
+          - port: 80
+            name: http-gordo
+            targetPort: http-api
+
+
+  - name: gordo-server-deployment
+    inputs:
+      parameters:
+      - name: model-location
+      - name: machine-name
+    resource:
+      action: apply
+      successCondition: status.readyReplicas > 0
+      manifest: |
+        ---
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+          labels:
+            app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+            app.kubernetes.io/name: model-server-deployment
+            app.kubernetes.io/component: server
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+            applications.gordo.equinor.com/machine-name: "{{'{{inputs.parameters.machine-name}}'}}"
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+          strategy:
+            type: Recreate
+          template:
+            metadata:
+              labels:
+                app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
+            spec:
+              containers:
+                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-model-server:{{model_server_version}}"
+                   imagePullPolicy: "IfNotPresent"
+                   name: "gordoserver-{{'{{inputs.parameters.machine-name}}'}}"
+                   volumeMounts:
+                     - mountPath: "/gordo"
+                       name: gstor
+                   ports:
+                     - name: http-api
+                       containerPort: 5555
+                   livenessProbe:
+                     httpGet:
+                       path: /healthcheck
+                       port: http-api
+                     initialDelaySeconds: 600 # We give it a lot of time to load the model and start up
+                     timeoutSeconds: 2
+                   readinessProbe:
+                     httpGet:
+                       path: /healthcheck
+                       port: http-api
+                     initialDelaySeconds: 5
+                     timeoutSeconds: 2
+                   env:
+                     - name: MODEL_LOCATION
+                       value: {{ '"{{inputs.parameters.model-location}}" '}}
+
+                     # Source influx credentials
+                     - name: SRC_INFLUXDB_HOST
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: host
+
+                     - name: SRC_INFLUXDB_USERNAME
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: username
+
+                     - name: SRC_INFLUXDB_PASSWORD
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: password
+
+                     - name: SRC_INFLUXDB_DATABASE
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: database
+
+                     - name: SRC_INFLUXDB_PORT
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: port
+
+                     - name: SRC_INFLUXDB_PATH
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: path
+
+                     - name: SRC_INFLUXDB_MEASUREMENT
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: measurement
+
+                     - name: SRC_INFLUXDB_API_KEY
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: api-key
+
+                     - name: SRC_INFLUXDB_API_KEY_HEADER
+                       valueFrom:
+                         secretKeyRef:
+                           name: src-influx-credentials
+                           key: api-key-header
+
+                   resources:
+                     requests:
+                       memory: 500M
+                       cpu: 100m
+                     limits:
+                       memory: 500M
+              terminationGracePeriodSeconds: 1
+              volumes:
+                - name: gstor
+                  persistentVolumeClaim:
+                    claimName: "azurefile"
+
+
+  - name: gordo-server
+    inputs:
+      parameters:
+      - name: model-location
+      - name: machine-name
+    steps:
+    - - name: gordo-server-deployment
+        template: gordo-server-deployment
+        arguments:
+          parameters: [{name: machine-name, value: {{ '"{{inputs.parameters.machine-name}}"' }}  },
+                       {name: model-location, value: {{ '"{{inputs.parameters.model-location}}"' }} }
+                      ]
+    - - name: gordo-server-hpa
+        template: gordo-server-hpa
+        arguments:
+          parameters: [{name: machine-name, value: {{ '"{{inputs.parameters.machine-name}}"' }}  }]
+      - name: gordo-server-svc
+        template: gordo-server-svc
+        arguments:
+          parameters: [{name: machine-name, value: {{ '"{{inputs.parameters.machine-name}}"' }}  }]
+
+
+  - name: gordo-watchman-svc
+    resource:
+      action: apply
+      manifest: |
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: "gordo-watchman-{{project_name}}"
+          annotations:
+            getambassador.io/config: |
+              ---
+              apiVersion: ambassador/v0
+              kind:  Mapping
+              name:  "gordo-watchman-{{project_name}}"
+              prefix: "/gordo/v0/{{project_name}}/"
+              service: "gordo-watchman-{{project_name}}.{{namespace}}"
+              timeout_ms: 600000  # 10 mins
+          labels:
+            app: "gordo-watchman-{{project_name}}"
+            app.kubernetes.io/name: watchman
+            app.kubernetes.io/component: service
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+        spec:
+          selector:
+            app: "gordo-watchman-{{project_name}}"
+          ports:
+          - port: 80
+            name: http-gordo
+            targetPort: http-api
+
+
+  - name: gordo-watchman-deployment
+    resource:
+      action: apply
+      successCondition: status.readyReplicas > 0
+      manifest: |
+        ---
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: "gordo-watchman-{{project_name}}"
+          labels:
+            app: "gordo-watchman-{{project_name}}"
+            app.kubernetes.io/name: watchman-deployment
+            app.kubernetes.io/component: watchman
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: "gordo-watchman-{{project_name}}"
+          strategy:
+            type: Recreate
+          template:
+            metadata:
+              labels:
+                app: "gordo-watchman-{{project_name}}"
+            spec:
+              containers:
+                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-watchman:{{watchman_version}}"
+                   imagePullPolicy: "IfNotPresent"
+                   name: "gordo-watchman-{{project_name}}"
+                   ports:
+                     - name: http-api
+                       containerPort: 5556
+                   readinessProbe:
+                     httpGet:
+                       path: /healthcheck
+                       port: http-api
+                     initialDelaySeconds: 5
+                     timeoutSeconds: 2
+                   env:
+                     - name: TARGET_NAMES
+                       value: "{{target_names}}"
+                     - name: PROJECT_NAME
+                       value: {{project_name}}
+                     - name: PROJECT_VERSION
+                       value: "{{project_version}}"
+                   resources:
+                     requests:
+                       memory: 500M
+                       cpu: 10m
+                     limits:
+                       memory: 1G
+                       cpu: 1
+              terminationGracePeriodSeconds: 1
+
+
+
+  - name: gordo-watchman
+    steps:
+    - - name: gordo-watchman-deployment
+        template: gordo-watchman-deployment
+    - - name: gordo-watchman-svc
+        template: gordo-watchman-svc
+
+
+  - name: cleanup
+    script:
+      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{cleanup_version}}
+      command: [bash]
+      source: |
+        echo "Deleting gordo deployments and services for project {{project_name}} different than {{project_version}}" \
+         && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
+         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}}
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+
+  - name: build-and-serve
+    inputs:
+      parameters:
+      - name: machine-name
+      - name: model-config
+      - name: metadata
+      - name: data-config
+    steps:
+    -  - name: build-model
+         template: model-builder
+         arguments:
+          parameters: [{name: machine-name, value: {{ '"{{inputs.parameters.machine-name}}"' }}  },
+                       {name: model-config, value: {{ '"{{inputs.parameters.model-config}}"' }} },
+                       {name: metadata, value: {{'"{{inputs.parameters.metadata}}"'}} },
+                       {name: data-config, value: {{ '"{{inputs.parameters.data-config}}"' }}}
+                      ]
+
+    -  - name: serve-model
+         template: gordo-server
+         arguments:
+           parameters: [{name: model-location, value: {{ '"{{steps.build-model.outputs.parameters.model-location}}"' }} },
+                        {name: machine-name, value: {{ '"{{inputs.parameters.machine-name}}"' }} }]
+
+  - name: do-all
+    dag:
+      tasks:
+
+        - name: watchman
+          template: gordo-watchman
+
+        {% for machine in machines %}
+        - name: model-builder-{{ machine.name }}
+          template: build-and-serve
+          dependencies:
+            - watchman
+          arguments:
+            parameters: [{name: machine-name, value: "{{ machine.name }}"},
+                         {name: model-config, value: "{{ machine.model }}"},
+                         {name: metadata, value: "{{ machine.metadata }}"},
+                         {name: data-config, value: "{{ machine.dataset.to_dict() }}"}]
+        {% endfor %}

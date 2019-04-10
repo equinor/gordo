@@ -1,4 +1,4 @@
-docker==3.6.0
+docker==3.7.0
 pytest==4.0.0
 pytest-xdist==1.26.1  # Parallelises the test-runs
 ruamel.yaml==0.15.76
