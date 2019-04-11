@@ -1,25 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import io
-import os
 import logging
 import timeit
 import dateutil.parser  # type: ignore
 import typing
-from functools import wraps
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
 
-from flask import Flask, request, send_file, g, url_for
-from flask_restplus import Resource, fields, Api as BaseApi
+from flask import g, url_for
+from flask_restplus import fields, Api as BaseApi
 
-from gordo_components import __version__, serializer
+from gordo_components import __version__
 from gordo_components.dataset.datasets import TimeSeriesDataset
-from gordo_components.data_provider.base import GordoBaseDataProvider
-
-from .anomaly_prediction_view import anomaly_blueprint
+from flask import request
+from flask.blueprints import Blueprint
+from flask_restplus import Resource
 
 
 logger = logging.getLogger(__name__)
@@ -92,51 +89,51 @@ class Base(Resource):
         self.metadata = MODEL_METADATA
 
 
-class PredictionApiView(Base):
+class IocAnomalyPredictionView(Resource):
     """
-    Serve model predictions via GET and POST methods
+        Serve model predictions via GET and POST methods
 
-    If ``GET``
-        Will take a ``start`` and ``end`` ISO format datetime string
-        and give back predictions in the following example::
+        If ``GET``
+            Will take a ``start`` and ``end`` ISO format datetime string
+            and give back predictions in the following example::
 
-            {'output': [
-                {'end': '2016-01-01 00:20:00+00:00',
-                 'start': '2016-01-01 00:10:00+00:00',
-                 'tags': {'tag-0': 0.6031807382481357,
-                          'tag-1': 0.6850933943812884,
-                          'tag-2': 0.37281826556659486,
-                          'tag-3': 0.6688453143800668,
-                          'tag-4': 0.3860472585679212,
-                          'tag-5': 0.6704775418728366,
-                          'tag-6': 0.36539023141775234,
-                          'tag-7': 0.929348645859519,
-                          'tag-8': 0.555020406599076,
-                          'tag-9': 0.3908480506569232},
-                 'total_anomaly': 1.8644325873977061}
-             ],
-             'status-code': 200,
-             'time-seconds': '2.5015'}
-    if ``POST``
-        Will take the raw data in ``X`` and expected to be of the correct shape.
-        This is much lower level, and reflects that raw input for the model.
+                {'output': [
+                    {'end': '2016-01-01 00:20:00+00:00',
+                     'start': '2016-01-01 00:10:00+00:00',
+                     'tags': {'tag-0': 0.6031807382481357,
+                              'tag-1': 0.6850933943812884,
+                              'tag-2': 0.37281826556659486,
+                              'tag-3': 0.6688453143800668,
+                              'tag-4': 0.3860472585679212,
+                              'tag-5': 0.6704775418728366,
+                              'tag-6': 0.36539023141775234,
+                              'tag-7': 0.929348645859519,
+                              'tag-8': 0.555020406599076,
+                              'tag-9': 0.3908480506569232},
+                     'total_anomaly': 1.8644325873977061}
+                 ],
+                 'status-code': 200,
+                 'time-seconds': '2.5015'}
+        if ``POST``
+            Will take the raw data in ``X`` and expected to be of the correct shape.
+            This is much lower level, and reflects that raw input for the model.
 
-        Returned example format::
+            Returned example format::
 
-            {'output': [
-                [0.9620815728153441,
-                 0.48481952794697486,
-                 0.10449727234407678,
-                 0.5820399931840917,],
-                [0.7328459309239063,
-                 0.7933340297343985,
-                 0.4012604048104457,
-                 0.9799145817366233,],
-             'status-code': 200,
-             'time-seconds': '0.0568'}
+                {'output': [
+                    [0.9620815728153441,
+                     0.48481952794697486,
+                     0.10449727234407678,
+                     0.5820399931840917,],
+                    [0.7328459309239063,
+                     0.7933340297343985,
+                     0.4012604048104457,
+                     0.9799145817366233,],
+                 'status-code': 200,
+                 'time-seconds': '0.0568'}
 
-        where ``output`` represents the actual output of the model.
-    """
+            where ``output`` represents the actual output of the model.
+        """
 
     @staticmethod
     def _parse_iso_datetime(datetime_str: str) -> datetime:
@@ -304,7 +301,6 @@ class PredictionApiView(Base):
         data = []
         tags = self.metadata["dataset"]["tag_list"]
         for prediction, time_stamp in zip(xhat, X.index[-len(xhat) :]):
-
             # Auto encoders return double their input.
             # First half is input to model, second half is output of model
             tag_inputs = np.array(prediction[: len(tags)])
@@ -323,173 +319,10 @@ class PredictionApiView(Base):
         return context, context["status-code"]
 
 
-class MetaDataView(Base):
-    """
-    Serve model / server metadata
-    """
+anomaly_blueprint = Blueprint(
+    "ioc_anomaly_prediction_view", __name__, url_prefix="/ioc-anomaly"
+)
 
-    def get(self):
-        """
-        Get metadata about this endpoint, also serves as /healthcheck endpoint
-        """
-        return {
-            "gordo-server-version": __version__,
-            "metadata": self.metadata,
-            "env": {MODEL_LOCATION_ENV_VAR: os.environ.get(MODEL_LOCATION_ENV_VAR)},
-        }
-
-
-class DownloadModel(Base):
-    """
-    Download the trained model
-
-    suitable for reloading via ``gordo_components.serializer.loads()``
-    """
-
-    @api.doc(
-        description="Download model, loadable via gordo_components.serializer.loads"
-    )
-    def get(self):
-        """
-        Responds with a serialized copy of the current model being served.
-
-        Returns
-        -------
-        bytes
-            Results from ``gordo_components.serializer.dumps()``
-        """
-        serialized_model = serializer.dumps(self.model)
-        buff = io.BytesIO(serialized_model)
-        return send_file(buff, attachment_filename="model.tar.gz")
-
-
-def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
-    """
-    Decorator specific to fixing behind-proxy-issues when on Kubernetes and
-    using Envoy proxy.
-
-    Parameters
-    ----------
-    wsgi_app: typing.Callable
-        The underlying WSGI application of a flask app, for example
-
-    Notes
-    -----
-    Special note about deploying behind Ambassador, or prefixed proxy paths in general:
-
-    When deployed on kubernetes/ambassador there is a prefix in-front of the
-    server. ie::
-
-        /gordo/v0/some-project-name/some-target
-
-    The server itself only knows about routes to the right of such a prefix:
-    such as ``/metadata`` or ``/predictions`` when in reality, the full path is::
-
-        /gordo/v0/some-project-name/some-target/metadata
-
-    This is solved by getting the current application's assigned prefix,
-    where ``HTTP_X_ENVOY_ORIGINAL_PATH`` is the *full* path, including the prefix.
-    and ``PATH_INFO`` is the actual relative path the server knows about.
-
-    This function wraps the WSGI app itself to map the current full path
-    to the assigned route function.
-
-    ie. ``/metadata`` -> metadata route function, by default, but updates
-    ``/gordo/v0/some-project-name/some-target/metadata`` -> metadata route function
-
-    Returns
-    -------
-    Callable
-
-    Example
-    -------
-    >>> app = Flask(__name__)
-    >>> app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)
-    """
-
-    @wraps(wsgi_app)
-    def wrapper(environ, start_response):
-
-        # Script name can be "/gordo/v0/some-project-name/some-target/metadata"
-        script_name = environ.get("HTTP_X_ENVOY_ORIGINAL_PATH", "")
-        if script_name:
-
-            # PATH_INFO could be either "/" or some local route such as "/metadata"
-            path_info = environ.get("PATH_INFO", "")
-            if path_info.rstrip("/"):
-
-                # PATH_INFO must be something like "/metadata" or other local path
-                # To figure out the prefix/script_name we remove it from the
-                # full HTTP_X_ENVOY_ORIGINAL_PATH, so that something such as
-                # /gordo/v0/some-project-name/some-target/metadata, becomes
-                # /gordo/v0/some-project-name/some-target/
-                script_name = script_name.replace(path_info, "")
-            environ["SCRIPT_NAME"] = script_name
-
-            # Now we can just ensure the PATH_INFO reflects the locally known path
-            # such as /metadata and not /gordo/v0/some-project-name/some-target/metadata
-            if path_info.startswith(script_name):
-                environ["PATH_INFO"] = path_info[len(script_name) :]
-
-        scheme = environ.get("HTTP_X_FORWARDED_PROTO", "")
-        if scheme:
-            environ["wsgi.url_scheme"] = scheme
-        return wsgi_app(environ, start_response)
-
-    return wrapper
-
-
-def load_model_and_metadata():
-    """
-    Loads a model from having the 'MODEL_LOCATION' environment variable
-    and sets the global variables 'MODEL' to the loaded model, and 'MODEL_METADATA'
-    to any existing metadata for that model.
-    """
-    logger.debug("Determining model location...")
-    model_location = os.getenv(MODEL_LOCATION_ENV_VAR)
-    if model_location is None:
-        raise ValueError(f'Environment variable "{MODEL_LOCATION_ENV_VAR}" not set!')
-    if not os.path.isdir(model_location):
-        raise NotADirectoryError(
-            f'The supplied directory: "{model_location}" does not exist!'
-        )
-
-    global MODEL, MODEL_METADATA
-    MODEL = serializer.load(model_location)
-    MODEL_METADATA = serializer.load_metadata(model_location)
-
-
-def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
-    """
-    Build app and any associated routes
-    """
-    app = Flask(__name__)
-    api.init_app(app)
-    api.add_resource(PredictionApiView, "/prediction")
-    api.add_resource(MetaDataView, "/metadata", "/healthcheck")
-    api.add_resource(DownloadModel, "/download-model")
-
-    app.register_blueprint(anomaly_blueprint)
-
-    app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)  # type: ignore
-    app.url_map.strict_slashes = False  # /path and /path/ are ok.
-
-    @app.before_request
-    def _reg_data_provider():
-        g.data_provider = data_provider
-
-    return app
-
-
-def run_server(
-    host: str = "0.0.0.0",
-    port: int = 5555,
-    debug: bool = False,
-    data_provider: typing.Optional[GordoBaseDataProvider] = None,
-):
-    app = build_app(data_provider=data_provider)
-    app.run(host, port, debug=debug)
-
-
-if __name__ == "__main__":
-    run_server()
+anomaly_blueprint.add_url_rule(
+    IocAnomalyPredictionView.as_view("ioc_anomaly_prediction")
+)
