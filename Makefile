@@ -4,6 +4,12 @@ MODEL_BUILDER_IMG_NAME := gordo-components/gordo-model-builder
 MODEL_SERVER_IMG_NAME  := gordo-components/gordo-model-server
 WATCHMAN_IMG_NAME := gordo-components/gordo-watchman
 CLIENT_IMG_NAME := gordo-components/gordo-client
+WORKFLOW_GENERATOR_IMG_NAME := gordo-components/gordo-deploy
+
+
+# Create the image capable of rendering argo workflow generator
+workflow-generator:
+	docker build . -f Dockerfile-argo -t $(WORKFLOW_GENERATOR_IMG_NAME)
 
 # Create the image capable to building/training a model
 model-builder:
@@ -19,6 +25,12 @@ watchman:
 
 client:
 	docker build . -f Dockerfile-Client -t $(CLIENT_IMG_NAME)
+
+# Publish image to the currently logged in docker repo
+push-workflow-generator: workflow-generator
+	export DOCKER_NAME=$(WORKFLOW_GENERATOR_IMG_NAME);\
+	export DOCKER_IMAGE=$(WORKFLOW_GENERATOR_IMG_NAME);\
+	./docker_push.sh
 
 push-server: model-server
 	export DOCKER_NAME=$(MODEL_SERVER_IMG_NAME);\
@@ -41,10 +53,10 @@ push-client: client
 	./docker_push.sh
 
 # Publish images to the currently logged in docker repo
-push-dev-images: push-builder push-server push-watchman push-client
+push-dev-images: push-builder push-server push-watchman push-client push-workflow-generator
 
 push-prod-images: export GORDO_PROD_MODE:="true"
-push-prod-images: push-builder push-server push-watchman push-client
+push-prod-images: push-builder push-server push-watchman push-client push-workflow-generator
 
 # Make the python source distribution
 sdist:
@@ -52,7 +64,7 @@ sdist:
 	rm -rf ./dist/
 	python setup.py sdist
 
-images: model-builder model-server watchman client
+images: model-builder model-server watchman client workflow-generator
 
 test:
 	python setup.py test
@@ -66,4 +78,4 @@ docs:
 
 all: test images push-dev-images
 
-.PHONY: model-builder model-server client watchman push-server push-builder push-watchman push-client push-dev-images push-prod-images images test all docs
+.PHONY: model-builder model-server client workflow-generator watchman push-server push-builder push-watchman push-client push-workflow-generator push-dev-images push-prod-images images test all docs
