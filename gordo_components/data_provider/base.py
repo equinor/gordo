@@ -49,12 +49,12 @@ def capture_args(method: Callable):
 
 class GordoBaseDataProvider(object):
     @abc.abstractmethod
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
-    ) -> Iterable[pd.DataFrame]:
+    ) -> Iterable[pd.Series]:
         """
-        Load the required data as an iterable of dataframes where each
-        is a single column dataframe with time index
+        Load the required data as an iterable of series where each
+        contains the values of the tag with time index
 
         Parameters
         ----------
@@ -64,7 +64,7 @@ class GordoBaseDataProvider(object):
 
         Returns
         -------
-        Iterable[pd.DataFrame]
+        Iterable[pd.Series]
         """
         ...
 
