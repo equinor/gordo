@@ -9,21 +9,19 @@ import pytest
 
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.data_provider import providers
-from gordo_components.data_provider.providers import (
-    load_dataframes_from_multiple_providers,
-)
+from gordo_components.data_provider.providers import load_series_from_multiple_providers
 
 
 class MockProducerRegExp(GordoBaseDataProvider):
     def can_handle_tag(self, tag):
         return self.regexp.match(tag)
 
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
-    ) -> Iterable[pd.DataFrame]:
+    ) -> Iterable[pd.Series]:
         for tag in tag_list:
             if self.regexp.match(tag):
-                yield pd.DataFrame(columns=[str(self.regexp.pattern)])
+                yield pd.Series(name=str(self.regexp.pattern))
             else:
                 raise ValueError(f"Unable to find base path from tag {tag}")
 
@@ -50,11 +48,11 @@ class LoadMultipleDataFramesTest(unittest.TestCase):
         self.containing_b_producer = MockProducerRegExp(re.compile(".*b.*"))
 
     def test_load_multiple_raises_with_no_matches(self):
-        """If no provider matches a tag then load_dataframes_from_multiple_providers
+        """If no provider matches a tag then load_series_from_multiple_providers
         raises a ValueError when the generator is realized"""
         with self.assertRaises(ValueError):
             list(
-                load_dataframes_from_multiple_providers(
+                load_series_from_multiple_providers(
                     [self.ab_producer, self.containing_b_producer],
                     None,
                     None,
@@ -65,26 +63,26 @@ class LoadMultipleDataFramesTest(unittest.TestCase):
     def test_load_multiple_matches_loads_from_first(self):
         """When a tag can be read from multiple providers it is the first provider in
         the list of providers which gets the job"""
-        dfs = list(
-            load_dataframes_from_multiple_providers(
+        series_collection = list(
+            load_series_from_multiple_providers(
                 [self.ab_producer, self.containing_b_producer], None, None, ["abba"]
             )
         )
-        self.assertEqual(dfs[0].columns[0], "ab.*")
+        self.assertEqual(series_collection[0].name, "ab.*")
 
     def test_load_from_multiple_providers(self):
         """ Two tags, each belonging to different data producers, and both gets loaded
         """
-        dfs = list(
-            load_dataframes_from_multiple_providers(
+        series_collection = list(
+            load_series_from_multiple_providers(
                 [self.ab_producer, self.containing_b_producer],
                 None,
                 None,
                 ["abba", "cba"],
             )
         )
-        self.assertEqual(dfs[0].columns[0], "ab.*")
-        self.assertEqual(dfs[1].columns[0], ".*b.*")
+        self.assertEqual(series_collection[0].name, "ab.*")
+        self.assertEqual(series_collection[1].name, ".*b.*")
 
 
 @pytest.mark.parametrize(

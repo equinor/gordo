@@ -22,7 +22,7 @@ from gordo_components.data_provider.ncs_reader import NcsReader
 logger = logging.getLogger(__name__)
 
 
-def load_dataframes_from_multiple_providers(
+def load_series_from_multiple_providers(
     data_providers: typing.List[GordoBaseDataProvider],
     from_ts: datetime,
     to_ts: datetime,
@@ -33,14 +33,13 @@ def load_dataframes_from_multiple_providers(
     :class:`gordo_components.data_provider.base.GordoBaseDataProvider` provided in the
     parameter `data_providers`. Will load a tag from the first data provider in the list
     which claims it. See
-    :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_dataframes`.
+    :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_series`.
 
     Returns
     -------
-    Iterable[pd.DataFrame]
-        The required tags as an iterable of dataframes where each is a single column
-        dataframe with time index
-
+    Iterable[pd.Series]
+        The required tags as an iterable of series where each is series contains
+        the tag values along with a datetime index.
     """
     readers_to_tags = {
         reader: [] for reader in data_providers
@@ -59,10 +58,10 @@ def load_dataframes_from_multiple_providers(
     for tag_reader, readers_tags in readers_to_tags.items():
         if readers_tags:
             logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
-            for df in tag_reader.load_dataframes(
+            for series in tag_reader.load_series(
                 from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
             ):
-                yield df
+                yield series
 
 
 class DataLakeProvider(GordoBaseDataProvider):
@@ -111,12 +110,12 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
         self.client = None
 
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
-    ) -> typing.Iterable[pd.DataFrame]:
+    ) -> typing.Iterable[pd.Series]:
         """
         See
-        :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_dataframes`
+        :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_series`
         for documentation
         """
         # We create them here so we only try to get a auth-token once we actually need
@@ -127,7 +126,7 @@ class DataLakeProvider(GordoBaseDataProvider):
             )
         data_providers = self._get_sub_dataproviders()
 
-        yield from load_dataframes_from_multiple_providers(
+        yield from load_series_from_multiple_providers(
             data_providers, from_ts, to_ts, tag_list
         )
 
@@ -199,9 +198,9 @@ class InfluxDataProvider(GordoBaseDataProvider):
                         )
                     self.influx_client._headers[api_key_header] = api_key
 
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
-    ) -> typing.Iterable[pd.DataFrame]:
+    ) -> typing.Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
         """
@@ -214,7 +213,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
     def read_single_sensor(
         self, from_ts: datetime, to_ts: datetime, tag: str, measurement: str
-    ) -> pd.DataFrame:
+    ) -> pd.Series:
         """
         Parameters
         ----------
@@ -245,7 +244,8 @@ class InfluxDataProvider(GordoBaseDataProvider):
         dataframes = self.influx_client.query(query_string)  # type: ignore
 
         try:
-            return list(dataframes.values())[0]
+            df = list(dataframes.values())[0]
+            return df[tag]
 
         except IndexError as e:
             list_of_tags = self._list_of_tags_from_influx()
@@ -313,16 +313,16 @@ class RandomDataProvider(GordoBaseDataProvider):
             pd.to_datetime(np.random.randint(start_u, end_u, n), unit="s", utc=True)
         )
 
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
-    ) -> typing.Iterable[pd.DataFrame]:
+    ) -> typing.Iterable[pd.Series]:
         for tag in tag_list:
             nr = random.randint(self.min_size, self.max_size)
 
             random_index = self._random_dates(from_ts, to_ts, n=nr)
-            df = pd.DataFrame(
+            series = pd.Series(
                 index=random_index,
-                columns=[tag],
+                name=tag,
                 data=np.random.random(size=len(random_index)),
             )
-            yield df
+            yield series

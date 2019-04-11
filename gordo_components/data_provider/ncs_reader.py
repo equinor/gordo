@@ -53,9 +53,9 @@ class NcsReader(GordoBaseDataProvider):
     def can_handle_tag(self, tag):
         return NcsReader.base_path_from_tag(tag)
 
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
-    ) -> Iterable[pd.DataFrame]:
+    ) -> Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
         """
@@ -82,7 +82,7 @@ class NcsReader(GordoBaseDataProvider):
     @staticmethod
     def read_tag_files(
         adls_file_system_client: core.AzureDLFileSystem, tag: str, years: range
-    ) -> pd.DataFrame:
+    ) -> pd.Series:
         """
         Download tag files for the given years into dataframes,
         and return as one dataframe.
@@ -98,8 +98,8 @@ class NcsReader(GordoBaseDataProvider):
 
         Returns
         -------
-        pd.DataFrame: Single dataframe with all years for one tag.
-
+        pd.Series:
+            Series with all years for one tag.
         """
         tag_base_path = NcsReader.base_path_from_tag(tag)
         if not tag_base_path:
@@ -135,7 +135,7 @@ class NcsReader(GordoBaseDataProvider):
         if combined.index.duplicated().any():
             combined = combined[~combined.index.duplicated(keep="last")]
 
-        return combined
+        return combined[tag]
 
     @staticmethod
     def base_path_from_tag(tag):

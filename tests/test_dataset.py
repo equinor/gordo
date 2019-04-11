@@ -121,14 +121,20 @@ class DatasetTestCase(unittest.TestCase):
             start=latest_start, end="2018-01-12 06:00:00Z", freq="H"
         )
 
-        timeseries_seconds = pd.DataFrame(
-            data=np.random.randint(0, 100, len(index_seconds)), index=index_seconds
+        timeseries_seconds = pd.Series(
+            data=np.random.randint(0, 100, len(index_seconds)),
+            index=index_seconds,
+            name="ts-seconds",
         )
-        timeseries_minutes = pd.DataFrame(
-            data=np.random.randint(0, 100, len(index_minutes)), index=index_minutes
+        timeseries_minutes = pd.Series(
+            data=np.random.randint(0, 100, len(index_minutes)),
+            index=index_minutes,
+            name="ts-minutes",
         )
-        timeseries_hours = pd.DataFrame(
-            data=np.random.randint(0, 100, len(index_hours)), index=index_hours
+        timeseries_hours = pd.Series(
+            data=np.random.randint(0, 100, len(index_hours)),
+            index=index_hours,
+            name="ts-hours",
         )
 
         return (
@@ -182,13 +188,13 @@ class MockDataSource(GordoBaseDataProvider):
     def can_handle_tag(self, tag):
         return True
 
-    def load_dataframes(
+    def load_series(
         self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
-    ) -> Iterable[pd.DataFrame]:
+    ) -> Iterable[pd.Series]:
         days = pd.date_range(from_ts, to_ts, freq="s")
 
-        for i, column in enumerate(tag_list):
-            df = pd.DataFrame(
-                index=days, data=list(range(i, len(days) + i)), columns=[column]
+        for i, name in enumerate(tag_list):
+            series = pd.Series(
+                index=days, data=list(range(i, len(days) + i)), name=name
             )
-            yield df
+            yield series

@@ -80,23 +80,23 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
             )
         ],
     )
-    def test_load_dataframes_no_data(self, _mocked_method):
-        """load_dataframe will raise ValueError if it does not find any tags"""
+    def test_load_series_no_data(self, _mocked_method):
+        """load_series will raise ValueError if it does not find any tags"""
         iroc_reader = IrocReader(client=None, threads=1)
         with self.assertRaises(ValueError):
             list(
-                iroc_reader.load_dataframes(
+                iroc_reader.load_series(
                     from_ts=isoparse("2018-05-02T01:56:00+00:00"),
                     to_ts=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=["jalla"],  # Not a tag in the input
                 )
             )
 
-    def test_load_dataframes_no_tag_list(self):
-        """load_dataframe will return an empty generator when called with no tags"""
+    def test_load_series_no_tag_list(self):
+        """load_series will return an empty generator when called with no tags"""
         iroc_reader = IrocReader(client=None, threads=1)
         res = list(
-            iroc_reader.load_dataframes(
+            iroc_reader.load_series(
                 from_ts=isoparse("2018-05-02T01:56:00+00:00"),
                 to_ts=isoparse("2018-05-03T01:56:00+00:00"),
                 tag_list=[],
@@ -104,12 +104,12 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         )
         self.assertEqual([], res)
 
-    def test_load_dataframes_checks_date(self):
-        """load_dataframe will raise ValueError if to_ts<from_ts"""
+    def test_load_series_checks_date(self):
+        """load_series will raise ValueError if to_ts<from_ts"""
         iroc_reader = IrocReader(client=None, threads=1)
         with self.assertRaises(ValueError):
             list(
-                iroc_reader.load_dataframes(
+                iroc_reader.load_series(
                     from_ts=isoparse("2018-05-03T01:56:00+00:00"),
                     to_ts=isoparse("2018-05-02T01:56:00+00:00"),
                     tag_list=["jalla"],  # Not a tag in the input
@@ -128,13 +128,13 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
             )
         ],
     )
-    def test_load_dataframes_missing_columns_data(self, _mocked_method):
-        """load_dataframe will raise ValueError if there is a single tag it can not
+    def test_load_series_missing_columns_data(self, _mocked_method):
+        """load_series will raise ValueError if there is a single tag it can not
         find"""
         iroc_reader = IrocReader(client=None, threads=1)
         with self.assertRaises(ValueError):
             list(
-                iroc_reader.load_dataframes(
+                iroc_reader.load_series(
                     from_ts=isoparse("2018-05-02T01:56:00+00:00"),
                     to_ts=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=IROC_HAPPY_TAG_LIST + ["jalla"],  # "jalla" is not a tag
@@ -153,11 +153,11 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
             )
         ],
     )
-    def test_load_dataframes_happy_path(self, _mocked_method):
+    def test_load_series_happy_path(self, _mocked_method):
         """Happy-path testing of load_dataframe"""
         iroc_reader = IrocReader(client=None, threads=1)
         res = list(
-            iroc_reader.load_dataframes(
+            iroc_reader.load_series(
                 from_ts=isoparse("2018-05-02T01:56:00+00:00"),
                 to_ts=isoparse("2018-05-03T01:56:00+00:00"),
                 tag_list=IROC_HAPPY_TAG_LIST,

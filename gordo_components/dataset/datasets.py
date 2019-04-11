@@ -63,7 +63,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             )
 
     def get_data(self) -> Tuple[pd.DataFrame, None]:
-        dataframes = self.data_provider.load_dataframes(
+        dataframes = self.data_provider.load_series(
             from_ts=self.from_ts, to_ts=self.to_ts, tag_list=self.tag_list
         )
         X = self.join_timeseries(dataframes, self.from_ts, self.resolution)

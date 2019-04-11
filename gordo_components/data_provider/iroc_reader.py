@@ -29,7 +29,7 @@ class IrocReader(GordoBaseDataProvider):
         self.client = client
         self.threads = threads
 
-    def load_dataframes(
+    def load_series(
         self,
         from_ts: datetime,
         to_ts: datetime,
@@ -81,7 +81,7 @@ class IrocReader(GordoBaseDataProvider):
             )
 
         for col in concatted.columns:
-            withouth_na = concatted[[col]].dropna()
+            withouth_na = concatted[col].dropna()
             withouth_na.sort_index(inplace=True)
             yield withouth_na
 

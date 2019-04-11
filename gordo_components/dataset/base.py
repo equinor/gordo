@@ -27,7 +27,7 @@ class GordoBaseDataset:
 
     @staticmethod
     def join_timeseries(
-        dataframes: Iterable[pd.DataFrame],
+        series_iterable: Iterable[pd.Series],
         resampling_startpoint: datetime,
         resolution: str,
     ) -> pd.DataFrame:
@@ -35,8 +35,8 @@ class GordoBaseDataset:
 
         Parameters
         ----------
-        dataframes
-            An iterator supplying [timestamp, value] dataframes
+        series_iterable
+            An iterator supplying series with time index
 
         resampling_startpoint
             The starting point for resampling. Most data frames will not have this
@@ -55,45 +55,44 @@ class GordoBaseDataset:
             element in the dataframe_generator
 
         """
-        resampled_frames = []
+        resampled_series = []
 
-        for dataframe in dataframes:
+        for series in series_iterable:
             startpoint_sametz = resampling_startpoint.astimezone(
-                tz=dataframe.index[0].tzinfo
+                tz=series.index[0].tzinfo
             )
-            if dataframe.index[0] > startpoint_sametz:
+            if series.index[0] > startpoint_sametz:
                 # Insert a NaN at the startpoint, to make sure that all resampled
                 # indexes are the same. This approach will "pad" most frames with
                 # NaNs, that will be removed at the end.
-                startpoint = pd.DataFrame(
-                    [np.NaN], index=[startpoint_sametz], columns=dataframe.columns
+                startpoint = pd.Series(
+                    [np.NaN], index=[startpoint_sametz], name=series.name
                 )
-                dataframe = startpoint.append(dataframe)
+                series = startpoint.append(series)
                 logging.debug(
-                    f"Appending NaN to {dataframe.columns[0]} "
-                    f"at time {startpoint_sametz}"
+                    f"Appending NaN to {series.name} " f"at time {startpoint_sametz}"
                 )
 
-            elif dataframe.index[0] < resampling_startpoint:
+            elif series.index[0] < resampling_startpoint:
                 msg = (
-                    f"Error - for {dataframe.columns[0]}, first timestamp "
-                    f"{dataframe.index[0]} is before resampling start point "
+                    f"Error - for {series.columns[0]}, first timestamp "
+                    f"{series.index[0]} is before resampling start point "
                     f"{startpoint_sametz}"
                 )
                 logging.error(msg)
                 raise RuntimeError(msg)
 
             logging.debug("Head (3) and tail(3) of dataframe to be resampled:")
-            logging.debug(dataframe.head(3))
-            logging.debug(dataframe.tail(3))
+            logging.debug(series.head(3))
+            logging.debug(series.tail(3))
 
-            resampled = dataframe.resample(resolution).mean()
+            resampled = series.resample(resolution).mean()
 
             filled = resampled.fillna(method="ffill")
-            resampled_frames.append(filled)
+            resampled_series.append(filled)
 
-        joined = pd.concat(resampled_frames, axis=1, join="inner")
+        new_series = pd.concat(resampled_series, axis=1, join="inner")
         # Before returning, delete all rows with NaN, they were introduced by the
         # insertion of NaNs in the beginning of all timeseries
 
-        return joined.dropna()
+        return new_series.dropna()
