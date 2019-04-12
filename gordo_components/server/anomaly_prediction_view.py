@@ -2,42 +2,33 @@
 
 import logging
 import timeit
-import dateutil.parser  # type: ignore
 import typing
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
 
-from flask import g, url_for
-from flask_restplus import fields, Api as BaseApi
+from flask import g, request
+from flask.blueprints import Blueprint
+from flask_restplus import fields
 
 from gordo_components import __version__
 from gordo_components.dataset.datasets import TimeSeriesDataset
-from flask import request
-from flask.blueprints import Blueprint
-from flask_restplus import Resource
+from gordo_components.server.base import BasePredictionView, Api
 
 
 logger = logging.getLogger(__name__)
 
 
-MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
-MODEL = None
-MODEL_METADATA = None
-
-
-class Api(BaseApi):
-    @property
-    def specs_url(self):
-        return url_for(self.endpoint("specs"), _external=False)
-
+anomaly_blueprint = Blueprint(
+    "ioc_anomaly_prediction_view", __name__, url_prefix="/ioc-anomaly"
+)
 
 api = Api(
-    title="Gordo API Docs",
+    app=anomaly_blueprint,
+    title="Gordo Anomaly API Docs",
     version=__version__,
-    description="Documentation for the Gordo ML Server",
-    default_label="Gordo Endpoints",
+    description="Documentation for the Gordo ML Anomaly endpoint(s)",
+    default_label="Gordo Anomaly Endpoints",
 )
 
 # POST type declarations
@@ -69,108 +60,51 @@ API_MODEL_OUTPUT_GET = api.model(
 )
 
 
-class Base(Resource):
+class IocAnomalyPredictionView(BasePredictionView):
     """
-    Base Resource which sets module level globals for ``MODEL`` and ``MODEL_METADATA``
-    upon first invokation.
+    Serve model predictions via GET and POST methods
+
+    If ``GET``
+        Will take a ``start`` and ``end`` ISO format datetime string
+        and give back predictions in the following example::
+
+            {'output': [
+                {'end': '2016-01-01 00:20:00+00:00',
+                 'start': '2016-01-01 00:10:00+00:00',
+                 'tags': {'tag-0': 0.6031807382481357,
+                          'tag-1': 0.6850933943812884,
+                          'tag-2': 0.37281826556659486,
+                          'tag-3': 0.6688453143800668,
+                          'tag-4': 0.3860472585679212,
+                          'tag-5': 0.6704775418728366,
+                          'tag-6': 0.36539023141775234,
+                          'tag-7': 0.929348645859519,
+                          'tag-8': 0.555020406599076,
+                          'tag-9': 0.3908480506569232},
+                 'total_anomaly': 1.8644325873977061}
+             ],
+             'status-code': 200,
+             'time-seconds': '2.5015'}
+    if ``POST``
+        Will take the raw data in ``X`` and expected to be of the correct shape.
+        This is much lower level, and reflects that raw input for the model.
+
+        Returned example format::
+
+            {'output': [
+                [0.9620815728153441,
+                 0.48481952794697486,
+                 0.10449727234407678,
+                 0.5820399931840917,],
+                [0.7328459309239063,
+                 0.7933340297343985,
+                 0.4012604048104457,
+                 0.9799145817366233,],
+             'status-code': 200,
+             'time-seconds': '0.0568'}
+
+        where ``output`` represents the actual output of the model.
     """
-
-    model = None
-    metadata = dict()  # type: ignore
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Set the global variables for MODEL and MODEL_METADATA if they haven't been set already.
-        if MODEL is None:
-            load_model_and_metadata()
-
-        self.model = MODEL
-        self.metadata = MODEL_METADATA
-
-
-class IocAnomalyPredictionView(Resource):
-    """
-        Serve model predictions via GET and POST methods
-
-        If ``GET``
-            Will take a ``start`` and ``end`` ISO format datetime string
-            and give back predictions in the following example::
-
-                {'output': [
-                    {'end': '2016-01-01 00:20:00+00:00',
-                     'start': '2016-01-01 00:10:00+00:00',
-                     'tags': {'tag-0': 0.6031807382481357,
-                              'tag-1': 0.6850933943812884,
-                              'tag-2': 0.37281826556659486,
-                              'tag-3': 0.6688453143800668,
-                              'tag-4': 0.3860472585679212,
-                              'tag-5': 0.6704775418728366,
-                              'tag-6': 0.36539023141775234,
-                              'tag-7': 0.929348645859519,
-                              'tag-8': 0.555020406599076,
-                              'tag-9': 0.3908480506569232},
-                     'total_anomaly': 1.8644325873977061}
-                 ],
-                 'status-code': 200,
-                 'time-seconds': '2.5015'}
-        if ``POST``
-            Will take the raw data in ``X`` and expected to be of the correct shape.
-            This is much lower level, and reflects that raw input for the model.
-
-            Returned example format::
-
-                {'output': [
-                    [0.9620815728153441,
-                     0.48481952794697486,
-                     0.10449727234407678,
-                     0.5820399931840917,],
-                    [0.7328459309239063,
-                     0.7933340297343985,
-                     0.4012604048104457,
-                     0.9799145817366233,],
-                 'status-code': 200,
-                 'time-seconds': '0.0568'}
-
-            where ``output`` represents the actual output of the model.
-        """
-
-    @staticmethod
-    def _parse_iso_datetime(datetime_str: str) -> datetime:
-        parsed_date = dateutil.parser.isoparse(datetime_str)  # type: ignore
-        if parsed_date.tzinfo is None:
-            raise ValueError(
-                f"Provide timezone to timestamp {datetime_str}."
-                f" Example: for UTC timezone use {datetime_str + 'Z'} or {datetime_str + '+00:00'} "
-            )
-        return parsed_date
-
-    def get_predictions(self, X: np.ndarray) -> np.ndarray:
-        """
-        Get the raw output from the current model given X.
-        Will try to `predict` and then `transform`, raising an error
-        if both fail.
-
-        Parameters
-        ----------
-        X: np.ndarray
-            2d array of sample(s)
-
-        Returns
-        -------
-        np.ndarray
-            The raw output of the model in numpy array form.
-        """
-        try:
-            return self.model.predict(X)  # type: ignore
-
-        # Model may only be a transformer
-        except AttributeError:
-            try:
-                return self.model.transform(X)  # type: ignore
-            except Exception as exc:
-                logger.error(f"Failed to predict or transform; error: {exc}")
-                raise
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)
@@ -181,47 +115,9 @@ class IocAnomalyPredictionView(Resource):
     )
     def post(self):
         """
-        Get predictions
+        Get predictions, without any post processing steps.
         """
-
-        context = dict()  # type: typing.Dict[str, typing.Any]
-        context["status-code"] = 200
-        start_time = timeit.default_timer()
-
-        X = request.json.get("X")
-
-        if X is None:
-            return {"error": 'Cannot predict without "X"'}, 400
-
-        X = np.asanyarray(X)
-
-        if X.dtype == np.dtype("O"):
-            return (
-                {
-                    "error": "Either provided non numerical elements or records with different shapes."
-                    "  ie. [[0, 1, 2], [0, 1]]"
-                },
-                400,
-            )
-
-        # Reshape X to sample 1 record if a single record was given
-        X = X.reshape(1, -1) if len(X.shape) == 1 else X
-
-        try:
-            context["output"] = self.get_predictions(X).tolist()
-        except ValueError as err:
-            logger.critical(f"Failed to predict or transform; error: {err}")
-            context["error"] = f"ValueError: {str(err)}"
-            context["status-code"] = 400
-        # Model may only be a transformer, probably an AttributeError, but catch all to avoid logging other
-        # exceptions twice if it happens.
-        except Exception as exc:
-            logger.error(f"Failed to predict or transform; error: {exc}")
-            context["error"] = "Something unexpected happened; check your input data"
-            context["status-code"] = 400
-
-        context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
-        return context, context["status-code"]
+        return super().post()
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.doc(
@@ -319,10 +215,6 @@ class IocAnomalyPredictionView(Resource):
         return context, context["status-code"]
 
 
-anomaly_blueprint = Blueprint(
-    "ioc_anomaly_prediction_view", __name__, url_prefix="/ioc-anomaly"
-)
-
 anomaly_blueprint.add_url_rule(
-    IocAnomalyPredictionView.as_view("ioc_anomaly_prediction")
+    "/prediction", view_func=IocAnomalyPredictionView.as_view("ioc_anomaly_prediction")
 )
