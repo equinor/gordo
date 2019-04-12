@@ -1,8 +1,4 @@
 # Requires the following variables to render properly
-# tag_fetcher_version: version of tag fetcher, e.g. latest
-# model_builder_version: -||-
-# model_server_version:  -||-
-# cleanup_version: -||-
 # project_name: Name of the project this workflow is linked up to (e.g. "Grane")
 # project_version: Current version of this project, e.g. the git commit-sha.
 # containing start and end dates (if tags are shared across machines the earliest train start date and latest train end date is taken)
@@ -40,7 +36,7 @@ spec:
       - name: model-config
       - name: data-config
     container:
-      image: auroradevacr.azurecr.io/gordo-components/gordo-model-builder:{{model_builder_version}}
+      image: auroradevacr.azurecr.io/gordo-components/gordo-model-builder:{{components_version}}
       env:
       - name: OUTPUT_DIR
         value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.machine-name}}'}}"
@@ -182,7 +178,7 @@ spec:
                 app: "gordoserver-{{project_name}}-{{'{{inputs.parameters.machine-name}}'}}"
             spec:
               containers:
-                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-model-server:{{model_server_version}}"
+                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-model-server:{{components_version}}"
                    imagePullPolicy: "IfNotPresent"
                    name: "gordoserver-{{'{{inputs.parameters.machine-name}}'}}"
                    volumeMounts:
@@ -363,7 +359,7 @@ spec:
                 app: "gordo-watchman-{{project_name}}"
             spec:
               containers:
-                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-watchman:{{watchman_version}}"
+                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-watchman:{{components_version}}"
                    imagePullPolicy: "IfNotPresent"
                    name: "gordo-watchman-{{project_name}}"
                    ports:
@@ -403,7 +399,7 @@ spec:
 
   - name: cleanup
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{cleanup_version}}
+      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{components_version}}
       command: [bash]
       source: |
         echo "Deleting gordo deployments and services for project {{project_name}} different than {{project_version}}" \

@@ -152,12 +152,7 @@ def workflow_generator(kwargs: Kwargs):
 
     yaml_content = get_dict_from_yaml(kwargs.machine_config)
 
-    # Context directly from args.
-    context["model_builder_version"] = __version__
-    context["model_server_version"] = __version__
-    context["watchman_version"] = __version__
-    context["cleanup_version"] = __version__
-
+    context["components_version"] = __version__
     context["project_name"] = kwargs.project_name
     context["project_version"] = kwargs.project_version
     context["namespace"] = kwargs.namespace
