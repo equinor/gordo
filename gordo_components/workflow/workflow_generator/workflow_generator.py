@@ -6,12 +6,12 @@ import dateutil.parser
 import logging
 import jinja2
 import time
+import typing
 import pkg_resources
 
 import click
 
-from typing import Union, IO
-
+from gordo_components import __version__
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 
 logger = logging.getLogger(__name__)
@@ -35,30 +35,6 @@ class Kwargs:
     "--workflow-template",
     help="Template to expand",
     envvar="WORKFLOW_GENERATOR_WORKFLOW_TEMPLATE",
-)
-@click.option(
-    "--model-builder-version",
-    default="0.13.0",
-    help="Version of model-builder",
-    envvar="WORKFLOW_GENERATOR_MODEL_BUILDER_VERSION",
-)
-@click.option(
-    "--model-server-version",
-    default="0.13.0",
-    help="Version of server-version",
-    envvar="WORKFLOW_GENERATOR_MODEL_SERVER_VERSION",
-)
-@click.option(
-    "--watchman-version",
-    default="0.13.0",
-    help="Version of watchman",
-    envvar="WORKFLOW_GENERATOR_WATCHMAN_VERSION",
-)
-@click.option(
-    "--cleanup-version",
-    default="0.12.0",  # Just need a version w/ kubectl installed
-    help="Version of cleanup image (gordo-deploy)",
-    envvar="WORKFLOW_GENERATOR_CLEANUP_VERSION",
 )
 @click.option(
     "--project-name",
@@ -100,7 +76,7 @@ def _timestamp_constructor(_loader, node):
     return parsed_date
 
 
-def get_dict_from_yaml(config_file: Union[str, IO[str]]) -> dict:
+def get_dict_from_yaml(config_file: typing.Union[str, typing.IO[str]]) -> dict:
     """
     Read a config file or file like object of YAML into a dict
     """
@@ -172,15 +148,16 @@ def machine_config_unique_tags(kwargs: Kwargs):
 
 def workflow_generator(kwargs: Kwargs):
 
-    context = dict()
+    context = dict()  # type: typing.Dict[str, typing.Any]
 
     yaml_content = get_dict_from_yaml(kwargs.machine_config)
 
     # Context directly from args.
-    context["model_builder_version"] = kwargs.model_builder_version
-    context["model_server_version"] = kwargs.model_server_version
-    context["watchman_version"] = kwargs.watchman_version
-    context["cleanup_version"] = kwargs.cleanup_version
+    context["model_builder_version"] = __version__
+    context["model_server_version"] = __version__
+    context["watchman_version"] = __version__
+    context["cleanup_version"] = __version__
+
     context["project_name"] = kwargs.project_name
     context["project_version"] = kwargs.project_version
     context["namespace"] = kwargs.namespace

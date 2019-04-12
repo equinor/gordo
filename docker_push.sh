@@ -41,15 +41,15 @@ else
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY || exit 1
 fi
 
-export git_sha=$(git rev-parse HEAD | cut -c 1-8)
+export version=$(gordo-components --version)
 
 if [[ -z "${DOCKER_IMAGE}" ]]; then
     if [[ -z "${DOCKER_FILE}" ]]; then
         echo "DOCKER_IMAGE or DOCKER_FILE must be provided, exiting"
         exit 1
     fi
-    docker build -t $git_sha  -f $DOCKER_FILE .
-    export DOCKER_IMAGE=$git_sha
+    docker build -t $version  -f $DOCKER_FILE .
+    export DOCKER_IMAGE=$version
 fi
 
 if [[ -z "${GORDO_PROD_MODE}" ]]; then
@@ -58,8 +58,8 @@ else
     export suffix=""
 fi
 
-docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_NAME:$git_sha$suffix
-docker push $DOCKER_REGISTRY/$DOCKER_NAME:$git_sha$suffix
+docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_NAME:$version$suffix
+docker push $DOCKER_REGISTRY/$DOCKER_NAME:$version$suffix
 
 git tag --points-at HEAD | while read -r tag ; do
     docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_NAME:$tag$suffix

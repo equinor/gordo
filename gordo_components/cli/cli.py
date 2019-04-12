@@ -12,6 +12,7 @@ from ast import literal_eval
 import yaml
 import click
 
+from gordo_components import __version__
 from gordo_components.builder.build_model import provide_saved_model
 from gordo_components.data_provider.providers import (
     DataLakeProvider,
@@ -41,6 +42,7 @@ logging.getLogger("azure.datalake").setLevel(azure_log_level)
 
 
 @click.group("gordo-components")
+@click.version_option(version=__version__, message=__version__)
 def gordo():
     """
     The main entry point for the CLI interface
