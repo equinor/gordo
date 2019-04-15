@@ -10,10 +10,10 @@ import time
 
 import typing
 from datetime import datetime
+from dateutil.parser import isoparse  # type: ignore
 from concurrent.futures import ThreadPoolExecutor
 
 import aiohttp
-import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
 from werkzeug.exceptions import BadRequest
@@ -44,6 +44,7 @@ class Client:
         port: int = 443,
         scheme: str = "https",
         gordo_version: str = "v0",
+        prediction_path: str = "/anomaly/prediction",
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
         prediction_forwarder: typing.Optional[PredictionForwarder] = None,
@@ -70,6 +71,8 @@ class Client:
             The request scheme to use, ie 'https'.
         gordo_version: str
             The version of major gordo the services are using, ie. 'v0'.
+        prediction_path: str
+            Url path to use for making predictions, default '/prediction'
         metadata: Optional[dict]
             Arbitrary mapping of key-value pairs to save to influx with
             prediction runs in 'tags' property
@@ -101,6 +104,7 @@ class Client:
         self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
+        self.prediction_path = prediction_path
         self.batch_size = batch_size
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
@@ -288,9 +292,9 @@ class Client:
 
         # Create new event loop and process getting predictions
         loop = asyncio.get_event_loop()
-        prediction_results = loop.run_until_complete(
+        prediction_results: typing.List[PredictionResult] = loop.run_until_complete(
             jobs
-        )  # type: typing.List[PredictionResult]
+        )
 
         # List of tuples where each represents a single target of name, dataframe of predictions
         return [
@@ -375,6 +379,7 @@ class Client:
         -------
         PredictionResult
         """
+
         for i in itertools.count(start=1):
             try:
                 resp = await gordo_io.post_json(
@@ -418,26 +423,8 @@ class Client:
             # Process response and return if no exception
             else:
 
-                # Get the output values
-                output_values = np.array(resp["output"])
-                input_values = np.array(resp["transformed-model-input"])
-
-                # Chunks can have None as end-point
-                chunk_stop = chunk.stop if chunk.stop else len(X)
-                # Chunks can also be larger than the actual data
-                chunk_stop = min(chunk_stop, len(X))
-                predictions = pd.DataFrame(
-                    data=[
-                        in_row + out_row
-                        for in_row, out_row in zip(
-                            input_values.tolist(), output_values.tolist()
-                        )
-                    ],
-                    columns=[f"input_{sensor}" for sensor in X.columns]
-                            + [f"output_{sensor}" for sensor in X.columns],
-                    # match any offsetting from windowed models
-                    index=X.index[chunk_stop - len(X): chunk_stop],
-                )
+                predictions = pd.DataFrame.from_records(resp["data"])
+                predictions.index = X.iloc[chunk].index
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
@@ -511,7 +498,7 @@ class Client:
         """
         try:
             response = await gordo_io.fetch_json(
-                f"{endpoint.endpoint}/prediction",
+                f"{endpoint.endpoint}{self.prediction_path}",
                 session=session,
                 json={"start": start.isoformat(), "end": end.isoformat()},
             )
@@ -528,23 +515,9 @@ class Client:
 
         logger.info(f"Processing {start} -> {end}")
 
-        # Unpack each record into a flat record where keys will become columns, where a single record looks like:
-        # {'start': isoformatdate, 'end': isoformatdate, 'tag-anomaly': {'tag': float, ...}, 'total-anomaly': float}
-        records = list()
-        for record in response["output"]:
-            # Flatten out 'tag-anomaly' dict so each key gets its own column
-            record.update({k: v for k, v in record.pop("tag-anomaly").items()})
-
-            # Time parsing
-            record.update({"time": pd.to_datetime(record.pop("start"))})
-
-            # Forget about end time
-            record.pop("end")
-
-            records.append(record)
-
-        # Convert to dataframe
-        predictions = pd.DataFrame.from_records(records, index="time")
+        predictions = pd.DataFrame.from_records(response["data"])
+        predictions["start"] = predictions["start"].map(isoparse)
+        predictions.set_index("start", inplace=True)
 
         if self.prediction_forwarder is not None:
             await self.prediction_forwarder(

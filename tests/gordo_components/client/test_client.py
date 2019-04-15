@@ -62,14 +62,14 @@ def test_client_get_metadata(watchman_service):
     """
     Test client's ability to get metadata from some target
     """
-    client = Client(project="gordo-test")
+    client = Client(project=tu.GORDO_PROJECT)
 
     metadata = client.get_metadata()
     assert isinstance(metadata, dict)
 
     # Can't get metadata for non-existent target
     with pytest.raises(ValueError):
-        client = Client(project="gordo-test", target="no-such-target")
+        client = Client(project=tu.GORDO_PROJECT, target="no-such-target")
         client.get_metadata()
 
 
@@ -77,20 +77,20 @@ def test_client_download_model(watchman_service):
     """
     Test client's ability to download the model
     """
-    client = Client(project="gordo-test", target="machine-1")
+    client = Client(project=tu.GORDO_PROJECT, target=tu.GORDO_SINGLE_TARGET)
 
     models = client.download_model()
     assert isinstance(models, dict)
-    assert isinstance(models["machine-1"], BaseEstimator)
+    assert isinstance(models[tu.GORDO_SINGLE_TARGET], BaseEstimator)
 
     # Can't download model for non-existent target
     with pytest.raises(ValueError):
-        client = Client(project="gordo-test", target="machine-2")
+        client = Client(project=tu.GORDO_PROJECT, target="non-existent-target")
         client.download_model()
 
 
 @pytest.mark.parametrize("batch_size", (10, 100))
-@pytest.mark.parametrize("use_data_provider", (True, False))
+@pytest.mark.parametrize("use_data_provider", (False, True))
 def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
     influxdb, watchman_service, use_data_provider: bool, batch_size: int
 ):
@@ -98,34 +98,33 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
     Run the prediction client with different batch-sizes and whether to use
     a data provider or not.
     """
-
-    # The uri for the local influx which serves as the source and destination
-    uri = f"root:root@localhost:8086/testdb"
-
     # Time range used in this test
-    start, end = isoparse("2016-01-01T00:00:00Z"), isoparse("2016-01-01T12:00:00Z")
+    start, end = (
+        isoparse("2016-01-01T00:00:00+00:00"),
+        isoparse("2016-01-01T12:00:00+00:00"),
+    )
 
     # Client only used within the this test
-    test_client = client_utils.influx_client_from_uri(uri)
+    test_client = client_utils.influx_client_from_uri(tu.INFLUXDB_URI)
 
     # Created measurements by prediction client with dest influx
-    output_measurements = ("predictions", "anomaly")
-    query_tmpl = """
+    query = f"""
     SELECT *
-    FROM "{measurement}"
-    WHERE("machine" =~ /^machine-1$/)
+    FROM "predictions"
+    WHERE("machine" =~ /^{tu.GORDO_SINGLE_TARGET}$/)
     """
 
     # Before predicting, influx destination db should be empty for 'predictions' measurement
-    for measurement in output_measurements:
-        vals = test_client.query(query_tmpl.format(measurement=measurement))
-        assert len(vals) == 0
+    vals = test_client.query(query)
+    assert len(vals) == 0
 
     data_provider = (
         providers.InfluxDataProvider(
             measurement=tu.INFLUXDB_MEASUREMENT,
             value_name="Value",
-            client=client_utils.influx_client_from_uri(uri=uri, dataframe_client=True),
+            client=client_utils.influx_client_from_uri(
+                uri=tu.INFLUXDB_URI, dataframe_client=True
+            ),
         )
         if use_data_provider
         else None
@@ -134,11 +133,13 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
     prediction_client = Client(
         project=tu.GORDO_PROJECT,
         data_provider=data_provider,
-        prediction_forwarder=ForwardPredictionsIntoInflux(destination_influx_uri=uri),
+        prediction_forwarder=ForwardPredictionsIntoInflux(
+            destination_influx_uri=tu.INFLUXDB_URI
+        ),
         batch_size=batch_size,
     )
 
-    # Should have discovered machine-1 & machine-2
+    # Should have discovered machine-1
     assert len(prediction_client.endpoints) == 1
 
     # All endpoints should be healthy
@@ -158,11 +159,10 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
 
     # This should have resulted in writting predictions to influx
     # Before predicting, influx destination db should be empty
-    for measurement in output_measurements:
-        vals = test_client.query(query_tmpl.format(measurement=measurement))
-        assert (
-            len(vals) > 0
-        ), f"Expected new values in '{measurement}' measurement, but found {vals}"
+    vals = test_client.query(query)
+    assert (
+        len(vals) > 0
+    ), f"Expected new values in 'predictions' measurement, but found {vals}"
 
 
 @pytest.mark.parametrize(
@@ -204,7 +204,7 @@ def test_client_cli_metadata(watchman_service):
         ],
     )
     assert out.exit_code == 0
-    assert "machine-1" in out.output
+    assert tu.GORDO_SINGLE_TARGET in out.output
 
     # Save metadata to file
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -226,7 +226,7 @@ def test_client_cli_metadata(watchman_service):
         assert os.path.exists(output_file)
         with open(output_file) as f:
             metadata = json.load(f)
-            assert "machine-1" in metadata
+            assert tu.GORDO_SINGLE_TARGET in metadata
 
 
 def test_client_cli_download_model(watchman_service):
@@ -291,9 +291,8 @@ def test_client_cli_predict(
         "2016-01-01T01:00:00Z",
     ]
 
-    influx_uri = f"root:root@localhost:8086/testdb"
     influx_client = client_utils.influx_client_from_uri(
-        uri=influx_uri, dataframe_client=True
+        uri=tu.INFLUXDB_URI, dataframe_client=True
     )
     query = """
         SELECT *
