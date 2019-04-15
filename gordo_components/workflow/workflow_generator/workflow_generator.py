@@ -25,6 +25,14 @@ class Kwargs:
         return self.kwargs.get(item)
 
 
+def _docker_friendly_version(version):
+    """
+    Some untagged versions may have a '+' in which case is not a valid
+    docker tag
+    """
+    return version.replace("+", "_")
+
+
 @click.command("workflow-generator")
 @click.option(
     "--machine-config",
@@ -152,7 +160,7 @@ def workflow_generator(kwargs: Kwargs):
 
     yaml_content = get_dict_from_yaml(kwargs.machine_config)
 
-    context["components_version"] = __version__
+    context["components_version"] = _docker_friendly_version(__version__)
     context["project_name"] = kwargs.project_name
     context["project_version"] = kwargs.project_version
     context["namespace"] = kwargs.namespace
