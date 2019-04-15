@@ -213,7 +213,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             anomaly_point = {
                 "measurement": "anomaly",
                 "tags": tags,
-                "fields": {"total_anomaly": record["total_anomaly"]},
+                "fields": {"total-anomaly": record["total-anomaly"]},
                 "time": f"{record.name}",
             }
 

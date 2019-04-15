@@ -419,18 +419,24 @@ class Client:
             else:
 
                 # Get the output values
-                values = np.array(resp["output"])
+                output_values = np.array(resp["output"])
+                input_values = np.array(resp["transformed-model-input"])
 
                 # Chunks can have None as end-point
                 chunk_stop = chunk.stop if chunk.stop else len(X)
                 # Chunks can also be larger than the actual data
                 chunk_stop = min(chunk_stop, len(X))
                 predictions = pd.DataFrame(
-                    data=values,
+                    data=[
+                        in_row + out_row
+                        for in_row, out_row in zip(
+                            input_values.tolist(), output_values.tolist()
+                        )
+                    ],
                     columns=[f"input_{sensor}" for sensor in X.columns]
-                    + [f"output_{sensor}" for sensor in X.columns],
+                            + [f"output_{sensor}" for sensor in X.columns],
                     # match any offsetting from windowed models
-                    index=X.index[chunk_stop - len(values) : chunk_stop],
+                    index=X.index[chunk_stop - len(X): chunk_stop],
                 )
 
                 # Forward predictions to any other consumer if registered.
@@ -523,11 +529,11 @@ class Client:
         logger.info(f"Processing {start} -> {end}")
 
         # Unpack each record into a flat record where keys will become columns, where a single record looks like:
-        # {'start': isoformatdate, 'end': isoformatdate, 'tags': {'tag': float, ...}, 'total_anomaly': float}
+        # {'start': isoformatdate, 'end': isoformatdate, 'tag-anomaly': {'tag': float, ...}, 'total-anomaly': float}
         records = list()
         for record in response["output"]:
-            # Flatten out 'tags' dict so each key gets its own column
-            record.update({k: v for k, v in record.pop("tags").items()})
+            # Flatten out 'tag-anomaly' dict so each key gets its own column
+            record.update({k: v for k, v in record.pop("tag-anomaly").items()})
 
             # Time parsing
             record.update({"time": pd.to_datetime(record.pop("start"))})

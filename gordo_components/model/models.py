@@ -270,24 +270,10 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         -------
         results:
             np.ndarray
-
-        Notes
-        -----
-        The data returns from this method is double the feature length of its input.
-        The first half of each sample output is the _input_ of the model, and the
-        output is concatenated (axis=1) with the input. ie. If the input has 4 features,
-        the output will have 8, where the first 4 are the values which went into the model.
         """
         with possible_tf_mgmt(self):
             xhat = self.model.predict(X, **kwargs)
-
-        results = list()
-        for sample_input, sample_output in zip(
-            X.tolist(), xhat.reshape(X.shape).tolist()
-        ):
-            sample_input.extend(sample_output)
-            results.append(sample_input)
-        return np.asarray(results)
+        return xhat
 
     def score(
         self,
@@ -625,14 +611,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             xhat = self.model.predict_generator(
                 gen, steps=X.shape[0] - (self.lookback_window - 1)
             )
-        X = X[self.lookback_window - 1 :]
-        results = list()
-        for sample_input, sample_output in zip(
-            X.tolist(), xhat.reshape(X.shape).tolist()
-        ):
-            sample_input.extend(sample_output)
-            results.append(sample_input)
-        return np.asarray(results)
+        return xhat
 
     def score(
         self,
@@ -901,4 +880,4 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
 
         out = self.transform(X)
 
-        return explained_variance_score(out[:, : X.shape[1]], out[:, X.shape[1] :])
+        return explained_variance_score(X[-len(out) :], out)
