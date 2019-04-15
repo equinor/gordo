@@ -311,21 +311,4 @@ class KerasModelTestCase(unittest.TestCase):
         model = model.fit(X_train)
         X_test = np.random.random(size=(4, 3))
         out = model.transform(X_test)
-        self.assertEqual(out.shape, (2, 6))
-        self.assertEqual(out[:, :3].tolist(), X_test[lookback_window - 1 :, :].tolist())
-
-    def test_lstmforecast_transform_output(self):
-        # test for KerasLSTMForecast
-        #  - test dimension of output
-        #  - test that first half of output is testing data
-
-        X_train = np.random.random(size=(5, 3))
-        lookback_window = 3
-        model = KerasLSTMForecast(
-            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
-        )
-        model = model.fit(X_train)
-        X_test = np.random.random(size=(6, 3))
-        out = model.transform(X_test)
-        self.assertEqual(out.shape, (3, 6))
-        self.assertEqual(out[:, :3].tolist(), X_test[lookback_window:, :].tolist())
+        self.assertEqual(out.shape, (2, 3))
