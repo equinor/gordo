@@ -151,9 +151,16 @@ def watchman(
             gordo app.
             """
             headers = {}
-            last_path = request.path_url.split("/")[-1]
-            if request.method == "GET":
 
+            # last_path is the path to the view as flask knows about it
+            # there is a proxy set before endpoints such as /gordo/vo/project-name/target-name/
+            # of which flask does not know about, but is routed to it via ambassador and is
+            # incorporated in the requests within the lib, since we're forwarding the request
+            # directly to the app itself, we need to strip this prefix
+            # Example:
+            # /gordo/v0/project-name/target-name/metadata -> metadata
+            last_path = "/".join(request.path_url.split("/")[5:])
+            if request.method == "GET":
                 # we may have json data being passed
                 kwargs = dict()
                 if request.body:
@@ -199,20 +206,28 @@ def watchman(
             rsps.add_callback(
                 responses.GET,
                 re.compile(
-                    rf".*ambassador.{namespace}.*\/gordo\/v0\/{project}\/.*.\/.*."
+                    rf".*ambassador.{namespace}.*\/gordo\/v0\/{project}\/.*.\/.*"
+                ),
+                callback=gordo_ml_server_callback,
+                content_type="application/json",
+            )
+            rsps.add_callback(
+                responses.POST,
+                re.compile(
+                    rf".*ambassador.{namespace}.*\/gordo\/v0\/{project}\/.*.\/.*"
                 ),
                 callback=gordo_ml_server_callback,
                 content_type="application/json",
             )
             rsps.add_callback(
                 responses.GET,
-                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.*.\/.*."),
+                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.*.\/.*"),
                 callback=gordo_ml_server_callback,
                 content_type="application/json",
             )
             rsps.add_callback(
                 responses.POST,
-                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.*.\/.*."),
+                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.*.\/.*"),
                 callback=gordo_ml_server_callback,
                 content_type="application/json",
             )

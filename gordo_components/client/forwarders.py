@@ -6,7 +6,6 @@ import typing
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
 import pandas as pd
 from typing_extensions import Protocol
 
@@ -18,12 +17,13 @@ Module contains objects which can be made into async generators which take
 and EndpointMetadata and metadata (dict) when instantiated and are sent
 prediction dataframes as the prediction client runs::
 
-    async def my_forwarder(endpoint: Endpoint, df: pd.DataFrame):
+    async def my_forwarder(
+        predictions: pd.DataFrame = None,
+        endpoint: EndpointMetadata = None,
+        metadata: dict = dict(),
+        resampled_sensor_data: pd.DataFrame = None
+    ):
         ...
-        
-    forwarder = my_forwarder(endpoint, metadata)
-    forwarder.asend(None)  # Start the generator
-    forwarder.asend(df)
 
 The gordo_components.client.utils.EndpointMetadata hold information about 
 what endpoint the coroutine should concern itself with, and metadata are 
@@ -62,10 +62,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
     ):
         """
         Create an instance which, when called, is a coroutine capable of
-        being sent autoencoder prediction dataframes in which it will forward to influx
-
-        By autoencoder prediction dataframes, we mean the columns are prefixed with 'output_'
-        an 'input_' and then the tag/sensor name; and has a DatetimeIndex
+        being sent dataframes generated from the '/anomaly/prediction' endpoint
 
         Parameters
         ----------
@@ -99,15 +96,12 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         )
 
     @staticmethod
-    def create_anomaly_point_per_sensor(
+    def create_influxdb_point_from_dataframe_row(
         record: pd.Series, metadata: dict, endpoint: EndpointMetadata
-    ):
+    ) -> dict:
         """
-        Create JSON prepared anomaly points per sensor
-        Specicially for a pandas dataframe where we have access to
-        both input and output sensor values.
-
-        Column labels are expected to be 'input_<sensor-name>', 'output_<sensor-name>', etc.
+        Create JSON prepared anomaly point, in which case the row 'name'
+        must be set as a time acceptable from influxdb
 
         Parameters
         ----------
@@ -116,108 +110,20 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
 
         Returns
         -------
-        List[dict]
-            List of points ready to be written to influx
-        """
-        results = []
-        # Dealing with input_/output_ predictions dataframe
-        if any(c.startswith("input_") for c in record.keys() if isinstance(c, str)):
-            for sensor in endpoint.tag_list:
-                input = record[f"input_{sensor.name}"]
-                output = record[f"output_{sensor.name}"]
-                error = abs(input - output)
-
-                # Setup tags; metadata (if any) and other key value pairs.
-                tags = {
-                    "machine": f"{endpoint.target_name}",
-                    "sensor": f"{sensor.name}",
-                    "prediction-method": "POST",
-                }
-                tags.update({k: v for k, v in metadata})
-
-                # The actual record to be posted to Influx
-                data_per_machine_tag = {
-                    "measurement": "predictions",
-                    "tags": tags,
-                    "fields": {"input": input, "output": output, "error": error},
-                    "time": f"{record.name}",
-                }
-                results.append(data_per_machine_tag)
-
-        # Dealing with a simple sensor-name-as-column-name predictions dataframe
-        else:
-            # Setup tags; metadata (if any) and other key value pairs.
-            tags = {"machine": f"{endpoint.target_name}", "prediction-method": "GET"}
-            tags.update({k: v for k, v in metadata})
-
-            # The actual record to be posted to Influx
-            data_per_machine_tag = {
-                "measurement": "predictions",
-                "tags": tags,
-                "fields": {
-                    sensor.name: record[sensor.name] for sensor in endpoint.tag_list
-                },
-                "time": f"{record.name}",
-            }
-            results.append(data_per_machine_tag)
-
-        return results
-
-    @staticmethod
-    def create_anomaly_point(
-        record: pd.Series, metadata: dict, endpoint: EndpointMetadata
-    ):
-        """
-        Create a single point for influx entry with this record.
-
-        Provides a measurement 'anomaly' with field 'error' for the current
-        target/machine name.
-
-        Parameters
-        ----------
-        record: pd.Series
-            One row from a panadas dataframe in dict form
-
-        Returns
-        -------
         dict
-            One point ready to be written to influx
+            Point ready to be written to influxdb
         """
         # Setup tags; metadata (if any) and other key value pairs.
         tags = {"machine": f"{endpoint.target_name}"}
         tags.update({k: v for k, v in metadata})
 
-        # Dealing with input_/output_ predictions dataframe
-        if any(c.startswith("input_") for c in record.keys() if isinstance(c, str)):
-
-            tags.update({"prediction-method": "POST"})
-
-            inputs = np.array(
-                [record[k] for k in record.keys() if k.startswith("input_")]
-            )
-            outputs = np.array(
-                [record[k] for k in record.keys() if k.startswith("output_")]
-            )
-
-            anomaly_point = {
-                "measurement": "anomaly",
-                "tags": tags,
-                "fields": {"error": np.linalg.norm(inputs - outputs)},
-                "time": f"{record.name}",
-            }
-
-        # Dealing with a simple sensor-name-as-column-name predictions dataframe
-        else:
-            tags.update({"prediction-method": "GET"})
-
-            anomaly_point = {
-                "measurement": "anomaly",
-                "tags": tags,
-                "fields": {"total-anomaly": record["total-anomaly"]},
-                "time": f"{record.name}",
-            }
-
-        return anomaly_point
+        # The actual record to be posted to Influx
+        return {
+            "measurement": "predictions",
+            "tags": tags,
+            "fields": record.to_dict(),
+            "time": f"{record.name}",
+        }
 
     async def __call__(
         self,
@@ -255,35 +161,17 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         logger.info(f"Calculating points per sensor per record")
         data = [
             point
-            for package in predictions.apply(
-                lambda rec: self.create_anomaly_point_per_sensor(
+            for point in predictions.apply(
+                lambda rec: self.create_influxdb_point_from_dataframe_row(
                     rec, metadata, endpoint
                 ),
                 axis=1,
             )
-            for point in package
         ]
         # Async write predictions to influx
         with ThreadPoolExecutor(max_workers=1) as executor:
             # Write the per-sensor points to influx
             logger.info(f"Writing {len(data)} sensor points to Influx")
-            future = executor.submit(
-                self.destionation_client.write_points, data, batch_size=10000
-            )
-            await asyncio.wrap_future(future)
-
-            # Now calculate the error per line from model input vs output
-            logger.debug(f"Calculating points per record")
-            data = [
-                point
-                for point in predictions.apply(
-                    lambda rec: self.create_anomaly_point(rec, metadata, endpoint),
-                    axis=1,
-                )
-            ]
-            logger.info(f"Writing {len(data)} points to Influx")
-
-            # Write the per-sample errors to influx
             future = executor.submit(
                 self.destionation_client.write_points, data, batch_size=10000
             )

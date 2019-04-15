@@ -7,16 +7,18 @@ import time
 from typing import List
 
 import docker
-import ruamel.yaml
 import pytest
-import numpy as np
 import requests
+import ruamel.yaml
+import numpy as np
 
-from gordo_components.server import server
 from gordo_components import serializer
-from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.data_provider.providers import InfluxDataProvider
+from gordo_components.server import server
+
 from tests import utils as tu
+
 
 logger = logging.getLogger(__name__)
 
