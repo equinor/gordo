@@ -194,54 +194,47 @@ class ForwardPredictionsIntoInflux:
 
         return anomaly_point
 
-    async def __call__(self, endpoint: EndpointMetadata, metadata: dict = dict()):
-        """
-        Insert predictions into the destination influx
-        """
-        while True:
+    async def __call__(
+        self,
+        predictions: pd.DataFrame,
+        endpoint: EndpointMetadata,
+        metadata: dict = dict(),
+    ):
+        # First, let's post all anomalies per sensor
+        logger.info(f"Calculating points per sensor per record")
+        data = [
+            point
+            for package in predictions.apply(
+                lambda rec: self.create_anomaly_point_per_sensor(
+                    rec, metadata, endpoint
+                ),
+                axis=1,
+            )
+            for point in package
+        ]
 
-            # Predictions is a dataframe consisting of a DatetimeIndex and columns
-            # either as EndpointMetadata.tag_list values, or double that list with
-            # 'output_<tag>', 'input_<tag>' names  reflecting what the model got
-            # as input per tag and what it put out, per tag.
-            predictions = yield
+        # Async write predictions to influx
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            # Write the per-sensor points to influx
+            logger.info(f"Writing {len(data)} sensor points to Influx")
+            future = executor.submit(
+                self.destionation_client.write_points, data, batch_size=10000
+            )
+            await asyncio.wrap_future(future)
 
-            # First, let's post all anomalies per sensor
-            logger.info(f"Calculating points per sensor per record")
+            # Now calculate the error per line from model input vs output
+            logger.debug(f"Calculating points per record")
             data = [
                 point
-                for package in predictions.apply(
-                    lambda rec: self.create_anomaly_point_per_sensor(
-                        rec, metadata, endpoint
-                    ),
+                for point in predictions.apply(
+                    lambda rec: self.create_anomaly_point(rec, metadata, endpoint),
                     axis=1,
                 )
-                for point in package
             ]
+            logger.info(f"Writing {len(data)} points to Influx")
 
-            # Async write predictions to influx
-            with ThreadPoolExecutor(max_workers=1) as executor:
-
-                # Write the per-sensor points to influx
-                logger.info(f"Writing {len(data)} sensor points to Influx")
-                future = executor.submit(
-                    self.destionation_client.write_points, data, batch_size=10000
-                )
-                await asyncio.wrap_future(future)
-
-                # Now calculate the error per line from model input vs output
-                logger.debug(f"Calculating points per record")
-                data = [
-                    point
-                    for point in predictions.apply(
-                        lambda rec: self.create_anomaly_point(rec, metadata, endpoint),
-                        axis=1,
-                    )
-                ]
-                logger.info(f"Writing {len(data)} points to Influx")
-
-                # Write the per-sample errors to influx
-                future = executor.submit(
-                    self.destionation_client.write_points, data, batch_size=10000
-                )
-                await asyncio.wrap_future(future)
+            # Write the per-sample errors to influx
+            future = executor.submit(
+                self.destionation_client.write_points, data, batch_size=10000
+            )
+            await asyncio.wrap_future(future)

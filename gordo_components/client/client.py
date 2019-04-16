@@ -42,7 +42,9 @@ class Client:
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
         prediction_forwarder: typing.Optional[
-            typing.Callable[[EndpointMetadata, dict], typing.AsyncGenerator]
+            typing.Callable[
+                [pd.DataFrame, EndpointMetadata, dict], typing.Awaitable[None]
+            ]
         ] = None,
         batch_size: int = 1000,
         parallelism: int = 10,
@@ -70,11 +72,9 @@ class Client:
         data_provider: Optional[GordoBaseDataProvider]
             The data provider to use for the dataset. If not set, the client
             will fall back to using the GET /prediction endpoint
-        prediction_forwarder: Optional[Callable[[EndpointMetadata, dict], typing.AsyncGenerator]]
-            Async generator to initialize with two parameters: EndpointMetadata
-            and a dict of metadata key-value pairs. It should then be able to
-            process a dataframe of predicitions which has a datetime index.
-            (via .asend()).
+        prediction_forwarder: Optional[Callable[[pd.DataFrame, EndpointMetadata, dict], typing.Awaitable[None]]]
+            Async callable which will take a dataframe of predictions, ``EndpointMetadata`` and the metadata
+            passed into this constructor
         batch_size: int
             How many samples to send to the server, only applicable when data
             provider is supplied.
@@ -197,14 +197,7 @@ class Client:
         # For every endpoint, start making predictions for the time range
         jobs = asyncio.gather(
             *[
-                predict_method(
-                    endpoint=endpoint,
-                    start=start,
-                    end=end,
-                    forwarder=self.prediction_forwarder(endpoint, self.metadata)
-                    if self.prediction_forwarder is not None
-                    else None,
-                )
+                predict_method(endpoint=endpoint, start=start, end=end)
                 for endpoint in self.endpoints
             ]
         )
@@ -221,11 +214,7 @@ class Client:
         ]  # type: ignore
 
     async def _predict_via_post(
-        self,
-        endpoint: EndpointMetadata,
-        start: datetime,
-        end: datetime,
-        forwarder: typing.Optional[typing.AsyncGenerator],
+        self, endpoint: EndpointMetadata, start: datetime, end: datetime
     ) -> PredictionResult:
         """
         Get predictions based on the /prediction POST endpoint of Gordo ML Servers
@@ -236,14 +225,12 @@ class Client:
             Named tuple which has 'endpoint' specifying the full url to the base ml server
         start: datetime
         end: datetime
+
         Returns
         -------
         dict
             Prediction response from /prediction GET
         """
-
-        if forwarder is not None and not forwarder.ag_running:
-            await forwarder.asend(None)  # start async coroutine
 
         # Fetch all of the raw data
         X, y = await self._raw_data(endpoint, start, end)
@@ -258,21 +245,19 @@ class Client:
                     endpoint=endpoint,
                     start=start,
                     end=end,
-                    forwarder=forwarder,
                     session=session,
                 )
                 for i in range(0, X.shape[0], self.batch_size)
             ]
             return await self._accumulate_coroutine_predictions(endpoint, jobs)
 
-    @staticmethod
     async def _process_post_prediction_task(
+        self,
         X: pd.DataFrame,
         chunk: slice,
         endpoint: EndpointMetadata,
         start: datetime,
         end: datetime,
-        forwarder: typing.Optional[typing.AsyncGenerator] = None,
         session: typing.Optional[aiohttp.ClientSession] = None,
     ):
         """
@@ -287,7 +272,6 @@ class Client:
         endpoint: EndpointMetadata
         start: datetime
         end: datetime
-        forwarder: Optional[AsyncGenerator]
 
         Notes
         -----
@@ -327,19 +311,15 @@ class Client:
         )
 
         # Forward predictions to any other consumer if registered.
-        if forwarder is not None:
-            await forwarder.asend(predictions)
+        if self.prediction_forwarder is not None:
+            await self.prediction_forwarder(predictions, endpoint, self.metadata)
 
         return PredictionResult(
             name=endpoint.target_name, predictions=predictions, error_messages=[]
         )
 
     async def _predict_via_get(
-        self,
-        endpoint: EndpointMetadata,
-        start: datetime,
-        end: datetime,
-        forwarder: typing.Optional[typing.AsyncGenerator],
+        self, endpoint: EndpointMetadata, start: datetime, end: datetime
     ) -> PredictionResult:
         """
         Get predictions based on the /prediction GET endpoint of Gordo ML Servers
@@ -358,27 +338,21 @@ class Client:
         """
         start_end_dates = make_date_ranges(start, end, max_interval_days=1, freq="23H")
 
-        if forwarder is not None and not forwarder.ag_running:
-            await forwarder.asend(None)  # start async coroutine
-
         async with aiohttp.ClientSession() as session:
 
             # Create all the jobs which will be done, but don't await them
             jobs = [
-                self._process_get_prediction_task(
-                    endpoint, start, end, forwarder, session
-                )
+                self._process_get_prediction_task(endpoint, start, end, session)
                 for start, end in start_end_dates
             ]
 
             return await self._accumulate_coroutine_predictions(endpoint, jobs)
 
-    @staticmethod
     async def _process_get_prediction_task(
+        self,
         endpoint: EndpointMetadata,
         start: datetime,
         end: datetime,
-        forwarder: typing.Optional[typing.AsyncGenerator] = None,
         session: typing.Optional[aiohttp.ClientSession] = None,
     ):
         """
@@ -391,7 +365,6 @@ class Client:
         endpoint: EndpointMetadata
         start: datetime
         end: datetime
-        forwarder: Optional[AsyncGenerator]
 
         Notes
         -----
@@ -438,8 +411,8 @@ class Client:
         # Convert to dataframe
         predictions = pd.DataFrame.from_records(records, index="time")
 
-        if forwarder is not None:
-            await forwarder.asend(predictions)
+        if self.prediction_forwarder is not None:
+            await self.prediction_forwarder(predictions, endpoint, self.metadata)
         return PredictionResult(
             name=endpoint.target_name, predictions=predictions, error_messages=[]
         )
@@ -457,6 +430,7 @@ class Client:
         jobs: List[Coroutine]
             An awaitable coroutine which will return a single PredictionResult
             from a single prediction task
+
         Returns
         -------
         PredictionResult
