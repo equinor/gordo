@@ -10,6 +10,7 @@ import click
 import pandas as pd  # noqa
 
 from gordo_components.client import Client
+from gordo_components.client.client import EndpointMetadata  # noqa
 from gordo_components import serializer
 from gordo_components.data_provider import providers
 from gordo_components.cli.custom_types import IsoFormatDateTime, DataProviderParam
