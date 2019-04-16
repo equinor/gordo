@@ -263,7 +263,7 @@ class Client:
                 )
                 for i in range(0, X.shape[0], self.batch_size)
             ]
-        return await self._accumulate_coroutine_predictions(endpoint, jobs)
+            return await self._accumulate_coroutine_predictions(endpoint, jobs)
 
     @staticmethod
     async def _process_post_prediction_task(
@@ -371,7 +371,7 @@ class Client:
                 for start, end in start_end_dates
             ]
 
-        return await self._accumulate_coroutine_predictions(endpoint, jobs)
+            return await self._accumulate_coroutine_predictions(endpoint, jobs)
 
     @staticmethod
     async def _process_get_prediction_task(
