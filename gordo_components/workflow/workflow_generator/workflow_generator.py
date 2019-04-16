@@ -88,16 +88,19 @@ def get_dict_from_yaml(config_file: typing.Union[str, typing.IO[str]]) -> dict:
     """
     Read a config file or file like object of YAML into a dict
     """
-    yaml.add_constructor(
+    yaml.FullLoader.add_constructor(
         tag="tag:yaml.org,2002:timestamp", constructor=_timestamp_constructor
     )
     if hasattr(config_file, "read"):
-        return yaml.load(config_file)
+        return yaml.load(config_file, Loader=yaml.FullLoader)
     try:
-        with open(os.path.abspath(str(config_file)), "r") as yamlfile:
-            return yaml.load(yamlfile)
+        path_to_config_file = os.path.abspath(str(config_file))
+        with open(path_to_config_file, "r") as yamlfile:
+            return yaml.load(yamlfile, Loader=yaml.FullLoader)
     except FileNotFoundError:
-        raise FileNotFoundError("Unable to find config file <{}>".format(config_file))
+        raise FileNotFoundError(
+            "Unable to find config file <{}>".format(path_to_config_file)
+        )
 
 
 def load_workflow_template(workflow_template: str) -> jinja2.Template:
