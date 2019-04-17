@@ -302,12 +302,16 @@ class Client:
         # Get the output values
         values = np.array(resp["output"])
 
+        # Chunks can have None as end-point
+        chunk_stop = chunk.stop if chunk.stop else len(X)
+        # Chunks can also be larger than the actual data
+        chunk_stop = min(chunk_stop, len(X))
         predictions = pd.DataFrame(
             data=values,
             columns=[f"input_{sensor}" for sensor in X.columns]
             + [f"output_{sensor}" for sensor in X.columns],
             # match any offsetting from windowed models
-            index=X.index[-len(values) :],
+            index=X.index[chunk_stop - len(values) : chunk_stop],
         )
 
         # Forward predictions to any other consumer if registered.
