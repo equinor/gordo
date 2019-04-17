@@ -111,6 +111,29 @@ def test_client_predictions_with_or_without_data_provider(
     """
     Run the prediction client with or without a data provider
     """
+    use_client_predictions(trained_model_directory, use_data_provider, batch_size=1000)
+
+
+@pytest.mark.dockertest
+@pytest.mark.parametrize("batch_size", (10, 100))
+@pytest.mark.parametrize("trained_model_directory", (SENSORS,), indirect=True)
+def test_client_predictions_different_batch_sizes(
+    trained_model_directory: pytest.fixture, batch_size: int
+):
+    """
+    Run the prediction client with different batch-sizes
+    """
+    use_client_predictions(
+        trained_model_directory, use_data_provider=True, batch_size=batch_size
+    )
+
+
+def use_client_predictions(
+    trained_model_directory: pytest.fixture, use_data_provider: bool, batch_size: int
+):
+    """
+    Run the prediction client with or without a data provider
+    """
 
     with watchman(
         host="localhost",
@@ -165,6 +188,7 @@ def test_client_predictions_with_or_without_data_provider(
             prediction_forwarder=ForwardPredictionsIntoInflux(
                 destination_influx_uri=uri
             ),
+            batch_size=batch_size,
         )
 
         # Should have discovered machine-1 & machine-2
