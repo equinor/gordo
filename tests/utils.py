@@ -2,6 +2,8 @@ import os
 import json
 import typing
 import re
+import time
+import logging
 from contextlib import contextmanager
 
 import responses
@@ -11,6 +13,48 @@ from asynctest import mock as async_mock
 from gordo_components.dataset.datasets import RandomDataProvider
 from gordo_components.watchman import server as watchman_server
 from gordo_components.server import server as gordo_ml_server
+
+logger = logging.getLogger(__name__)
+
+
+def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
+    """Waits up to `max_wait` seconds for influx at `influx_host` to start up.
+
+    Checks by pinging inflix at /ping.
+
+    Parameters
+    ----------
+    influx_host : str
+        Where is influx?
+    max_wait : int
+        How many seconds to wait in total for influx to start up
+
+    Returns
+    -------
+    bool
+        True if influx started up, False if it did not start during the `max_wait`
+        period.
+
+    """
+    healtcheck_endpoint = f"http://{influx_host}/ping?verbose=true"
+    before_time = time.perf_counter()
+    influx_ok = False
+    while not influx_ok and time.perf_counter() - before_time < max_wait:
+        try:
+            code = requests.get(
+                healtcheck_endpoint, timeout=1, proxies={"https": "", "http": ""}
+            ).status_code
+            logger.debug(f"Influx gave code {code}")
+            influx_ok = code == 200
+        except requests.exceptions.ConnectionError:
+            influx_ok = False
+        time.sleep(0.5)
+    if (time.perf_counter() - before_time) < max_wait:
+        logger.info("Found that influx started")
+        return True
+    else:
+        logger.warning("Found that influx never started")
+        return False
 
 
 @contextmanager
@@ -143,6 +187,7 @@ def watchman(
 
             rsps.add_passthru("http+docker://")  # Docker
             rsps.add_passthru("http://localhost:8086")  # Local influx
+            rsps.add_passthru("http://localhost:8087")  # Local influx
 
             yield
 

@@ -18,7 +18,7 @@ from influxdb import InfluxDBClient
 from gordo_components.server import server
 from gordo_components import serializer
 from gordo_components.data_provider.providers import InfluxDataProvider
-from tests.utils import temp_env_vars
+from tests.utils import temp_env_vars, wait_for_influx
 
 logger = logging.getLogger(__name__)
 
@@ -44,47 +44,57 @@ def influxdatabase(
     client = docker.from_env()
 
     logger.info("Starting up influx!")
-    influx = client.containers.run(
-        image="influxdb:1.7-alpine",
-        environment={
-            "INFLUXDB_DB": db_name,
-            "INFLUXDB_ADMIN_USER": user,
-            "INFLUXDB_ADMIN_PASSWORD": password,
-        },
-        ports={"8086/tcp": "8086"},
-        remove=True,
-        detach=True,
-    )
-    time.sleep(2)  # Give Influx some time to initialize
-    logger.info(f"Started influx DB: {influx.name}")
-
-    # Seed database with some records
-    influx_client = InfluxDBClient(
-        "localhost", 8086, user, password, db_name, proxies={"http": "", "https": ""}
-    )
-    dates = pd.date_range(
-        start="2016-01-01", periods=2880, freq="min"
-    )  # Minute intervals for 2 days
-
-    logger.info("Seeding database")
-    for sensor in sensors:
-        logger.info(f"Loading tag: {sensor}")
-        points = np.random.random(size=dates.shape[0])
-        data = [
-            {
-                "measurement": measurement,
-                "tags": {"tag": sensor},
-                "time": f"{date}",
-                "fields": {"Value": point},
-            }
-            for point, date in zip(points, dates)
-        ]
-        influx_client.write_points(data)
+    influx = None
     try:
+        influx = client.containers.run(
+            image="influxdb:1.7-alpine",
+            environment={
+                "INFLUXDB_DB": db_name,
+                "INFLUXDB_ADMIN_USER": user,
+                "INFLUXDB_ADMIN_PASSWORD": password,
+            },
+            ports={"8086/tcp": "8086"},
+            remove=True,
+            detach=True,
+        )
+        if not wait_for_influx(influx_host="localhost:8086"):
+            raise TimeoutError("Influx failed to start")
+
+        logger.info(f"Started influx DB: {influx.name}")
+
+        # Seed database with some records
+        influx_client = InfluxDBClient(
+            "localhost",
+            8086,
+            user,
+            password,
+            db_name,
+            proxies={"http": "", "https": ""},
+        )
+        dates = pd.date_range(
+            start="2016-01-01", periods=2880, freq="min"
+        )  # Minute intervals for 2 days
+
+        logger.info("Seeding database")
+        for sensor in sensors:
+            logger.info(f"Loading tag: {sensor}")
+            points = np.random.random(size=dates.shape[0])
+            data = [
+                {
+                    "measurement": measurement,
+                    "tags": {"tag": sensor},
+                    "time": f"{date}",
+                    "fields": {"Value": point},
+                }
+                for point, date in zip(points, dates)
+            ]
+            influx_client.write_points(data)
+
         yield
     finally:
         logger.info("Killing influx container")
-        influx.kill()
+        if influx:
+            influx.kill()
         logger.info("Killed influx container")
 
 
