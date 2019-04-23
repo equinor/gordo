@@ -13,3 +13,4 @@ nbconvert==5.4.0
 tornado>=4, <6  # https://github.com/jupyter/notebook/pull/4310#issuecomment-452368841
 pytest-asyncio~=0.10
 asynctest~=0.12
+urllib3>=1.24.2,<2.0
