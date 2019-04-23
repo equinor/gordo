@@ -59,7 +59,7 @@ class WorkflowGeneratorTestCase(unittest.TestCase):
             detach=False,
             volumes={repo_dir: {"bind": "/code", "mode": "ro"}},
         )
-        self.assertEqual(
+        self.assertTrue(
             result.decode().strip().endswith("Workflow manifests validated")
         )
         client.images.remove(img.id, force=True)
