@@ -3,7 +3,6 @@ import unittest
 import yaml
 import docker
 import logging
-import time
 import dateutil.parser
 
 import pandas as pd
@@ -16,6 +15,8 @@ from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.dataset import _get_dataset
 
 import pytest
+
+from tests.utils import wait_for_influx
 
 logger = logging.getLogger(__name__)
 
@@ -34,33 +35,39 @@ class PredictionInfluxTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.runner = CliRunner()
-        cls.docker_client = docker.from_env()
-        cls.containers = []
-        logger.info("Starting up influx!")
-        influx = cls.docker_client.containers.run(
-            image="influxdb:1.7-alpine",
-            environment={
-                "INFLUXDB_DB": SOURCE_DB_NAME,
-                "INFLUXDB_ADMIN_USER": "root",
-                "INFLUXDB_ADMIN_PASSWORD": "root",
-            },
-            ports={"8086/tcp": "8087"},
-            remove=True,
-            detach=True,
-        )
-        cls.containers.append(influx)
-        time.sleep(3)  # Give Influx some time to initialize
-        logger.info(f"Started influx DB: {influx.name}")
-        cls._seed_source_db()
-        cls.influx_config = {
-            "host": "localhost",
-            "port": 8087,
-            "username": "root",
-            "password": "root",
-            "database": SOURCE_DB_NAME,  # this is also the measurement name - to change
-            "proxies": {"http": "", "https": ""},
-        }
+        try:
+            cls.runner = CliRunner()
+            cls.docker_client = docker.from_env()
+            cls.containers = []
+            logger.info("Starting up influx!")
+            influx = cls.docker_client.containers.run(
+                image="influxdb:1.7-alpine",
+                environment={
+                    "INFLUXDB_DB": SOURCE_DB_NAME,
+                    "INFLUXDB_ADMIN_USER": "root",
+                    "INFLUXDB_ADMIN_PASSWORD": "root",
+                },
+                ports={"8086/tcp": "8087"},
+                remove=True,
+                detach=True,
+            )
+            cls.containers.append(influx)
+            if not wait_for_influx(influx_host="localhost:8087"):
+                raise TimeoutError("Influx failed to start")
+            logger.info(f"Started influx DB: {influx.name}")
+            cls._seed_source_db()
+            cls.influx_config = {
+                "host": "localhost",
+                "port": 8087,
+                "username": "root",
+                "password": "root",
+                "database": SOURCE_DB_NAME,  # this is also the measurement name - to change
+                "proxies": {"http": "", "https": ""},
+            }
+        except Exception:
+            logger.error("Failed setUpClass, cleaning up containers (influx)")
+            cls.tearDownClass()
+            raise
 
     @staticmethod
     def _load_unique_sensors():
