@@ -19,7 +19,7 @@ from gordo_components.data_provider import providers
 from gordo_components import cli, serializer
 from gordo_components.cli import custom_types
 
-from tests.test_gordo_server import influxdatabase, SENSORS
+from tests.test_server.test_gordo_server import influxdatabase, SENSORS
 from tests.utils import watchman
 
 

@@ -5,6 +5,7 @@ import tempfile
 import logging
 import pydoc
 
+import pytest
 import numpy as np
 
 from sklearn.exceptions import NotFittedError

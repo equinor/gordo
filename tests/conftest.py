@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 
 from gordo_components import serializer
-from tests.test_gordo_server import SENSORS
+from tests.test_server.test_gordo_server import SENSORS
 
 
 @pytest.fixture(scope="session")
