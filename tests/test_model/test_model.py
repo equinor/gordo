@@ -24,157 +24,118 @@ from gordo_components.model.register import register_model_builder
 logger = logging.getLogger(__name__)
 
 
+# Generator of model types to each available model kind for that type
+# ie. (('KerasAutoEncoder', 'hourglass'), ('KerasAutoEncoder', 'symmetric'), ...)
+MODEL_COMBINATIONS = (
+    (model, kind)
+    for model in register_model_builder.factories.keys()
+    for kind in register_model_builder.factories[model].keys()
+)
+
+# Generator of model types to one kind, rather than all combinations of kinds per type
+MODEL_SINGLE_KIND = (
+    (model, sorted(register_model_builder.factories[model].keys())[0])
+    for model in register_model_builder.factories.keys()
+)
+
+
+@pytest.mark.parametrize("model,kind", MODEL_SINGLE_KIND)
+def test_keras_autoencoder_scoring(model, kind):
+    """
+    Test the KerasAutoEncoder and KerasLSTMAutoEncoder have a working scoring function
+    """
+    Model = pydoc.locate(f"gordo_components.model.models.{model}")
+    model = Pipeline([("model", Model(kind=kind))])
+    X = np.random.random(size=8).reshape(-1, 2)
+
+    with pytest.raises(NotFittedError):
+        model.score(X.copy(), X.copy())
+
+    model.fit(X)
+    score = model.score(X)
+    logger.info(f"Score: {score:.4f}")
+
+
+@pytest.mark.parametrize("model,kind", MODEL_SINGLE_KIND)
+def test_keras_autoencoder_crossval(model, kind):
+    """
+    Test ability for cross validation
+    """
+    Model = pydoc.locate(f"gordo_components.model.models.{model}")
+    model = Pipeline([("model", Model(kind=kind))])
+
+    X = np.random.random(size=8).reshape(-1, 2)
+
+    scores = cross_val_score(
+        model, X, X, cv=TimeSeriesSplit(n_splits=2, max_train_size=2)
+    )
+    logger.info(f"Mean score: {scores.mean():.4f} - Std score: {scores.std():.4f}")
+
+
+@pytest.mark.parametrize("model,kind", MODEL_COMBINATIONS)
+def test_keras_type_config(model, kind):
+    """
+    Test creating a keras based model from config
+    """
+    config = {"type": model, "kind": kind}
+
+    # Ensure we can poke the model the same
+    model_out = get_model(config)
+    assert isinstance(model_out, GordoBase)
+    assert isinstance(model_out, BaseWrapper)
+    assert isinstance(model_out, pydoc.locate(f"gordo_components.model.models.{model}"))
+
+
+@pytest.mark.parametrize("model,kind", MODEL_SINGLE_KIND)
+def test_save_load(model, kind):
+    config = {"type": model, "kind": kind}
+
+    # Have to call fit, since model production is lazy
+    X = np.random.random(size=10).reshape(5, 2)
+
+    # AutoEncoder is fine without a y target
+    config["type"] = model
+    model_out = get_model(config)
+    assert "history" not in model_out.get_metadata()
+    model_out.fit(X)
+    assert "history" in model_out.get_metadata()
+
+    xTest = np.random.random(size=6).reshape(3, 2)
+    xHat = model_out.transform(xTest)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        model_out.save_to_dir(tmp)
+        model_out_clone = pydoc.locate(
+            f"gordo_components.model.models.{model}"
+        ).load_from_dir(tmp)
+
+        # Assert parameters are the same.
+        assert model_out_clone.get_params() == model_out_clone.get_params()
+
+        # Assert it maintained the state by ensuring predictions are the same
+        assert np.allclose(xHat.flatten(), model_out_clone.transform(xTest).flatten())
+
+        assert "history" in model_out.get_metadata()
+        assert (
+            model_out.get_metadata() == model_out_clone.get_metadata()
+        ), "Metadata from model is not same after saving and loading"
+
+        # Assert that epochs list, history dict and params dict in
+        # the History object are the same
+        assert (
+            model_out.model.history.epoch == model_out_clone.model.history.epoch
+        ), "Epoch lists differ between original and loaded model history"
+
+        assert (
+            model_out.model.history.history == model_out_clone.model.history.history
+        ), "History dictionary with losses and accuracies differ between original and loaded model history"
+
+        assert (
+            model_out.model.history.params == model_out_clone.model.history.params
+        ), "Params dictionaries differ between original and loaded model history"
+
+
 class KerasModelTestCase(unittest.TestCase):
-    def test_keras_type_config(self):
-        """
-        Test creating a keras based model from config
-        """
-        self.factories = register_model_builder.factories
-        for model in self.factories.keys():
-            if model != "KerasBaseEstimator":
-                for model_kind in self.factories[model].keys():
-                    config = {"type": model, "kind": model_kind}
-
-                    # Ensure we can poke the model the same
-                    model_out = get_model(config)
-                    self.assertIsInstance(model_out, GordoBase)
-                    self.assertIsInstance(model_out, BaseWrapper)
-                    self.assertIsInstance(
-                        model_out,
-                        pydoc.locate(f"gordo_components.model.models.{model}"),
-                    )
-
-    def test_keras_autoencoder_scoring(self):
-        """
-        Test the KerasAutoEncoder and KerasLSTMAutoEncoder have a working scoring function
-        """
-        self.factories = register_model_builder.factories
-        for model_str in self.factories.keys():
-            if model_str != "KerasBaseEstimator":
-                for model_kind in self.factories[model_str].keys():
-                    Model = pydoc.locate(f"gordo_components.model.models.{model_str}")
-                    raw_model = Model(kind=model_kind)
-                    pipe = Pipeline([("ae", Model(kind=model_kind))])
-                    X = np.random.random(size=8).reshape(-1, 2)
-
-                    for model in (raw_model, pipe):
-
-                        with self.assertRaises(NotFittedError):
-                            model.score(X.copy(), X.copy())
-
-                        model.fit(X)
-                        score = model.score(X)
-                        logger.info(f"Score: {score:.4f}")
-
-    def test_keras_autoencoder_crossval(self):
-        """
-        Test ability for cross validation
-        """
-        self.factories = register_model_builder.factories
-        for model_str in self.factories.keys():
-            if model_str != "KerasBaseEstimator":
-                for model_kind in self.factories[model_str].keys():
-                    Model = pydoc.locate(f"gordo_components.model.models.{model_str}")
-                    raw_model = Model(kind=model_kind)
-                    pipe = Pipeline([("ae", Model(kind=model_kind))])
-
-                    X = np.random.random(size=8).reshape(-1, 2)
-
-                    for model in (raw_model, pipe):
-                        scores = cross_val_score(
-                            model,
-                            X,
-                            X,
-                            cv=TimeSeriesSplit(n_splits=2, max_train_size=2),
-                        )
-                        logger.info(
-                            f"Mean score: {scores.mean():.4f} - Std score: {scores.std():.4f}"
-                        )
-
-    def test_expected_target_in_fit(
-        self
-    ):  # TODO to remove if we unregister feedfoward_autoencoder from KerasBaseEstimator?
-        config = {"type": "KerasBaseEstimator", "kind": "feedforward_hourglass"}
-
-        # Ensure we can poke the model the same
-        model = get_model(config)
-
-        # Have to call fit, since model production is lazy
-        X = np.random.random(size=10).reshape(5, 2)
-
-        # Unless it's the KerasAutoEncoder type, it would expect a y as a target
-        with self.assertRaises(TypeError):
-            model.fit(X)
-
-    def test_save_load(self):
-        self.factories = register_model_builder.factories
-        for model in self.factories.keys():
-            if model != "KerasBaseEstimator":
-                for model_kind in self.factories[model].keys():
-                    config = {"type": model, "kind": model_kind}
-
-                    # Have to call fit, since model production is lazy
-                    X = np.random.random(size=10).reshape(5, 2)
-
-                    # AutoEncoder is fine without a y target
-                    config["type"] = model
-                    model_out = get_model(config)
-                    self.assertFalse("history" in model_out.get_metadata())
-                    model_out.fit(X)
-                    self.assertTrue("history" in model_out.get_metadata())
-
-                    xTest = np.random.random(size=6).reshape(3, 2)
-                    xHat = model_out.transform(xTest)
-
-                    with tempfile.TemporaryDirectory() as tmp:
-                        model_out.save_to_dir(tmp)
-                        model_out_clone = pydoc.locate(
-                            f"gordo_components.model.models.{model}"
-                        ).load_from_dir(tmp)
-
-                        # Assert parameters are the same.
-                        self.assertEqual(
-                            model_out_clone.get_params(), model_out_clone.get_params()
-                        )
-
-                        # Assert it maintained the state by ensuring predictions are the same
-                        self.assertTrue(
-                            np.allclose(
-                                xHat.flatten(),
-                                model_out_clone.transform(xTest).flatten(),
-                            )
-                        )
-
-                        self.assertTrue("history" in model_out.get_metadata())
-                        self.assertEqual(
-                            model_out.get_metadata(),
-                            model_out_clone.get_metadata(),
-                            "Metadata from model is not same after "
-                            "saving and loading",
-                        )
-                        # Assert that epochs list, history dict and params dict in
-                        # the History object are the same
-                        self.assertEqual(
-                            model_out.model.history.epoch,
-                            model_out_clone.model.history.epoch,
-                            "Epoch lists differ between original and "
-                            "loaded model history",
-                        )
-                        self.assertEqual(
-                            model_out.model.history.history,
-                            model_out_clone.model.history.history,
-                            "History dictionary with losses and "
-                            "accuracies differ "
-                            "between original and loaded model history",
-                        )
-                        self.assertEqual(
-                            model_out.model.history.params,
-                            model_out_clone.model.history.params,
-                            "Params dictionaries differ between "
-                            "original and loaded "
-                            "model history",
-                        )
-
     def test__generate_window_valueerror(self):
         # test for KerasAutoEncoder
         # Assert that ValueError is raised if lookback_window > number of readings (rows of X)

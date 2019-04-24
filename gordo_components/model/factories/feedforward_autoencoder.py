@@ -12,7 +12,6 @@ from gordo_components.model.factories.model_factories_utils import hourglass_cal
 
 
 @register_model_builder(type="KerasAutoEncoder")
-@register_model_builder(type="KerasBaseEstimator")
 def feedforward_model(
     n_features: int,
     enc_dim: List[int] = None,
@@ -84,7 +83,6 @@ def feedforward_model(
 
 
 @register_model_builder(type="KerasAutoEncoder")
-@register_model_builder(type="KerasBaseEstimator")
 def feedforward_symmetric(
     n_features: int,
     dims: Tuple[int, ...] = (256, 128, 64),
@@ -115,7 +113,6 @@ def feedforward_symmetric(
 
 
 @register_model_builder(type="KerasAutoEncoder")
-@register_model_builder(type="KerasBaseEstimator")
 def feedforward_hourglass(
     n_features: int,
     encoding_layers: int = 3,
