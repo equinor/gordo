@@ -1,217 +1,128 @@
-import os
-import unittest
-import yaml
-import docker
 import logging
 import dateutil.parser
 
-import pandas as pd
-import numpy as np
-
-from influxdb import InfluxDBClient
-from click.testing import CliRunner
-
-from gordo_components.data_provider.providers import InfluxDataProvider
-from gordo_components.dataset import _get_dataset
-
 import pytest
 
-from tests.utils import wait_for_influx
+from gordo_components.data_provider.providers import InfluxDataProvider
+from gordo_components.client.utils import influx_client_from_uri
+from gordo_components.dataset import _get_dataset
+
+from tests.gordo_components.server.test_gordo_server import SENSORS
+
 
 logger = logging.getLogger(__name__)
 
 
-SOURCE_DB_NAME = "sensors"  # This is also used for influx measurement name!
-DESTINATION_DB_NAME = "destdb"
+INFLUXDB_URI = "root:root@localhost:8086/testdb"
 
 
-@pytest.mark.dockertest
-class PredictionInfluxTestCase(unittest.TestCase):
-    @classmethod
-    def tearDownClass(cls):
-        for container in cls.containers:
-            logger.info(f"Killing container: {container.name}")
-            container.kill()
+@pytest.mark.parametrize(
+    "influxdb", [(SENSORS, "testdb", "root", "root", "sensors")], indirect=True
+)
+def test_read_single_sensor_empty_data_time_range_indexerror(influxdb, caplog):
+    """
+    Asserts that an IndexError is raised because the dates requested are outside the existing time period
+    """
+    from_ts = dateutil.parser.isoparse("2017-01-01T09:11:00+00:00")
+    to_ts = dateutil.parser.isoparse("2017-01-01T10:30:00+00:00")
 
-    @classmethod
-    def setUpClass(cls):
-        try:
-            cls.runner = CliRunner()
-            cls.docker_client = docker.from_env()
-            cls.containers = []
-            logger.info("Starting up influx!")
-            influx = cls.docker_client.containers.run(
-                image="influxdb:1.7-alpine",
-                environment={
-                    "INFLUXDB_DB": SOURCE_DB_NAME,
-                    "INFLUXDB_ADMIN_USER": "root",
-                    "INFLUXDB_ADMIN_PASSWORD": "root",
-                },
-                ports={"8086/tcp": "8087"},
-                remove=True,
-                detach=True,
-            )
-            cls.containers.append(influx)
-            if not wait_for_influx(influx_host="localhost:8087"):
-                raise TimeoutError("Influx failed to start")
-            logger.info(f"Started influx DB: {influx.name}")
-            cls._seed_source_db()
-            cls.influx_config = {
-                "host": "localhost",
-                "port": 8087,
-                "username": "root",
-                "password": "root",
-                "database": SOURCE_DB_NAME,  # this is also the measurement name - to change
-                "proxies": {"http": "", "https": ""},
-            }
-        except Exception:
-            logger.error("Failed setUpClass, cleaning up containers (influx)")
-            cls.tearDownClass()
-            raise
+    ds = InfluxDataProvider(
+        measurement="sensors",
+        value_name="Value",
+        client=influx_client_from_uri(uri=INFLUXDB_URI, dataframe_client=True),
+    )
 
-    @staticmethod
-    def _load_unique_sensors():
-        """
-        Loads unique tags from test/data/*config* files
-        """
-        sensors = set()
-        path_to_config = os.path.dirname(os.path.abspath(__file__))
-        config = os.path.join(path_to_config, "..", "..", "config-test.yaml")
-        with open(config) as f:
-            config = yaml.load(f)
-        for machine in config["machines"].values():
-            for sensor in machine["tags"]:
-                sensors.add(sensor)
-        return sensors
-
-    @staticmethod
-    def _seed_source_db():
-        """
-        Seed the source db with random, made up tags
-        """
-        client = InfluxDBClient(
-            "localhost",
-            8087,
-            "root",
-            "root",
-            SOURCE_DB_NAME,
-            proxies={"http": "", "https": ""},
-        )
-        dates = pd.date_range(
-            start="2016-01-01", periods=1440, freq="min"
-        )  # Minute intervals for 1 day
-        for sensor in PredictionInfluxTestCase._load_unique_sensors():
-            logger.info(f"Loading tag: {sensor}")
-            points = np.random.random(size=dates.shape[0])
-            data = [
-                {
-                    "measurement": SOURCE_DB_NAME,
-                    "tags": {"tag": sensor},
-                    "time": f"{date}",
-                    "fields": {"Value": point},
-                }
-                for point, date in zip(points, dates)
-            ]
-            client.write_points(data)
-
-    @pytest.fixture(autouse=True)
-    def caplog_fixture(self, caplog):
-        self.caplog = caplog
-
-    def test_read_single_sensor_empty_data_time_range_indexerror(self):
-
-        """
-        Asserts that an IndexError is raised because the dates requested are outside the existing time period
-        """
-
-        from_ts = "2017-01-01T09:11:00+00:00"
-        to_ts = "2017-01-01T10:30:00+00:00"
-        from_ts = dateutil.parser.isoparse(from_ts)
-        to_ts = dateutil.parser.isoparse(to_ts)
-        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
-        tag = "TRC-FIQ -23-0453N"
-        with self.caplog.at_level(logging.CRITICAL):
-            with self.assertRaises(IndexError):
-                ds.read_single_sensor(
-                    from_ts=from_ts, to_ts=to_ts, tag=tag, measurement=SOURCE_DB_NAME
-                )
-
-    def test_read_single_sensor_empty_data_invalid_tag_name_valueerror(self):
-        """
-        Asserts that a ValueError is raised because the tag name inputted is invalid
-        """
-
-        from_ts = "2016-01-01T09:11:00+00:00"
-        to_ts = "2016-01-01T10:30:00+00:00"
-        from_ts = dateutil.parser.isoparse(from_ts)
-        to_ts = dateutil.parser.isoparse(to_ts)
-        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
-        tag = "TRC-FIQ -23-045N"
-        with self.assertRaises(ValueError):
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(IndexError):
             ds.read_single_sensor(
-                from_ts=from_ts, to_ts=to_ts, tag=tag, measurement=SOURCE_DB_NAME
+                from_ts=from_ts, to_ts=to_ts, tag=SENSORS[0], measurement="sensors"
             )
 
-    def test__list_of_tags_from_influx_validate_tag_names(self):
-        from_ts = "2016-01-01T09:11:00+00:00"
-        to_ts = "2016-01-01T10:30:00+00:00"
-        from_ts = dateutil.parser.isoparse(from_ts)
-        to_ts = dateutil.parser.isoparse(to_ts)
-        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
-        expected_tags = {
-            "TRC-FIQ -23-0453N",
-            "TRC-FIQ -80-0303N",
-            "TRC-FIQ -80-0703N",
-            "TRC-FIQ -80-0704N",
-            "TRC-FIQ -80-0705N",
-        }
-        list_of_tags = ds._list_of_tags_from_influx()
-        tags = set(list_of_tags)
-        self.assertTrue(
-            expected_tags == tags,
-            msg=f"Expected tags = {expected_tags}" f"outputted {tags}",
+
+@pytest.mark.parametrize(
+    "influxdb", [(SENSORS, "testdb", "root", "root", "sensors")], indirect=True
+)
+def test_read_single_sensor_empty_data_invalid_tag_name_valueerror(influxdb):
+    """
+    Asserts that a ValueError is raised because the tag name inputted is invalid
+    """
+    from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
+    to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
+
+    ds = InfluxDataProvider(
+        measurement="sensors",
+        value_name="Value",
+        client=influx_client_from_uri(uri=INFLUXDB_URI, dataframe_client=True),
+    )
+    with pytest.raises(ValueError):
+        ds.read_single_sensor(
+            from_ts=from_ts,
+            to_ts=to_ts,
+            tag="tag-does-not-exist",
+            measurement="sensors",
         )
 
-    def test_get_list_of_tags(self):
-        ds = InfluxDataProvider(measurement=SOURCE_DB_NAME, **self.influx_config)
-        expected_tags = {
-            "TRC-FIQ -23-0453N",
-            "TRC-FIQ -80-0303N",
-            "TRC-FIQ -80-0703N",
-            "TRC-FIQ -80-0704N",
-            "TRC-FIQ -80-0705N",
-        }
-        tags = set(ds.get_list_of_tags())
-        self.assertSetEqual(expected_tags, tags)
-        # The cache does not screw stuff up
-        tags = set(ds.get_list_of_tags())
-        self.assertSetEqual(expected_tags, tags)
 
-    def test_influx_dataset_attrs(self):
-        """
-        Test expected attributes
-        """
-        from_ts = "2016-01-01T09:11:00+00:00"
-        to_ts = "2016-01-01T10:30:00+00:00"
-        from_ts = dateutil.parser.isoparse(from_ts)
-        to_ts = dateutil.parser.isoparse(to_ts)
-        tag_list = [
-            "TRC-FIQ -23-0453N",
-            "TRC-FIQ -80-0303N",
-            "TRC-FIQ -80-0703N",
-            "TRC-FIQ -80-0704N",
-        ]
-        config = {
-            "type": "TimeSeriesDataset",
-            "from_ts": from_ts,
-            "to_ts": to_ts,
-            "tag_list": tag_list,
-        }
-        config["data_provider"] = InfluxDataProvider(
-            measurement=SOURCE_DB_NAME, **self.influx_config
-        )
-        dataset = _get_dataset(config)
-        self.assertTrue(hasattr(dataset, "get_metadata"))
+@pytest.mark.parametrize(
+    "influxdb", [(SENSORS, "testdb", "root", "root", "sensors")], indirect=True
+)
+def test__list_of_tags_from_influx_validate_tag_names(influxdb):
+    """
+    Test expected tags in influx match the ones actually in influx.
+    """
+    ds = InfluxDataProvider(
+        measurement="sensors",
+        value_name="Value",
+        client=influx_client_from_uri(uri=INFLUXDB_URI, dataframe_client=True),
+    )
+    list_of_tags = ds._list_of_tags_from_influx()
+    expected_tags = SENSORS
+    tags = set(list_of_tags)
+    assert set(expected_tags) == tags, f"Expected tags = {SENSORS}" f"outputted {tags}"
 
-        metadata = dataset.get_metadata()
-        self.assertTrue(isinstance(metadata, dict))
+
+@pytest.mark.parametrize(
+    "influxdb", [(SENSORS, "testdb", "root", "root", "sensors")], indirect=True
+)
+def test_get_list_of_tags(influxdb):
+    ds = InfluxDataProvider(
+        measurement="sensors",
+        value_name="Value",
+        client=influx_client_from_uri(uri=INFLUXDB_URI, dataframe_client=True),
+    )
+    expected_tags = set(SENSORS)
+
+    tags = set(ds.get_list_of_tags())
+    assert expected_tags == tags
+
+    # The cache does not screw stuff up
+    tags = set(ds.get_list_of_tags())
+    assert expected_tags == tags
+
+
+@pytest.mark.parametrize(
+    "influxdb", [(SENSORS, "testdb", "root", "root", "sensors")], indirect=True
+)
+def test_influx_dataset_attrs(influxdb):
+    """
+    Test expected attributes
+    """
+    from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
+    to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
+    tag_list = SENSORS
+    config = {
+        "type": "TimeSeriesDataset",
+        "from_ts": from_ts,
+        "to_ts": to_ts,
+        "tag_list": tag_list,
+    }
+    config["data_provider"] = InfluxDataProvider(
+        measurement="sensors",
+        value_name="Value",
+        client=influx_client_from_uri(uri=INFLUXDB_URI, dataframe_client=True),
+    )
+    dataset = _get_dataset(config)
+    assert hasattr(dataset, "get_metadata")
+
+    metadata = dataset.get_metadata()
+    assert isinstance(metadata, dict)
