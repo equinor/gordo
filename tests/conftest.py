@@ -10,7 +10,7 @@ import pytest
 import numpy as np
 
 from gordo_components import serializer
-from tests.test_server.test_gordo_server import SENSORS
+from tests.gordo_components.server.test_gordo_server import SENSORS
 
 logger = logging.getLogger(__name__)
 
