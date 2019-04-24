@@ -38,7 +38,7 @@ def tmp_dir():
     return tempfile.TemporaryDirectory()
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def trained_model_directory(sensors: typing.List[str]):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
@@ -73,7 +73,7 @@ def trained_model_directory(sensors: typing.List[str]):
         yield tmp_dir
 
 
-@pytest.yield_fixture(scope="module")
+@pytest.fixture(scope="module")
 def influxdb(
     sensors, db_name="testdb", user="root", password="root", measurement="sensors"
 ):
@@ -87,7 +87,7 @@ def influxdb(
         yield
 
 
-@pytest.yield_fixture(scope="module")
+@pytest.fixture(scope="module")
 def watchman_service(
     trained_model_directory,
     host="localhost",
