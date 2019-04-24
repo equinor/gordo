@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import asyncio
+import logging
 import tempfile
 import typing
 
@@ -9,6 +11,16 @@ import numpy as np
 
 from gordo_components import serializer
 from tests.test_server.test_gordo_server import SENSORS
+
+logger = logging.getLogger(__name__)
+
+
+@pytest.fixture(autouse=True)
+def check_event_loop():
+    loop = asyncio.get_event_loop()
+    if loop.is_closed():
+        logger.critical("Creating new event loop!")
+        asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 @pytest.fixture(scope="session")
