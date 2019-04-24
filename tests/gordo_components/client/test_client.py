@@ -306,7 +306,15 @@ def test_client_cli_download_model(watchman_service):
 
 @pytest.mark.dockertest
 @pytest.mark.parametrize(
-    "forwarder_args", [["--influx-uri", "root:root@localhost:8086/testdb"], None]
+    "forwarder_args",
+    [
+        [
+            "--influx-uri",
+            "root:root@localhost:8086/testdb",
+            "--forward-resampled-sensors",
+        ],
+        None,
+    ],
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
@@ -339,9 +347,21 @@ def test_client_cli_predict(
         "2016-01-01T01:00:00Z",
     ]
 
+    influx_uri = f"root:root@localhost:8086/testdb"
+    influx_client = client_utils.influx_client_from_uri(
+        uri=influx_uri, dataframe_client=True
+    )
+    query = """
+        SELECT *
+        FROM "resampled"
+        """
+
     # Do we have forwarder args?
     if forwarder_args is not None:
         args.extend(forwarder_args)
+        vals = influx_client.query(query)
+        # There is no data there before we start doing things
+        assert len(vals) == 0
 
     # Should it write out the predictions to dataframes in an output directory?
     if output_dir is not None:
@@ -354,6 +374,14 @@ def test_client_cli_predict(
     # Run without any error
     out = runner.invoke(cli.gordo, args=args)
     assert out.exit_code == 0, f"{out.output}"
+
+    # If we activated forwarder and we had any actual data then there should
+    # be resampled values in the influx
+    if forwarder_args and data_provider:
+        vals = influx_client.query(query)
+        assert len(vals) == 1
+        assert len(vals["resampled"]) == 28
+        influx_client.drop_measurement("resampled")
 
     # Did it save dataframes to output dir if specified?
     if output_dir is not None:
