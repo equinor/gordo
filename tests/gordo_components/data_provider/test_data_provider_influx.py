@@ -76,7 +76,7 @@ class PredictionInfluxTestCase(unittest.TestCase):
         """
         sensors = set()
         path_to_config = os.path.dirname(os.path.abspath(__file__))
-        config = os.path.join(path_to_config, "..", "config-test.yaml")
+        config = os.path.join(path_to_config, "..", "..", "config-test.yaml")
         with open(config) as f:
             config = yaml.load(f)
         for machine in config["machines"].values():
