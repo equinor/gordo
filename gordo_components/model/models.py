@@ -683,6 +683,20 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 
 
 class KerasLSTMForecast(KerasLSTMBaseEstimator):
+    def get_metadata(self):
+        """
+            Add number of forecast steps to metadata
+
+            Returns
+            -------
+            Dict
+                Metadata dictionary, including forecast steps to metadata
+        """
+        forecast_steps = {"forecast_steps": 1}
+        metadata = super().get_metadata()
+        metadata.update(forecast_steps)
+        return metadata
+
     def generate_window(self, X: np.ndarray, output_y: bool = True):
         """
 

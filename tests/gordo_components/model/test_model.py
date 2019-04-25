@@ -96,6 +96,9 @@ def test_save_load(model, kind):
     # AutoEncoder is fine without a y target
     config["type"] = model
     model_out = get_model(config)
+    if model == KerasLSTMForecast:
+        assert "forecast_steps" in model_out.get_metadata()
+
     assert "history" not in model_out.get_metadata()
     model_out.fit(X)
     assert "history" in model_out.get_metadata()
