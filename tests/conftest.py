@@ -5,29 +5,39 @@ import logging
 import tempfile
 import typing
 
-import ruamel
+import ruamel.yaml
 import pytest
 import numpy as np
 
+from gordo_components.server import server
 from gordo_components import serializer
-from tests.gordo_components.server.test_gordo_server import SENSORS, influxdatabase
-from tests.utils import watchman
+from gordo_components.data_provider.providers import InfluxDataProvider
+from tests import utils as tu
 
 
 logger = logging.getLogger(__name__)
+
+
+def pytest_collection_modifyitems(items):
+    """
+    Update all tests which use influxdb to be marked as a dockertest
+    """
+    for item in items:
+        if hasattr(item, "fixturenames") and "influxdb" in item.fixturenames:
+            item.add_marker(pytest.mark.dockertest)
 
 
 @pytest.fixture(autouse=True)
 def check_event_loop():
     loop = asyncio.get_event_loop()
     if loop.is_closed():
-        logger.critical("Creating new event loop!")
+        logger.info("Creating new event loop!")
         asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 @pytest.fixture(scope="session")
 def sensors():
-    return SENSORS
+    return tu.SENSORS
 
 
 @pytest.fixture
@@ -73,28 +83,67 @@ def trained_model_directory(sensors: typing.List[str]):
         yield tmp_dir
 
 
-@pytest.fixture(scope="module")
-def influxdb(
-    sensors, db_name="testdb", user="root", password="root", measurement="sensors"
+@pytest.fixture(
+    # Data Provider(s) per test requiring this client
+    params=[
+        InfluxDataProvider(
+            measurement="sensors",
+            value_name="Value",
+            proxies={"https": "", "http": ""},
+            uri=tu.INFLUXDB_URI,
+        )
+    ]
+)
+def gordo_ml_server_client(request, trained_model_directory):
+
+    with tu.temp_env_vars(MODEL_LOCATION=trained_model_directory):
+
+        app = server.build_app(data_provider=request.param)
+        app.testing = True
+
+        yield app.test_client()
+
+
+@pytest.fixture(scope="session")
+def base_influxdb(
+    sensors,
+    db_name=tu.INFLUXDB_NAME,
+    user=tu.INFLUXDB_USER,
+    password=tu.INFLUXDB_PASSWORD,
+    measurement=tu.INFLUXDB_MEASUREMENT,
 ):
-    with influxdatabase(
+    """
+    Fixture to yield a running influx container and pass a test.utils.InfluxDB
+    object which can be used to reset the db to it's original data state.
+    """
+    with tu.influxdatabase(
         sensors=sensors,
         db_name=db_name,
         user=user,
         password=password,
         measurement=measurement,
-    ):
-        yield
+    ) as db:
+        yield db
+
+
+@pytest.fixture
+def influxdb(base_influxdb):
+    """
+    Fixture to take a running influx and do a reset after each test to ensure
+    the data state is the same for each test.
+    """
+    logger.info("DOING A RESET ON INFLUX DATA")
+    base_influxdb.reset()
 
 
 @pytest.fixture(scope="module")
 def watchman_service(
     trained_model_directory,
-    host="localhost",
-    project="gordo-test",
-    targets=["machine-1"],
+    host=tu.GORDO_HOST,
+    project=tu.GORDO_PROJECT,
+    targets=tu.GORDO_TARGETS,
 ):
-    with watchman(
+    with tu.watchman(
         host=host,
         project=project,
         targets=targets,
