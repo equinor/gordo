@@ -21,99 +21,25 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
     def setup_gen(self):
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                for model_kind in self.factories[model].keys():
-                    templates = [
-                        # This has full parameter names define
-                        (
-                            f"""
-                        sklearn.pipeline.Pipeline:
-                            steps:
-                                - sklearn.decomposition.pca.PCA:
-                                    n_components: 2
-                                    copy: true
-                                    whiten: false
-                                    svd_solver:  auto
-                                    tol: 0.0
-                                    iterated_power: auto
-                                    random_state:
-                                - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                    func: gordo_components.model.transformer_funcs.general.multiply_by
-                                    kw_args:
-                                        factor: 1
-                                - sklearn.pipeline.FeatureUnion:
-                                    transformer_list:
-                                    - sklearn.decomposition.pca.PCA:
-                                        n_components: 3
-                                        copy: true
-                                        whiten: false
-                                        svd_solver: auto
-                                        tol: 0.0
-                                        iterated_power: auto
-                                        random_state:
-                                    - sklearn.pipeline.Pipeline:
-                                        steps:
-                                        - sklearn.preprocessing.data.MinMaxScaler:
-                                            feature_range:
-                                            - 0
-                                            - 1
-                                            copy: true
-                                        - sklearn.decomposition.truncated_svd.TruncatedSVD:
-                                            n_components: 2
-                                            algorithm: randomized
-                                            n_iter: 5
-                                            random_state:
-                                            tol: 0.0
-                                        memory:
-                                    n_jobs: 1
-                                    transformer_weights:
-                                - gordo_components.model.models.{model}: 
-                                    kind: {model_kind}
-                        """,
-                            pydoc.locate(f"gordo_components.model.models.{model}"),
-                            model_kind,
-                        ),
-                        (
-                            f"""
-                        sklearn.pipeline.Pipeline:
-                            steps:
-                                - sklearn.decomposition.pca.PCA:
-                                    n_components: 2
-                                - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                    func: gordo_components.model.transformer_funcs.general.multiply_by
-                                    kw_args:
-                                        factor: 1
-                                - sklearn.pipeline.FeatureUnion:
-                                    - sklearn.decomposition.pca.PCA:
-                                        n_components: 3
-                                    - sklearn.pipeline.Pipeline:
-                                        - sklearn.preprocessing.data.MinMaxScaler:
-                                            feature_range: [0, 1]
-                                        - sklearn.decomposition.truncated_svd.TruncatedSVD:
-                                            n_components: 2
-                                - gordo_components.model.models.{model}:
-                                    kind: {model_kind}
-                        """,
-                            pydoc.locate(f"gordo_components.model.models.{model}"),
-                            model_kind,
-                        ),
-                        # Define pipeline memory with something other than None w/o metadata
-                        (
-                            f"""
-                        sklearn.pipeline.Pipeline:
-                            steps:
+            for model_kind in self.factories[model].keys():
+                templates = [
+                    # This has full parameter names define
+                    (
+                        f"""
+                    sklearn.pipeline.Pipeline:
+                        steps:
                             - sklearn.decomposition.pca.PCA:
                                 n_components: 2
                                 copy: true
                                 whiten: false
-                                svd_solver: auto
+                                svd_solver:  auto
                                 tol: 0.0
                                 iterated_power: auto
                                 random_state:
                             - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                    func: gordo_components.model.transformer_funcs.general.multiply_by
-                                    kw_args:
-                                        factor: 1
+                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                kw_args:
+                                    factor: 1
                             - sklearn.pipeline.FeatureUnion:
                                 transformer_list:
                                 - sklearn.decomposition.pca.PCA:
@@ -137,24 +63,96 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                         n_iter: 5
                                         random_state:
                                         tol: 0.0
-                                    memory: /tmp
+                                    memory:
                                 n_jobs: 1
                                 transformer_weights:
+                            - gordo_components.model.models.{model}: 
+                                kind: {model_kind}
+                    """,
+                        pydoc.locate(f"gordo_components.model.models.{model}"),
+                        model_kind,
+                    ),
+                    (
+                        f"""
+                    sklearn.pipeline.Pipeline:
+                        steps:
+                            - sklearn.decomposition.pca.PCA:
+                                n_components: 2
+                            - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                kw_args:
+                                    factor: 1
+                            - sklearn.pipeline.FeatureUnion:
+                                - sklearn.decomposition.pca.PCA:
+                                    n_components: 3
+                                - sklearn.pipeline.Pipeline:
+                                    - sklearn.preprocessing.data.MinMaxScaler:
+                                        feature_range: [0, 1]
+                                    - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                        n_components: 2
                             - gordo_components.model.models.{model}:
                                 kind: {model_kind}
-                        """,
-                            pydoc.locate(f"gordo_components.model.models.{model}"),
-                            model_kind,
-                        ),
-                    ]
-                    for template in templates:
-                        yield template
+                    """,
+                        pydoc.locate(f"gordo_components.model.models.{model}"),
+                        model_kind,
+                    ),
+                    # Define pipeline memory with something other than None w/o metadata
+                    (
+                        f"""
+                    sklearn.pipeline.Pipeline:
+                        steps:
+                        - sklearn.decomposition.pca.PCA:
+                            n_components: 2
+                            copy: true
+                            whiten: false
+                            svd_solver: auto
+                            tol: 0.0
+                            iterated_power: auto
+                            random_state:
+                        - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                kw_args:
+                                    factor: 1
+                        - sklearn.pipeline.FeatureUnion:
+                            transformer_list:
+                            - sklearn.decomposition.pca.PCA:
+                                n_components: 3
+                                copy: true
+                                whiten: false
+                                svd_solver: auto
+                                tol: 0.0
+                                iterated_power: auto
+                                random_state:
+                            - sklearn.pipeline.Pipeline:
+                                steps:
+                                - sklearn.preprocessing.data.MinMaxScaler:
+                                    feature_range:
+                                    - 0
+                                    - 1
+                                    copy: true
+                                - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                    n_components: 2
+                                    algorithm: randomized
+                                    n_iter: 5
+                                    random_state:
+                                    tol: 0.0
+                                memory: /tmp
+                            n_jobs: 1
+                            transformer_weights:
+                        - gordo_components.model.models.{model}:
+                            kind: {model_kind}
+                    """,
+                        pydoc.locate(f"gordo_components.model.models.{model}"),
+                        model_kind,
+                    ),
+                ]
+                for template in templates:
+                    yield template
 
     def test_pydoc_locate_class(self):
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                self.assertTrue(pydoc.locate(f"gordo_components.model.models.{model}"))
+            self.assertTrue(pydoc.locate(f"gordo_components.model.models.{model}"))
 
     def test_pipeline_from_definition(self):
 

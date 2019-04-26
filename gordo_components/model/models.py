@@ -8,6 +8,7 @@ from typing import Union, Callable, Dict, Any, Optional
 from os import path
 from contextlib import contextmanager
 import pickle
+import abc
 from abc import ABCMeta
 
 import keras.models
@@ -351,8 +352,8 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
 
 class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):
     """
-       Abstract Base Class to allow to train a many-one LSTM autoencoder and an LSTM
-       1 step forecast
+    Abstract Base Class to allow to train a many-one LSTM autoencoder and an LSTM
+    1 step forecast
     """
 
     def __init__(
@@ -363,7 +364,6 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         **kwargs,
     ) -> None:
         """
-
         Parameters
         ----------
         kind: Union[Callable, str]
@@ -417,15 +417,14 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         }
         super().__init__(**kwargs)
 
+    @abc.abstractmethod
     def generate_window(self, X: np.ndarray, output_y: bool = True):
-        return
-        yield
+        ...
 
     def _reshape_samples(
         self, n_feat: int, sample_in: np.ndarray, sample_out: np.ndarray
     ):
         """
-
         This method is used to reshape one input sample to a 3D array of size 1 x lookback_window x number_features
         and one output sample to a 2D array of size 1 x number_features.  Such reshapes are required
         for the fit method (in Keras fit_generator).
@@ -434,10 +433,10 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         ----------
         n_feat: int
             number of features
-        sample_in: 2D np array
-            one input sample of dimension lookback_window x n_features
-        sample_out:
-            one output sample of dimension 1 x n_features
+        sample_in: np.ndarray
+            2D numpy array.  One input sample of dimension lookback_window x n_features
+        sample_out: np.ndarray
+            1D numpy array. One output sample of dimension 1 x n_features
 
         Returns
         -------
@@ -471,22 +470,61 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         """
         Parameters
         ----------
-        X: 2D np array
-            Data to predict/transform on (n_samples x n_features).
+        X: np.ndarray
+           2D numpy array of dimension n_samples x n_features. Data used to train model or predict/transform values
+           from fitted model.
         output_y: bool
             If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
             If false, sample_in for Keras LSTM predict_generator will be generated.
 
         Returns
         -------
-        if output_y is True, it returns a tuple of length 2 with first element being the input sample and second element
-        the output sample.
+        if output_y is True, it returns a tuple of length 2 with first element being one input sample and second element
+        one corresponding output sample.
         The input sample is a 3D np array. Each iterate generates a window of data points of
         size 1 x lookback_window x n_features to use within fit/transform methods.
+        Note: If all input samples are generated (when for example using Keras LSTM fit_generator) their form is given
+        by: np.array([X[0 : lookback_window], X[1 : lookback_window+1],...])
         The output sample is the last data point on the input sample, reshaped to a 2D np array
         of size 1 x n_features.
+        Note:  If all output samples generated (when for example using Keras LSTM fit_generator) their form is given by
+        np.array([X[lookback_window-1], X[lookback_window],...])
+
 
         if output_y is False then only the input sample is returned.
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> from gordo_components.model.models import KerasLSTMAutoEncoder
+        >>> from gordo_components.model.factories import lstm_autoencoder
+        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
+        >>> X
+        array([[1. , 0.1],
+               [0.5, 0.7],
+               [2. , 1. ],
+               [1. , 1.5]])
+        >>> lookback_window = 2
+        >>> model=KerasLSTMAutoEncoder(kind=lstm_autoencoder.lstm_hourglass,lookback_window=lookback_window)
+        >>> gen = model.generate_window(X)
+        >>> input_sample1, output_sample1 = next(gen)
+        >>> input_sample2, output_sample2 = next(gen)
+        >>> input_sample3, output_sample3 = next(gen)
+        >>> input_sample1
+        array([[[1. , 0.1],
+                [0.5, 0.7]]])
+        >>> output_sample1
+        array([[0.5, 0.7]])
+        >>> input_sample2
+        array([[[0.5, 0.7],
+                [2. , 1. ]]])
+        >>> output_sample2
+        array([[2., 1.]])
+        >>> input_sample3
+        array([[[2. , 1. ],
+                [1. , 1.5]]])
+        >>> output_sample3
+        array([[1. , 1.5]])
         """
         n_feat = X.shape[1]
         while True:
@@ -511,41 +549,17 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
     def fit(
         self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
     ) -> "KerasLSTMAutoEncoder":
-
         """
-        Notes
-        -----
-            A many-one architecture is implemented where the input sample will be the 3D array
-            np.array([X[0 : lookback_window], X[1 : lookback_window+1],...]) and the output sample
-            is given by the 2D array:
-            np.array([X[lookback_window-1], X[lookback_window],...])
-
-        Example
-        -------
-        >>> import numpy as np
-        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
-        >>> lookback_window = 2
-        >>> input_sample = np.array([X[0 : lookback_window], X[1 : lookback_window+1],X[2 : lookback_window+2]])
-        >>> input_sample
-        array([[[1. , 0.1],
-                [0.5, 0.7]],
-        <BLANKLINE>
-               [[0.5, 0.7],
-                [2. , 1. ]],
-        <BLANKLINE>
-               [[2. , 1. ],
-                [1. , 1.5]]])
-        >>> output_sample = np.array([[X[lookback_window-1], X[lookback_window],X[lookback_window+1]]])
-        >>> output_sample
-        array([[[0.5, 0.7],
-                [2. , 1. ],
-                [1. , 1.5]]])
+        This fits a many-to-one LSTM architecture using Keras fit_generator method. For
+        further details on the input/output samples fed to this method, refer to the generate_window
+        method.
 
         Parameters
         ----------
-        X: 2D np array of dimension n_samples x n_features
-            Input data to train.
-        y: This is an LSTM Autoencoder and will be ignored.
+        X: np.ndarray
+           2D numpy array of dimension n_samples x n_features. Input data to train.
+        y: Optional[np.ndarray]
+           This is an LSTM Autoencoder which does not need a y. Thus it will be ignored.
         kwargs: dict
             Any additional args to be passed to Keras fit_generator method.
 
@@ -589,15 +603,14 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 
         Parameters
         ----------
-         X: 2D np array
+         X: np.ndarray
+            2D numpy array of dimension n_samples x n_features where n_samples must be >= lookback_window.
             Data to autoencode.
-            Dimension = n_samples x n_features where n_samples must be >= lookback_window.
-
 
         Returns
         -------
-        results: 2D np array
-                 Dimension = (n_samples - (lookback_window - 1)) x 2*n_features.  The first half
+        results: np.ndarray
+                 2D numpy array of dimension (n_samples - (lookback_window - 1)) x 2*n_features.  The first half
                  of the array (results[:,:n_features]) corresponds to X offset by the lookback_window
                  (i.e., X[lookback_window - 1:,:]) whereas the second half corresponds to the autoencoded values
                  of X[lookback_window - 1:,:].
@@ -656,7 +669,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
     ) -> float:
         """
         Returns the explained variance score between auto encoder's input vs output
-        (note: for LSTM X is offset by lookback_window).
+        (note: for LSTM X is offset by lookback_window - 1).
 
         Parameters
         ----------
@@ -685,12 +698,12 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 class KerasLSTMForecast(KerasLSTMBaseEstimator):
     def get_metadata(self):
         """
-            Add number of forecast steps to metadata
+        Add number of forecast steps to metadata
 
-            Returns
-            -------
-            Dict
-                Metadata dictionary, including forecast steps to metadata
+        Returns
+        -------
+        metadata: dict
+            Metadata dictionary, including forecast steps.
         """
         forecast_steps = {"forecast_steps": 1}
         metadata = super().get_metadata()
@@ -702,22 +715,55 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
 
         Parameters
         ----------
-        X: 2D np array
-            Data to predict/transform on (n_samples x n_features).
+        X: np.ndarray
+           2D numpy array of dimension n_samples x n_features. Data used to train model or predict/transform values
+           from fitted model.
         output_y: bool
             If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
             If false, sample_in for Keras LSTM predict_generator will be generated.
 
         Returns
         -------
-        if output_y is True, it returns a tuple of length 2 with the first element being the input sample and
+        If output_y is True, it returns a tuple of length 2 with the first element being the input sample and
         the second element being the output sample.
 
         The input sample is a 3D np array. Each iterate generates a window of data points of
         size 1 x lookback_window x n_features to use within fit/transform methods.
+        Note: If all input samples are generated (when for example using Keras LSTM fit_generator) their form is given
+        by: np.array([X[0 : lookback_window], X[1 : lookback_window+1],...])
         The output sample is X[lookback+i,:], where i is the index of the current window (i.e. the (lookback_window+i)th
         sample from X)
+        Note: If all output samples generated (when for example using Keras LSTM fit_generator) their form is given by
+        np.array([X[lookback_window], X[lookback_window+1],...])
 
+        If output_y is False then only the input sample is returned.
+
+        Example
+        -------
+        >>> import numpy as np
+        >>> from gordo_components.model.models import KerasLSTMForecast
+        >>> from gordo_components.model.factories import lstm_autoencoder
+        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
+        >>> X
+        array([[1. , 0.1],
+               [0.5, 0.7],
+               [2. , 1. ],
+               [1. , 1.5]])
+        >>> lookback_window = 2
+        >>> model=KerasLSTMForecast(kind=lstm_autoencoder.lstm_hourglass,lookback_window=lookback_window)
+        >>> gen = model.generate_window(X)
+        >>> input_sample1, output_sample1 = next(gen)
+        >>> input_sample2, output_sample2 = next(gen)
+        >>> input_sample1
+        array([[[1. , 0.1],
+                [0.5, 0.7]]])
+        >>> output_sample1
+        array([[2., 1.]])
+        >>> input_sample2
+        array([[[0.5, 0.7],
+                [2. , 1. ]]])
+        >>> output_sample2
+        array([[1. , 1.5]])
         """
 
         n_feat = X.shape[1]
@@ -742,35 +788,15 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
     ) -> "KerasLSTMForecast":
 
         """
-        Notes
-        -----
-            A one step forecast LSTM architecture is implemented where the input sample will be the 3D array
-            np.array([X[0 : lookback_window], X[1 : lookback_window+1],...]) and the output sample
-            is given by the 2D array:
-            np.array([X[lookback_window], X[lookback_window+1],...])
-
-        Example
-        -------
-        >>> import numpy as np
-        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
-        >>> lookback_window = 2
-        >>> input_sample = np.array([X[0 : lookback_window], X[1 : lookback_window+1]])
-        >>> input_sample
-        array([[[1. , 0.1],
-                [0.5, 0.7]],
-        <BLANKLINE>
-               [[0.5, 0.7],
-                [2. , 1. ]]])
-        >>> output_sample = np.array([[X[lookback_window], X[lookback_window+1]]])
-        >>> output_sample
-        array([[[2. , 1. ],
-                [1. , 1.5]]])
+        This fits a one step forecast LSTM architecture using Keras fit_generator method.  For further details
+        on the input/output samples fed to this method, refer to the generate_window method.
 
         Parameters
         ----------
-        X: 2D np array of dimension n_samples x n_features
-            Input data to train.
-        y: This is a forecast based LSTM model which does not need a y. Thus it will be ignored.
+        X: np.ndarray
+           2D numpy array of dimension n_samples x n_features. Input data to train.
+        y: np.ndarray
+           This is a forecast based LSTM model which does not need a y. Thus it will be ignored.
         kwargs: dict
             Any additional args to be passed to Keras fit_generator method.
 
@@ -779,10 +805,10 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         class:
             KerasLSTMForecast
 
-                """
+        """
         if y is not None:
             logger.warning(
-                f"This is a forecast based LSTM AutoEncoder that does not need a "
+                f"This is a forecast based LSTM model that does not need a "
                 f"target, but a y was supplied. It will not be used."
             )
 
@@ -812,15 +838,14 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         """
         Parameters
         ----------
-         X: 2D np array
-            Data to predict.
-            Dimension = n_samples x n_features where n_samples must be >= lookback_window.
-
+         X: np.ndarray
+            2D numpy array of dimension n_samples x n_features where n_samples must be > lookback_window.
+            Data to predict/transform.
 
         Returns
         -------
-        results: 2D np array
-                 Dimension = (n_samples - lookback_window) x 2*n_features.  The first half
+        results: np.ndarray
+                 2D numpy array of dimension (n_samples - lookback_window) x 2*n_features.  The first half
                  of the array (results[:,:n_features]) corresponds to X offset by lookback_window+1
                  (i.e., X[lookback_window:,:]) whereas the second half corresponds to the predicted values
                  of X[lookback_window:,:].

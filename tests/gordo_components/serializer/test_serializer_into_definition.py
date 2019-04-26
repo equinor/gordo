@@ -193,48 +193,47 @@ class PipelineToConfigTestCase(unittest.TestCase):
 
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                for model_kind in self.factories[model].keys():
 
-                    pipe = Pipeline(
-                        [
-                            ("step_0", PCA(n_components=2)),
-                            (
-                                "step_1",
-                                FeatureUnion(
-                                    [
-                                        ("step_0", PCA(n_components=3)),
-                                        (
-                                            "step_1",
-                                            Pipeline(
-                                                steps=[
-                                                    ("step_0", MinMaxScaler((0, 1))),
-                                                    (
-                                                        "step_1",
-                                                        TruncatedSVD(n_components=2),
-                                                    ),
-                                                ]
-                                            ),
+            for model_kind in self.factories[model].keys():
+                pipe = Pipeline(
+                    [
+                        ("step_0", PCA(n_components=2)),
+                        (
+                            "step_1",
+                            FeatureUnion(
+                                [
+                                    ("step_0", PCA(n_components=3)),
+                                    (
+                                        "step_1",
+                                        Pipeline(
+                                            steps=[
+                                                ("step_0", MinMaxScaler((0, 1))),
+                                                (
+                                                    "step_1",
+                                                    TruncatedSVD(n_components=2),
+                                                ),
+                                            ]
                                         ),
-                                    ]
-                                ),
+                                    ),
+                                ]
                             ),
-                            (
-                                "step_2",
-                                FunctionTransformer(
-                                    func=multiply_by, kw_args={"factor": 1}
-                                ),
+                        ),
+                        (
+                            "step_2",
+                            FunctionTransformer(
+                                func=multiply_by, kw_args={"factor": 1}
                             ),
-                            (
-                                "step_3",
-                                pydoc.locate(f"gordo_components.model.models.{model}")(
-                                    kind=model_kind
-                                ),
+                        ),
+                        (
+                            "step_3",
+                            pydoc.locate(f"gordo_components.model.models.{model}")(
+                                kind=model_kind
                             ),
-                        ]
-                    )
+                        ),
+                    ]
+                )
 
-                    pipeline_from_definition(pipeline_into_definition(pipe))
+                pipeline_from_definition(pipeline_into_definition(pipe))
 
     def test_from_into(self):
         """
@@ -242,56 +241,55 @@ class PipelineToConfigTestCase(unittest.TestCase):
         """
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            if model not in ["KerasBaseEstimator", "KerasLSTMBaseEstimator"]:
-                for model_kind in self.factories[model].keys():
-                    definition = f"""
-                        sklearn.pipeline.Pipeline:
-                            steps:
+            for model_kind in self.factories[model].keys():
+                definition = f"""
+                    sklearn.pipeline.Pipeline:
+                        steps:
+                            - sklearn.decomposition.pca.PCA:
+                                n_components: 2
+                                copy: true
+                                whiten: false
+                                svd_solver: auto
+                                tol: 0.0
+                                iterated_power: auto
+                                random_state:
+                            - sklearn.preprocessing._function_transformer.FunctionTransformer:
+                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                kw_args:
+                                    factor: 1
+                                inverse_func: gordo_components.model.transformer_funcs.general.multiply_by
+                                inv_kw_args:
+                                    factor: 1
+                            - sklearn.pipeline.FeatureUnion:
+                                transformer_list:
                                 - sklearn.decomposition.pca.PCA:
-                                    n_components: 2
+                                    n_components: 3
                                     copy: true
                                     whiten: false
                                     svd_solver: auto
                                     tol: 0.0
                                     iterated_power: auto
                                     random_state:
-                                - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                    func: gordo_components.model.transformer_funcs.general.multiply_by
-                                    kw_args:
-                                        factor: 1
-                                    inverse_func: gordo_components.model.transformer_funcs.general.multiply_by
-                                    inv_kw_args:
-                                        factor: 1
-                                - sklearn.pipeline.FeatureUnion:
-                                    transformer_list:
-                                    - sklearn.decomposition.pca.PCA:
-                                        n_components: 3
+                                - sklearn.pipeline.Pipeline:
+                                    steps:
+                                    - sklearn.preprocessing.data.MinMaxScaler:
+                                        feature_range:
+                                        - 0
+                                        - 1
                                         copy: true
-                                        whiten: false
-                                        svd_solver: auto
-                                        tol: 0.0
-                                        iterated_power: auto
+                                    - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                        n_components: 2
+                                        algorithm: randomized
+                                        n_iter: 5
                                         random_state:
-                                    - sklearn.pipeline.Pipeline:
-                                        steps:
-                                        - sklearn.preprocessing.data.MinMaxScaler:
-                                            feature_range:
-                                            - 0
-                                            - 1
-                                            copy: true
-                                        - sklearn.decomposition.truncated_svd.TruncatedSVD:
-                                            n_components: 2
-                                            algorithm: randomized
-                                            n_iter: 5
-                                            random_state:
-                                            tol: 0.0
-                                        memory:
-                                    n_jobs: 1
-                                    transformer_weights:
-                                - gordo_components.model.models.{model}:
-                                    kind: {model_kind}
-                            memory:
-                        """
-                    definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
-                    pipe = pipeline_from_definition(definition)
-                    pipeline_into_definition(pipe)
+                                        tol: 0.0
+                                    memory:
+                                n_jobs: 1
+                                transformer_weights:
+                            - gordo_components.model.models.{model}:
+                                kind: {model_kind}
+                        memory:
+                    """
+                definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
+                pipe = pipeline_from_definition(definition)
+                pipeline_into_definition(pipe)
