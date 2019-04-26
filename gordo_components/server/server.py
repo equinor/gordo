@@ -193,7 +193,7 @@ class PredictionApiView(Resource):
         try:
             context["output"] = self.get_predictions(X).tolist()
         except ValueError as err:
-            logger.critical(f"Failed to predict or transform; error: {err}")
+            logger.error(f"Failed to predict or transform; error: {err}")
             context["error"] = f"ValueError: {str(err)}"
             context["status-code"] = 400
         # Model may only be a transformer, probably an AttributeError, but catch all to avoid logging other
