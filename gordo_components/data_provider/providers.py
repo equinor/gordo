@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
 
-import gordo_components
 from gordo_components.data_provider.azure_utils import create_adls_client
 from gordo_components.data_provider.base import GordoBaseDataProvider, capture_args
 
@@ -183,7 +182,14 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
         if self.influx_client is None:
             if uri:
-                self.influx_client = gordo_components.client.utils.influx_client_from_uri(  # type: ignore
+
+                # Import here to avoid any circular import error caused by
+                # importing TimeSeriesDataset, which imports this provider
+                # which would have imported Client via traversal of the __init__
+                # which would then try to import TimeSeriesDataset again.
+                from gordo_components.client.utils import influx_client_from_uri
+
+                self.influx_client = influx_client_from_uri(  # type: ignore
                     uri,
                     api_key=api_key,
                     api_key_header=api_key_header,
