@@ -10,7 +10,6 @@ from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 
-# from gordo_components.model.models import KerasAutoEncoder, KerasLSTMAutoEncoder
 from gordo_components.serializer import pipeline_from_definition
 import gordo_components.model.transformer_funcs.general
 from gordo_components.model.register import register_model_builder

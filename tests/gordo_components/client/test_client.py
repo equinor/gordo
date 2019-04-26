@@ -18,7 +18,7 @@ from gordo_components.data_provider import providers
 from gordo_components import cli, serializer
 from gordo_components.cli import custom_types
 
-from tests.gordo_components.server.test_gordo_server import SENSORS
+from tests import utils as tu
 
 
 @pytest.mark.asyncio
@@ -55,9 +55,6 @@ async def test_client_post_json(session, timeout, json):
         await session.close()
 
 
-@pytest.mark.parametrize(
-    "watchman_service", [("localhost", "gordo-test", ["machine-1"])], indirect=True
-)
 def test_client_get_metadata(watchman_service):
     """
     Test client's ability to get metadata from some target
@@ -73,9 +70,6 @@ def test_client_get_metadata(watchman_service):
         client.get_metadata()
 
 
-@pytest.mark.parametrize(
-    "watchman_service", [("localhost", "gordo-test", ["machine-1"])], indirect=True
-)
 def test_client_download_model(watchman_service):
     """
     Test client's ability to download the model
@@ -92,46 +86,14 @@ def test_client_download_model(watchman_service):
         client.download_model()
 
 
-@pytest.mark.dockertest
-@pytest.mark.parametrize("use_data_provider", (True, False))
-@pytest.mark.parametrize(
-    "influxdb,watchman_service",
-    [
-        (
-            (SENSORS, "testdb", "root", "root", "sensors"),
-            ("localhost", "gordo-test", ["machine-1"]),
-        )
-    ],
-    indirect=True,
-)
-def test_client_predictions_with_or_without_data_provider(
-    trained_model_directory, influxdb, watchman_service, use_data_provider: bool
-):
-    """
-    Run the prediction client with or without a data provider
-    """
-    use_client_predictions(trained_model_directory, use_data_provider, batch_size=1000)
-
-
-@pytest.mark.dockertest
 @pytest.mark.parametrize("batch_size", (10, 100))
-@pytest.mark.parametrize("trained_model_directory", (SENSORS,), indirect=True)
-def test_client_predictions_different_batch_sizes(
-    trained_model_directory: pytest.fixture, batch_size: int
+@pytest.mark.parametrize("use_data_provider", (True, False))
+def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
+    influxdb, watchman_service, use_data_provider: bool, batch_size: int
 ):
     """
-    Run the prediction client with different batch-sizes
-    """
-    use_client_predictions(
-        trained_model_directory, use_data_provider=True, batch_size=batch_size
-    )
-
-
-def use_client_predictions(
-    trained_model_directory: pytest.fixture, use_data_provider: bool, batch_size: int
-):
-    """
-    Run the prediction client with or without a data provider
+    Run the prediction client with different batch-sizes and whether to use
+    a data provider or not.
     """
 
     # The uri for the local influx which serves as the source and destination
@@ -142,10 +104,6 @@ def use_client_predictions(
 
     # Client only used within the this test
     test_client = client_utils.influx_client_from_uri(uri)
-
-    # Clear measurements from influx
-    for measurement in ("predictions", "anomaly"):
-        test_client.drop_measurement(measurement)
 
     # Created measurements by prediction client with dest influx
     output_measurements = ("predictions", "anomaly")
@@ -162,7 +120,7 @@ def use_client_predictions(
 
     data_provider = (
         providers.InfluxDataProvider(
-            measurement="sensors",
+            measurement=tu.INFLUXDB_MEASUREMENT,
             value_name="Value",
             client=client_utils.influx_client_from_uri(uri=uri, dataframe_client=True),
         )
@@ -171,7 +129,7 @@ def use_client_predictions(
     )
 
     prediction_client = Client(
-        project="gordo-test",
+        project=tu.GORDO_PROJECT,
         data_provider=data_provider,
         prediction_forwarder=ForwardPredictionsIntoInflux(destination_influx_uri=uri),
         batch_size=batch_size,
@@ -224,9 +182,6 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-@pytest.mark.parametrize(
-    "watchman_service", [("localhost", "gordo-test", ["machine-1"])], indirect=True
-)
 def test_client_cli_metadata(watchman_service):
     """
     Test proper execution of client predict sub-command
@@ -236,7 +191,14 @@ def test_client_cli_metadata(watchman_service):
     # Simple metadata fetching
     out = runner.invoke(
         cli.gordo,
-        args=["client", "--project", "gordo-test", "--target", "machine-1", "metadata"],
+        args=[
+            "client",
+            "--project",
+            tu.GORDO_PROJECT,
+            "--target",
+            tu.GORDO_SINGLE_TARGET,
+            "metadata",
+        ],
     )
     assert out.exit_code == 0
     assert "machine-1" in out.output
@@ -249,9 +211,9 @@ def test_client_cli_metadata(watchman_service):
             args=[
                 "client",
                 "--project",
-                "gordo-test",
+                tu.GORDO_PROJECT,
                 "--target",
-                "machine-1",
+                tu.GORDO_SINGLE_TARGET,
                 "metadata",
                 "--output-file",
                 output_file,
@@ -264,9 +226,6 @@ def test_client_cli_metadata(watchman_service):
             assert "machine-1" in metadata
 
 
-@pytest.mark.parametrize(
-    "watchman_service", [("localhost", "gordo-test", ["machine-1"])], indirect=True
-)
 def test_client_cli_download_model(watchman_service):
     """
     Test proper execution of client predict sub-command
@@ -283,9 +242,9 @@ def test_client_cli_download_model(watchman_service):
             args=[
                 "client",
                 "--project",
-                "gordo-test",
+                tu.GORDO_PROJECT,
                 "--target",
-                "machine-1",
+                tu.GORDO_SINGLE_TARGET,
                 "download-model",
                 output_dir,
             ],
@@ -297,37 +256,19 @@ def test_client_cli_download_model(watchman_service):
         # Output directory should not be empty any longer
         assert len(os.listdir(output_dir)) > 0
 
-        model_output_dir = os.path.join(output_dir, "machine-1")
+        model_output_dir = os.path.join(output_dir, tu.GORDO_SINGLE_TARGET)
         assert os.path.isdir(model_output_dir)
 
         model = serializer.load(model_output_dir)
         assert isinstance(model, BaseEstimator)
 
 
-@pytest.mark.dockertest
 @pytest.mark.parametrize(
     "forwarder_args",
-    [
-        [
-            "--influx-uri",
-            "root:root@localhost:8086/testdb",
-            "--forward-resampled-sensors",
-        ],
-        None,
-    ],
+    [["--influx-uri", tu.INFLUXDB_URI, "--forward-resampled-sensors"], None],
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
-@pytest.mark.parametrize(
-    "influxdb,watchman_service",
-    [
-        (
-            (SENSORS, "testdb", "root", "root", "sensors"),
-            ("localhost", "gordo-test", ["machine-1"]),
-        )
-    ],
-    indirect=True,
-)
 def test_client_cli_predict(
     influxdb, watchman_service, forwarder_args, output_dir, data_provider
 ):
@@ -341,7 +282,7 @@ def test_client_cli_predict(
         "--metadata",
         "key,value",
         "--project",
-        "gordo-test",
+        tu.GORDO_PROJECT,
         "predict",
         "2016-01-01T00:00:00Z",
         "2016-01-01T01:00:00Z",
@@ -385,7 +326,9 @@ def test_client_cli_predict(
 
     # Did it save dataframes to output dir if specified?
     if output_dir is not None:
-        assert os.path.exists(os.path.join(output_dir.name, "machine-1.csv.gz"))
+        assert os.path.exists(
+            os.path.join(output_dir.name, f"{tu.GORDO_SINGLE_TARGET}.csv.gz")
+        )
 
 
 @pytest.mark.parametrize(
