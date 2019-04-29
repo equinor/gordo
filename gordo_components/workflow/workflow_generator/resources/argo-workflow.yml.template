@@ -260,10 +260,10 @@ spec:
 
                    resources:
                      requests:
-                       memory: 500M
+                       memory: 750M
                        cpu: 100m
                      limits:
-                       memory: 500M
+                       memory: 750M
               terminationGracePeriodSeconds: 1
               volumes:
                 - name: gstor
