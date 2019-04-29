@@ -31,7 +31,7 @@ class WorkflowGeneratorTestCase(unittest.TestCase):
         client = docker.from_env()
 
         # Build the argo dockerfile
-        repo_dir = os.path.join(os.path.dirname(__file__), "..", "..")
+        repo_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..")
         file = os.path.join(repo_dir, "Dockerfile-argo")
 
         logger.info("Building Argo docker image...")
