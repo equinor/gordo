@@ -92,7 +92,8 @@ def trained_model_directory(sensors: typing.List[str]):
             proxies={"https": "", "http": ""},
             uri=tu.INFLUXDB_URI,
         )
-    ]
+    ],
+    scope="session",
 )
 def gordo_ml_server_client(request, trained_model_directory):
 
