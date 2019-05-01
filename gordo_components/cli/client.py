@@ -69,6 +69,12 @@ def client(ctx: click.Context, *args, **kwargs):
     is_flag=True,
     default=False,
 )
+@click.option(
+    "--forward-resampled-sensors",
+    help="forward the resampled sensor values",
+    is_flag=True,
+    default=False,
+)
 @click.pass_context
 def predict(
     ctx: click.Context,
@@ -79,11 +85,13 @@ def predict(
     influx_uri: str,
     influx_api_key: str,
     influx_recreate_db: bool,
+    forward_resampled_sensors: bool,
 ):
     """
     Run some predictions against the target
     """
     ctx.obj["kwargs"].update({"data_provider": data_provider})
+    ctx.obj["kwargs"].update({"forward_resampled_sensors": forward_resampled_sensors})
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
 
     if influx_uri is not None:

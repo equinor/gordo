@@ -17,7 +17,7 @@ DATA_CONFIG = (
     ' "type": "RandomDataset",'
     ' "train_start_date": "2015-01-01T00:00:00+00:00", '
     ' "train_end_date": "2015-06-01T00:00:00+00:00",'
-    ' "tags": ["tag1", "tag2"]'
+    ' "tags": ["TRC1","TRC2"]'
     "}"
 )
 
@@ -117,7 +117,7 @@ class CliTestCase(unittest.TestCase):
                     ' "type": "RandomDataset",'
                     ' "train_start_date": "2019-01-01T00:00:00+00:00", '
                     ' "train_end_date": "2019-06-01T00:00:00+00:00",'
-                    ' "tags": ["tag1", "tag2"]'
+                    ' "tags": ["TRC1", "TRC2"]'
                     "}"
                 ),
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),

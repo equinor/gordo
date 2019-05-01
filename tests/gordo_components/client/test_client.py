@@ -3,7 +3,6 @@
 import os
 import tempfile
 import json
-from contextlib import ExitStack
 from dateutil.parser import isoparse  # type: ignore
 
 import aiohttp
@@ -19,8 +18,7 @@ from gordo_components.data_provider import providers
 from gordo_components import cli, serializer
 from gordo_components.cli import custom_types
 
-from tests.gordo_components.server.test_gordo_server import influxdatabase, SENSORS
-from tests.utils import watchman
+from tests import utils as tu
 
 
 @pytest.mark.asyncio
@@ -57,141 +55,111 @@ async def test_client_post_json(session, timeout, json):
         await session.close()
 
 
-def test_client_get_metadata(trained_model_directory: pytest.fixture):
+def test_client_get_metadata(watchman_service):
     """
     Test client's ability to get metadata from some target
     """
+    client = Client(project="gordo-test")
 
-    with watchman(
-        host="localhost",
-        project="gordo-test",
-        targets=["machine-1"],
-        model_location=trained_model_directory,
-    ):
-        client = Client(project="gordo-test")
+    metadata = client.get_metadata()
+    assert isinstance(metadata, dict)
 
-        metadata = client.get_metadata()
-        assert isinstance(metadata, dict)
-
-        # Can't get metadata for non-existent target
-        with pytest.raises(ValueError):
-            client = Client(project="gordo-test", target="no-such-target")
-            client.get_metadata()
+    # Can't get metadata for non-existent target
+    with pytest.raises(ValueError):
+        client = Client(project="gordo-test", target="no-such-target")
+        client.get_metadata()
 
 
-def test_client_download_model(trained_model_directory: pytest.fixture):
+def test_client_download_model(watchman_service):
     """
     Test client's ability to download the model
     """
+    client = Client(project="gordo-test", target="machine-1")
 
-    with watchman(
-        host="localhost",
-        project="gordo-test",
-        targets=["machine-1"],
-        model_location=trained_model_directory,
-    ):
-        client = Client(project="gordo-test", target="machine-1")
+    models = client.download_model()
+    assert isinstance(models, dict)
+    assert isinstance(models["machine-1"], BaseEstimator)
 
-        models = client.download_model()
-        assert isinstance(models, dict)
-        assert isinstance(models["machine-1"], BaseEstimator)
-
-        # Can't download model for non-existent target
-        with pytest.raises(ValueError):
-            client = Client(project="gordo-test", target="machine-2")
-            client.download_model()
+    # Can't download model for non-existent target
+    with pytest.raises(ValueError):
+        client = Client(project="gordo-test", target="machine-2")
+        client.download_model()
 
 
-@pytest.mark.dockertest
+@pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_data_provider", (True, False))
-@pytest.mark.parametrize("trained_model_directory", (SENSORS,), indirect=True)
-def test_client_predictions_with_or_without_data_provider(
-    trained_model_directory: pytest.fixture, use_data_provider: bool
+def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
+    influxdb, watchman_service, use_data_provider: bool, batch_size: int
 ):
     """
-    Run the prediction client with or without a data provider
+    Run the prediction client with different batch-sizes and whether to use
+    a data provider or not.
     """
 
-    with watchman(
-        host="localhost",
-        project="gordo-test",
-        targets=["machine-1"],
-        model_location=trained_model_directory,
-    ), influxdatabase(
-        sensors=SENSORS,
-        db_name="testdb",
-        user="root",
-        password="root",
-        measurement="sensors",
-    ):
+    # The uri for the local influx which serves as the source and destination
+    uri = f"root:root@localhost:8086/testdb"
 
-        # The uri for the local influx which serves as the source and destination
-        uri = f"root:root@localhost:8086/testdb"
+    # Time range used in this test
+    start, end = isoparse("2016-01-01T00:00:00Z"), isoparse("2016-01-01T12:00:00Z")
 
-        # Time range used in this test
-        start, end = isoparse("2016-01-01T00:00:00Z"), isoparse("2016-01-01T12:00:00Z")
+    # Client only used within the this test
+    test_client = client_utils.influx_client_from_uri(uri)
 
-        # Client only used within the this test
-        test_client = client_utils.influx_client_from_uri(uri)
+    # Created measurements by prediction client with dest influx
+    output_measurements = ("predictions", "anomaly")
+    query_tmpl = """
+    SELECT *
+    FROM "{measurement}"
+    WHERE("machine" =~ /^machine-1$/)
+    """
 
-        # Created measurements by prediction client with dest influx
-        output_measurements = ("predictions", "anomaly")
-        query_tmpl = """
-        SELECT *
-        FROM "{measurement}"
-        WHERE("machine" =~ /^machine-1$/)
-        """
+    # Before predicting, influx destination db should be empty for 'predictions' measurement
+    for measurement in output_measurements:
+        vals = test_client.query(query_tmpl.format(measurement=measurement))
+        assert len(vals) == 0
 
-        # Before predicting, influx destination db should be empty for 'predictions' measurement
-        for measurement in output_measurements:
-            vals = test_client.query(query_tmpl.format(measurement=measurement))
-            assert len(vals) == 0
-
-        data_provider = (
-            providers.InfluxDataProvider(
-                measurement="sensors",
-                value_name="Value",
-                client=client_utils.influx_client_from_uri(
-                    uri=uri, dataframe_client=True
-                ),
-            )
-            if use_data_provider
-            else None
+    data_provider = (
+        providers.InfluxDataProvider(
+            measurement=tu.INFLUXDB_MEASUREMENT,
+            value_name="Value",
+            client=client_utils.influx_client_from_uri(uri=uri, dataframe_client=True),
         )
+        if use_data_provider
+        else None
+    )
 
-        prediction_client = Client(
-            project="gordo-test",
-            data_provider=data_provider,
-            prediction_forwarder=ForwardPredictionsIntoInflux(
-                destination_influx_uri=uri
-            ),
-        )
+    prediction_client = Client(
+        project=tu.GORDO_PROJECT,
+        data_provider=data_provider,
+        prediction_forwarder=ForwardPredictionsIntoInflux(destination_influx_uri=uri),
+        batch_size=batch_size,
+    )
 
-        # Should have discovered machine-1 & machine-2
-        assert len(prediction_client.endpoints) == 1
+    # Should have discovered machine-1 & machine-2
+    assert len(prediction_client.endpoints) == 1
 
-        # All endpoints should be healthy
-        assert all(ep.healthy for ep in prediction_client.endpoints)
+    # All endpoints should be healthy
+    assert all(ep.healthy for ep in prediction_client.endpoints)
 
-        # Get predictions
-        predictions = prediction_client.predict(start=start, end=end)
-        assert isinstance(predictions, list)
-        assert len(predictions) == 1
+    # Get predictions
+    predictions = prediction_client.predict(start=start, end=end)
+    assert isinstance(predictions, list)
+    assert len(predictions) == 1
 
-        name, predictions, error_messages = predictions[0]  # First dict of predictions
-        assert isinstance(name, str)
-        assert isinstance(predictions, pd.DataFrame)
-        assert isinstance(error_messages, list)
+    name, predictions, error_messages = predictions[0]  # First dict of predictions
+    assert isinstance(name, str)
+    assert isinstance(predictions, pd.DataFrame)
+    assert isinstance(error_messages, list)
 
-        assert isinstance(predictions.index, pd.core.indexes.datetimes.DatetimeIndex)
+    assert isinstance(predictions.index, pd.core.indexes.datetimes.DatetimeIndex)
 
-        # This should have resulted in writting predictions to influx
-        # Before predicting, influx destination db should be empty
-        for measurement in output_measurements:
-            vals = test_client.query(query_tmpl.format(measurement=measurement))
-            assert (
-                len(vals) > 0
-            ), f"Expected new values in '{measurement}' measurement, but found {vals}"
+    # This should have resulted in writting predictions to influx
+    # Before predicting, influx destination db should be empty
+    for measurement in output_measurements:
+        vals = test_client.query(query_tmpl.format(measurement=measurement))
+        assert (
+            len(vals) > 0
+        ), f"Expected new values in '{measurement}' measurement, but found {vals}"
 
 
 @pytest.mark.parametrize(
@@ -214,71 +182,57 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-def test_client_cli_metadata(trained_model_directory: pytest.fixture):
+def test_client_cli_metadata(watchman_service):
     """
     Test proper execution of client predict sub-command
     """
     runner = CliRunner()
 
-    with watchman(
-        host="localhost",
-        project="gordo-test",
-        targets=["machine-1"],
-        model_location=trained_model_directory,
-    ):
+    # Simple metadata fetching
+    out = runner.invoke(
+        cli.gordo,
+        args=[
+            "client",
+            "--project",
+            tu.GORDO_PROJECT,
+            "--target",
+            tu.GORDO_SINGLE_TARGET,
+            "metadata",
+        ],
+    )
+    assert out.exit_code == 0
+    assert "machine-1" in out.output
 
-        # Simple metadata fetching
+    # Save metadata to file
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_file = os.path.join(tmp_dir, "metadata.json")
         out = runner.invoke(
             cli.gordo,
             args=[
                 "client",
                 "--project",
-                "gordo-test",
+                tu.GORDO_PROJECT,
                 "--target",
-                "machine-1",
+                tu.GORDO_SINGLE_TARGET,
                 "metadata",
+                "--output-file",
+                output_file,
             ],
         )
-        assert out.exit_code == 0
-        assert "machine-1" in out.output
-
-        # Save metadata to file
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            output_file = os.path.join(tmp_dir, "metadata.json")
-            out = runner.invoke(
-                cli.gordo,
-                args=[
-                    "client",
-                    "--project",
-                    "gordo-test",
-                    "--target",
-                    "machine-1",
-                    "metadata",
-                    "--output-file",
-                    output_file,
-                ],
-            )
-            assert out.exit_code == 0, f"{out.exc_info}"
-            assert os.path.exists(output_file)
-            with open(output_file) as f:
-                metadata = json.load(f)
-                assert "machine-1" in metadata
+        assert out.exit_code == 0, f"{out.exc_info}"
+        assert os.path.exists(output_file)
+        with open(output_file) as f:
+            metadata = json.load(f)
+            assert "machine-1" in metadata
 
 
-def test_client_cli_download_model(
-    trained_model_directory: pytest.fixture, tmp_dir: pytest.fixture
-):
+def test_client_cli_download_model(watchman_service):
     """
     Test proper execution of client predict sub-command
     """
     runner = CliRunner()
 
-    with watchman(
-        host="localhost",
-        project="gordo-test",
-        targets=["machine-1"],
-        model_location=trained_model_directory,
-    ), tempfile.TemporaryDirectory() as output_dir:
+    with tempfile.TemporaryDirectory() as output_dir:
 
         # Empty output directory before downloading
         assert len(os.listdir(output_dir)) == 0
@@ -288,9 +242,9 @@ def test_client_cli_download_model(
             args=[
                 "client",
                 "--project",
-                "gordo-test",
+                tu.GORDO_PROJECT,
                 "--target",
-                "machine-1",
+                tu.GORDO_SINGLE_TARGET,
                 "download-model",
                 output_dir,
             ],
@@ -302,77 +256,79 @@ def test_client_cli_download_model(
         # Output directory should not be empty any longer
         assert len(os.listdir(output_dir)) > 0
 
-        model_output_dir = os.path.join(output_dir, "machine-1")
+        model_output_dir = os.path.join(output_dir, tu.GORDO_SINGLE_TARGET)
         assert os.path.isdir(model_output_dir)
 
         model = serializer.load(model_output_dir)
         assert isinstance(model, BaseEstimator)
 
 
-@pytest.mark.dockertest
 @pytest.mark.parametrize(
-    "forwarder_args", [["--influx-uri", "root:root@localhost:8086/sensors"], None]
+    "forwarder_args",
+    [["--influx-uri", tu.INFLUXDB_URI, "--forward-resampled-sensors"], None],
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
 def test_client_cli_predict(
-    trained_model_directory: pytest.fixture, forwarder_args, output_dir, data_provider
+    influxdb, watchman_service, forwarder_args, output_dir, data_provider
 ):
     """
-
+    Test ability for client to get predictions via CLI
     """
     runner = CliRunner()
 
-    with ExitStack() as stack:
+    args = [
+        "client",
+        "--metadata",
+        "key,value",
+        "--project",
+        tu.GORDO_PROJECT,
+        "predict",
+        "2016-01-01T00:00:00Z",
+        "2016-01-01T01:00:00Z",
+    ]
 
-        # Always need watchman
-        stack.enter_context(
-            watchman(
-                host="localhost",
-                project="gordo-test",
-                targets=["machine-1"],
-                model_location=trained_model_directory,
-            )
+    influx_uri = f"root:root@localhost:8086/testdb"
+    influx_client = client_utils.influx_client_from_uri(
+        uri=influx_uri, dataframe_client=True
+    )
+    query = """
+        SELECT *
+        FROM "resampled"
+        """
+
+    # Do we have forwarder args?
+    if forwarder_args is not None:
+        args.extend(forwarder_args)
+        vals = influx_client.query(query)
+        # There is no data there before we start doing things
+        assert len(vals) == 0
+
+    # Should it write out the predictions to dataframes in an output directory?
+    if output_dir is not None:
+        args.extend(["--output-dir", output_dir.name])
+
+    # Do we have a data provider, POST else GET requests
+    if data_provider is not None:
+        args.extend(["--data-provider", json.dumps(data_provider.to_dict())])
+
+    # Run without any error
+    out = runner.invoke(cli.gordo, args=args)
+    assert out.exit_code == 0, f"{out.output}"
+
+    # If we activated forwarder and we had any actual data then there should
+    # be resampled values in the influx
+    if forwarder_args and data_provider:
+        vals = influx_client.query(query)
+        assert len(vals) == 1
+        assert len(vals["resampled"]) == 28
+        influx_client.drop_measurement("resampled")
+
+    # Did it save dataframes to output dir if specified?
+    if output_dir is not None:
+        assert os.path.exists(
+            os.path.join(output_dir.name, f"{tu.GORDO_SINGLE_TARGET}.csv.gz")
         )
-
-        # Might need influx
-        if forwarder_args:
-            stack.enter_context(
-                influxdatabase(
-                    sensors=SENSORS, db_name="sensors", user="root", password="root"
-                )
-            )
-
-        args = [
-            "client",
-            "--metadata",
-            "key,value",
-            "--project",
-            "gordo-test",
-            "predict",
-            "2016-01-01T00:00:00Z",
-            "2016-01-01T01:00:00Z",
-        ]
-
-        # Do we have forwarder args?
-        if forwarder_args is not None:
-            args.extend(forwarder_args)
-
-        # Should it write out the predictions to dataframes in an output directory?
-        if output_dir is not None:
-            args.extend(["--output-dir", output_dir.name])
-
-        # Do we have a data provider, POST else GET requests
-        if data_provider is not None:
-            args.extend(["--data-provider", json.dumps(data_provider.to_dict())])
-
-        # Run without any error
-        out = runner.invoke(cli.gordo, args=args)
-        assert out.exit_code == 0, f"{out.output}"
-
-        # Did it save dataframes to output dir if specified?
-        if output_dir is not None:
-            assert os.path.exists(os.path.join(output_dir.name, "machine-1.csv.gz"))
 
 
 @pytest.mark.parametrize(

@@ -16,10 +16,11 @@ from sklearn.base import BaseEstimator
 
 from gordo_components import serializer
 from gordo_components.client import io as gordo_io
+from gordo_components.client.forwarders import PredictionForwarder
 from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
-
+from gordo_components.dataset.sensor_tag import normalize_sensor_tag
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +42,10 @@ class Client:
         gordo_version: str = "v0",
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
-        prediction_forwarder: typing.Optional[
-            typing.Callable[
-                [pd.DataFrame, EndpointMetadata, dict], typing.Awaitable[None]
-            ]
-        ] = None,
+        prediction_forwarder: typing.Optional[PredictionForwarder] = None,
         batch_size: int = 1000,
         parallelism: int = 10,
+        forward_resampled_sensors: bool = False,
     ):
         """
 
@@ -72,15 +70,19 @@ class Client:
         data_provider: Optional[GordoBaseDataProvider]
             The data provider to use for the dataset. If not set, the client
             will fall back to using the GET /prediction endpoint
-        prediction_forwarder: Optional[Callable[[pd.DataFrame, EndpointMetadata, dict], typing.Awaitable[None]]]
-            Async callable which will take a dataframe of predictions, ``EndpointMetadata`` and the metadata
-            passed into this constructor
+        prediction_forwarder: Optional[Callable[[pd.DataFrame, EndpointMetadata, dict, pd.DataFrame], typing.Awaitable[None]]]
+            Async callable which will take a dataframe of predictions,
+            ``EndpointMetadata``, the metadata, and the dataframe of resampled sensor
+            values and forward them somewhere.
         batch_size: int
             How many samples to send to the server, only applicable when data
             provider is supplied.
         parallelism: int
             The maximum number of async tasks to run at a given time when
             running predictions
+       forward_resampled_sensors : bool
+            If true then forward resampled sensor values to the prediction_forwarder
+
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -91,6 +93,7 @@ class Client:
         self.data_provider = data_provider
         self.batch_size = batch_size
         self.parallelism = parallelism
+        self.forward_resampled_sensors = forward_resampled_sensors
 
         # Filter down to single endpoint if requested
         if target:
@@ -119,7 +122,10 @@ class Client:
                 ],
                 healthy=data["healthy"],
                 endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                tag_list=data["metadata"]["metadata"]["dataset"]["tag_list"],
+                tag_list=[
+                    normalize_sensor_tag(tagdict)
+                    for tagdict in data["metadata"]["metadata"]["dataset"]["tag_list"]
+                ],
                 resolution=data["metadata"]["metadata"]["dataset"]["resolution"],
             )
             for data in resp.json()["endpoints"]
@@ -235,6 +241,10 @@ class Client:
         # Fetch all of the raw data
         X, y = await self._raw_data(endpoint, start, end)
 
+        # Forward sensor data
+        if self.prediction_forwarder is not None and self.forward_resampled_sensors:
+            await self.prediction_forwarder(resampled_sensor_data=X)
+
         async with aiohttp.ClientSession() as session:
 
             # Chunk over the dataframe by batch_size
@@ -302,17 +312,23 @@ class Client:
         # Get the output values
         values = np.array(resp["output"])
 
+        # Chunks can have None as end-point
+        chunk_stop = chunk.stop if chunk.stop else len(X)
+        # Chunks can also be larger than the actual data
+        chunk_stop = min(chunk_stop, len(X))
         predictions = pd.DataFrame(
             data=values,
             columns=[f"input_{sensor}" for sensor in X.columns]
             + [f"output_{sensor}" for sensor in X.columns],
             # match any offsetting from windowed models
-            index=X.index[-len(values) :],
+            index=X.index[chunk_stop - len(values) : chunk_stop],
         )
 
         # Forward predictions to any other consumer if registered.
         if self.prediction_forwarder is not None:
-            await self.prediction_forwarder(predictions, endpoint, self.metadata)
+            await self.prediction_forwarder(
+                predictions=predictions, endpoint=endpoint, metadata=self.metadata
+            )
 
         return PredictionResult(
             name=endpoint.target_name, predictions=predictions, error_messages=[]
@@ -412,7 +428,9 @@ class Client:
         predictions = pd.DataFrame.from_records(records, index="time")
 
         if self.prediction_forwarder is not None:
-            await self.prediction_forwarder(predictions, endpoint, self.metadata)
+            await self.prediction_forwarder(
+                predictions=predictions, endpoint=endpoint, metadata=self.metadata
+            )
         return PredictionResult(
             name=endpoint.target_name, predictions=predictions, error_messages=[]
         )

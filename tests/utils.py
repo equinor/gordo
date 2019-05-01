@@ -6,16 +6,43 @@ import time
 import logging
 
 from contextlib import contextmanager
+from typing import List
+
+import docker
+import numpy as np
+import pandas as pd
 
 import responses
 import requests
 from asynctest import mock as async_mock
+from influxdb import InfluxDBClient
 
-from gordo_components.dataset.datasets import RandomDataProvider
 from gordo_components.watchman import server as watchman_server
-from gordo_components.server import server as gordo_ml_server
+from gordo_components.dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
+
+sensor_names = [f"tag-{i}" for i in range(4)]
+SENSORTAG_LIST = [SensorTag(tag, None) for tag in sensor_names]
+INFLUXDB_NAME = "testdb"
+INFLUXDB_USER = "root"
+INFLUXDB_PASSWORD = "root"
+INFLUXDB_MEASUREMENT = "sensors"
+
+INFLUXDB_URI = f"{INFLUXDB_USER}:{INFLUXDB_PASSWORD}@localhost:8086/{INFLUXDB_NAME}"
+
+INFLUXDB_FIXTURE_ARGS = (
+    sensor_names,
+    INFLUXDB_NAME,
+    INFLUXDB_USER,
+    INFLUXDB_PASSWORD,
+    sensor_names,
+)
+
+GORDO_HOST = "localhost"
+GORDO_PROJECT = "gordo-test"
+GORDO_TARGETS = ["machine-1"]
+GORDO_SINGLE_TARGET = GORDO_TARGETS[0]
 
 
 def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
@@ -88,6 +115,8 @@ def watchman(
     -------
     None
     """
+    from gordo_components.dataset import datasets
+    from gordo_components.server import server as gordo_ml_server
 
     with temp_env_vars(MODEL_LOCATION=model_location):
         # Create a watchman test app
@@ -101,7 +130,9 @@ def watchman(
         watchman_app = watchman_app.test_client()
 
         # Create gordo ml servers
-        gordo_server_app = gordo_ml_server.build_app(data_provider=RandomDataProvider())
+        gordo_server_app = gordo_ml_server.build_app(
+            data_provider=datasets.RandomDataProvider()
+        )
         gordo_server_app.testing = True
         gordo_server_app = gordo_server_app.test_client()
 
@@ -207,3 +238,108 @@ def temp_env_vars(**kwargs):
 
     os.environ.clear()
     os.environ.update(_env)
+
+
+@contextmanager
+def influxdatabase(
+    sensors: List[SensorTag], db_name: str, user: str, password: str, measurement: str
+):
+    """
+    Setup a docker based InfluxDB with data points from 2016-01-1 until 2016-01-02 by minute
+
+    Returns
+    -------
+    InfluxDB
+        An interface to the running db instance with .reset() for convenient resetting of the
+        db to it's default state, (with original sensors)
+    """
+
+    client = docker.from_env()
+
+    logger.info("Starting up influx!")
+    influx = None
+    try:
+        influx = client.containers.run(
+            image="influxdb:1.7-alpine",
+            environment={
+                "INFLUXDB_DB": db_name,
+                "INFLUXDB_ADMIN_USER": user,
+                "INFLUXDB_ADMIN_PASSWORD": password,
+            },
+            ports={"8086/tcp": "8086"},
+            remove=True,
+            detach=True,
+        )
+        if not wait_for_influx(influx_host="localhost:8086"):
+            raise TimeoutError("Influx failed to start")
+
+        logger.info(f"Started influx DB: {influx.name}")
+
+        # Create the interface to the running instance, set default state, and yield it.
+        db = InfluxDB(sensors, db_name, user, password, measurement)
+        db.reset()
+        logger.info("STARTED INFLUX INSTANCE")
+        yield db
+
+    finally:
+        logger.info("Killing influx container")
+        if influx:
+            influx.kill()
+        logger.info("Killed influx container")
+
+
+class InfluxDB:
+    """
+    Simple interface to a running influx.
+    """
+
+    def __init__(
+        self,
+        sensors: List[SensorTag],
+        db_name: str,
+        user: str,
+        password: str,
+        measurement: str,
+    ):
+        self.sensors = sensors
+        self.db_name = db_name
+        self.user = user
+        self.password = password
+        self.measurement = measurement
+
+    def reset(self):
+        """
+        Set the db to contain the default data
+        """
+        # Seed database with some records
+        influx_client = InfluxDBClient(
+            "localhost",
+            8086,
+            self.user,
+            self.password,
+            self.db_name,
+            proxies={"http": "", "https": ""},
+        )
+
+        # Drop and re-create the database
+        influx_client.drop_database(self.db_name)
+        influx_client.create_database(self.db_name)
+
+        dates = pd.date_range(
+            start="2016-01-01", periods=2880, freq="min"
+        )  # Minute intervals for 2 days
+
+        logger.info("Seeding database")
+        for sensor in self.sensors:
+            logger.info(f"Loading tag: {sensor.name}")
+            points = np.random.random(size=dates.shape[0])
+            data = [
+                {
+                    "measurement": self.measurement,
+                    "tags": {"tag": sensor.name},
+                    "time": f"{date}",
+                    "fields": {"Value": point},
+                }
+                for point, date in zip(points, dates)
+            ]
+            influx_client.write_points(data)

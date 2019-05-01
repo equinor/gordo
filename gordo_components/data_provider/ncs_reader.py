@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import re
 from datetime import datetime
 from typing import Iterable, List
 
@@ -9,37 +8,21 @@ import pandas as pd
 from azure.datalake.store import core
 
 from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 
 
 class NcsReader(GordoBaseDataProvider):
-    TAG_TO_PATH = [
-        (
-            re.compile(r"^asgb."),
-            "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
-        ),
-        (
-            re.compile(r"^gra."),
-            "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
-        ),
-        (
-            re.compile(r"^1125."),
-            "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
-        ),
-        (
-            re.compile(r"^trb."),
-            "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
-        ),
-        (
-            re.compile(r"^trc."),
-            "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
-        ),
-        (
-            re.compile(r"^tra."),
-            "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
-        ),
-    ]
+    ASSET_TO_PATH = {
+        "1191-asgb": "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
+        "1755-gra": "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
+        "1125-kvb": "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
+        "1775-trob": "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
+        "1776-troc": "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
+        "1130-troa": "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
+        "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/​1101-SFB",
+    }
 
     def __init__(self, client: core.AzureDLFileSystem, **kwargs):
         """
@@ -50,11 +33,14 @@ class NcsReader(GordoBaseDataProvider):
         super().__init__(**kwargs)
         self.client = client
 
-    def can_handle_tag(self, tag):
-        return NcsReader.base_path_from_tag(tag)
+    def can_handle_tag(self, tag: SensorTag):
+        """
+        Implements GordoBaseDataProvider, see base class for documentation
+        """
+        return NcsReader.base_path_from_asset(tag.asset) is not None
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[str]
+        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
     ) -> Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
@@ -68,7 +54,7 @@ class NcsReader(GordoBaseDataProvider):
         years = range(from_ts.year, to_ts.year + 1)
 
         for tag in tag_list:
-            logger.info(f"Processing tag {tag}")
+            logger.info(f"Processing tag {tag.name}")
 
             tag_frame_all_years = self.read_tag_files(
                 adls_file_system_client, tag, years
@@ -81,7 +67,7 @@ class NcsReader(GordoBaseDataProvider):
 
     @staticmethod
     def read_tag_files(
-        adls_file_system_client: core.AzureDLFileSystem, tag: str, years: range
+        adls_file_system_client: core.AzureDLFileSystem, tag: SensorTag, years: range
     ) -> pd.Series:
         """
         Download tag files for the given years into dataframes,
@@ -91,7 +77,7 @@ class NcsReader(GordoBaseDataProvider):
         ----------
         adls_file_system_client: core.AzureDLFileSystem
             the AzureDLFileSystem client to use
-        tag: str
+        tag: SensorTag
             the tag to download data for
         years: range
             range object providing years to include
@@ -101,12 +87,14 @@ class NcsReader(GordoBaseDataProvider):
         pd.Series:
             Series with all years for one tag.
         """
-        tag_base_path = NcsReader.base_path_from_tag(tag)
+        tag_base_path = NcsReader.base_path_from_asset(tag.asset)
+
         if not tag_base_path:
-            raise ValueError(f"Unable to find base path from tag {tag}")
+            raise ValueError(f"Unable to find base path from tag {tag} ")
         all_years = []
+
         for year in years:
-            file_path = tag_base_path + f"/{tag}/{tag}_{year}.csv"
+            file_path = tag_base_path + f"/{tag.name}/{tag.name}_{year}.csv"
             logger.info(f"Parsing file {file_path}")
 
             info = adls_file_system_client.info(file_path)
@@ -118,9 +106,9 @@ class NcsReader(GordoBaseDataProvider):
                     f,
                     sep=";",
                     header=None,
-                    names=["Sensor", tag, "Timestamp", "Status"],
-                    usecols=[tag, "Timestamp"],
-                    dtype={tag: np.float32},
+                    names=["Sensor", tag.name, "Timestamp", "Status"],
+                    usecols=[tag.name, "Timestamp"],
+                    dtype={tag.name: np.float32},
                     parse_dates=["Timestamp"],
                     date_parser=lambda col: pd.to_datetime(col, utc=True),
                     index_col="Timestamp",
@@ -135,21 +123,24 @@ class NcsReader(GordoBaseDataProvider):
         if combined.index.duplicated().any():
             combined = combined[~combined.index.duplicated(keep="last")]
 
-        return combined[tag]
+        return combined[tag.name]
 
     @staticmethod
-    def base_path_from_tag(tag):
+    def base_path_from_asset(asset: str):
         """
-        Resolves a tag to the datalake basepath it should reside. Returns None if
-        it does not match any of the tag-regexps we know.
+        Resolves an asset code to the datalake basepath containing the data.
+        Returns None if it does not match any of the asset codes we know.
         """
-        tag = tag.lower()
-        logger.debug(f"Looking for pattern for tag {tag}")
+        if not asset:
+            return None
 
-        for pattern in NcsReader.TAG_TO_PATH:
-            if pattern[0].match(tag):
-                logger.info(
-                    f"Found pattern {pattern[0]} in tag {tag}, returning {pattern[1]}"
-                )
-                return pattern[1]
-        return None
+        asset = asset.lower()
+        if asset not in NcsReader.ASSET_TO_PATH:
+            return None
+
+        logger.debug(f"Looking for match for asset {asset}")
+
+        logger.info(
+            f"Found asset code {asset}, returning {NcsReader.ASSET_TO_PATH[asset]}"
+        )
+        return NcsReader.ASSET_TO_PATH[asset]

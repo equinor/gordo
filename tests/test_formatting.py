@@ -23,6 +23,7 @@ class FormattingTestCase(unittest.TestCase):
                 tests_path,
                 "--exclude",
                 r".*_version.py",
+                "--quiet",
             ],
         )
         self.assertEqual(
