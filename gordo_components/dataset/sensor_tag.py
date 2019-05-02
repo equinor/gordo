@@ -40,12 +40,18 @@ def _asset_from_tag_name(tag_name: str):
     raise ValueError(f"Unable to find asset for tag with name {tag_name}")
 
 
-def _normalize_sensor_tag(sensor: Union[Dict, str, SensorTag]):
+def _normalize_sensor_tag(sensor: Union[Dict, List, str, SensorTag], asset: str = None):
     if isinstance(sensor, Dict):
         return SensorTag(sensor["name"], sensor["asset"])
 
     elif isinstance(sensor, str):
-        return SensorTag(sensor, _asset_from_tag_name(sensor))
+        if asset is None:
+            return SensorTag(sensor, _asset_from_tag_name(sensor))
+        else:
+            return SensorTag(sensor, asset)
+
+    elif isinstance(sensor, List):
+        return SensorTag(sensor[0], sensor[1])
 
     elif isinstance(sensor, SensorTag):
         return sensor
@@ -57,7 +63,7 @@ def _normalize_sensor_tag(sensor: Union[Dict, str, SensorTag]):
 
 
 def normalize_sensor_tags(
-    sensors: List[Union[Dict, str, SensorTag]]
+    sensors: List[Union[Dict, str, SensorTag]], asset: str = None
 ) -> List[SensorTag]:
     """
     Converts a list of sensors in different formats, into a list of SensorTag elements.
@@ -67,6 +73,8 @@ def normalize_sensor_tags(
     ----------
     sensors : List[Union[Mapping, str, SensorTag]]
             List of sensors
+    asset : str
+            Optional asset code to put on sensors that don't have it
 
     Returns
     -------
@@ -77,7 +85,10 @@ def normalize_sensor_tags(
     logging.info(
         f"Normalizing list of sensors in some format into SensorTags: {sensors}"
     )
-    return [_normalize_sensor_tag(sensor_tag_element) for sensor_tag_element in sensors]
+    return [
+        _normalize_sensor_tag(sensor_tag_element, asset)
+        for sensor_tag_element in sensors
+    ]
 
 
 def to_list_of_strings(sensor_tag_list: List[SensorTag]):

@@ -9,42 +9,67 @@ TAG_NAME2 = "MyBeautifulTag2"
 asset_nonsense = "ImaginaryAsset"
 
 
-def test_normalize_sensor_tags_from_dict():
-    tag_list_as_list_of_dict = [
-        {"name": TAG_NAME1, "asset": asset_nonsense},
-        {"name": TAG_NAME2, "asset": asset_nonsense},
-    ]
-    tag_list_as_list_of_sensor_tag = normalize_sensor_tags(tag_list_as_list_of_dict)
-    assert tag_list_as_list_of_sensor_tag == [
-        SensorTag(TAG_NAME1, asset_nonsense),
-        SensorTag(TAG_NAME2, asset_nonsense),
-    ]
+@pytest.mark.parametrize(
+    "good_input_tags,asset,expected_output_tags",
+    [
+        (
+            [
+                {"name": TAG_NAME1, "asset": asset_nonsense},
+                {"name": TAG_NAME2, "asset": asset_nonsense},
+            ],
+            "ThisAssetCodeWillBeIgnored",
+            [
+                SensorTag(TAG_NAME1, asset_nonsense),
+                SensorTag(TAG_NAME2, asset_nonsense),
+            ],
+        ),
+        (
+            ["TRC-123", "GRA-214", "ASGB-212"],
+            "ThisWillBeTheAsset",
+            [
+                SensorTag("TRC-123", "ThisWillBeTheAsset"),
+                SensorTag("GRA-214", "ThisWillBeTheAsset"),
+                SensorTag("ASGB-212", "ThisWillBeTheAsset"),
+            ],
+        ),
+        (
+            ["TRC-123", "GRA-214", "ASGB-212"],
+            None,  # Will deduce asset
+            [
+                SensorTag("TRC-123", "1776-troc"),
+                SensorTag("GRA-214", "1755-gra"),
+                SensorTag("ASGB-212", "1191-asgb"),
+            ],
+        ),
+        (
+            [
+                SensorTag("TRC-123", "1776-troc"),
+                SensorTag("GRA-214", "1755-gra"),
+                SensorTag("ASGB-212", "1191-asgb"),
+            ],
+            "CouldWriteAssetHereButWeDontCare",
+            [
+                SensorTag("TRC-123", "1776-troc"),
+                SensorTag("GRA-214", "1755-gra"),
+                SensorTag("ASGB-212", "1191-asgb"),
+            ],
+        ),
+        (
+            [[TAG_NAME1, asset_nonsense], [TAG_NAME2, asset_nonsense]],
+            None,
+            [
+                SensorTag(TAG_NAME1, asset_nonsense),
+                SensorTag(TAG_NAME2, asset_nonsense),
+            ],
+        ),
+    ],
+)
+def test_normalize_sensor_tags_ok(good_input_tags, asset, expected_output_tags):
+    tag_list_as_list_of_sensor_tag = normalize_sensor_tags(good_input_tags, asset)
+    assert tag_list_as_list_of_sensor_tag == expected_output_tags
 
 
-def test_normalize_sensor_tags_from_string():
+def test_normalize_sensor_tags_not_ok():
     with pytest.raises(ValueError):
         tag_list_as_list_of_strings_nonsense = [TAG_NAME1, TAG_NAME2]
         normalize_sensor_tags(tag_list_as_list_of_strings_nonsense)
-
-    tag_list_as_list_of_known_tag_strings = ["TRC-123", "GRA-214", "ASGB-212"]
-    tag_list_as_list_of_sensor_tag = normalize_sensor_tags(
-        tag_list_as_list_of_known_tag_strings
-    )
-
-    assert tag_list_as_list_of_sensor_tag == [
-        SensorTag("TRC-123", "1776-troc"),
-        SensorTag("GRA-214", "1755-gra"),
-        SensorTag("ASGB-212", "1191-asgb"),
-    ]
-
-
-def test_normalize_sensor_tag_from_sensor_tag():
-    sensor_tags = [
-        SensorTag("TRC-123", "1776-troc"),
-        SensorTag("GRA-214", "1755-gra"),
-        SensorTag("ASGB-212", "1191-asgb"),
-    ]
-
-    normalized_sensor_tags = normalize_sensor_tags(sensor_tags)
-
-    assert sensor_tags == normalized_sensor_tags
