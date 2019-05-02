@@ -16,14 +16,117 @@ os:
 jobs:
   include:
   - stage: test
-    name: "setup.py testall"
+    name: "setup.py testbuilder"
     install:
       - pip install -r requirements.txt
     script:
-      - make testall
+      - python setup.py testbuilder
     after_success:
       # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
       - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testcli"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testcli
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+
+  - stage: test
+    name: "setup.py testclient"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testclient
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testdataprovider"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testdataprovider
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testdataset"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testdataset
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testmodel"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testmodel
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testserializer"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testserializer
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testserver"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testserver
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testutil"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testutil
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testwatchman"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testwatchman
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+  - stage: test
+    name: "setup.py testallelse"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testallelse
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
+
+
   - name: "make images"
     install: skip
     script:
