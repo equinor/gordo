@@ -3,7 +3,7 @@
 import bz2
 import glob
 import io
-import json
+import simplejson
 import logging
 import os
 import pydoc
@@ -109,7 +109,7 @@ def load_metadata(source_dir: str) -> dict:
     ]:
         if path.isfile(possible_path):
             with open(possible_path, "r") as f:
-                return json.load(f)
+                return simplejson.load(f)
     logger.warning(
         f'Metadata file in source dir: "{source_dir}" not found'
         f" in or up one directory."
@@ -208,7 +208,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
     # If this is a FeatureUnion, we also have a `params.json` for it
     if StepClass == FeatureUnion:
         with open(os.path.join(source_dir, "params.json"), "r") as p:
-            params = json.load(p)
+            params = simplejson.load(p)
 
     # Pipelines and FeatureUnions have sub steps which need to be loaded
     if any(StepClass == Obj for Obj in (Pipeline, FeatureUnion)):
@@ -289,16 +289,8 @@ def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
     """
     _dump_step(step=("obj", obj), n_step=0, dest_dir=dest_dir)
     if metadata is not None:
-        try:
-            tag_list_as_dict = [
-                sensor_tag._asdict() for sensor_tag in metadata["dataset"]["tag_list"]
-            ]
-            metadata["dataset"]["tag_list"] = tag_list_as_dict
-        except KeyError:
-            logger.info("Dumping model without tag_list in metadata")
-
         with open(os.path.join(dest_dir, "metadata.json"), "w") as f:
-            json.dump(metadata, f, default=str)
+            simplejson.dump(metadata, f, default=str)
 
 
 def _dump_step(
@@ -351,7 +343,7 @@ def _dump_step(
                 "transformer_weights": getattr(step_transformer, "transformer_weights"),
             }
             with open(os.path.join(sub_dir, "params.json"), "w") as f:
-                json.dump(params, f)
+                simplejson.dump(params, f)
     else:
         if hasattr(step_transformer, "save_to_dir"):
             if not hasattr(step_transformer, "load_from_dir"):

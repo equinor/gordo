@@ -3,7 +3,7 @@
 import unittest
 import pytest
 import os
-import dateutil
+import dateutil.parser
 import yaml
 
 from typing import List, Optional, Dict
