@@ -16,11 +16,82 @@ os:
 jobs:
   include:
   - stage: test
-    name: "setup.py testall"
+    name: "setup.py testbuilder"
     install:
       - pip install -r requirements.txt
     script:
-      - make coverage
+      - python setup.py testbuilder
+
+  - stage: test
+    name: "setup.py testcli"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testcli
+
+  - stage: test
+    name: "setup.py testclient"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testclient
+
+  - stage: test
+    name: "setup.py testdataprovider"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testdataprovider
+
+  - stage: test
+    name: "setup.py testdataset"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testdataset
+
+  - stage: test
+    name: "setup.py testmodel"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testmodel
+
+  - stage: test
+    name: "setup.py testserializer"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testserializer
+
+  - stage: test
+    name: "setup.py testserver"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testserver
+
+  - stage: test
+    name: "setup.py testutil"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testutil
+
+  - stage: test
+    name: "setup.py testwatchman"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testwatchman
+
+  - stage: test
+    name: "setup.py testallelse"
+    install:
+      - pip install -r requirements.txt
+    script:
+      - python setup.py testallelse
+
   - name: "make images"
     install: skip
     script:
