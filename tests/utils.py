@@ -199,7 +199,7 @@ def watchman(
             rsps.add_callback(
                 responses.GET,
                 re.compile(
-                    rf".*{namespace}.ambassador.*\/gordo\/v0\/{project}\/.*.\/.*."
+                    rf".*ambassador.{namespace}.*\/gordo\/v0\/{project}\/.*.\/.*."
                 ),
                 callback=gordo_ml_server_callback,
                 content_type="application/json",
