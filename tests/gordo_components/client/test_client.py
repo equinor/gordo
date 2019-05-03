@@ -3,6 +3,7 @@
 import os
 import tempfile
 import json
+import logging
 from dateutil.parser import isoparse  # type: ignore
 
 import aiohttp
@@ -329,6 +330,49 @@ def test_client_cli_predict(
         assert os.path.exists(
             os.path.join(output_dir.name, f"{tu.GORDO_SINGLE_TARGET}.csv.gz")
         )
+
+
+@pytest.mark.parametrize(
+    "should_fail,start_date,end_date",
+    [
+        (True, "1888-01-01T00:00:00Z", "1888-02-01T01:00:00Z"),  # Fail on bad dates
+        (False, "2016-01-01T00:00:00Z", "2016-01-01T01:00:00Z"),  # pass on good dates
+    ],
+)
+def test_client_cli_predict_non_zero_exit(
+    should_fail, start_date, end_date, caplog, influxdb, watchman_service
+):
+    """
+    Test ability for client to get predictions via CLI
+    """
+    runner = CliRunner()
+
+    # Should fail requesting dates which clearly don't exist.
+    args = [
+        "client",
+        "--metadata",
+        "key,value",
+        "--project",
+        tu.GORDO_PROJECT,
+        "predict",
+        start_date,
+        end_date,
+    ]
+
+    data_provider = providers.InfluxDataProvider(
+        measurement=tu.INFLUXDB_MEASUREMENT, value_name="Value", uri=tu.INFLUXDB_URI
+    )
+
+    args.extend(["--data-provider", json.dumps(data_provider.to_dict())])
+
+    # Run without any error
+    with caplog.at_level(logging.CRITICAL):
+        out = runner.invoke(cli.gordo, args=args)
+
+    if should_fail:
+        assert out.exit_code != 0, f"{out.output}"
+    else:
+        assert out.exit_code == 0, f"{out.output}"
 
 
 @pytest.mark.parametrize(
