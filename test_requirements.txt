@@ -12,7 +12,7 @@ asynctest==0.12.4
 atomicwrites==1.3.0       # via pytest
 attrs==19.1.0             # via black, jsonschema, pytest
 backcall==0.1.0           # via ipython
-black==18.9b0
+black==19.3b0
 bleach==3.1.0             # via nbconvert
 certifi==2019.3.9         # via requests
 cffi==1.12.3              # via cryptography
