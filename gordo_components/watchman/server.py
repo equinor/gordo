@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable, Optional
 
 import requests
-from flask import Flask, jsonify, make_response, request
+from flask import Flask, jsonify, make_response, request, current_app
 from flask.views import MethodView
 
 from gordo_components import __version__
@@ -24,6 +24,7 @@ PROJECT_NAME = None
 PROJECT_VERSION = None
 TARGET_NAMES = None
 NAMESPACE = None
+AMBASSADOR_NAMESPACE = None
 
 
 logger = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ class WatchmanApi(MethodView):
         EndpointStatus
         """
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
-        base_url = f'http://{NAMESPACE}.ambassador/{endpoint.rstrip("/")}'
+        base_url = f'http://{AMBASSADOR_NAMESPACE}.ambassador/{endpoint.rstrip("/")}'
         healthcheck_resp = requests.get(f"{base_url}/healthcheck", timeout=2)
 
         if healthcheck_resp.ok:
@@ -131,14 +132,17 @@ class WatchmanApi(MethodView):
         else:
             builders = {}
 
-        n_logs = int(request.args.get("logs", 20)) if "logs" in request.args else None
+        n_logs = int(request.args.get("logs") or 20) if "logs" in request.args else None
 
         with ThreadPoolExecutor(max_workers=25) as executor:
             futures = {
                 executor.submit(
                     self._check_endpoint,
-                    target,
-                    endpoint,
+                    host=f'ambassador.{current_app.config["AMBASSADOR_NAMESPACE"]}',
+                    namespace=current_app.config["NAMESPACE"],
+                    project_name=current_app.config["PROJECT_NAME"],
+                    target=target,
+                    endpoint=endpoint,
                     builder_pod=builders.get(target),
                     n_logs=n_logs,
                 ): endpoint
@@ -193,14 +197,18 @@ def healthcheck():
 
 
 def build_app(
-    project_name: str, project_version: str, target_names: Iterable[str], namespace: str
+    project_name: str,
+    project_version: str,
+    target_names: Iterable[str],
+    namespace: str,
+    ambassador_namespace: Optional[str] = None,
 ):
     """
     Build app and any associated routes
     """
 
     # Precompute list of expected endpoints from config file and other global env
-    global ENDPOINTS, PROJECT_NAME, TARGET_NAMES, NAMESPACE, PROJECT_VERSION
+    global ENDPOINTS, PROJECT_NAME, PROJECT_VERSION, TARGET_NAMES, NAMESPACE, AMBASSADOR_NAMESPACE
     ENDPOINTS = [
         f"/gordo/v0/{project_name}/{target_name}/" for target_name in target_names
     ]
@@ -208,12 +216,13 @@ def build_app(
     PROJECT_VERSION = project_version
     TARGET_NAMES = target_names
     NAMESPACE = namespace
+    AMBASSADOR_NAMESPACE = ambassador_namespace or namespace
 
     # App and routes
     app = Flask(__name__)
     app.add_url_rule(rule="/healthcheck", view_func=healthcheck, methods=["GET"])
     app.add_url_rule(
-        rule="/", view_func=WatchmanApi.as_view("sentinel_api"), methods=["GET"]
+        rule="/", view_func=WatchmanApi.as_view("watchman_api"), methods=["GET"]
     )
     return app
 
@@ -225,7 +234,14 @@ def run_server(
     project_name: str,
     project_version: str,
     target_names: Iterable[str],
-    namespace: str = "ambassador",
+    namespace: str,
+    ambassador_namespace: Optional[str] = None,
 ):
-    app = build_app(project_name, project_version, target_names, namespace=namespace)
+    app = build_app(
+        project_name=project_name,
+        project_version=project_version,
+        target_names=target_names,
+        namespace=namespace,
+        ambassador_namespace=ambassador_namespace,
+    )
     app.run(host, port, debug=debug)

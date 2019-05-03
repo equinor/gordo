@@ -198,12 +198,26 @@ def run_server_cli(
 @click.option(
     "--namespace",
     type=str,
-    help="Namespace watchman should make requests in",
-    default="ambassador",
+    help="Namespace watchman should make requests in for ML servers",
+    default="kubeflow",
     envvar="NAMESPACE",
 )
+@click.option(
+    "--ambassador-namespace",
+    type=str,
+    help="Namespace watchman expects Ambassador to be in",
+    default="ambassador",
+    envvar="AMBASSADOR_NAMESPACE",
+)
 def run_watchman_cli(
-    project_name, project_version, target_names, host, port, debug, namespace
+    project_name,
+    project_version,
+    target_names,
+    host,
+    port,
+    debug,
+    namespace,
+    ambassador_namespace,
 ):
     """
     Start the Gordo Watchman server for this project. Which is responsible
@@ -223,6 +237,7 @@ def run_watchman_cli(
         project_version,
         target_names,
         namespace=namespace,
+        ambassador_namespace=ambassador_namespace,
     )
 
 

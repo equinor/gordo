@@ -12,7 +12,7 @@ from tests.mocking.k8s_mocking import mocked_kubernetes
 TARGET_NAMES = ["CT-machine-name-456", "CT-machine-name-123"]
 PROJECT_NAME = "some-project-name"
 PROJECT_VERSION = "1"
-AMBASSADORHOST = "ambassador"
+AMBASSADOR_NAMESPACE = "kubeflow"
 URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{target_name}/"
 
 
@@ -42,7 +42,7 @@ class WatchmanTestCase(unittest.TestCase):
             project_name=PROJECT_NAME,
             project_version=PROJECT_VERSION,
             target_names=TARGET_NAMES,
-            namespace=AMBASSADORHOST,
+            namespace=AMBASSADOR_NAMESPACE,
         )
         app.testing = True
         self.app = app.test_client()
@@ -59,18 +59,18 @@ class WatchmanTestCase(unittest.TestCase):
         """
         Ensure Sentinel API gives a list of expected endpoints and if they are healthy or not.
         """
-        # Fake this request; The Sentinel server will start pinging the expected endpoints to see if they are healthy
+        # Fake this request; The watchman server will start pinging the expected endpoints to see if they are healthy
         # all of which start with the AMBASSADORHOST server; we'll fake these requests.
         responses.add_callback(
             responses.GET,
-            re.compile(rf".*{AMBASSADORHOST}.*/healthcheck"),
+            re.compile(rf".*{AMBASSADOR_NAMESPACE}.*\/healthcheck"),
             callback=healthcheck_request_callback,
             content_type="application/json",
         )
 
         responses.add_callback(
             responses.GET,
-            re.compile(rf".*{AMBASSADORHOST}.*/metadata"),
+            re.compile(rf".*{AMBASSADOR_NAMESPACE}.*\/metadata"),
             callback=metadata_request_callback,
             content_type="application/json",
         )
@@ -81,7 +81,9 @@ class WatchmanTestCase(unittest.TestCase):
         # List of expected endpoints given the current CONFIG_FILE and the project name
         expected_endpoints = [
             URL_FORMAT.format(
-                host=AMBASSADORHOST, project_name=PROJECT_NAME, target_name=target_name
+                host=AMBASSADOR_NAMESPACE,
+                project_name=PROJECT_NAME,
+                target_name=target_name,
             )
             for target_name in TARGET_NAMES
         ]
@@ -95,7 +97,8 @@ class WatchmanTestCase(unittest.TestCase):
 
             # actual is a dict of {'endpoint': str, 'healthy': bool}
             self.assertEqual(
-                expected.replace(f"http://{AMBASSADORHOST}", ""), actual["endpoint"]
+                expected.replace(f"http://{AMBASSADOR_NAMESPACE}", ""),
+                actual["endpoint"],
             )
             self.assertTrue(actual["healthy"])
             self.assertTrue("metadata" in actual)
