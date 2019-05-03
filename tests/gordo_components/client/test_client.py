@@ -25,13 +25,13 @@ from tests import utils as tu
 @pytest.mark.parametrize("session", (True, False))
 @pytest.mark.parametrize("timeout", (5, None))
 @pytest.mark.parametrize("params", ({"key": "value"}, {}))
-async def test_client_fetch_json(session, timeout, params):
+async def test_client_fetch_json(httpbin, session, timeout, params):
     """
     Test fetch_json accepts specific kwargs
     """
     session = aiohttp.ClientSession() if session else None
     resp = await client_io.fetch_json(
-        "http://httpbin.org/get", session=session, timeout=timeout, params=params
+        f"http://{httpbin}/get", session=session, timeout=timeout, params=params
     )
     assert params == resp["args"]
     if session:
@@ -42,13 +42,13 @@ async def test_client_fetch_json(session, timeout, params):
 @pytest.mark.parametrize("session", (True, False))
 @pytest.mark.parametrize("timeout", (5, None))
 @pytest.mark.parametrize("json", ({"key": "value"}, {}))
-async def test_client_post_json(session, timeout, json):
+async def test_client_post_json(httpbin, session, timeout, json):
     """
     Test post_json accepts specific kwargs
     """
     session = aiohttp.ClientSession() if session else None
     resp = await client_io.post_json(
-        "http://httpbin.org/post", session=session, timeout=timeout, json=json
+        f"http://{httpbin}/post", session=session, timeout=timeout, json=json
     )
     assert json == resp["json"]
     if session:
