@@ -17,15 +17,6 @@ from gordo_components.watchman.gordo_k8s_interface import (
     ModelBuilderPod,
 )
 
-# Will contain a list of endpoints to expected models via Ambassador
-# see _load_endpoints()
-ENDPOINTS = None
-PROJECT_NAME = None
-PROJECT_VERSION = None
-TARGET_NAMES = None
-NAMESPACE = None
-AMBASSADOR_NAMESPACE = None
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("WATCHMAN_LOGLEVEL", "INFO").upper())
@@ -54,6 +45,9 @@ class WatchmanApi(MethodView):
 
     @staticmethod
     def _check_endpoint(
+        host: str,
+        namespace: str,
+        project_name: str,
         target: str,
         endpoint: str,
         builder_pod: Optional[ModelBuilderPod] = None,
@@ -64,6 +58,12 @@ class WatchmanApi(MethodView):
 
         Parameters
         ----------
+        host: str
+            Name of the host to query
+        namespace: str
+            Namespace k8s client should operate in.
+        project_name: str
+            The name of this project we're going to query for.
         target: str
             Name of the target, aka machine-name
         endpoint: str
@@ -78,7 +78,7 @@ class WatchmanApi(MethodView):
         EndpointStatus
         """
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
-        base_url = f'http://{AMBASSADOR_NAMESPACE}.ambassador/{endpoint.rstrip("/")}'
+        base_url = f'http://{host}/{endpoint.rstrip("/")}'
         healthcheck_resp = requests.get(f"{base_url}/healthcheck", timeout=2)
 
         if healthcheck_resp.ok:
@@ -100,7 +100,7 @@ class WatchmanApi(MethodView):
         # Get server (a Kubernetes service) status / logs
         if n_logs is not None:
             service = Service(  # type: ignore
-                namespace=NAMESPACE, name=f"gordoserver-{PROJECT_NAME}-{target}"
+                namespace=namespace, name=f"gordoserver-{project_name}-{target}"
             )
             service_status, service_logs = service.status, service.logs(n_logs)
         else:
@@ -124,9 +124,9 @@ class WatchmanApi(MethodView):
         if "logs" in request.args:
             # Get a list of ModelBuilderPod instances and map to target names
             builders = list_model_builders(
-                namespace=NAMESPACE,
-                project_name=PROJECT_NAME,
-                project_version=PROJECT_VERSION,
+                namespace=current_app.config["NAMESPACE"],
+                project_name=current_app.config["PROJECT_NAME"],
+                project_version=current_app.config["PROJECT_VERSION"],
             )
             builders = {pod.target_name: pod for pod in builders}
         else:
@@ -146,7 +146,9 @@ class WatchmanApi(MethodView):
                     builder_pod=builders.get(target),
                     n_logs=n_logs,
                 ): endpoint
-                for target, endpoint in zip(TARGET_NAMES, ENDPOINTS)
+                for target, endpoint in zip(
+                    current_app.config["TARGET_NAMES"], current_app.config["ENDPOINTS"]
+                )
             }
 
             # List of dicts: [{'endpoint': /path/to/endpoint, 'healthy': bool, 'metadata': dict, ...}]
@@ -182,7 +184,12 @@ class WatchmanApi(MethodView):
                         }
                     )
 
-        payload = jsonify({"endpoints": status_results, "project-name": PROJECT_NAME})
+        payload = jsonify(
+            {
+                "endpoints": status_results,
+                "project-name": current_app.config["PROJECT_NAME"],
+            }
+        )
         resp = make_response(payload, 200)
         resp.headers["Cache-Control"] = "max-age=0"
         return resp
@@ -192,7 +199,9 @@ def healthcheck():
     """
     Return gordo version, route for Watchman server
     """
-    payload = jsonify({"version": __version__, "config": TARGET_NAMES})
+    payload = jsonify(
+        {"version": __version__, "config": current_app.config["TARGET_NAMES"]}
+    )
     return payload, 200
 
 
@@ -207,19 +216,20 @@ def build_app(
     Build app and any associated routes
     """
 
-    # Precompute list of expected endpoints from config file and other global env
-    global ENDPOINTS, PROJECT_NAME, PROJECT_VERSION, TARGET_NAMES, NAMESPACE, AMBASSADOR_NAMESPACE
-    ENDPOINTS = [
+    endpoints = [
         f"/gordo/v0/{project_name}/{target_name}/" for target_name in target_names
     ]
-    PROJECT_NAME = project_name
-    PROJECT_VERSION = project_version
-    TARGET_NAMES = target_names
-    NAMESPACE = namespace
-    AMBASSADOR_NAMESPACE = ambassador_namespace or namespace
 
     # App and routes
     app = Flask(__name__)
+    app.config.update(
+        ENDPOINTS=endpoints,
+        PROJECT_NAME=project_name,
+        PROJECT_VERSION=project_version,
+        TARGET_NAMES=list(target_names),
+        NAMESPACE=namespace,
+        AMBASSADOR_NAMESPACE=ambassador_namespace or namespace,
+    )
     app.add_url_rule(rule="/healthcheck", view_func=healthcheck, methods=["GET"])
     app.add_url_rule(
         rule="/", view_func=WatchmanApi.as_view("watchman_api"), methods=["GET"]
