@@ -4,10 +4,13 @@ import asyncio
 import logging
 import tempfile
 import typing
+import time
 
+import docker
 import ruamel.yaml
 import pytest
 import numpy as np
+import requests
 
 from gordo_components.server import server
 from gordo_components import serializer
@@ -103,6 +106,42 @@ def gordo_ml_server_client(request, trained_model_directory):
         app.testing = True
 
         yield app.test_client()
+
+
+@pytest.fixture(scope="session")
+def httpbin(host: str = "localhost", port: int = 9001):
+    """
+    Start a httpbin instance for testing general http requests
+    """
+    client = docker.from_env()
+
+    logger.info("Starting up httpbin!")
+    try:
+        httpbin = client.containers.run(
+            image="kennethreitz/httpbin",
+            ports={f"80/tcp": f"{port}"},
+            remove=True,
+            detach=True,
+        )
+
+        # Wait up to 60 seconds for it to start.
+        time.sleep(0.5)
+        for _ in range(60):
+            if requests.get(
+                f"http://{host}:{port}/get", timeout=1, proxies={"http": "", "HTTP": ""}
+            ).ok:
+                break
+        else:
+            raise RuntimeError("Was not able to start httpbin instance!")
+
+        logger.info(f"Started httpbin: {httpbin.name}")
+        yield f"{host}:{port}"
+
+    finally:
+        logger.info("Killing httpbin container")
+        if httpbin:
+            httpbin.kill()
+        logger.info("Killed httpbin container")
 
 
 @pytest.fixture(scope="session")
