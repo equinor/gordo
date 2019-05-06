@@ -22,7 +22,7 @@ cryptography==2.6.1       # via adal
 decorator==4.4.0          # via ipython, traitlets
 defusedxml==0.6.0         # via nbconvert
 docker-pycreds==0.4.0     # via docker
-docker==3.6.0
+docker==3.7.2
 entrypoints==0.3          # via nbconvert
 execnet==1.6.0            # via pytest-xdist
 idna==2.8                 # via requests
