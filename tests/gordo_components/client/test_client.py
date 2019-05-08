@@ -4,6 +4,7 @@ import os
 import tempfile
 import json
 import logging
+import typing
 from dateutil.parser import isoparse  # type: ignore
 
 import aiohttp
@@ -13,6 +14,7 @@ from click.testing import CliRunner
 from sklearn.base import BaseEstimator
 
 from gordo_components.client import Client, utils as client_utils
+from gordo_components.client.utils import EndpointMetadata
 from gordo_components.client import io as client_io
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.data_provider import providers
@@ -397,3 +399,94 @@ def test_data_provider_click_param(config):
 
         provider = custom_types.DataProviderParam()(config_file.name)
         assert isinstance(provider, getattr(providers, expected_provider_type))
+
+
+def _endpoint_metadata(name: str, healthy: bool) -> EndpointMetadata:
+    """
+    Helper to build a basic EndpointMetadata with only name and healthy fields set
+    """
+    return EndpointMetadata(
+        target_name=name, healthy=healthy, endpoint=None, tag_list=None, resolution=None
+    )
+
+
+@pytest.mark.parametrize(
+    "endpoints,target,ignore_unhealthy,expected",
+    [
+        # One unhealthy + one healthy + no target + ignoring unhealthy = OK
+        (
+            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", True)],
+            None,
+            True,
+            [_endpoint_metadata("t2", True)],
+        ),
+        # One unhealthy + one healthy + no target + NOT ignoring unhealthy = ValueError
+        (
+            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", True)],
+            None,
+            False,
+            ValueError,
+        ),
+        # One unhealthy + one healthy + target (healthy) + do not ignore unhealthy = OK
+        # because the client doesn't care about the unhealthy endpoint with a set target
+        (
+            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", True)],
+            "t2",
+            False,
+            [_endpoint_metadata("t2", True)],
+        ),
+        # All unhealthy = ValueError
+        # ...even if we're suppose to ignore unhealthy endpoints, because Noen are healthy
+        (
+            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", False)],
+            None,
+            True,
+            ValueError,
+        ),
+        # All unhealthy + ignore unhealthy = ValueError
+        # ...because we end up with no endpoints
+        (
+            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", False)],
+            None,
+            True,
+            ValueError,
+        ),
+        # All healthy = OK
+        (
+            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", True)],
+            None,
+            True,
+            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", True)],
+        ),
+        # All healthy + target = OK (should get back only that target)
+        (
+            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", True)],
+            "t2",
+            True,
+            [_endpoint_metadata("t2", True)],
+        ),
+        # Want to filter down to one target, but that target is not healthy, ValueError
+        (
+            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", False)],
+            "t2",
+            True,
+            ValueError,
+        ),
+    ],
+)
+def test_client_endpoint_filtering(
+    endpoints: typing.List[EndpointMetadata],
+    target: typing.Optional[str],
+    ignore_unhealthy: typing.Optional[bool],
+    expected: typing.List[EndpointMetadata],
+):
+    if not isinstance(expected, list):
+        with pytest.raises(ValueError):
+            Client._filter_endpoints(endpoints, target, ignore_unhealthy)
+    else:
+        filtered_endpoints = Client._filter_endpoints(
+            endpoints, target, ignore_unhealthy
+        )
+        assert (
+            expected == filtered_endpoints
+        ), f"Not equal: {expected} \n----\n {filtered_endpoints}"

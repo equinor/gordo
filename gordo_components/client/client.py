@@ -2,6 +2,7 @@
 
 import sys  # noqa
 import asyncio
+import copy
 import requests
 import logging
 
@@ -46,6 +47,7 @@ class Client:
         batch_size: int = 1000,
         parallelism: int = 10,
         forward_resampled_sensors: bool = False,
+        ignore_unhealthy_targets: bool = False,
     ):
         """
 
@@ -82,6 +84,9 @@ class Client:
             running predictions
        forward_resampled_sensors : bool
             If true then forward resampled sensor values to the prediction_forwarder
+        ignore_unhealthy_targets: bool
+            Ignore any targets which are unhealthy. Will raise a ``ValueError``
+            if the client encounters any unhealthy endpoints, warnings emitted otherwise
 
         """
 
@@ -95,18 +100,75 @@ class Client:
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
 
+        endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+        self.endpoints = self._filter_endpoints(
+            endpoints=endpoints,
+            target=target,
+            ignore_unhealthy_targets=ignore_unhealthy_targets,
+        )
+
+    @staticmethod
+    def _filter_endpoints(
+        endpoints: typing.List[EndpointMetadata],
+        target: typing.Optional[str] = None,
+        ignore_unhealthy_targets: typing.Optional[bool] = False,
+    ) -> typing.List[EndpointMetadata]:
+        """
+        Based on the current configuration, filter out endpoints which the client
+        should not care about.
+
+        Parameters
+        ----------
+        endpoints: List[EndpointMetadata]
+            List of EndpointMetadata objs
+        target: Optional[str] (None)
+            Name of the target/machine/endpoint we should filter down to
+        ignore_unhealthy_targets: Optional[bool] (False)
+            Should the client ignore any unhealthy endpoints?
+
+        Returns
+        -------
+        List[EndpointMetadata]
+            The filtered ``EndpointMetadata``s
+        """
+
+        original_endpoints = copy.copy(endpoints)
+
+        # Raise an error if we got some unhealty endpoints and weren't suppose to ignore them.
+        # otherwise filter out any unhealthy endpoints
+        if (
+            not target
+            and not ignore_unhealthy_targets
+            and not all(e.healthy for e in endpoints)
+        ):
+            raise ValueError(
+                f"Flag 'ignore_unhealthy_targets' is set to False and we encountered some "
+                f"unhealthy ones: {[ep for ep in endpoints if ep.healthy is False]}"
+            )
+        else:
+            endpoints = [ep for ep in endpoints if ep.healthy]
+
         # Filter down to single endpoint if requested
         if target:
-            endpoints = [ep for ep in self.endpoints if ep.target_name == target]
-            if not endpoints:
+            endpoints = [ep for ep in endpoints if ep.target_name == target]
+
+            # And check for single result and that it's healthy
+            if len(endpoints) != 1:
                 raise ValueError(
-                    f"Target name not found in available targets: {endpoints}"
+                    f"Found {'multiple' if len(endpoints) else 'no'} endpoints matching "
+                    f"target name '{target}' in {original_endpoints}"
                 )
-            if len(endpoints) > 1:  # This should never happen...
+            if not endpoints[0].healthy:
                 raise ValueError(
-                    f"Found multiple endpoints with same target name: {endpoints}"
+                    f"The targeted endpoint: '{endpoints[0]}' is unhealthy"
                 )
-            self.endpoints = endpoints
+
+        # finally, raise an error if all this left us without any endpoints
+        if not endpoints:
+            raise ValueError(
+                f"Found no endpoints out of supplied endpoints: {original_endpoints} after filtering"
+            )
+        return endpoints
 
     def _endpoints_from_watchman(self, endpoint: str) -> typing.List[EndpointMetadata]:
         """
@@ -115,6 +177,7 @@ class Client:
         resp = requests.get(endpoint)
         if not resp.ok:
             raise IOError(f"Failed to get endpoints: {resp.content}")
+
         return [
             EndpointMetadata(
                 target_name=data["metadata"]["metadata"]["user-defined"][
@@ -126,6 +189,14 @@ class Client:
                     data["metadata"]["metadata"]["dataset"]["tag_list"]
                 ),
                 resolution=data["metadata"]["metadata"]["dataset"]["resolution"],
+            )
+            if data["healthy"]
+            else EndpointMetadata(
+                target_name=None,
+                healthy=data["healthy"],
+                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
+                tag_list=None,
+                resolution=None,
             )
             for data in resp.json()["endpoints"]
         ]
