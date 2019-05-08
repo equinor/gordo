@@ -76,6 +76,13 @@ def client(ctx: click.Context, *args, **kwargs):
     is_flag=True,
     default=False,
 )
+@click.option(
+    "--ignore-unhealthy-targets",
+    help="Ignore any unhealthy targets. By default the client will raise an "
+    "error if any unhealthy endpoints are encountered.",
+    is_flag=True,
+    default=False,
+)
 @click.pass_context
 def predict(
     ctx: click.Context,
@@ -87,12 +94,19 @@ def predict(
     influx_api_key: str,
     influx_recreate_db: bool,
     forward_resampled_sensors: bool,
+    ignore_unhealthy_targets: bool,
 ):
     """
     Run some predictions against the target
     """
-    ctx.obj["kwargs"].update({"data_provider": data_provider})
-    ctx.obj["kwargs"].update({"forward_resampled_sensors": forward_resampled_sensors})
+    ctx.obj["kwargs"].update(
+        {
+            "data_provider": data_provider,
+            "forward_resampled_sensors": forward_resampled_sensors,
+            "ignore_unhealthy_targets": ignore_unhealthy_targets,
+        }
+    )
+
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
 
     if influx_uri is not None:
