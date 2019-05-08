@@ -66,7 +66,7 @@ def test_keras_autoencoder_scoring(model, kind):
         model.score(X.copy(), X.copy())
 
     model.fit(X)
-    score = model.score(X)
+    score = model.score(X, X)
     logger.info(f"Score: {score:.4f}")
 
 

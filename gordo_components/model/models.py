@@ -306,7 +306,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         with possible_tf_mgmt(self):
             out = self.model.predict(X)
 
-        return explained_variance_score(X if y is None else y, out)
+        return explained_variance_score(X, out)
 
 
 class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):
@@ -597,12 +597,8 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model", lookback_window=2, verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
         >>> model_transform = lstm_ae.transform(X_test)
-        >>> output_example = np.array([[1., 1., 0.00503557, 0.00501121],[0.1, 1.,0.00503096, 0.00500809],
-        ...                                        [0.5, 2.,0.00503031, 0.00500737]]) #Note: output can be non
-        ...                                                                           #deterministic so an example
-        ...                                                                           #output is provided
         >>> model_transform.shape
-        (3, 4)
+        (3, 2)
         """
         self._validate_size_of_X(X)
         gen = self.generate_window(X, output_y=False)
@@ -644,7 +640,9 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 
         out = self.transform(X)
 
-        return explained_variance_score(out[:, : X.shape[1]], out[:, X.shape[1] :])
+        # Limit X samples to match the offset causes by LSTM lookback window
+        # ie, if look back window is 5, 'out' will be 5 rows less than X by now
+        return explained_variance_score(X[-len(out) :], out)
 
 
 class KerasLSTMForecast(KerasLSTMBaseEstimator):
@@ -826,12 +824,8 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         >>> lstm_ae = KerasLSTMForecast(kind="lstm_model", lookback_window=2, verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
         >>> model_transform = lstm_ae.transform(X_test)
-        >>> output_example = np.array([[0.1       , 1.        , 0.00467027, 0.00561625],
-        ...                            [0.5       , 2.        , 0.00466603, 0.00561359]]) #Note: output can be non
-        ...                                                                               #deterministic so an example
-        ...                                                                               #output is provided
         >>> model_transform.shape
-        (2, 4)
+        (2, 2)
         """
 
         self._validate_size_of_X(X)
@@ -840,14 +834,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             xhat = self.model.predict_generator(
                 gen, steps=X.shape[0] - self.lookback_window
             )
-        X = X[self.lookback_window :]
-        results = list()
-        for sample_input, sample_output in zip(
-            X.tolist(), xhat.reshape(X.shape).tolist()
-        ):
-            sample_input.extend(sample_output)
-            results.append(sample_input)
-        return np.asarray(results)
+        return xhat
 
     def score(
         self,
@@ -880,4 +867,6 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
 
         out = self.transform(X)
 
+        # Limit X samples to match the offset causes by LSTM lookback window
+        # ie, if look back window is 5, 'out' will be 5 rows less than X by now
         return explained_variance_score(X[-len(out) :], out)
