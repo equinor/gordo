@@ -67,9 +67,7 @@ def build_model(
     # Cross validate
     logger.debug(f"Starting to do cross validation")
     start = time.time()
-    cv_scores = cross_val_score(
-        model, X, y if y is not None else X, cv=TimeSeriesSplit(n_splits=3)
-    )
+    cv_scores = cross_val_score(model, X, y, cv=TimeSeriesSplit(n_splits=3))
     cv_duration_sec = time.time() - start
 
     # Train
