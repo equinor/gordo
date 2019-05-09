@@ -3,6 +3,7 @@
 import logging
 
 import numpy as np
+import pandas as pd
 
 from sklearn.pipeline import Pipeline
 
@@ -59,7 +60,8 @@ class ModelMixin:
         try:
             return model.transform(X)
         except AttributeError:
-            return X  # No transform, so X must have been the model input
+            # No transform, so X must have been the model input
+            return X.values if isinstance(X, pd.DataFrame) else X
 
     def get_inverse_transformed_input(self, model: Pipeline, X: np.ndarray):
         """
@@ -86,4 +88,4 @@ class ModelMixin:
         try:
             return model.inverse_transform(X)
         except AttributeError:
-            return X
+            return X.values if isinstance(X, pd.DataFrame) else X

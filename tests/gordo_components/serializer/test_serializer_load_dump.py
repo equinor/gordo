@@ -147,8 +147,8 @@ class PipelineSerializationTestCase(unittest.TestCase):
             self.assertEqual(metadata, metadata_clone)
 
             # Verify same state for both pipelines
-            y_hat_pipe1 = pipe.transform(X.copy()).flatten()
-            y_hat_pipe2 = pipe_clone.transform(X.copy()).flatten()
+            y_hat_pipe1 = pipe.predict(X.copy()).flatten()
+            y_hat_pipe2 = pipe_clone.predict(X.copy()).flatten()
             self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
 
             # Now use dumps/loads
@@ -156,8 +156,8 @@ class PipelineSerializationTestCase(unittest.TestCase):
             pipe_clone = serializer.loads(serialized)
 
             # Verify same state for both pipelines
-            y_hat_pipe1 = pipe.transform(X.copy()).flatten()
-            y_hat_pipe2 = pipe_clone.transform(X.copy()).flatten()
+            y_hat_pipe1 = pipe.predict(X.copy()).flatten()
+            y_hat_pipe2 = pipe_clone.predict(X.copy()).flatten()
             self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
 
     def test_dump_load_keras_directly(self):
@@ -174,7 +174,7 @@ class PipelineSerializationTestCase(unittest.TestCase):
 
             self.assertTrue(
                 np.allclose(
-                    model.transform(X.copy()).flatten(),
-                    model_clone.transform(X.copy()).flatten(),
+                    model.predict(X.copy()).flatten(),
+                    model_clone.predict(X.copy()).flatten(),
                 )
             )
