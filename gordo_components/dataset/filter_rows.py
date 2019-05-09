@@ -52,7 +52,8 @@ def pandas_filter_rows(df, filter_str: str):
       String representing the filter. Can be a boolean combination of conditions,
       where conditions are comparisons of column names and either other columns
       or numeric values. The rows matching the filter are kept. Column names must be
-      quoted in single strings. Example of a legal filter is " 'Tag A' > 5 "
+      quoted in single strings. The column "index" is also available, and is the index.
+      Example of a legal filter is " 'Tag A' > 5 "
 
 
     Returns
@@ -93,7 +94,12 @@ def pandas_filter_rows(df, filter_str: str):
     6  2  0
     7  2  1
     8  2  2
-
+    >>> pandas_filter_rows(df, "'index' > 4")
+       A  B
+    5  1  2
+    6  2  0
+    7  2  1
+    8  2  2
     """
 
     parsed_filter = ast.parse(filter_str, mode="eval")
@@ -102,9 +108,14 @@ def pandas_filter_rows(df, filter_str: str):
     # Replaces strings (assumed to represent column names) with df[..]. df_name _must_
     # match the parameter name of this function
     parsed_filter = _DfNameInserter(df_name="df").visit(parsed_filter)
+
+    df = df.copy()
+    df["index"] = df.index
     # The eval requires the dataframe to be called 'df'
     pandas_filter = eval(compile(parsed_filter, filename=__name__, mode="eval"))
-    return df[pandas_filter]
+    df = df[pandas_filter]
+    df = df.drop(axis=1, columns="index")
+    return df
 
 
 # Contains all the legal AST nodes. The parsed expression below contains all components
