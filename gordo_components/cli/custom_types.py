@@ -3,6 +3,8 @@
 import os
 import json
 import ast
+import typing
+
 import click
 from dateutil import parser
 
@@ -46,3 +48,10 @@ class IsoFormatDateTime(click.ParamType):
             return parser.isoparse(value)
         except ValueError:
             self.fail(f"Failed to parse date '{value}' as ISO formatted date'")
+
+
+def key_value_par(val) -> typing.Tuple[str, str]:
+    """
+    Helpder for CLI input of 'key,val'
+    """
+    return val.split(",")
