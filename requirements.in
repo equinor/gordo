@@ -2,6 +2,7 @@ Click~=7.0
 cachetools~=3.1
 h5py~=2.8
 influxdb~=5.2
+jinja2~=2.10
 joblib~=0.13
 Keras~=2.2
 numpy~=1.15

@@ -11,18 +11,14 @@ import click
 import pandas as pd  # noqa
 
 from gordo_components.client import Client
-from gordo_components.client.client import EndpointMetadata  # noqa
 from gordo_components import serializer
 from gordo_components.data_provider import providers
-from gordo_components.cli.custom_types import IsoFormatDateTime, DataProviderParam
+from gordo_components.cli.custom_types import (
+    IsoFormatDateTime,
+    DataProviderParam,
+    key_value_par,
+)
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
-
-
-def key_value_par(val) -> typing.Tuple[str, str]:
-    """
-    Helpder for CLI input of 'key,val'
-    """
-    return val.split(",")
 
 
 @click.group("client")

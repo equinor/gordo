@@ -9,6 +9,7 @@ import ast
 import os
 from ast import literal_eval
 
+import jinja2
 import yaml
 import click
 from gordo_components.builder.build_model import provide_saved_model
@@ -19,6 +20,7 @@ from gordo_components.data_provider.providers import (
 from gordo_components.server import server
 from gordo_components import watchman
 from gordo_components.cli.client import client as gordo_client
+from gordo_components.cli.custom_types import key_value_par
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 import dateutil.parser
@@ -52,7 +54,7 @@ DEFAULT_MODEL_CONFIG = (
 @click.command()
 @click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
 @click.argument(
-    "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=yaml.load
+    "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=str
 )
 @click.argument(
     "data-config",
@@ -69,7 +71,18 @@ DEFAULT_MODEL_CONFIG = (
         exists=False, file_okay=False, dir_okay=True, writable=True, readable=True
     ),
 )
-def build(output_dir, model_config, data_config, metadata, model_register_dir):
+@click.option(
+    "--model-parameter",
+    type=key_value_par,
+    multiple=True,
+    default=(),
+    help="Key-Value pair for a model parameter and its value, may use this option "
+    "multiple times. Separate key,valye by a comma. ie: --model-parameter key,val "
+    "--model-parameter some_key,some_value",
+)
+def build(
+    output_dir, model_config, data_config, metadata, model_register_dir, model_parameter
+):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
@@ -79,9 +92,10 @@ def build(output_dir, model_config, data_config, metadata, model_register_dir):
     ----------
     output_dir: str
         Directory to save model & metadata to.
-    model_config: dict
-        kwargs to be used in initializing the model. Should also
-        contain kwarg 'type' which references the model to use. ie. KerasAutoEncoder
+    model_config: str
+        String containing a yaml which will be parsed to a dict which will be used in
+        initializing the model. Should also contain key 'type' which references the
+        model to use. ie. KerasAutoEncoder
     data_config: dict
         kwargs to be used in intializing the dataset. Should also
         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
@@ -91,6 +105,10 @@ def build(output_dir, model_config, data_config, metadata, model_register_dir):
         Path to a directory which will index existing models and their locations, used
         for re-using old models instead of rebuilding them. If omitted then always
         rebuild
+    model_parameter: List[Tuple]
+        List of model key-values, wheres the values will be injected into the model
+        config wherever there is a jinja variable with the key.
+
     """
 
     # TODO: Move all data related input from environment variable to data_config,
@@ -114,9 +132,13 @@ def build(output_dir, model_config, data_config, metadata, model_register_dir):
     data_config["tag_list"] = tag_list
 
     logger.info(f"Building, output will be at: {output_dir}")
-    logger.info(f"Model config: {model_config}")
+    logger.info(f"Raw model config: {model_config}")
     logger.info(f"Data config: {data_config}")
     logger.info(f"Register dir: {model_register_dir}")
+
+    model_parameter = dict(model_parameter)
+    model_config = expand_model(model_config, model_parameter)
+    model_config = yaml.full_load(model_config)
 
     model_location = provide_saved_model(
         model_config, data_config, metadata, output_dir, model_register_dir
@@ -124,6 +146,40 @@ def build(output_dir, model_config, data_config, metadata, model_register_dir):
     with open("/tmp/model-location.txt", "w") as f:
         f.write(model_location)
     return 0
+
+
+def expand_model(model_config: str, model_parameters: dict):
+    """
+    Expands the jinja template which is the model using the variables in 
+    `model_parameters`
+    
+    Parameters
+    ----------
+    model_config: str
+        Jinja template which when expanded becomes a valid model config json.
+    model_parameters:
+        Parameters for the model config.
+
+    Raises
+    ------
+    ValueError
+        If an undefined variable is used in the model_config.
+
+    Returns
+    -------
+    str
+        The model config with variables expanded
+
+    """
+    try:
+        model_template = jinja2.Environment(
+            loader=jinja2.BaseLoader(), undefined=jinja2.StrictUndefined
+        ).from_string(model_config)
+        model_config = model_template.render(**model_parameters)
+    except jinja2.exceptions.UndefinedError as e:
+        raise ValueError("Model parameter missing value!") from e
+    logger.info(f"Expanded model config: {model_config}")
+    return model_config
 
 
 @click.command("run-server")
