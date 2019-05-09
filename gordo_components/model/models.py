@@ -257,7 +257,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         super().fit(X, y, **kwargs)
         return self
 
-    def transform(self, X: np.ndarray, **kwargs) -> np.ndarray:
+    def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """
 
         Parameters
@@ -455,7 +455,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
-    def transform(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
 
         Parameters
@@ -499,7 +499,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         ...                                lookback_window=2,
         ...                                verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
-        >>> model_transform = lstm_ae.transform(X_test)
+        >>> model_transform = lstm_ae.predict(X_test)
         >>> model_transform.shape
         (3, 2)
         """
@@ -541,7 +541,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
 
-        out = self.transform(X)
+        out = self.predict(X)
 
         # Limit X samples to match the offset causes by LSTM lookback window
         # ie, if look back window is 5, 'out' will be 5 rows less than X by now
@@ -640,7 +640,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
-    def transform(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Parameters
         ----------
@@ -682,7 +682,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         ...                             lookback_window=2,
         ...                             verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
-        >>> model_transform = lstm_ae.transform(X_test)
+        >>> model_transform = lstm_ae.predict(X_test)
         >>> model_transform.shape
         (2, 2)
         """
@@ -723,7 +723,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
 
-        out = self.transform(X)
+        out = self.predict(X)
 
         # Limit X samples to match the offset causes by LSTM lookback window
         # ie, if look back window is 5, 'out' will be 5 rows less than X by now
