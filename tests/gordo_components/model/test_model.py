@@ -118,7 +118,7 @@ def test_save_load(model, kind):
     assert "history" in model_out.get_metadata()
 
     xTest = np.random.random(size=6).reshape(3, 2)
-    xHat = model_out.transform(xTest)
+    xHat = model_out.predict(xTest)
 
     with tempfile.TemporaryDirectory() as tmp:
         model_out.save_to_dir(tmp)
@@ -130,7 +130,7 @@ def test_save_load(model, kind):
         assert model_out_clone.get_params() == model_out_clone.get_params()
 
         # Assert it maintained the state by ensuring predictions are the same
-        assert np.allclose(xHat.flatten(), model_out_clone.transform(xTest).flatten())
+        assert np.allclose(xHat.flatten(), model_out_clone.predict(xTest).flatten())
 
         assert "history" in model_out.get_metadata()
         assert (
@@ -166,7 +166,7 @@ class KerasModelTestCase(unittest.TestCase):
             X = np.random.random(size=(10,))
             model.fit(X)
 
-    def test_lookback_window_ae_valueerror_during_transform(self):
+    def test_lookback_window_ae_valueerror_during_predict(self):
 
         # Assert that (for LSTMAutoEncoder) ValueError
         # is raised in fit method if lookback_window > number of readings (rows of X)
@@ -179,7 +179,7 @@ class KerasModelTestCase(unittest.TestCase):
         model.fit(X_train)
         with self.assertRaises(ValueError):
             X_test = X_train[-3:-1, :]
-            model.transform(X_test)
+            model.predict(X_test)
 
     def test_lookback_window_forecast_valueerror_during_fit(self):
         # Assert that (for LSTMForecast) ValueError is raised
@@ -192,7 +192,7 @@ class KerasModelTestCase(unittest.TestCase):
                 X = np.random.random(size=(5, 2))
                 model.fit(X)
 
-    def test_lookback_window_forecast_valueerror_during_transform(self):
+    def test_lookback_window_forecast_valueerror_during_predict(self):
         # Assert that (for LSTMForecast) ValueError is raised
         # in fit method if lookback_window >= number of readings (rows of X)
         X = np.random.random(size=(5, 2))
@@ -259,7 +259,7 @@ class KerasModelTestCase(unittest.TestCase):
         self.assertEqual(gen_no_y_out_1.tolist(), X[0:2].reshape(1, 2, 2).tolist())
         self.assertEqual(gen_no_y_out_2.tolist(), X[1:3].reshape(1, 2, 2).tolist())
 
-    def test_lstmae_transform_output(self):
+    def test_lstmae_predict_output(self):
         # test for KerasLSTMAutoEncoder
         #  - test dimension of output
         #  - test that first half of output is testing data
@@ -271,5 +271,5 @@ class KerasModelTestCase(unittest.TestCase):
         )
         model = model.fit(X_train)
         X_test = np.random.random(size=(4, 3))
-        out = model.transform(X_test)
+        out = model.predict(X_test)
         self.assertEqual(out.shape, (2, 3))
