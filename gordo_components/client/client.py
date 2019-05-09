@@ -180,15 +180,17 @@ class Client:
 
         return [
             EndpointMetadata(
-                target_name=data["metadata"]["metadata"]["user-defined"][
+                target_name=data["endpoint-metadata"]["metadata"]["user-defined"][
                     "machine-name"
                 ],
                 healthy=data["healthy"],
                 endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
                 tag_list=normalize_sensor_tags(
-                    data["metadata"]["metadata"]["dataset"]["tag_list"]
+                    data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
                 ),
-                resolution=data["metadata"]["metadata"]["dataset"]["resolution"],
+                resolution=data["endpoint-metadata"]["metadata"]["dataset"][
+                    "resolution"
+                ],
             )
             if data["healthy"]
             else EndpointMetadata(

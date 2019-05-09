@@ -174,7 +174,7 @@ class WatchmanApi(MethodView):
                         {
                             "endpoint": futures[f],
                             "healthy": status.healthy,
-                            "metadata": status.metadata,
+                            "endpoint-metadata": status.metadata,
                             "model-server": {
                                 "logs": status.model_server_status.logs,
                                 "status": status.model_server_status.status,

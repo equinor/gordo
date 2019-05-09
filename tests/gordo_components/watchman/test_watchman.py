@@ -101,8 +101,8 @@ class WatchmanTestCase(unittest.TestCase):
                 actual["endpoint"],
             )
             self.assertTrue(actual["healthy"])
-            self.assertTrue("metadata" in actual)
-            self.assertTrue(isinstance(actual["metadata"], dict))
+            self.assertTrue("endpoint-metadata" in actual)
+            self.assertTrue(isinstance(actual["endpoint-metadata"], dict))
 
     @mocked_kubernetes()
     def test_gordo_k8s_workflow(self, *_args):
