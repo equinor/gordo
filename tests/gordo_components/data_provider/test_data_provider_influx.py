@@ -5,7 +5,7 @@ import pytest
 
 from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.client.utils import influx_client_from_uri
-from gordo_components.dataset import _get_dataset
+from gordo_components.dataset.dataset import _get_dataset
 
 from tests import utils as tu
 
