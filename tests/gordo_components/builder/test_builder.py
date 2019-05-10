@@ -182,28 +182,39 @@ class ModelBuilderTestCase(unittest.TestCase):
 
 
 @pytest.mark.parametrize(
-    "should_be_equal,metadata,tag_list",
+    "should_be_equal,metadata,tag_list,replace_cache",
     [
-        (True, None, None),
-        (False, {"metadata": "something"}, None),
-        (False, None, [SensorTag("extra_tag", None)]),
+        (True, None, None, False),
+        (False, {"metadata": "something"}, None, False),
+        (False, None, [SensorTag("extra_tag", None)], False),
+        (False, None, None, True),  # replace_cache gives a new model location
     ],
 )
 def test_provide_saved_model_caching(
-    should_be_equal: bool, metadata: Optional[Dict], tag_list: Optional[List[SensorTag]]
+    should_be_equal: bool,
+    metadata: Optional[Dict],
+    tag_list: Optional[List[SensorTag]],
+    replace_cache,
 ):
     """
-    Test provide_saved_model with caching and possible cache busting if metadata or
-    tag_list is set.
+    Test provide_saved_model with caching and possible cache busting if metadata,
+    tag_list, or replace_cache is set.
+
+    Builds two models and checks if their locations are the same, which will be if and
+    only if there is caching.
 
     Parameters
     ----------
     should_be_equal : bool
-        Should the two generated models be at the same location or not?
+        Do we expect the two generated models to be at the same location or not? I.e. do
+        we expect caching.
     metadata
-        Optional metadata which will be used as metadata instead of the default
+        Optional metadata which will be used as metadata for the second model.
     tag_list
-        Possible list of strings which be used as the taglist in the dataset if provided
+        Optional list of strings which be used as the taglist in the dataset for the
+        second model.
+    replace_cache: bool
+        Should we force a model cache replacement?
 
     """
 
@@ -235,6 +246,7 @@ def test_provide_saved_model_caching(
             output_dir=new_output_dir,
             metadata=metadata,
             model_register_dir=registry_dir,
+            replace_cache=replace_cache,
         )
         if should_be_equal:
             assert model_location == model_location2
