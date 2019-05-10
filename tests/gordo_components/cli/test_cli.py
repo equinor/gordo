@@ -23,9 +23,7 @@ DATA_CONFIG = (
     "}"
 )
 
-MODEL_CONFIG = {
-    "gordo_components.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}
-}
+MODEL_CONFIG = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
 
 logger = logging.getLogger(__name__)
 
