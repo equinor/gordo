@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 
 from gordo_components.util import disk_registry
 from gordo_components import serializer, __version__
-from gordo_components.dataset import _get_dataset
+from gordo_components.dataset.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.model.base import GordoBase
 
