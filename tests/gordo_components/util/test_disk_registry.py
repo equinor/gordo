@@ -43,3 +43,26 @@ def test_overwrites_existing():
         second_value = "Some value"
         disk_registry.write_key(tmpdir, the_key, second_value)
         assert disk_registry.get_value(tmpdir, the_key) == second_value
+
+
+def test_delete():
+    """Delete removes a key"""
+    the_key = "akey"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        first_value = "Some value"
+        disk_registry.write_key(tmpdir, the_key, first_value)
+        assert disk_registry.get_value(tmpdir, the_key) == first_value
+
+        existed_p = disk_registry.delete_value(tmpdir, the_key)
+        assert disk_registry.get_value(tmpdir, the_key) is None
+        # They key existed
+        assert existed_p
+
+
+def test_double_delete():
+    """Delete works on non-existing key, returning False"""
+    the_key = "akey"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        existed_p = disk_registry.delete_value(tmpdir, the_key)
+        assert disk_registry.get_value(tmpdir, the_key) is None
+        assert not existed_p

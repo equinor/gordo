@@ -82,3 +82,32 @@ def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnySt
     else:
         logger.info(f"Did not find registry key {key} at path {key_file_path}")
     return output_val
+
+
+def delete_value(registry_dir: Union[os.PathLike, str], key: str) -> bool:
+    """
+    Deletes the value with key `reg_key`from the registry, and returns True if it
+    existed.
+
+    Parameters
+    ----------
+    registry_dir: Union[os.PathLike, str]
+        Path to the registry. Does not need to exist
+    key: str
+        Key to look up in the registry.
+
+    Returns
+    -------
+    bool
+        True if the key existed, false otherwise
+    """
+    key_file_path = Path(registry_dir).joinpath(key)
+    logger.info(f"Looking for registry key {key} at path " f"{key_file_path}")
+    # If the model location exists
+    if key_file_path.exists():
+        key_file_path.unlink()
+        logger.debug(f"Removed key {key} from registry")
+        return True
+    else:
+        logger.info(f"Did not find registry key {key} at path {key_file_path}")
+    return False

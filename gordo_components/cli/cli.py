@@ -17,6 +17,7 @@ from gordo_components.data_provider.providers import (
     DataLakeProvider,
     InfluxDataProvider,
 )
+from gordo_components.serializer import load_metadata
 from gordo_components.server import server
 from gordo_components import watchman
 from gordo_components.cli.client import client as gordo_client
@@ -72,6 +73,9 @@ DEFAULT_MODEL_CONFIG = (
     ),
 )
 @click.option(
+    "--print-cv-scores", help="Prints CV scores to stdout", is_flag=True, default=False
+)
+@click.option(
     "--model-parameter",
     type=key_value_par,
     multiple=True,
@@ -81,7 +85,13 @@ DEFAULT_MODEL_CONFIG = (
     "--model-parameter some_key,some_value",
 )
 def build(
-    output_dir, model_config, data_config, metadata, model_register_dir, model_parameter
+    output_dir,
+    model_config,
+    data_config,
+    metadata,
+    model_register_dir,
+    print_cv_scores,
+    model_parameter,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -105,6 +115,8 @@ def build(
         Path to a directory which will index existing models and their locations, used
         for re-using old models instead of rebuilding them. If omitted then always
         rebuild
+    print_cv_scores: bool
+        Print cross validation scores to stdout
     model_parameter: List[Tuple]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
@@ -143,6 +155,33 @@ def build(
     model_location = provide_saved_model(
         model_config, data_config, metadata, output_dir, model_register_dir
     )
+    # If the model is cached but without CV scores then we force a rebuild. We do this
+    # by deleting the entry in the cache and then rerun `provide_saved_model`
+    # (leaving the old model laying around)
+    if print_cv_scores:
+        saved_metadata = load_metadata(model_location)
+        all_scores = get_all_score_strings(saved_metadata)
+        if not all_scores:
+            logger.warning(
+                "Found that loaded model does not have cross validation values "
+                "even though we were asked to print them, clearing cache and "
+                "rebuilding model"
+            )
+
+            model_location = provide_saved_model(
+                model_config,
+                data_config,
+                metadata,
+                output_dir,
+                model_register_dir,
+                replace_cache=True,
+            )
+            saved_metadata = load_metadata(model_location)
+            all_scores = get_all_score_strings(saved_metadata)
+
+        for score in all_scores:
+            print(score)
+
     with open("/tmp/model-location.txt", "w") as f:
         f.write(model_location)
     return 0
@@ -150,9 +189,9 @@ def build(
 
 def expand_model(model_config: str, model_parameters: dict):
     """
-    Expands the jinja template which is the model using the variables in 
+    Expands the jinja template which is the model using the variables in
     `model_parameters`
-    
+
     Parameters
     ----------
     model_config: str
@@ -180,6 +219,50 @@ def expand_model(model_config: str, model_parameters: dict):
         raise ValueError("Model parameter missing value!") from e
     logger.info(f"Expanded model config: {model_config}")
     return model_config
+
+
+def get_all_score_strings(metadata):
+    """Given metadata from the model builder this function returns a list of
+    strings of the format {metric_name}_{score_name}={score_val} for katib
+    to pick up. Replaces all spaces with `-`.
+
+    Parameters
+    ----------
+    metadata : dict
+        Metadata dictionary. Must contain a dictionary in
+        metadata.model.cross-validation.scores with at least one metric as key and
+        value being another map with score key/values. See example
+
+    Examples
+    --------
+    >>> score_strings = get_all_score_strings(
+    ...  {
+    ...     "model": {
+    ...         "cross-validation": {
+    ...             "scores": {"explained variance": {"min": 0, "max": 2}}
+    ...         }
+    ...     }
+    ...   }
+    ... )
+    >>> len(score_strings)
+    2
+    >>> score_strings
+    ['explained-variance_min=0', 'explained-variance_max=2']
+
+
+    """
+    all_scores = []
+    for metric_name, scores in (
+        metadata.get("model", dict())
+        .get("cross-validation", dict())
+        .get("scores", dict())
+        .items()
+    ):
+        metric_name = metric_name.replace(" ", "-")
+        for score_name, score_val in scores.items():
+            score_name = score_name.replace(" ", "-")
+            all_scores.append(f"{metric_name}_{score_name}={score_val}")
+    return all_scores
 
 
 @click.command("run-server")

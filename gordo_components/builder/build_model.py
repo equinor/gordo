@@ -231,6 +231,7 @@ def provide_saved_model(
     metadata: dict,
     output_dir: Union[os.PathLike, str],
     model_register_dir: Union[os.PathLike, str] = None,
+    replace_cache=False,
 ) -> Union[os.PathLike, str]:
     """
     Ensures that the desired model exists on disk, and returns the path to it.
@@ -257,10 +258,13 @@ def provide_saved_model(
         A path to a register, see `gordo_components.util.disk_registry`. If this is None
         then always build the model, otherwise try to resolve the model from the
         registry.
+    replace_cache: bool
+        Forces a rebuild of the model, and replaces the entry in the cache with the new
+        model.
 
     Returns
     -------
-    os.PathLike:
+    Union[os.PathLike, str]:
         Path to the model
     """
     cache_key = calculate_model_key(model_config, data_config, metadata=metadata)
@@ -269,6 +273,13 @@ def provide_saved_model(
             f"Model caching activated, attempting to read model-location with key "
             f"{cache_key} from register {model_register_dir}"
         )
+        if replace_cache:
+            logger.info("replace_cache activated, deleting any existing cache entry")
+            cache_key = calculate_model_key(
+                model_config, data_config, metadata=metadata
+            )
+            disk_registry.delete_value(model_register_dir, cache_key)
+
         existing_model_location = disk_registry.get_value(model_register_dir, cache_key)
 
         # Check that the model is actually there
@@ -276,6 +287,7 @@ def provide_saved_model(
             logger.debug(
                 f"Found existing model at path {existing_model_location}, returning it"
             )
+
             return existing_model_location
         elif existing_model_location:
             logger.warning(
