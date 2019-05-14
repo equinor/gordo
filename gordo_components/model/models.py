@@ -182,33 +182,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
                     with open(f_name, "wb") as history_file:
                         pickle.dump(self.model.history, history_file)
 
-    def score(
-        self,
-        X: Union[np.ndarray, pd.DataFrame],
-        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> float:
-        """
-        Returns the appropriate scoring metric for a given model.
-
-        Parameters
-        ----------
-        X: Union[np.ndarray, pd.DataFrame]
-            Input data to the model
-        y: Union[np.ndarray, pd.DataFrame]
-            Target
-        sample_weight: Optional[np.ndarray]
-            sample weights
-
-        Returns
-        -------
-        score: float
-            Returns chosen metric for the given model.
-        """
-        raise NotImplementedError(
-            f"Subclasses of {self.__class__.__name__} must implement the .score(...) method."
-        )
-
     @classmethod
     def load_from_dir(cls, directory: str):
         """
