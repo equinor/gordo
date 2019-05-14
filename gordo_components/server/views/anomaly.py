@@ -65,39 +65,46 @@ class AnomalyView(BaseModelView, ModelMixin):
     or will take the raw input given in a POST request
     and give back predictions in the following example::
 
-        {'data': [
+        {
+        'data': [
             {
-              'error-transformed-tag-0': 0.0,
-              'error-transformed-tag-1': 0.0,
-              'error-transformed-tag-2': 0.0,
-              'error-transformed-tag-3': 0.0,
-              'error-untransformed-tag-0': 0.420411857997552,
-              'error-untransformed-tag-1': 0.914222253049058,
-              'error-untransformed-tag-2': 0.5068556967346384,
-              'error-untransformed-tag-3': 0.7270567536334099,
-              'inverse-transformed-model-output-tag-0': 0.0007441184134222567,
-              'inverse-transformed-model-output-tag-1': 0.0007441249908879399,
-              'inverse-transformed-model-output-tag-2': 0.0007441261550411582,
-              'inverse-transformed-model-output-tag-3': 0.0007441251655109227,
-              'model-output-tag-0': 0.0007441184134222567,
-              'model-output-tag-1': 0.0007441249908879399,
-              'model-output-tag-2': 0.0007441261550411582,
-              'model-output-tag-3': 0.0007441251655109227,
-              'original-input-tag-0': 0.42115597641097424,
-              'original-input-tag-1': 0.914966378039946,
-              'original-input-tag-2': 0.5075998228896795,
-              'original-input-tag-3': 0.7278008787989209,
-              'total-transformed-error': nan,
-              'total-untransformed-error': nan,
-              'transformed-model-input-tag-0': 0.0007441184134222567,
-              'transformed-model-input-tag-1': 0.0007441249908879399,
-              'transformed-model-input-tag-2': 0.0007441261550411582,
-              'transformed-model-input-tag-3': 0.0007441251655109227
+           'end': ['2016-01-01T00:10:00+00:00'],
+           'error-transformed': [0.913027075986948,
+                                 0.3474043585419292,
+                                 0.8986610906818544,
+                                 0.11825221990818557],
+           'error-untransformed': [0.913027075986948,
+                                   0.3474043585419292,
+                                   0.8986610906818544,
+                                   0.11825221990818557],
+           'inverse-transformed-model-output': [0.0005317790200933814,
+                                                -0.0001525811239844188,
+                                                0.0008310950361192226,
+                                                0.0015755111817270517],
+           'model-output': [0.0005317790200933814,
+                            -0.0001525811239844188,
+                            0.0008310950361192226,
+                            0.0015755111817270517],
+           'original-input': [0.9135588550070414,
+                              0.3472517774179448,
+                              0.8994921857179736,
+                              0.11982773108991263],
+           'start': ['2016-01-01T00:00:00+00:00'],
+           'total-transformed-error': [1.3326228173185086],
+           'total-untransformed-error': [1.3326228173185086],
+           'transformed-model-input': [0.9135588550070414,
+                                       0.3472517774179448,
+                                       0.8994921857179736,
+                                       0.11982773108991263]
             },
             ...
-         ],
-         'status-code': 200,
-         'time-seconds': '2.5015'}
+        ],
+
+     'tags': [{'asset': None, 'name': 'tag-0'},
+              {'asset': None, 'name': 'tag-1'},
+              {'asset': None, 'name': 'tag-2'},
+              {'asset': None, 'name': 'tag-3'}],
+     'time-seconds': '0.1937'}
     """
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
@@ -152,25 +159,19 @@ class AnomalyView(BaseModelView, ModelMixin):
 
         # If client is accessing the anomaly endpoint where the model doesn't give
         # back the transformed model input, we can't do anomaly formatting
-        if (
-            hasattr(self, "_output_matches_input_shape")
-            and not self._output_matches_input_shape
-        ):
-            message = dict(
-                message="Cannot perform anomaly detection where model output shape is different than its input"
-            )
+        if not self._output_matches_input_shape:
+            message = {
+                "message": "Cannot perform anomaly detection: model output shape != input shape"
+            }
             return make_response((jsonify(message), 400))
 
-        X: pd.DataFrame = pd.DataFrame.from_records(response.json["data"])
-
-        # In GET requests we need to pair the resulting predictions with their
-        # specific timestamp and additionally match the predictions to the corresponding tags.
-        anomaly_df = self.make_anomaly_df(X)
+        # Now create an anomaly dataframe from the base response dataframe
+        anomaly_df = self.make_anomaly_df(self._data)
 
         context = response.json.copy()
-        context["data"] = anomaly_df.to_dict(orient="records")
+        context["data"] = self.multi_lvl_column_dataframe_to_dict(anomaly_df)
         context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
-        return make_response(jsonify(context), context.get("status-code", 200))
+        return make_response(jsonify(context), context.pop("status-code", 200))
 
     def make_anomaly_df(self, X: pd.DataFrame):
         """
@@ -192,7 +193,12 @@ class AnomalyView(BaseModelView, ModelMixin):
 
         # Set the start and end times, setting them as ISO strings after calculations,
         # to ensure they are JSON encoded successfully and with tz info
-        X["start"] = self.X.index if isinstance(self.X, pd.DataFrame) else None
+        X["start"] = (
+            self.X.index
+            if isinstance(self.X, pd.DataFrame)
+            and isinstance(self.X.index, pd.DatetimeIndex)
+            else None
+        )
         X["end"] = X["start"].map(
             lambda start: (start + self.frequency).isoformat()
             if isinstance(start, datetime)
@@ -202,30 +208,29 @@ class AnomalyView(BaseModelView, ModelMixin):
             lambda start: start.isoformat() if hasattr(start, "isoformat") else None
         )
 
-        # Calculate the total anomaly between all tags for the transformed data
-        X["total-transformed-error"] = np.linalg.norm(
-            X[[f"transformed-model-input-{tag.name}" for tag in self.tags]].values
-            - X[[f"model-output-{tag.name}" for tag in self.tags]].values
-        )
-
         # Calculate the total anomaly between all tags for the original/untransformed
+        X["total-transformed-error"] = np.linalg.norm(
+            X["transformed-model-input"] - X["model-output"], axis=1
+        )
         X["total-untransformed-error"] = np.linalg.norm(
-            X[[f"original-input-{tag.name}" for tag in self.tags]].values
-            - X[
-                [f"inverse-transformed-model-output-{tag.name}" for tag in self.tags]
-            ].values
+            X["original-input"] - X["inverse-transformed-model-output"], axis=1
         )
 
-        # Calculate anomaly values by tag; both transformed and untransformed data
-        for tag in self.tags:
-            X[f"error-transformed-{tag.name}"] = (
-                X[f"model-output-{tag.name}"] - X[f"transformed-model-input-{tag.name}"]
-            ).abs()
+        # Calculate anomaly values by tag for transformed values
+        error_transformed = (X["model-output"] - X["transformed-model-input"]).abs()
+        error_transformed.columns = pd.MultiIndex.from_tuples(
+            ("error-transformed", i) for i in error_transformed.columns
+        )
+        X = X.join(error_transformed)
 
-            X[f"error-untransformed-{tag.name}"] = (
-                X[f"inverse-transformed-model-output-{tag.name}"]
-                - X[f"original-input-{tag.name}"]
-            ).abs()
+        # Calculate anomaly values by tag for untransformed values
+        error_untransformed = (
+            X["inverse-transformed-model-output"] - X["original-input"]
+        ).abs()
+        error_untransformed.columns = pd.MultiIndex.from_tuples(
+            ("error-untransformed", i) for i in error_untransformed.columns
+        )
+        X = X.join(error_untransformed)
 
         return X
 

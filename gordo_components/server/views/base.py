@@ -189,6 +189,13 @@ class BaseModelView(Resource, ModelMixin):
 
         # Reshape X to sample 1 record if a single record was given
         X = X.reshape(1, -1) if len(X.shape) == 1 else X
+
+        if X.shape[1] != len(self.tags):
+            message = dict(
+                message=f"Expected n features to be {len(self.tags)} but got {X.shape[1]}"
+            )
+            return make_response((jsonify(message), 400))
+
         return self._process_request(context=context, X=X, start_time=start_time)
 
     def _process_request(
@@ -245,20 +252,41 @@ class BaseModelView(Resource, ModelMixin):
             context["status-code"] = 400
         else:
             data = self.make_base_dataframe(
+                tags=self.tags,
                 original_input=X.values if isinstance(X, pd.DataFrame) else X,
                 model_output=output,
                 transformed_model_input=transformed_model_input,
                 inverse_transformed_model_output=inverse_transformed_model_output,
                 index=X.index if isinstance(X, pd.DataFrame) else None,
             )
-            context["data"] = data.to_dict(orient="records")
+            self._data = data  # Assign the base response DF for any children to use
 
-        context["tag-names"] = self.tags
+        context["tags"] = self.tags
+        context["data"] = self.multi_lvl_column_dataframe_to_dict(data)
         context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
-        return make_response((jsonify(context), context["status-code"]))
+        return make_response((jsonify(context), context.pop("status-code", 200)))
 
+    @staticmethod
+    def multi_lvl_column_dataframe_to_dict(df: pd.DataFrame) -> typing.List[dict]:
+        """
+        Convert a dataframe which has a pandas.MultiIndex as columns into a dict
+        where each key is the top level column name, and the value is the array
+        of columns under the top level name.
+        """
+        # This gets the 'top level' names of the multi level column names
+        # it will contain names like 'model-output' and then sub column(s)
+        # of the actual model output.
+        names = df.columns.get_level_values(0).unique()
+
+        # Next, for each top level name, want to select all the values in that
+        # the outcome is similar to a list of {'model-output': [1, 2, 3, 4], ...} records
+        return [
+            {name: row[name].tolist() for name in names} for idx, row in df.iterrows()
+        ]
+
+    @staticmethod
     def make_base_dataframe(
-        self,
+        tags: typing.Union[typing.List[SensorTag], typing.List[str]],
         original_input: np.ndarray,
         model_output: np.ndarray,
         transformed_model_input: np.ndarray,
@@ -272,6 +300,7 @@ class BaseModelView(Resource, ModelMixin):
 
         Parameters
         ----------
+        tags: List[Union[str, SensorTag]]
         original_input: np.ndarray
         model_output: np.ndarray
         transformed_model_input: np.ndarray
@@ -282,56 +311,46 @@ class BaseModelView(Resource, ModelMixin):
         -------
         pd.DataFrame
         """
+        names_n_values = (
+            ("original-input", original_input),
+            ("model-output", model_output),
+            ("transformed-model-input", transformed_model_input),
+            ("inverse-transformed-model-output", inverse_transformed_model_output),
+        )
 
-        def column_suffixes(array: np.ndarray) -> typing.Iterator[str]:
-            if array.shape[1] == len(self.tags):
-                return (tag.name for tag in self.tags)
+        index = index if index is not None else range(len(model_output))
+
+        # Loop over the names and values, less any which are None
+        data: pd.DataFrame
+        name: str
+        values: np.ndarray
+        for i, (name, values) in enumerate(
+            filter(lambda nv: nv[1] is not None, names_n_values)
+        ):
+
+            # Create the second level of column names, either as the tag names
+            # or simple range of numbers
+            if values.shape[1] == len(tags):
+                # map(...) to satisfy mypy to match second possible outcome
+                second_lvl_names = map(
+                    str,
+                    (tag.name if isinstance(tag, SensorTag) else tag for tag in tags),
+                )
             else:
-                return map(str, range(model_output.shape[1]))
+                second_lvl_names = map(str, range(values.shape[1]))
 
-        # The initial data passed to the pipeline/model
-        data = pd.DataFrame(
-            original_input, columns=(f"original-input-{tag.name}" for tag in self.tags)
-        )
-
-        # Join in the model output column(s)
-        data = data.join(
-            pd.DataFrame(
-                model_output,
-                columns=(f"model-output-{i}" for i in column_suffixes(model_output)),
-            ),
-            how="outer",
-        )
-
-        # Join in the transformed model input column(s)
-        data = data.join(
-            pd.DataFrame(
-                transformed_model_input,
-                columns=(
-                    f"transformed-model-input-{i}"
-                    for i in column_suffixes(transformed_model_input)
-                ),
-            ),
-            how="outer",
-        )
-
-        # If it exists, join in the inverse transformed model ouput
-        if inverse_transformed_model_output is not None:
-            data = data.join(
-                pd.DataFrame(
-                    inverse_transformed_model_output,
-                    columns=(
-                        f"inverse-transformed-model-output-{tag.name}"
-                        for tag in self.tags
-                    ),
-                ),
-                how="outer",
+            # Columns will be multi level with the title of the output on top
+            # and specific names below, ie. ('model-output', 'tag-0') as a column
+            columns = pd.MultiIndex.from_tuples(
+                (name, sub_name) for sub_name in second_lvl_names
             )
+            other: pd.DataFrame = pd.DataFrame(values, columns=columns, index=index)
 
-        if index is not None:
-            # Attempt to convert to ISO formatted str if it can, otherwise just the value
-            # This is because objects in the dataframe need to be JSON serializable
-            data.index = index
+            if not i:
+                data = other
+            else:
+                data = data.join(other)
+
         return data
 
 
