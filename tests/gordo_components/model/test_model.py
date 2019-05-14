@@ -15,7 +15,12 @@ from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from keras.wrappers.scikit_learn import BaseWrapper
 
 from gordo_components.model import get_model
-from gordo_components.model.models import KerasLSTMAutoEncoder, KerasLSTMForecast
+from gordo_components.model.models import (
+    KerasLSTMAutoEncoder,
+    KerasLSTMForecast,
+    KerasLSTMBaseEstimator,
+    KerasBaseEstimator,
+)
 from gordo_components.model.factories import lstm_autoencoder
 from gordo_components.model.base import GordoBase
 from gordo_components.model.register import register_model_builder
@@ -37,6 +42,15 @@ MODEL_SINGLE_KIND = (
     (model, sorted(register_model_builder.factories[model].keys())[0])
     for model in register_model_builder.factories.keys()
 )
+
+
+@pytest.mark.parametrize("BaseModel", [KerasLSTMBaseEstimator, KerasBaseEstimator])
+def test_base_class_models(BaseModel):
+    """
+    Test that the ABC cannot be instantiated, in that they require some implementation
+    """
+    with pytest.raises(TypeError):
+        BaseModel()
 
 
 @pytest.mark.parametrize("model,kind", MODEL_SINGLE_KIND)
