@@ -74,16 +74,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         destination_influx_recreate: bool
             Drop the database before filling it with data?
         """
-        # Create clients if provided
-        self.destionation_client = (
-            influx_client_from_uri(
-                destination_influx_uri,
-                api_key=destination_influx_api_key,
-                recreate=destination_influx_recreate,
-            )
-            if destination_influx_uri
-            else None
-        )
+        # Create df client if provided
         self.dataframe_client = (
             influx_client_from_uri(
                 destination_influx_uri,
@@ -94,36 +85,6 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             if destination_influx_uri
             else None
         )
-
-    @staticmethod
-    def create_influxdb_point_from_dataframe_row(
-        record: pd.Series, metadata: dict, endpoint: EndpointMetadata
-    ) -> dict:
-        """
-        Create JSON prepared anomaly point, in which case the row 'name'
-        must be set as a time acceptable from influxdb
-
-        Parameters
-        ----------
-        record: pd.Series
-            A single row in dict form from pandas dataframe
-
-        Returns
-        -------
-        dict
-            Point ready to be written to influxdb
-        """
-        # Setup tags; metadata (if any) and other key value pairs.
-        tags = {"machine": f"{endpoint.target_name}"}
-        tags.update({k: v for k, v in metadata})
-
-        # The actual record to be posted to Influx
-        return {
-            "measurement": "predictions",
-            "tags": tags,
-            "fields": record.to_dict(),
-            "time": f"{record.name}",
-        }
 
     async def __call__(
         self,
@@ -155,27 +116,55 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         metadata: dict = dict(),
     ):
         """
-        Async write predictions to influx
+        Takes a multi-layed column dataframe and write points to influx where
+        each top level name is treated as the measurement name.
+
+        Parameters
+        ----------
+        predictions: pd.DataFrame
+            Multi layed column dataframe, where top level names will be treated
+            as the 'measurement' name in influx and 2nd level will be the fields
+            under those measurements.
+
+        Returns
+        -------
+        None
         """
-        # First, let's post all anomalies per sensor
-        logger.info(f"Calculating points per sensor per record")
-        data = [
-            point
-            for point in predictions.apply(
-                lambda rec: self.create_influxdb_point_from_dataframe_row(
-                    rec, metadata, endpoint
-                ),
-                axis=1,
-            )
-        ]
-        # Async write predictions to influx
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            # Write the per-sensor points to influx
-            logger.info(f"Writing {len(data)} sensor points to Influx")
-            future = executor.submit(
-                self.destionation_client.write_points, data, batch_size=10000
-            )
-            await asyncio.wrap_future(future)
+        # Setup tags; metadata (if any) and other key value pairs.
+        tags = {"machine": f"{endpoint.target_name}"}
+        tags.update(metadata)
+
+        # The measurements to be posted to Influx
+        top_lvl_names = predictions.columns.get_level_values(0).unique()
+
+        for top_lvl_name in top_lvl_names:
+
+            # Makes no sense to create a influx point where the field would be a date
+            # and doesn't seem to be possible anyway.
+            if top_lvl_name in ["end", "start"]:
+                continue
+
+            # this is a 'regular' non-stacked column dataframe
+            sub_df = predictions[top_lvl_name]
+
+            # Set the sub df's column names equal to the name of the tags if
+            # they match the length of the tag list.
+            if len(sub_df.columns) == len(endpoint.tag_list):
+                sub_df.columns = [tag.name for tag in endpoint.tag_list]
+
+            # Async write predictions to influx
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                logger.info(
+                    f"Writing {len(sub_df)} points to Influx for measurement: {top_lvl_name}"
+                )
+                future = executor.submit(
+                    self.dataframe_client.write_points,
+                    dataframe=sub_df,
+                    measurement=top_lvl_name,
+                    tags=tags,
+                    batch_size=10000,
+                )
+                await asyncio.wrap_future(future)
 
     async def send_sensor_data(self, sensors: pd.DataFrame):
         """
