@@ -72,7 +72,7 @@ class Client:
         gordo_version: str
             The version of major gordo the services are using, ie. 'v0'.
         prediction_path: str
-            Url path to use for making predictions, default '/prediction'
+            Url path to use for making predictions, default '/anomaly/prediction'
         metadata: Optional[dict]
             Arbitrary mapping of key-value pairs to save to influx with
             prediction runs in 'tags' property
@@ -381,7 +381,7 @@ class Client:
         for i in itertools.count(start=1):
             try:
                 resp = await gordo_io.post_json(
-                    f"{endpoint.endpoint}/prediction",
+                    f"{endpoint.endpoint}{self.prediction_path}",
                     session=session,
                     json={"X": X.iloc[chunk].values.tolist()},
                 )
@@ -421,8 +421,13 @@ class Client:
             # Process response and return if no exception
             else:
 
-                predictions = pd.DataFrame.from_records(resp["data"])
-                predictions.index = X.iloc[chunk].index
+                # Chunks can have None as end-point
+                chunk_stop = chunk.stop if chunk.stop else len(X)
+                # Chunks can also be larger than the actual data
+                chunk_stop = min(chunk_stop, len(X))
+
+                predictions = dataframe_from_dict_with_list_values(resp["data"])
+                predictions.index = X.index[chunk_stop - len(predictions) : chunk_stop]
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
@@ -513,9 +518,9 @@ class Client:
 
         logger.info(f"Processing {start} -> {end}")
 
-        predictions = pd.DataFrame.from_records(response["data"])
-        predictions["start"] = predictions["start"].map(isoparse)
-        predictions.set_index("start", inplace=True)
+        predictions = dataframe_from_dict_with_list_values(response["data"])
+        predictions["start"] = predictions["start"].applymap(isoparse)
+        predictions.set_index(("start", 0), inplace=True)
 
         if self.prediction_forwarder is not None:
             await self.prediction_forwarder(
@@ -629,3 +634,47 @@ def make_date_ranges(
         ]
     else:
         return [(start, end)]
+
+
+def dataframe_from_dict_with_list_values(data: typing.List[dict]) -> pd.DataFrame:
+    """
+    Construct a multi-level column dataframe from a dict which has keys mapped
+    to lists
+
+    Parameters
+    ----------
+    data: dict
+        'data' from server prediction response which is expected to have, for
+        each key, an associated list of values. Resulting dataframe has top
+        level column names matching key names, and then 0..n named columns
+        for the length of the associated list of values under that key.
+
+    Examples
+    --------
+    >>> data = [{"col1": [1, 2, 3, 4], "col2": [11, 12]}, ]
+    >>> df = dataframe_from_dict_with_list_values(data)
+    >>> df[["col1", "col2"]]
+    ... # doctest: +NORMALIZE_WHITESPACE
+      col1          col2
+         0  1  2  3    0   1
+    0    1  2  3  4   11  12
+
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    # grab the keys from all dicts in the data, these will be top level column names
+    top_lvl_names = set(k for record in data for k in record.keys())
+
+    # Create the double column index, where second level names are the 0..N range
+    # of the values in the top level names list value
+    columns = pd.MultiIndex.from_tuples(
+        (name, i) for name in top_lvl_names for i in range(len(data[0][name]))
+    )
+
+    # Return dataframe, while unpacking each dict by the order of the top level names
+    return pd.DataFrame(
+        [[v for name in top_lvl_names for v in record[name]] for record in data],
+        columns=columns,
+    )

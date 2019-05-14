@@ -47,37 +47,39 @@ def test_anomaly_prediction_endpoint(
 
     # Only different between POST and GET is POST will return None for
     # start and end dates, because the server can't know what those are
-    assert "start" in record and (
-        record["start"] is None or isinstance(record["start"], str)
+    assert "start" in record
+    assert (
+        record["start"][0] is None
+        if data_to_post is not None
+        else isinstance(record["start"][0], str)
     )
-    assert "end" in record and (record["end"] is None or isinstance(record["end"], str))
+    assert "end" in record
+    assert (
+        record["end"][0] is None
+        if data_to_post is not None
+        else isinstance(record["end"][0], str)
+    )
 
-    assert "total-transformed-error" in record and isinstance(
-        record["total-transformed-error"], float
-    )
-    assert "total-untransformed-error" in record and isinstance(
-        record["total-untransformed-error"], float
-    )
+    assert "total-transformed-error" in record
+    assert isinstance(record["total-transformed-error"], list)
 
-    for sensor in sensors:
-        assert f"error-transformed-{sensor.name}" in record and isinstance(
-            record[f"error-transformed-{sensor.name}"], float
-        )
-        assert f"error-untransformed-{sensor.name}" in record and isinstance(
-            record[f"error-untransformed-{sensor.name}"], float
-        )
-        assert f"original-input-{sensor.name}" in record and isinstance(
-            record[f"original-input-{sensor.name}"], float
-        )
-        assert (
-            f"inverse-transformed-model-output-{sensor.name}" in record
-            and isinstance(
-                record[f"inverse-transformed-model-output-{sensor.name}"], float
-            )
-        )
-        assert f"model-output-{sensor.name}" in record and isinstance(
-            record[f"model-output-{sensor.name}"], float
-        )
+    assert "total-untransformed-error" in record
+    assert isinstance(record["total-untransformed-error"], list)
+
+    assert "error-transformed" in record
+    assert isinstance(record["error-transformed"], list)
+
+    assert "error-untransformed" in record
+    assert isinstance(record["error-untransformed"], list)
+
+    assert "original-input" in record
+    assert isinstance(record["original-input"], list)
+
+    assert "inverse-transformed-model-output" in record
+    assert isinstance(record["inverse-transformed-model-output"], list)
+
+    assert "model-output" in record
+    assert isinstance(record["model-output"], list)
 
 
 def test_more_than_24_hrs(influxdb, gordo_ml_server_client):
@@ -87,6 +89,13 @@ def test_more_than_24_hrs(influxdb, gordo_ml_server_client):
         json={"start": "2016-01-01T00:00:00+00:00", "end": "2016-01-02T00:00:00+00:00"},
     )
     assert resp.status_code == 400
+
+    # and for sanity, less than 1 day are ok
+    resp = gordo_ml_server_client.get(
+        "/anomaly/prediction",
+        json={"start": "2016-01-01T00:00:00+00:00", "end": "2016-01-01T01:00:00+00:00"},
+    )
+    assert resp.status_code == 200
 
 
 def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):
@@ -106,5 +115,5 @@ def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):
     )
     assert resp.status_code == 200
     assert len(resp.json["data"]) == 1, f"Expected one prediction, got: {resp.json}"
-    assert resp.json["data"][0]["start"] == "2016-01-01T00:10:00+00:00"
-    assert resp.json["data"][0]["end"] == "2016-01-01T00:20:00+00:00"
+    assert resp.json["data"][0]["start"] == ["2016-01-01T00:10:00+00:00"]
+    assert resp.json["data"][0]["end"] == ["2016-01-01T00:20:00+00:00"]
