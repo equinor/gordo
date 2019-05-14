@@ -4,9 +4,10 @@ import os
 import logging
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List
 
 import requests
+from cachetools import cached, TTLCache
 from flask import Flask, jsonify, make_response, request, current_app
 from flask.views import MethodView
 
@@ -77,6 +78,7 @@ class WatchmanApi(MethodView):
         -------
         EndpointStatus
         """
+
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
         base_url = f'http://{host}/{endpoint.rstrip("/")}'
         healthcheck_resp = requests.get(f"{base_url}/healthcheck", timeout=2)
@@ -119,10 +121,12 @@ class WatchmanApi(MethodView):
             ),
         )
 
-    def get(self):
+    @staticmethod
+    @cached(cache=TTLCache(maxsize=1024, ttl=5))
+    def _endpoints_statuses(n_logs: Optional[int]) -> List[dict]:
 
-        if "logs" in request.args:
-            # Get a list of ModelBuilderPod instances and map to target names
+        # Get a list of ModelBuilderPod instances and map to target names
+        if n_logs is not None:
             builders = list_model_builders(
                 namespace=current_app.config["NAMESPACE"],
                 project_name=current_app.config["PROJECT_NAME"],
@@ -132,12 +136,10 @@ class WatchmanApi(MethodView):
         else:
             builders = {}
 
-        n_logs = int(request.args.get("logs") or 20) if "logs" in request.args else None
-
         with ThreadPoolExecutor(max_workers=25) as executor:
             futures = {
                 executor.submit(
-                    self._check_endpoint,
+                    WatchmanApi._check_endpoint,
                     host=f'ambassador.{current_app.config["AMBASSADOR_NAMESPACE"]}',
                     namespace=current_app.config["NAMESPACE"],
                     project_name=current_app.config["PROJECT_NAME"],
@@ -183,6 +185,12 @@ class WatchmanApi(MethodView):
                             },
                         }
                     )
+            return status_results
+
+    def get(self):
+
+        n_logs = int(request.args.get("logs") or 20) if "logs" in request.args else None
+        status_results = self._endpoints_statuses(n_logs)
 
         payload = jsonify(
             {
@@ -254,4 +262,4 @@ def run_server(
         namespace=namespace,
         ambassador_namespace=ambassador_namespace,
     )
-    app.run(host, port, debug=debug)
+    app.run(host, port, debug=debug, threaded=False)
