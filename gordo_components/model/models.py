@@ -419,8 +419,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         """
 
         return (
-            sample_in.reshape(1, self.lookback_window, n_feat),
-            sample_out.reshape(1, n_feat),
+            sample_in.reshape((1, self.lookback_window, n_feat)),
+            sample_out.reshape((1, n_feat)),
         )
 
     def calc_steps_per_epoch(self, X):
