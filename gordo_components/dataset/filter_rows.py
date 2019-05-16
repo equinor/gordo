@@ -51,8 +51,10 @@ def pandas_filter_rows(df, filter_str: str):
     filter_str: str
       String representing the filter. Can be a boolean combination of conditions,
       where conditions are comparisons of column names and either other columns
-      or numeric values. The rows matching the filter are kept. Column names must be
-      quoted in single strings. Example of a legal filter is " 'Tag A' > 5 "
+      or numeric values. The rows matching the filter are kept.
+      Column names can be quoted in single/double quotations or back ticks.
+      Example of legal filters are " `Tag A` > 5 " , " ('Tag B' > 1) | ('Tag C' > 4)"
+      '("Tag D" < 5) '
 
 
     Returns
@@ -76,17 +78,17 @@ def pandas_filter_rows(df, filter_str: str):
     6  2  0
     7  2  1
     8  2  2
-    >>> pandas_filter_rows(df, "'A'>1")
+    >>> pandas_filter_rows(df, "`A`>1")
        A  B
     6  2  0
     7  2  1
     8  2  2
-    >>> pandas_filter_rows(df, "'A'>'B'")
+    >>> pandas_filter_rows(df, "`A`>'B'")
        A  B
     3  1  0
     6  2  0
     7  2  1
-    >>> pandas_filter_rows(df, "('A'>1) | ('B'<1)")
+    >>> pandas_filter_rows(df, "(`A`>1) | (`B`<1)")
        A  B
     0  0  0
     3  1  0
@@ -95,7 +97,7 @@ def pandas_filter_rows(df, filter_str: str):
     8  2  2
 
     """
-
+    filter_str = filter_str.replace("`", '"')
     parsed_filter = ast.parse(filter_str, mode="eval")
     if not _safe_ast(parsed_filter):
         raise ValueError(f"Unsafe expression {filter_str}")
@@ -113,9 +115,9 @@ _LEGAL_AST_NODES = {
     type(a)
     for a in ast.walk(  # type: ignore
         ast.parse(  # type: ignore
-            "('A'<6) | ('B' <= 2) & ('C' == 4.3) | ('A'>-0.1 ) | ~('A'>= (1-2)) "
-            "| ('A' < ('B'+1)) | ('A' < ('B'*1)) | ('A' < ('B'-1)) | ('A' < ('B'/2)) "
-            "| ('A' < ('B' **2))",
+            '("A"<6) | ("B" <= 2) & ("C" == 4.3) | ("A">-0.1 ) | ~("A">= (1-2)) '
+            '| ("A" < ("B"+1)) | ("A" < ("B" *1)) | ("A" < ("B"-1)) | ("A" < ("B"/2)) '
+            '| ("A" < ("B" **2))',
             mode="eval",
         ).body
     )
@@ -135,7 +137,7 @@ def _safe_ast(some_ast):
 
     Examples
     --------
-    >>> _safe_ast(ast.parse("('A'<6) | ('B' <= 2)", mode="eval"))
+    >>> _safe_ast(ast.parse('("A"<6) | ("B" <= 2)', mode="eval"))
     True
     >>> _safe_ast(ast.parse("sys.exit(0)", mode="eval"))
     False
