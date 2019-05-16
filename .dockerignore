@@ -1,3 +1,7 @@
 /venv
 /.eggs
 /gordo_components.egg-info
+/docs
+/htmlcov
+/.coverage
+/dist

@@ -112,7 +112,7 @@ def pandas_filter_rows(df, filter_str: str):
 _LEGAL_AST_NODES = {
     type(a)
     for a in ast.walk(  # type: ignore
-        ast.parse(
+        ast.parse(  # type: ignore
             "('A'<6) | ('B' <= 2) & ('C' == 4.3) | ('A'>-0.1 ) | ~('A'>= (1-2)) "
             "| ('A' < ('B'+1)) | ('A' < ('B'*1)) | ('A' < ('B'-1)) | ('A' < ('B'/2)) "
             "| ('A' < ('B' **2))",

@@ -3,7 +3,7 @@
 import bz2
 import glob
 import io
-import json
+import simplejson
 import logging
 import os
 import pydoc
@@ -16,7 +16,7 @@ from os import path
 from typing import Tuple, Union, Dict, Any, IO  # pragma: no flakes
 
 from sklearn.pipeline import FeatureUnion, Pipeline
-from sklearn.base import TransformerMixin
+from sklearn.base import TransformerMixin, BaseEstimator  # noqa
 
 from gordo_components.model.models import GordoBase
 
@@ -109,7 +109,7 @@ def load_metadata(source_dir: str) -> dict:
     ]:
         if path.isfile(possible_path):
             with open(possible_path, "r") as f:
-                return json.load(f)
+                return simplejson.load(f)
     logger.warning(
         f'Metadata file in source dir: "{source_dir}" not found'
         f" in or up one directory."
@@ -193,7 +193,9 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
         Tuple[str, object]
     """
     n_step, class_path = _parse_dir_name(source_dir)
-    StepClass = pydoc.locate(class_path)
+    StepClass = pydoc.locate(
+        class_path
+    )  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
     if StepClass is None:
         logger.warning(
             f'Specified a class path of "{class_path}" but it does '
@@ -206,7 +208,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
     # If this is a FeatureUnion, we also have a `params.json` for it
     if StepClass == FeatureUnion:
         with open(os.path.join(source_dir, "params.json"), "r") as p:
-            params = json.load(p)
+            params = simplejson.load(p)
 
     # Pipelines and FeatureUnions have sub steps which need to be loaded
     if any(StepClass == Obj for Obj in (Pipeline, FeatureUnion)):
@@ -243,7 +245,7 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
             return step_name, pickle.load(f)
 
 
-def dump(obj: object, dest_dir: str, metadata: dict = None):
+def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
     """
     Serialize an object into a directory
 
@@ -257,10 +259,12 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     obj
         The object to dump. Must be picklable or implement
         a ``save_to_dir`` AND ``load_from_dir`` method.
-    dest_dir
+    dest_dir: Union[os.PathLike, str]
         The directory to which to save the model metadata: dict - any additional
         metadata to be saved alongside this model if it exists, will be returned
         from the corresponding "load" function
+    metadata: Optional dict of metadata which will be serialized to a file together
+        with the model, and loaded again by :func:`load_metadata`.
 
     Returns
     -------
@@ -286,11 +290,13 @@ def dump(obj: object, dest_dir: str, metadata: dict = None):
     _dump_step(step=("obj", obj), n_step=0, dest_dir=dest_dir)
     if metadata is not None:
         with open(os.path.join(dest_dir, "metadata.json"), "w") as f:
-            json.dump(metadata, f, default=str)
+            simplejson.dump(metadata, f, default=str)
 
 
 def _dump_step(
-    step: Tuple[str, Union[GordoBase, TransformerMixin]], dest_dir: str, n_step: int = 0
+    step: Tuple[str, Union[GordoBase, TransformerMixin]],
+    dest_dir: Union[os.PathLike, str],
+    n_step: int = 0,
 ):
     """
     Accepts any Scikit-Learn transformer and dumps it into a directory
@@ -337,7 +343,7 @@ def _dump_step(
                 "transformer_weights": getattr(step_transformer, "transformer_weights"),
             }
             with open(os.path.join(sub_dir, "params.json"), "w") as f:
-                json.dump(params, f)
+                simplejson.dump(params, f)
     else:
         if hasattr(step_transformer, "save_to_dir"):
             if not hasattr(step_transformer, "load_from_dir"):

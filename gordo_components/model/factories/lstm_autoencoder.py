@@ -12,6 +12,7 @@ from gordo_components.model.factories.model_factories_utils import hourglass_cal
 
 
 @register_model_builder(type="KerasLSTMAutoEncoder")
+@register_model_builder(type="KerasLSTMForecast")
 def lstm_model(
     n_features: int,
     lookback_window: int = 1,
@@ -97,6 +98,7 @@ def lstm_model(
                     return_sequences=True,
                 )
             )
+
         else:
             model.add(LSTM(n_neurons, activation=activation, return_sequences=True))
 
@@ -118,6 +120,7 @@ def lstm_model(
 
 
 @register_model_builder(type="KerasLSTMAutoEncoder")
+@register_model_builder(type="KerasLSTMForecast")
 def lstm_symmetric(
     n_features: int,
     lookback_window: int = 1,
@@ -189,6 +192,7 @@ def lstm_symmetric(
 
 
 @register_model_builder(type="KerasLSTMAutoEncoder")
+@register_model_builder(type="KerasLSTMForecast")
 def lstm_hourglass(
     n_features: int,
     lookback_window: int = 1,

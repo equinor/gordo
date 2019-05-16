@@ -12,37 +12,40 @@ import pandas as pd
 from influxdb import DataFrameClient
 
 from gordo_components.data_provider.azure_utils import create_adls_client
-from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.data_provider.base import GordoBaseDataProvider, capture_args
 
 from gordo_components.data_provider.iroc_reader import IrocReader
 from gordo_components.data_provider.ncs_reader import NcsReader
+from gordo_components.dataset.sensor_tag import SensorTag
+
 
 logger = logging.getLogger(__name__)
 
 
-def load_dataframes_from_multiple_providers(
+def load_series_from_multiple_providers(
     data_providers: typing.List[GordoBaseDataProvider],
     from_ts: datetime,
     to_ts: datetime,
-    tag_list: typing.List[str],
+    tag_list: typing.List[SensorTag],
 ) -> typing.Iterable[pd.DataFrame]:
     """
     Loads the tags in `tag_list` using multiple instances of
     :class:`gordo_components.data_provider.base.GordoBaseDataProvider` provided in the
     parameter `data_providers`. Will load a tag from the first data provider in the list
     which claims it. See
-    :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_dataframes`.
+    :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_series`.
 
     Returns
     -------
-    Iterable[pd.DataFrame]
-        The required tags as an iterable of dataframes where each is a single column
-        dataframe with time index
+    typing.Iterable[pd.Series]
+        The required tags as an iterable of series where each series contains
+        the tag values along with a datetime index.
 
     """
     readers_to_tags = {
         reader: [] for reader in data_providers
-    }  # type: typing.Dict[GordoBaseDataProvider, typing.List[str]]
+    }  # type: typing.Dict[GordoBaseDataProvider, typing.List[SensorTag]]
+
     for tag in tag_list:
         for tag_reader in data_providers:
             if tag_reader.can_handle_tag(tag):
@@ -53,14 +56,14 @@ def load_dataframes_from_multiple_providers(
                 break
         # The else branch is executed if the break is not called
         else:
-            raise ValueError(f"Found no data providers able to download the tag {tag}")
+            raise ValueError(f"Found no data providers able to download the tag {tag} ")
     for tag_reader, readers_tags in readers_to_tags.items():
         if readers_tags:
             logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
-            for df in tag_reader.load_dataframes(
+            for series in tag_reader.load_series(
                 from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
             ):
-                yield df
+                yield series
 
 
 class DataLakeProvider(GordoBaseDataProvider):
@@ -71,11 +74,13 @@ class DataLakeProvider(GordoBaseDataProvider):
     ]  # type: typing.List[typing.Type[GordoBaseDataProvider]]
 
     def can_handle_tag(self, tag):
+        """Implements base method, see GordoBaseDataProvider"""
         for r in self._get_sub_dataproviders():
             if r.can_handle_tag(tag):
                 return True
         return False
 
+    @capture_args
     def __init__(
         self,
         storename: str = "dataplatformdlsprod",
@@ -108,12 +113,12 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
         self.client = None
 
-    def load_dataframes(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
-    ) -> typing.Iterable[pd.DataFrame]:
+    def load_series(
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
+    ) -> typing.Iterable[pd.Series]:
         """
         See
-        :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_dataframes`
+        :func:`gordo_components.data_provider.base.GordoBaseDataProvider.load_series`
         for documentation
         """
         # We create them here so we only try to get a auth-token once we actually need
@@ -124,7 +129,7 @@ class DataLakeProvider(GordoBaseDataProvider):
             )
         data_providers = self._get_sub_dataproviders()
 
-        yield from load_dataframes_from_multiple_providers(
+        yield from load_series_from_multiple_providers(
             data_providers, from_ts, to_ts, tag_list
         )
 
@@ -146,12 +151,15 @@ class DataLakeProvider(GordoBaseDataProvider):
 
 
 class InfluxDataProvider(GordoBaseDataProvider):
+    @capture_args
     def __init__(
         self,
         measurement: str,
+        value_name: str = "Value",
         api_key: str = None,
         api_key_header: str = None,
-        value_name: str = "Value",
+        client: DataFrameClient = None,
+        uri: str = None,
         **kwargs,
     ):
         """
@@ -165,37 +173,57 @@ class InfluxDataProvider(GordoBaseDataProvider):
             Api key to use in header
         api_key_header: str
             Key of header to insert the api key for requests
+        uri: str
+            Create a client from a URI
+            format: <username>:<password>@<host>:<port>/<optional-path>/<db_name>
         kwargs: dict
             These are passed directly to the init args of influxdb.DataFrameClient
         """
         super().__init__(**kwargs)
         self.measurement = measurement
         self.value_name = value_name
-        self.influx_config = kwargs
-        self.influx_client = DataFrameClient(**kwargs)
-        if api_key:
-            if not api_key_header:
-                raise ValueError(
-                    "If supplying an api key, you must supply the header key to insert it under."
-                )
-            self.influx_client._headers[api_key_header] = api_key
+        self.influx_client = client
 
-    def load_dataframes(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
-    ) -> typing.Iterable[pd.DataFrame]:
+        if self.influx_client is None:
+            if uri:
+
+                # Import here to avoid any circular import error caused by
+                # importing TimeSeriesDataset, which imports this provider
+                # which would have imported Client via traversal of the __init__
+                # which would then try to import TimeSeriesDataset again.
+                from gordo_components.client.utils import influx_client_from_uri
+
+                self.influx_client = influx_client_from_uri(  # type: ignore
+                    uri,
+                    api_key=api_key,
+                    api_key_header=api_key_header,
+                    dataframe_client=True,
+                )
+            else:
+                self.influx_client = DataFrameClient(**kwargs)
+                if api_key is not None:
+                    if not api_key_header:
+                        raise ValueError(
+                            "If supplying an api key, you must supply the header key to insert it under."
+                        )
+                    self.influx_client._headers[api_key_header] = api_key
+
+    def load_series(
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
+    ) -> typing.Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
         """
         return (
             self.read_single_sensor(
-                from_ts=from_ts, to_ts=to_ts, tag=tag, measurement=self.measurement
+                from_ts=from_ts, to_ts=to_ts, tag=tag.name, measurement=self.measurement
             )
             for tag in tag_list
         )
 
     def read_single_sensor(
         self, from_ts: datetime, to_ts: datetime, tag: str, measurement: str
-    ) -> pd.DataFrame:
+    ) -> pd.Series:
         """
         Parameters
         ----------
@@ -223,10 +251,11 @@ class InfluxDataProvider(GordoBaseDataProvider):
         """
 
         logger.info(f"Query string: {query_string}")
-        dataframes = self.influx_client.query(query_string)
+        dataframes = self.influx_client.query(query_string)  # type: ignore
 
         try:
-            return list(dataframes.values())[0]
+            df = list(dataframes.values())[0]
+            return df[tag]
 
         except IndexError as e:
             list_of_tags = self._list_of_tags_from_influx()
@@ -239,7 +268,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
     def _list_of_tags_from_influx(self):
         query_tags = (
-            f"""SHOW TAG VALUES ON {self.influx_config["database"]} WITH KEY="tag" """
+            f"""SHOW TAG VALUES ON {self.influx_client._database} WITH KEY="tag" """
         )
         result = self.influx_client.query(query_tags)
         list_of_tags = []
@@ -255,14 +284,14 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
         Returns
         -------
-        List[str]
+        typing.List[str]
             The list of tags in Influx
 
         """
         return self._list_of_tags_from_influx()
 
-    def can_handle_tag(self, tag):
-        return tag in self.get_list_of_tags()
+    def can_handle_tag(self, tag: SensorTag):
+        return tag.name in self.get_list_of_tags()
 
 
 class RandomDataProvider(GordoBaseDataProvider):
@@ -271,9 +300,10 @@ class RandomDataProvider(GordoBaseDataProvider):
     uses the same seed, so should be a function (same input -> same output)
     """
 
-    def can_handle_tag(self, tag):
+    def can_handle_tag(self, tag: SensorTag):
         return True  # We can be random about everything
 
+    @capture_args
     def __init__(self, min_size=100, max_size=300, **kwargs):
         super().__init__(**kwargs)
         self.max_size = max_size
@@ -293,16 +323,16 @@ class RandomDataProvider(GordoBaseDataProvider):
             pd.to_datetime(np.random.randint(start_u, end_u, n), unit="s", utc=True)
         )
 
-    def load_dataframes(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[str]
-    ) -> typing.Iterable[pd.DataFrame]:
+    def load_series(
+        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
+    ) -> typing.Iterable[pd.Series]:
         for tag in tag_list:
             nr = random.randint(self.min_size, self.max_size)
 
             random_index = self._random_dates(from_ts, to_ts, n=nr)
-            df = pd.DataFrame(
+            series = pd.Series(
                 index=random_index,
-                columns=[tag],
+                name=tag.name,
                 data=np.random.random(size=len(random_index)),
             )
-            yield df
+            yield series

@@ -18,6 +18,7 @@ and deployed as a REST API on Kubernetes.
     :caption: Project Resources:
 
     ./general/quickstart.rst
+    ./general/architecture.rst
 
 .. toctree::
     :maxdepth: 4

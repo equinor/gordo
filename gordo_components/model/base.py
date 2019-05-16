@@ -39,3 +39,7 @@ class GordoBase(abc.ABC):
         Score the model; must implement the correct default scorer based on model type
         """
         ...
+
+    @abc.abstractmethod
+    def get_metadata(self):
+        """Get model specific metadata, if any"""
