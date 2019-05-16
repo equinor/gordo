@@ -39,11 +39,7 @@ class ModelBuilderTestCase(unittest.TestCase):
 
         with TemporaryDirectory() as tmpdir:
 
-            model_config = {
-                "gordo_components.model.models.KerasAutoEncoder": {
-                    "kind": "feedforward_hourglass"
-                }
-            }
+            model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
             data_config = get_random_data()
             output_dir = os.path.join(tmpdir, "some", "sub", "directories")
 
@@ -51,7 +47,7 @@ class ModelBuilderTestCase(unittest.TestCase):
                 model_config=model_config, data_config=data_config, metadata={}
             )
 
-            self.metadata_check(metadata, True)
+            self.metadata_check(metadata, False)
 
             _save_model_for_workflow(
                 model=model, metadata=metadata, output_dir=output_dir
@@ -69,6 +65,22 @@ class ModelBuilderTestCase(unittest.TestCase):
             )
 
     def test_model_builder_model_withouth_pipeline(self):
+        raw_model_config = """
+        sklearn.decomposition.pca.PCA:
+            svd_solver: auto
+        """
+
+        model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
+        data_config = get_random_data()
+
+        model, metadata = build_model(
+            model_config=model_config, data_config=data_config, metadata={}
+        )
+
+        self.metadata_check(metadata, False)
+
+    def test_model_builder_save_history(self):
+        """Checks that the metadata contains the keras model build history"""
         raw_model_config = """
         gordo_components.model.models.KerasAutoEncoder:
             kind: feedforward_hourglass
@@ -88,8 +100,8 @@ class ModelBuilderTestCase(unittest.TestCase):
         sklearn.pipeline.Pipeline:
             steps:
               - sklearn.preprocessing.data.MinMaxScaler
-              - gordo_components.model.models.KerasAutoEncoder:
-                  kind: feedforward_hourglass
+              - sklearn.decomposition.pca.PCA:
+                  svd_solver: auto
         """
 
         model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
@@ -99,7 +111,7 @@ class ModelBuilderTestCase(unittest.TestCase):
             model_config=model_config, data_config=data_config, metadata={}
         )
 
-        self.metadata_check(metadata, True)
+        self.metadata_check(metadata, False)
 
     def test_model_builder_pipeline_in_pipeline(self):
         from gordo_components.builder import build_model
@@ -113,8 +125,8 @@ class ModelBuilderTestCase(unittest.TestCase):
                         - sklearn.preprocessing.data.MinMaxScaler
                   - sklearn.pipeline.Pipeline:
                       steps:
-                        - gordo_components.model.models.KerasAutoEncoder:
-                            kind: feedforward_hourglass
+                        - sklearn.decomposition.pca.PCA:
+                            svd_solver: auto
             """
 
         model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
@@ -124,7 +136,7 @@ class ModelBuilderTestCase(unittest.TestCase):
             model_config=model_config, data_config=data_config, metadata={}
         )
 
-        self.metadata_check(metadata, True)
+        self.metadata_check(metadata, False)
 
     def metadata_check(self, metadata, check_history):
         self.assertTrue("model" in metadata)
@@ -146,11 +158,7 @@ class ModelBuilderTestCase(unittest.TestCase):
 
         with TemporaryDirectory() as tmpdir:
 
-            model_config = {
-                "gordo_components.model.models.KerasAutoEncoder": {
-                    "kind": "feedforward_hourglass"
-                }
-            }
+            model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
             data_config = get_random_data()
             output_dir = os.path.join(tmpdir, "model")
 
@@ -205,11 +213,7 @@ def test_provide_saved_model_caching(
         metadata = dict()
     with TemporaryDirectory() as tmpdir:
 
-        model_config = {
-            "gordo_components.model.models.KerasAutoEncoder": {
-                "kind": "feedforward_hourglass"
-            }
-        }
+        model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
         data_config = get_random_data()
         output_dir = os.path.join(tmpdir, "model")
         registry_dir = os.path.join(tmpdir, "registry")
