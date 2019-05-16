@@ -22,6 +22,7 @@ class NcsReader(GordoBaseDataProvider):
         "1776-troc": "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
         "1130-troa": "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
         "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/​1101-SFB",
+        "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",
     }
 
     def __init__(self, client: core.AzureDLFileSystem, **kwargs):
