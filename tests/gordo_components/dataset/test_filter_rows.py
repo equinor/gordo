@@ -12,18 +12,18 @@ class TestFilterRows(unittest.TestCase):
 
     def test_filter_rows_basic(self):
         df = self.df
-        self.assertEqual(len(pandas_filter_rows(df, "'Tag  1' <= 'Tag 2'")), 3)
-        self.assertEqual(len(pandas_filter_rows(df, "'Tag  1' == 'Tag 2'")), 2)
+        self.assertEqual(len(pandas_filter_rows(df, "`Tag  1` <= `Tag 2`")), 3)
+        self.assertEqual(len(pandas_filter_rows(df, "`Tag  1` == `Tag 2`")), 2)
         self.assertEqual(
-            len(pandas_filter_rows(df, "('Tag  1' <= 'Tag 2') | 'Tag 2' < 2 ")), 20
+            len(pandas_filter_rows(df, "(`Tag  1` <= `Tag 2`) | `Tag 2` < 2")), 20
         )
         self.assertEqual(
-            len(pandas_filter_rows(df, "('Tag  1' <= 'Tag 2') | 'Tag 2' < 0.9 ")), 9
+            len(pandas_filter_rows(df, "(`Tag  1` <= `Tag 2`) | `Tag 2` < 0.9")), 9
         )
 
         assert_frame_equal(
-            pandas_filter_rows(df, "('Tag  1' <= 'Tag 2')"),
-            pandas_filter_rows(df, "~('Tag  1' > 'Tag 2')"),
+            pandas_filter_rows(df, "(`Tag  1` <= `Tag 2`)"),
+            pandas_filter_rows(df, "~(`Tag  1` > `Tag 2`)"),
         )
 
     def test_filter_rows_catches_illegal(self):
