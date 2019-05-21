@@ -29,6 +29,7 @@ class GordoBaseDataset:
     def join_timeseries(
         series_iterable: Iterable[pd.Series],
         resampling_startpoint: datetime,
+        resampling_endpoint: datetime,
         resolution: str,
     ) -> pd.DataFrame:
         """
@@ -44,6 +45,11 @@ class GordoBaseDataset:
             The resulting NaNs will be removed, so the only important requirement for this is
             that this resampling_startpoint datetime must be before or equal to the first
             (earliest) datetime in the data to be resampled.
+
+        resampling_endpoint
+            The end point for resampling. This datetime must be equal to or after the last datetime in the
+            data to be resampled.
+
 
         resolution
             The bucket size for grouping all incoming time data (e.g. "10T")
@@ -61,6 +67,8 @@ class GordoBaseDataset:
             startpoint_sametz = resampling_startpoint.astimezone(
                 tz=series.index[0].tzinfo
             )
+            endpoint_sametz = resampling_endpoint.astimezone(tz=series.index[0].tzinfo)
+
             if series.index[0] > startpoint_sametz:
                 # Insert a NaN at the startpoint, to make sure that all resampled
                 # indexes are the same. This approach will "pad" most frames with
@@ -75,9 +83,26 @@ class GordoBaseDataset:
 
             elif series.index[0] < resampling_startpoint:
                 msg = (
-                    f"Error - for {series.columns[0]}, first timestamp "
-                    f"{series.index[0]} is before resampling start point "
+                    f"Error - for {series.name}, first timestamp "
+                    f"{series.index[0]} is before the resampling start point "
                     f"{startpoint_sametz}"
+                )
+                logging.error(msg)
+                raise RuntimeError(msg)
+
+            if series.index[-1] < endpoint_sametz:
+                endpoint = pd.Series(
+                    [np.NaN], index=[endpoint_sametz], name=series.name
+                )
+                series = series.append(endpoint)
+                logging.debug(
+                    f"Appending NaN to {series.name} " f"at time {endpoint_sametz}"
+                )
+            elif series.index[-1] > endpoint_sametz:
+                msg = (
+                    f"Error - for {series.name}, last timestamp "
+                    f"{series.index[-1]} is later than the resampling end point "
+                    f"{endpoint_sametz}"
                 )
                 logging.error(msg)
                 raise RuntimeError(msg)
@@ -87,7 +112,6 @@ class GordoBaseDataset:
             logging.debug(series.tail(3))
 
             resampled = series.resample(resolution).mean()
-
             filled = resampled.fillna(method="ffill")
             resampled_series.append(filled)
 

@@ -607,11 +607,10 @@ class Client:
         pandas.core.DataFrame
             Dataframe of required tags and index reflecting the datetime point
         """
-        freq = pd.tseries.frequencies.to_offset(endpoint.resolution)
 
         dataset = TimeSeriesDataset(  # type: ignore
             data_provider=self.data_provider,
-            from_ts=start - freq.delta,
+            from_ts=start,
             to_ts=end,
             resolution=endpoint.resolution,
             tag_list=endpoint.tag_list,
