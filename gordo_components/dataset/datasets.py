@@ -68,10 +68,11 @@ class TimeSeriesDataset(GordoBaseDataset):
         dataframes = self.data_provider.load_series(
             from_ts=self.from_ts, to_ts=self.to_ts, tag_list=self.tag_list
         )
-        X = self.join_timeseries(dataframes, self.from_ts, self.resolution)
+        X = self.join_timeseries(dataframes, self.from_ts, self.to_ts, self.resolution)
         y = None
         if self.row_filter:
             X = pandas_filter_rows(X, self.row_filter)
+        logger.info(f"First five rows of the filtered dataset are {X.head()}")
         return X, y
 
     def get_metadata(self):

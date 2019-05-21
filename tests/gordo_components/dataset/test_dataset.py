@@ -53,8 +53,9 @@ class DatasetTestCase(unittest.TestCase):
         frequency = "7T"
         timedelta = pd.Timedelta("7 minutes")
         resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+        resampling_end = dateutil.parser.isoparse("2018-01-15 08:00:00Z")
         all_in_frame = GordoBaseDataset.join_timeseries(
-            timeseries_list, resampling_start, frequency
+            timeseries_list, resampling_start, resampling_end, frequency
         )
 
         # Check that first resulting resampled, joined row is within "frequency" from
@@ -62,16 +63,17 @@ class DatasetTestCase(unittest.TestCase):
         self.assertGreaterEqual(
             all_in_frame.index[0], pd.Timestamp(latest_start) - timedelta
         )
-        self.assertLessEqual(all_in_frame.index[-1], pd.Timestamp(earliest_end))
+        self.assertLessEqual(all_in_frame.index[-1], pd.Timestamp(resampling_end))
 
     def test_join_timeseries_nonutcstart(self):
         timeseries_list, latest_start, earliest_end = self.create_timeseries_list()
         frequency = "7T"
         resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00+07:00")
+        resampling_end = dateutil.parser.isoparse("2018-01-12 13:07:00+07:00")
         all_in_frame = GordoBaseDataset.join_timeseries(
-            timeseries_list, resampling_start, frequency
+            timeseries_list, resampling_start, resampling_end, frequency
         )
-        self.assertEqual(len(all_in_frame), 413)
+        self.assertEqual(len(all_in_frame), 1854)
 
     def test_join_timeseries_with_gaps(self):
         timeseries_list, latest_start, earliest_end = self.create_timeseries_list()
@@ -88,14 +90,18 @@ class DatasetTestCase(unittest.TestCase):
 
         frequency = "10T"
         resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+        resampling_end = dateutil.parser.isoparse("2018-01-12 07:00:00Z")
+
         all_in_frame = GordoBaseDataset.join_timeseries(
-            timeseries_with_holes, resampling_start, frequency
+            timeseries_with_holes, resampling_start, resampling_end, frequency
         )
         self.assertEqual(all_in_frame.index[0], pd.Timestamp(latest_start))
-        self.assertEqual(all_in_frame.index[-1], pd.Timestamp(earliest_end))
+        self.assertEqual(all_in_frame.index[-1], pd.Timestamp(resampling_end))
 
         expected_index = pd.date_range(
-            start=latest_start, end=earliest_end, freq=frequency
+            start=dateutil.parser.isoparse(latest_start),
+            end=resampling_end,
+            freq=frequency,
         )
         self.assertListEqual(list(all_in_frame.index), list(expected_index))
 
