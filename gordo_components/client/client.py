@@ -423,8 +423,13 @@ class Client:
             # Process response and return if no exception
             else:
 
+                # Chunks can have None as end-point
+                chunk_stop = chunk.stop if chunk.stop else len(X)
+                # Chunks can also be larger than the actual data
+                chunk_stop = min(chunk_stop, len(X))
+
                 predictions = dataframe_from_dict_with_list_values(resp["data"])
-                predictions.index = X.iloc[chunk].index
+                predictions.index = X.index[chunk_stop - len(predictions) : chunk_stop]
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:

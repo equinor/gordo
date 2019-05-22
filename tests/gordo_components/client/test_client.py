@@ -110,7 +110,7 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
     # Created measurements by prediction client with dest influx
     query = f"""
     SELECT *
-    FROM "predictions"
+    FROM "model-output"
     WHERE("machine" =~ /^{tu.GORDO_SINGLE_TARGET}$/)
     """
 

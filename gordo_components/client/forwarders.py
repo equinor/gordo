@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import typing
-from typing import Optional
+from typing import Optional, List
 from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
@@ -96,12 +96,16 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         )
 
     @staticmethod
-    def create_influxdb_point_from_dataframe_row(
+    def influxdb_points_from_dataframe_row(
         record: pd.Series, metadata: dict, endpoint: EndpointMetadata
-    ) -> dict:
+    ) -> typing.List[dict]:
         """
-        Create JSON prepared anomaly point, in which case the row 'name'
-        must be set as a time acceptable from influxdb
+        Create JSON compatible dicts which represent influxdb points,
+        in which case the row 'name' must be set as a time acceptable from influxdb
+        and the record is expected to be coming from a MultiIndexed column dataframe
+        where the top level names represent the 'family' of measurement, for example
+        "model-output", and the sub columns are part of that family and will be
+        written as points under the same measurement for this timestamp.
 
         Parameters
         ----------
@@ -110,20 +114,46 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
 
         Returns
         -------
-        dict
-            Point ready to be written to influxdb
+        typing.List[dict]
+            List of points ready to be written to influxdb
         """
         # Setup tags; metadata (if any) and other key value pairs.
         tags = {"machine": f"{endpoint.target_name}"}
-        tags.update({k: v for k, v in metadata})
+        tags.update(metadata)
+
+        points = []
 
         # The actual record to be posted to Influx
-        return {
-            "measurement": "predictions",
-            "tags": tags,
-            "fields": record.to_dict(),
-            "time": f"{record.name}",
-        }
+        top_lvl_names = record.index.get_level_values(0).unique()
+        for top_lvl_name in top_lvl_names:
+
+            # Makes no sense to create a influx point where the field would be a date
+            # and doesn't seem to be possible anyway.
+            if top_lvl_name in ["end", "start"]:
+                continue
+
+            # Dict of second level (0..N) names to their values in this row
+            # ie. {0: 1.2, 1: 3.4, 2: 5.6}
+            fields = record[top_lvl_name].to_dict()
+
+            # Determine if this level's columns matches length of tags
+            # if so, rename these keys (which are 0..N) to be tag names, the 'index' at this
+            # ie. {0: 1.2, 1: 3.4} -> {'tag1': 1.2, 'tag2': 3.4}
+            if len(record[top_lvl_name].index) == len(endpoint.tag_list):
+                fields = {
+                    tag.name: fields[i] for i, tag in enumerate(endpoint.tag_list)
+                }
+
+            # Append this point
+            points.append(
+                {
+                    "measurement": f"{top_lvl_name}",
+                    "tags": tags,
+                    "fields": fields,
+                    "time": f"{record.name}",
+                }
+            )
+        return points
 
     async def __call__(
         self,
@@ -159,15 +189,19 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         """
         # First, let's post all anomalies per sensor
         logger.info(f"Calculating points per sensor per record")
-        data = [
-            point
-            for point in predictions.apply(
-                lambda rec: self.create_influxdb_point_from_dataframe_row(
-                    rec, metadata, endpoint
-                ),
-                axis=1,
-            )
-        ]
+
+        # Creates a list of lists where each sub list contains individual
+        # influx points
+        points_packages: List[List[dict]] = predictions.apply(
+            lambda rec: self.influxdb_points_from_dataframe_row(
+                rec, metadata, endpoint
+            ),
+            axis=1,
+        )
+
+        # flatten out into one list of dicts, each dict is a influxdb point
+        data: List[dict] = [point for points in points_packages for point in points]
+
         # Async write predictions to influx
         with ThreadPoolExecutor(max_workers=1) as executor:
             # Write the per-sensor points to influx

@@ -58,9 +58,12 @@ class ModelMixin:
             pipeline
         """
         try:
-            return model.transform(X)
+            # Last step might not be able to do a transform, then use all previous steps
+            if hasattr(model.steps[-1][1], "transform"):
+                return model.transform(X)
+            else:
+                return Pipeline(model.steps[:-1]).transform(X)
         except AttributeError:
-            # No transform, so X must have been the model input
             return X.values if isinstance(X, pd.DataFrame) else X
 
     def get_inverse_transformed_input(self, model: Pipeline, X: np.ndarray):
@@ -86,6 +89,11 @@ class ModelMixin:
             the last step/model
         """
         try:
-            return model.inverse_transform(X)
+            # Last step may be able to do an inverse transformation, if not
+            # at least attempt to do inverse on the data for all steps prior
+            if hasattr(model.steps[-1][1], "inverse_transform"):
+                return model.inverse_transform(X)
+            else:
+                return Pipeline(model.steps[:-1]).inverse_transform(X)
         except AttributeError:
             return X.values if isinstance(X, pd.DataFrame) else X
