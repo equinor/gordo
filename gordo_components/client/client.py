@@ -5,6 +5,8 @@ import asyncio
 import copy
 import requests
 import logging
+import itertools
+import time
 
 import typing
 from datetime import datetime
@@ -14,6 +16,7 @@ import aiohttp
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
+from werkzeug.exceptions import BadRequest
 
 from gordo_components import serializer
 from gordo_components.client import io as gordo_io
@@ -48,6 +51,7 @@ class Client:
         parallelism: int = 10,
         forward_resampled_sensors: bool = False,
         ignore_unhealthy_targets: bool = False,
+        n_retries: int = 5,
     ):
         """
 
@@ -87,7 +91,8 @@ class Client:
         ignore_unhealthy_targets: bool
             Ignore any targets which are unhealthy. Will raise a ``ValueError``
             if the client encounters any unhealthy endpoints, warnings emitted otherwise
-
+        n_retries: int
+            Number of times the client should attempt to retry a failed prediction request
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -99,6 +104,7 @@ class Client:
         self.batch_size = batch_size
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
+        self.n_retries = n_retries
 
         endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.endpoints = self._filter_endpoints(
@@ -369,48 +375,77 @@ class Client:
         -------
         PredictionResult
         """
-        # Submit raw data for predictions
-        try:
-            resp = await gordo_io.post_json(
-                f"{endpoint.endpoint}/prediction",
-                session=session,
-                json={"X": X.iloc[chunk].values.tolist()},
-            )
-        except (IOError, TimeoutError) as exc:
-            msg = (
-                f"Failed to get predictions for dates {start} -> {end} "
-                f"for target: {endpoint.target_name} "
-                f"Error: {exc}"
-            )
-            logger.error(msg)
-            return PredictionResult(
-                name=endpoint.target_name, predictions=None, error_messages=[msg]
-            )
+        for i in itertools.count(start=1):
+            try:
+                resp = await gordo_io.post_json(
+                    f"{endpoint.endpoint}/prediction",
+                    session=session,
+                    json={"X": X.iloc[chunk].values.tolist()},
+                )
 
-        # Get the output values
-        values = np.array(resp["output"])
+            # If it was an IO or TimeoutError, we can retry
+            except (IOError, TimeoutError) as exc:
+                if i <= self.n_retries:
+                    logger.warning(
+                        f"Failed to get response on attempt {i} out of {self.n_retries} attempts."
+                    )
+                    time.sleep(5)  # Not async on purpose.
+                    continue
+                else:
+                    msg = (
+                        f"Failed to get predictions for dates {start} -> {end} "
+                        f"for target: '{endpoint.target_name}' Error: {exc}"
+                    )
+                    logger.error(msg)
 
-        # Chunks can have None as end-point
-        chunk_stop = chunk.stop if chunk.stop else len(X)
-        # Chunks can also be larger than the actual data
-        chunk_stop = min(chunk_stop, len(X))
-        predictions = pd.DataFrame(
-            data=values,
-            columns=[f"input_{sensor}" for sensor in X.columns]
-            + [f"output_{sensor}" for sensor in X.columns],
-            # match any offsetting from windowed models
-            index=X.index[chunk_stop - len(values) : chunk_stop],
-        )
+                    return PredictionResult(
+                        name=endpoint.target_name,
+                        predictions=None,
+                        error_messages=[msg],
+                    )
 
-        # Forward predictions to any other consumer if registered.
-        if self.prediction_forwarder is not None:
-            await self.prediction_forwarder(
-                predictions=predictions, endpoint=endpoint, metadata=self.metadata
-            )
+            # No point in retrying a BadRequest
+            except BadRequest as exc:
+                msg = (
+                    f"Failed with BadRequest error for dates {start} -> {end} "
+                    f"for target: '{endpoint.target_name}' Error: {exc}"
+                )
+                logger.error(msg)
+                return PredictionResult(
+                    name=endpoint.target_name, predictions=None, error_messages=[msg]
+                )
 
-        return PredictionResult(
-            name=endpoint.target_name, predictions=predictions, error_messages=[]
-        )
+            # Process response and return if no exception
+            else:
+
+                # Get the output values
+                values = np.array(resp["output"])
+
+                # Chunks can have None as end-point
+                chunk_stop = chunk.stop if chunk.stop else len(X)
+                # Chunks can also be larger than the actual data
+                chunk_stop = min(chunk_stop, len(X))
+                predictions = pd.DataFrame(
+                    data=values,
+                    columns=[f"input_{sensor}" for sensor in X.columns]
+                    + [f"output_{sensor}" for sensor in X.columns],
+                    # match any offsetting from windowed models
+                    index=X.index[chunk_stop - len(values) : chunk_stop],
+                )
+
+                # Forward predictions to any other consumer if registered.
+                if self.prediction_forwarder is not None:
+                    await self.prediction_forwarder(
+                        predictions=predictions,
+                        endpoint=endpoint,
+                        metadata=self.metadata,
+                    )
+
+                return PredictionResult(
+                    name=endpoint.target_name,
+                    predictions=predictions,
+                    error_messages=[],
+                )
 
     async def _predict_via_get(
         self, endpoint: EndpointMetadata, start: datetime, end: datetime
