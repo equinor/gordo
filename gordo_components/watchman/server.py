@@ -81,13 +81,9 @@ class WatchmanApi(MethodView):
 
         endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
         base_url = f'http://{host}/{endpoint.rstrip("/")}'
-        healthcheck_resp = requests.get(f"{base_url}/healthcheck", timeout=2)
 
-        if healthcheck_resp.ok:
-            metadata_resp = requests.get(f"{base_url}/metadata", timeout=2)
-            metadata = metadata_resp.json() if metadata_resp.ok else dict()
-        else:
-            metadata = dict()
+        metadata_resp = requests.get(f"{base_url}/metadata", timeout=2)
+        metadata = metadata_resp.json() if metadata_resp.ok else dict()
 
         # Get model builder status / logs
         if builder_pod is not None:
@@ -112,7 +108,7 @@ class WatchmanApi(MethodView):
             endpoint=endpoint,
             target=target,
             metadata=metadata,
-            healthy=healthcheck_resp.ok,
+            healthy=metadata_resp.ok,
             model_builder_status=ModelBuilderStatus(
                 status=status_model_builder, logs=logs_model_builder
             ),
