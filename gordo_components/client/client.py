@@ -376,7 +376,7 @@ class Client:
                 session=session,
                 json={"X": X.iloc[chunk].values.tolist()},
             )
-        except IOError as exc:
+        except (IOError, TimeoutError) as exc:
             msg = (
                 f"Failed to get predictions for dates {start} -> {end} "
                 f"for target: {endpoint.target_name} "
