@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from typing import Optional
+
 import aiohttp
+from werkzeug.exceptions import BadRequest
 
 
 async def fetch_json(
@@ -69,4 +71,9 @@ async def _handle_json(resp: aiohttp.ClientResponse) -> dict:
         return await resp.json()
     else:
         content = await resp.content.read()
-        raise IOError(f"Failed to get JSON with status code: {resp.status}: {content}")
+        msg = f"Failed to get JSON with status code: {resp.status}: {content}"
+
+        if 400 <= resp.status <= 499:
+            raise BadRequest(msg)
+        else:
+            raise IOError(msg)
