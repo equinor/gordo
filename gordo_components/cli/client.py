@@ -79,6 +79,12 @@ def client(ctx: click.Context, *args, **kwargs):
     is_flag=True,
     default=False,
 )
+@click.option(
+    "--n-retries",
+    help="Time client should retry failed predictions",
+    type=int,
+    default=5,
+)
 @click.pass_context
 def predict(
     ctx: click.Context,
@@ -91,6 +97,7 @@ def predict(
     influx_recreate_db: bool,
     forward_resampled_sensors: bool,
     ignore_unhealthy_targets: bool,
+    n_retries: int,
 ):
     """
     Run some predictions against the target
@@ -100,6 +107,7 @@ def predict(
             "data_provider": data_provider,
             "forward_resampled_sensors": forward_resampled_sensors,
             "ignore_unhealthy_targets": ignore_unhealthy_targets,
+            "n_retries": n_retries,
         }
     )
 
