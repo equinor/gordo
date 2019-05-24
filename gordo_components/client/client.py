@@ -319,14 +319,20 @@ class Client:
 
         async with aiohttp.ClientSession() as session:
 
+            max_indx = len(X.index) - 1  # Maximum allowable index values
+
             # Chunk over the dataframe by batch_size
             jobs = [
                 self._process_post_prediction_task(
                     X,
                     chunk=slice(i, i + self.batch_size),
                     endpoint=endpoint,
-                    start=start,
-                    end=end,
+                    start=X.index[i],
+                    end=X.index[
+                        i + self.batch_size
+                        if i + self.batch_size <= max_indx
+                        else max_indx
+                    ],
                     session=session,
                 )
                 for i in range(0, X.shape[0], self.batch_size)
