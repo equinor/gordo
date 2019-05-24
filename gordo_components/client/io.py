@@ -69,4 +69,4 @@ async def _handle_json(resp: aiohttp.ClientResponse) -> dict:
         return await resp.json()
     else:
         content = await resp.content.read()
-        raise IOError(f"Failed to get JSON: {content}")
+        raise IOError(f"Failed to get JSON with status code: {resp.status}: {content}")
