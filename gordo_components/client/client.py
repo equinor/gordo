@@ -186,9 +186,7 @@ class Client:
 
         return [
             EndpointMetadata(
-                target_name=data["endpoint-metadata"]["metadata"]["user-defined"][
-                    "machine-name"
-                ],
+                target_name=data["endpoint-metadata"]["metadata"]["name"],
                 healthy=data["healthy"],
                 endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
                 tag_list=normalize_sensor_tags(

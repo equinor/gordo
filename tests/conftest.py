@@ -77,10 +77,8 @@ def trained_model_directory(sensors: List[SensorTag]):
             tmp_dir,
             metadata={
                 "dataset": {"tag_list": sensors, "resolution": "10T"},
-                "user-defined": {
-                    "model-name": "test-model",
-                    "machine-name": "machine-1",
-                },
+                "name": "machine-1",
+                "user-defined": {"model-name": "test-model"},
             },
         )
         yield tmp_dir

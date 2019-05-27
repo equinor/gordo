@@ -44,7 +44,10 @@ class ModelBuilderTestCase(unittest.TestCase):
             output_dir = os.path.join(tmpdir, "some", "sub", "directories")
 
             model, metadata = build_model(
-                model_config=model_config, data_config=data_config, metadata={}
+                name="model-name",
+                model_config=model_config,
+                data_config=data_config,
+                metadata={},
             )
 
             self.metadata_check(metadata, False)
@@ -74,7 +77,10 @@ class ModelBuilderTestCase(unittest.TestCase):
         data_config = get_random_data()
 
         model, metadata = build_model(
-            model_config=model_config, data_config=data_config, metadata={}
+            name="model-name",
+            model_config=model_config,
+            data_config=data_config,
+            metadata={},
         )
 
         self.metadata_check(metadata, False)
@@ -90,7 +96,10 @@ class ModelBuilderTestCase(unittest.TestCase):
         data_config = get_random_data()
 
         model, metadata = build_model(
-            model_config=model_config, data_config=data_config, metadata={}
+            name="model-name",
+            model_config=model_config,
+            data_config=data_config,
+            metadata={},
         )
 
         self.metadata_check(metadata, True)
@@ -108,7 +117,10 @@ class ModelBuilderTestCase(unittest.TestCase):
         data_config = get_random_data()
 
         model, metadata = build_model(
-            model_config=model_config, data_config=data_config, metadata={}
+            name="model-name",
+            model_config=model_config,
+            data_config=data_config,
+            metadata={},
         )
 
         self.metadata_check(metadata, False)
@@ -133,12 +145,16 @@ class ModelBuilderTestCase(unittest.TestCase):
         data_config = get_random_data()
 
         model, metadata = build_model(
-            model_config=model_config, data_config=data_config, metadata={}
+            name="model-name",
+            model_config=model_config,
+            data_config=data_config,
+            metadata={},
         )
 
         self.metadata_check(metadata, False)
 
     def metadata_check(self, metadata, check_history):
+        self.assertTrue("name" in metadata)
         self.assertTrue("model" in metadata)
         self.assertTrue("cross-validation" in metadata["model"])
         self.assertTrue("scores" in metadata["model"]["cross-validation"])
@@ -163,6 +179,7 @@ class ModelBuilderTestCase(unittest.TestCase):
             output_dir = os.path.join(tmpdir, "model")
 
             model_location = provide_saved_model(
+                name="model-name",
                 model_config=model_config,
                 data_config=data_config,
                 metadata={},
@@ -230,6 +247,7 @@ def test_provide_saved_model_caching(
         registry_dir = os.path.join(tmpdir, "registry")
 
         model_location = provide_saved_model(
+            name="model-name",
             model_config=model_config,
             data_config=data_config,
             output_dir=output_dir,
@@ -241,6 +259,7 @@ def test_provide_saved_model_caching(
             data_config["tag_list"] = tag_list
         new_output_dir = os.path.join(tmpdir, "model2")
         model_location2 = provide_saved_model(
+            name="model-name",
             model_config=model_config,
             data_config=data_config,
             output_dir=new_output_dir,

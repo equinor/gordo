@@ -22,13 +22,18 @@ logger = logging.getLogger(__name__)
 
 
 def build_model(
-    model_config: dict, data_config: Union[GordoBaseDataset, dict], metadata: dict
+    name: str,
+    model_config: dict,
+    data_config: Union[GordoBaseDataset, dict],
+    metadata: dict,
 ):
     """
     Build a model and serialize to a directory for later serving.
 
     Parameters
     ----------
+    name: str
+        Name of model to be built
     model_config: dict
         Mapping of Model to initialize and any additional kwargs which are to be used in it's initialization.
         Example::
@@ -79,6 +84,7 @@ def build_model(
     time_elapsed_model = time.time() - start
 
     metadata = {"user-defined": metadata}
+    metadata["name"] = name
     metadata["dataset"] = dataset.get_metadata()
     utc_dt = datetime.datetime.now(datetime.timezone.utc)
     metadata["model"] = {
@@ -226,6 +232,7 @@ def calculate_model_key(
 
 
 def provide_saved_model(
+    name: str,
     model_config: dict,
     data_config: dict,
     metadata: dict,
@@ -243,6 +250,8 @@ def provide_saved_model(
 
     Parameters
     ----------
+    name: str
+        Name of the model to be built
     model_config: dict
         Config for the model. See
         :func:`gordo_components.builder.build_model.build_model`.
@@ -300,7 +309,7 @@ def provide_saved_model(
                 f"{model_register_dir}."
             )
     model, metadata = build_model(
-        model_config=model_config, data_config=data_config, metadata=metadata
+        name=name, model_config=model_config, data_config=data_config, metadata=metadata
     )
     model_location = _save_model_for_workflow(
         model=model, metadata=metadata, output_dir=output_dir

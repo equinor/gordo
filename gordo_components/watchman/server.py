@@ -66,7 +66,7 @@ class WatchmanApi(MethodView):
         project_name: str
             The name of this project we're going to query for.
         target: str
-            Name of the target, aka machine-name
+            Name of the target, aka model name
         endpoint: str
             Endpoint to check. ie. /gordo/v0/test-project/test-machine
         builder_pod: Optional[ModelBuilderPod]

@@ -53,6 +53,7 @@ DEFAULT_MODEL_CONFIG = (
 
 
 @click.command()
+@click.argument("name", envvar="MODEL_NAME")
 @click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
 @click.argument(
     "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=str
@@ -85,6 +86,7 @@ DEFAULT_MODEL_CONFIG = (
     "--model-parameter some_key,some_value",
 )
 def build(
+    name,
     output_dir,
     model_config,
     data_config,
@@ -100,6 +102,8 @@ def build(
     \b
     Parameters
     ----------
+    name: str
+        Name given to the model to build
     output_dir: str
         Directory to save model & metadata to.
     model_config: str
@@ -153,7 +157,7 @@ def build(
     model_config = yaml.full_load(model_config)
 
     model_location = provide_saved_model(
-        model_config, data_config, metadata, output_dir, model_register_dir
+        name, model_config, data_config, metadata, output_dir, model_register_dir
     )
     # If the model is cached but without CV scores then we force a rebuild. We do this
     # by deleting the entry in the cache and then rerun `provide_saved_model`
@@ -169,6 +173,7 @@ def build(
             )
 
             model_location = provide_saved_model(
+                name,
                 model_config,
                 data_config,
                 metadata,
