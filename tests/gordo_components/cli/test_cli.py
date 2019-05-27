@@ -46,6 +46,7 @@ class CliTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with temp_env_vars(
+                MODEL_NAME="model-name",
                 OUTPUT_DIR=tmpdir,
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
@@ -66,6 +67,7 @@ class CliTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with temp_env_vars(
+                MODEL_NAME="model-name",
                 OUTPUT_DIR=os.path.join(tmpdir, "dir1"),
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
@@ -79,6 +81,7 @@ class CliTestCase(unittest.TestCase):
 
             # OUTPUT_DIR is the only difference
             with temp_env_vars(
+                MODEL_NAME="model-name",
                 OUTPUT_DIR=os.path.join(tmpdir, "dir2"),
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
@@ -98,6 +101,7 @@ class CliTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with temp_env_vars(
+                MODEL_NAME="model-name",
                 OUTPUT_DIR=os.path.join(tmpdir, "dir1"),
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
@@ -110,6 +114,7 @@ class CliTestCase(unittest.TestCase):
                 first_path = f.read()
 
             with temp_env_vars(
+                MODEL_NAME="model-name",
                 OUTPUT_DIR=os.path.join(tmpdir, "dir2"),
                 # NOTE: Different train dates!
                 DATA_CONFIG=(
@@ -151,7 +156,10 @@ class CliTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with temp_env_vars(
-                OUTPUT_DIR=tmpdir, DATA_CONFIG=DATA_CONFIG, MODEL_CONFIG=model
+                MODEL_NAME="model-name",
+                OUTPUT_DIR=tmpdir,
+                DATA_CONFIG=DATA_CONFIG,
+                MODEL_CONFIG=model,
             ):
                 args = [
                     "build",
