@@ -6,6 +6,7 @@ import logging
 import timeit
 import dateutil.parser  # type: ignore
 import typing
+import traceback
 from functools import wraps
 from datetime import datetime
 
@@ -152,7 +153,10 @@ class PredictionApiView(Resource):
             try:
                 return current_app.model.transform(X)  # type: ignore
             except Exception as exc:
-                logger.error(f"Failed to predict or transform; error: {exc}")
+                tb = traceback.format_exc()
+                logger.error(
+                    f"Failed to predict or transform; error: {exc} - \nTraceback: {tb}"
+                )
                 raise
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
