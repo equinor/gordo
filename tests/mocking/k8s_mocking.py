@@ -76,9 +76,7 @@ def mock_kubernetes_read_namespaced_pod(*_args, **_kwargs):
             containers=[
                 models.V1Container(
                     name="some-generated-test-container-name",
-                    env=[
-                        models.V1EnvVar(name="MACHINE_NAME", value="test-machine-name")
-                    ],
+                    env=[models.V1EnvVar(name="MODEL_NAME", value="test-machine-name")],
                 )
             ]
         ),

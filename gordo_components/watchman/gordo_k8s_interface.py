@@ -242,7 +242,7 @@ class ModelBuilderPod(Pod):
         Get a Gordo ModelBuilderPod representation from the raw kubernetes V1Pod object
 
         This specific one is expected to have spec.containers[0].env which contains
-        a 'MACHINE_NAME' kubernetes.models.V1EnvVar
+        a 'MODEL_NAME' kubernetes.models.V1EnvVar
 
         Parameters
         ----------
@@ -257,12 +257,12 @@ class ModelBuilderPod(Pod):
             raise ValueError(f"This pod does not appear to be a ModelBuilder pod.")
 
         for envar in pod.spec.containers[0].env:
-            if envar.name == "MACHINE_NAME":
+            if envar.name == "MODEL_NAME":
                 self.target_name = envar.value
                 break
         else:
             raise ValueError(
-                f"Unable to find the MACHINE_NAME in this pod's environment spec"
+                f"Unable to find the MODEL_NAME in this pod's environment spec"
             )
 
         super().__init__(pod, *args, **kwargs)
