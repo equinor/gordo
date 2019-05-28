@@ -10,7 +10,7 @@ import time
 
 import typing
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 import aiohttp
 import numpy as np
@@ -384,7 +384,7 @@ class Client:
                 )
 
             # If it was an IO or TimeoutError, we can retry
-            except (IOError, TimeoutError) as exc:
+            except (IOError, TimeoutError, FutureTimeoutError) as exc:
                 if i <= self.n_retries:
                     logger.warning(
                         f"Failed to get response on attempt {i} out of {self.n_retries} attempts."
