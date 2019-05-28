@@ -29,6 +29,27 @@ from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 logger = logging.getLogger(__name__)
 
 
+def get_endpointdata_directly_from_endpoint(
+    base_url: str, model: str
+) -> typing.List[EndpointMetadata]:
+    """
+    Get metadata by quering a endpoint directly
+    """
+    endpoint = base_url.rstrip("/") + "/" + model
+    url = endpoint + "/metadata"
+    resp = requests.get(url)
+    if not resp.ok:
+        raise IOError(f"Failed to get endpoint: {resp.content}")
+    data = resp.json()
+    return EndpointMetadata(
+        target_name=data["metadata"]["user-defined"]["machine-name"],
+        healthy=True,
+        endpoint=endpoint,
+        tag_list=normalize_sensor_tags(data["metadata"]["dataset"]["tag_list"]),
+        resolution=data["metadata"]["dataset"]["resolution"],
+    )
+
+
 class Client:
     """
     Basic client shipped with Gordo
@@ -98,7 +119,7 @@ class Client:
         self.base_url = f"{scheme}://{host}:{port}"
         self.watchman_endpoint = f"{self.base_url}/gordo/{gordo_version}/{project}/"
         self.metadata = metadata if metadata is not None else dict()
-        self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
         self.batch_size = batch_size
@@ -106,12 +127,18 @@ class Client:
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
 
-        endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-        self.endpoints = self._filter_endpoints(
-            endpoints=endpoints,
-            target=target,
-            ignore_unhealthy_targets=ignore_unhealthy_targets,
-        )
+        # If we have a single target then we just query it directly
+        if target:
+            self.endpoints = [
+                get_endpointdata_directly_from_endpoint(self.watchman_endpoint, target)
+            ]
+        else:
+            endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+            self.endpoints = self._filter_endpoints(
+                endpoints=endpoints,
+                target=target,
+                ignore_unhealthy_targets=ignore_unhealthy_targets,
+            )
 
     @staticmethod
     def _filter_endpoints(
