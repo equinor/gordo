@@ -167,7 +167,7 @@ def _get_final_gordo_base_step(model: BaseEstimator):
 
 
 def calculate_model_key(
-    model_config: dict, data_config: dict, metadata: Optional[dict] = None
+    name: str, model_config: dict, data_config: dict, metadata: Optional[dict] = None
 ) -> str:
     """
     Calculates a hash-key from a model and data-config.
@@ -178,6 +178,8 @@ def calculate_model_key(
 
     Parameters
     ----------
+    name: str
+        Name of the model
     model_config: dict
         Config for the model. See
         :func:`gordo_components.builder.build_model.build_model`.
@@ -195,7 +197,7 @@ def calculate_model_key(
 
     Examples
     -------
-    >>> len(calculate_model_key(model_config={"model": "something"},
+    >>> len(calculate_model_key(name="My-model", model_config={"model": "something"},
     ... data_config={"tag_list": ["tag1", "tag 2"]} ))
     128
     """
@@ -214,6 +216,7 @@ def calculate_model_key(
     # generate different json which again gives different hash)
     json_rep = json.dumps(
         {
+            "name": name,
             "model_config": model_config,
             "data_config": data_config,
             "user-defined": metadata,
@@ -276,7 +279,7 @@ def provide_saved_model(
     Union[os.PathLike, str]:
         Path to the model
     """
-    cache_key = calculate_model_key(model_config, data_config, metadata=metadata)
+    cache_key = calculate_model_key(name, model_config, data_config, metadata=metadata)
     if model_register_dir:
         logger.info(
             f"Model caching activated, attempting to read model-location with key "
@@ -285,7 +288,7 @@ def provide_saved_model(
         if replace_cache:
             logger.info("replace_cache activated, deleting any existing cache entry")
             cache_key = calculate_model_key(
-                model_config, data_config, metadata=metadata
+                name, model_config, data_config, metadata=metadata
             )
             disk_registry.delete_value(model_register_dir, cache_key)
 
