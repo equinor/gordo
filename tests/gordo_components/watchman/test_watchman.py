@@ -4,13 +4,13 @@ import re
 
 import responses
 
+import tests.utils as tu
+
 from gordo_components import __version__
 from gordo_components.watchman import server
 from tests.mocking.k8s_mocking import mocked_kubernetes
 
 
-TARGET_NAMES = ["CT-machine-name-456", "CT-machine-name-123"]
-PROJECT_NAME = "some-project-name"
 PROJECT_VERSION = "1"
 AMBASSADOR_NAMESPACE = "kubeflow"
 URL_FORMAT = "http://{host}/gordo/v0/{project_name}/{target_name}/"
@@ -39,9 +39,9 @@ def metadata_request_callback(_request):
 class WatchmanTestCase(unittest.TestCase):
     def setUp(self):
         app = server.build_app(
-            project_name=PROJECT_NAME,
+            project_name=tu.GORDO_PROJECT,
             project_version=PROJECT_VERSION,
-            target_names=TARGET_NAMES,
+            target_names=tu.GORDO_TARGETS,
             namespace=AMBASSADOR_NAMESPACE,
         )
         app.testing = True
@@ -82,16 +82,16 @@ class WatchmanTestCase(unittest.TestCase):
         expected_endpoints = [
             URL_FORMAT.format(
                 host=AMBASSADOR_NAMESPACE,
-                project_name=PROJECT_NAME,
+                project_name=tu.GORDO_PROJECT,
                 target_name=target_name,
             )
-            for target_name in TARGET_NAMES
+            for target_name in tu.GORDO_TARGETS
         ]
 
         data = resp.get_json()
 
         # Gives back project name as well.
-        self.assertEqual(data["project-name"], PROJECT_NAME)
+        self.assertEqual(data["project-name"], tu.GORDO_PROJECT)
 
         for expected, actual in zip(expected_endpoints, data["endpoints"]):
 
@@ -137,3 +137,11 @@ class WatchmanTestCase(unittest.TestCase):
         )
         self.assertEqual(len(service), 1)
         self.assertEqual(service.status, 1.0)
+
+    def test_endpoint_statuses(self):
+        """
+        EndpointStatuses should start with _statuses is None, this is so
+        the watchman server knows it has yet to be updated by the scheduler
+        and will then call .update() manually itself.
+        """
+        assert server.EndpointStatuses()._statuses is None
