@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-
+import threading
+import logging
 from typing import Optional, Dict, List
 
-from kubernetes import client as kubeclient, config
+from kubernetes import client as kubeclient, config, watch
 from kubernetes.client.rest import ApiException
 from kubernetes.client.models.v1_pod_status import V1PodStatus
 from kubernetes.client.models.v1_pod import V1Pod
+
+logger = logging.getLogger(__name__)
 
 
 def load_config():
@@ -67,6 +70,45 @@ def list_model_builders(
             label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
         ).items
     ]
+
+
+class ThreadedWatcher(threading.Thread):
+    def __init__(self, watched_function, processer, **kwargs):
+        self.process_event = processer
+        self.func = watched_function
+        self.kwargs = kwargs
+        threading.Thread.__init__(self)
+
+    def run(self):
+        while True:
+            try:
+                w = watch.Watch()
+                for event in w.stream(self.func, **self.kwargs):
+                    self.process_event(event)
+            except ApiException:
+                logger.error("Exception encountered while watching for event stream")
+                pass
+
+
+def watch_service(processor, namespace, client=None, selectors=None):
+    """Watches services in a namespace, and executed processor for each event. Returns the watching thread."""
+
+    if client is None:
+        load_config()
+        client = kubeclient.CoreV1Api()
+    else:
+        client = client
+    if selectors:
+        return ThreadedWatcher(
+            client.list_service_for_all_namespaces,
+            processor,
+            field_selector=f"metadata.namespace=={namespace}",
+            label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
+        )
+    else:
+        return ThreadedWatcher(
+            client.read_namespaced_service, processor, namespace=namespace
+        )
 
 
 class Service:

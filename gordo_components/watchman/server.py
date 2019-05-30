@@ -2,6 +2,7 @@
 
 import os
 import logging
+import threading
 from functools import wraps
 from typing import Iterable, Optional
 from flask import Flask, jsonify, make_response, request, current_app
@@ -16,11 +17,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("WATCHMAN_LOGLEVEL", "INFO").upper())
 
 
-ENDPOINT_STATUSES = EndpointStatuses()
-
 # Setup the scheduler to update the endpoint statuses, (fired in build_app)
 scheduler = BackgroundScheduler()
-scheduler.add_job(ENDPOINT_STATUSES.update, trigger="interval", minutes=5)
+
+ENDPOINT_STATUSES = None  # Initialized below
 
 
 class WatchmanApi(MethodView):
@@ -32,10 +32,6 @@ class WatchmanApi(MethodView):
     def get(self):
 
         n_logs = int(request.args.get("logs") or 20) if "logs" in request.args else None
-
-        # If _statuses is None, it hasn't been updated yet by the scheduler.
-        if ENDPOINT_STATUSES._statuses is None:
-            ENDPOINT_STATUSES.update()
 
         payload = jsonify(
             {
@@ -86,6 +82,14 @@ def build_app(
     endpoints = [
         f"/gordo/v0/{project_name}/{target_name}/" for target_name in target_names
     ]
+    global ENDPOINT_STATUSES
+    ENDPOINT_STATUSES = EndpointStatuses(
+        scheduler=scheduler,
+        project_name=project_name,
+        namespace=namespace,
+        project_version=project_version,
+        ambassador_namespace=ambassador_namespace,
+    )
 
     # App and routes
     app = Flask(__name__)
