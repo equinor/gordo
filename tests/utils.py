@@ -119,30 +119,12 @@ def watchman(
     from gordo_components.server import server as gordo_ml_server
 
     with temp_env_vars(MODEL_LOCATION=model_location):
-        # Create a watchman test app
-        watchman_app = watchman_server.build_app(
-            project_name=project,
-            project_version="v123",
-            target_names=targets,
-            namespace=namespace,
-        )
-        watchman_app.testing = True
-        watchman_app = watchman_app.test_client()
-
         # Create gordo ml servers
         gordo_server_app = gordo_ml_server.build_app(
             data_provider=datasets.RandomDataProvider()
         )
         gordo_server_app.testing = True
         gordo_server_app = gordo_server_app.test_client()
-
-        def watchman_callback(_request):
-            """
-            Redirect calls to a gordo endpoint to reflect what the local testing app gives
-            """
-            headers = {}
-            resp = watchman_app.get("/").json
-            return 200, headers, json.dumps(resp)
 
         def gordo_ml_server_callback(request):
             """
@@ -194,14 +176,6 @@ def watchman(
             ).json(),
         ):
 
-            # Watchman requests
-            rsps.add_callback(
-                responses.GET,
-                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/$"),
-                callback=watchman_callback,
-                content_type="application/json",
-            )
-
             # Gordo ML Server requests
             rsps.add_callback(
                 responses.GET,
@@ -236,6 +210,33 @@ def watchman(
             rsps.add_passthru("http://localhost:8086")  # Local influx
             rsps.add_passthru("http://localhost:8087")  # Local influx
 
+            # Create a watchman test app
+            watchman_app = watchman_server.build_app(
+                project_name=project,
+                project_version="v123",
+                target_names=targets,
+                namespace=namespace,
+                ambassador_host=host,
+                listen_to_kubernetes=False,
+            )
+            watchman_app.testing = True
+            watchman_app = watchman_app.test_client()
+
+            def watchman_callback(_request):
+                """
+                Redirect calls to a gordo endpoint to reflect what the local testing app gives
+                """
+                headers = {}
+                resp = watchman_app.get("/").json
+                return 200, headers, json.dumps(resp)
+
+            # Watchman requests
+            rsps.add_callback(
+                responses.GET,
+                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/$"),
+                callback=watchman_callback,
+                content_type="application/json",
+            )
             yield
 
 

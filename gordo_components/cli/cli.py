@@ -356,7 +356,7 @@ def run_server_cli(
     "--host", type=str, help="The host to run the server on.", default="0.0.0.0"
 )
 @click.option("--port", type=int, help="The port to run the server on.", default=5555)
-@click.option("--debug", type=bool, help="Run in debug mode", default=False)
+@click.option("--debug", type=bool, help="Run in debug mode.", default=False)
 @click.option(
     "--namespace",
     type=str,
@@ -367,9 +367,17 @@ def run_server_cli(
 @click.option(
     "--ambassador-namespace",
     type=str,
-    help="Namespace watchman expects Ambassador to be in",
+    help="Namespace watchman expects Ambassador to be in.",
     default="ambassador",
     envvar="AMBASSADOR_NAMESPACE",
+)
+@click.option(
+    "--ambassador-host",
+    type=str,
+    help="Full hostname of ambassador. If this is set then `--ambassador-namespace` is "
+    "ignored even if set explicitly.",
+    default=None,
+    envvar="AMBASSADOR_HOST",
 )
 def run_watchman_cli(
     project_name,
@@ -380,6 +388,7 @@ def run_watchman_cli(
     debug,
     namespace,
     ambassador_namespace,
+    ambassador_host,
 ):
     """
     Start the Gordo Watchman server for this project. Which is responsible
@@ -399,7 +408,9 @@ def run_watchman_cli(
         project_version,
         target_names,
         namespace=namespace,
-        ambassador_namespace=ambassador_namespace,
+        ambassador_host=ambassador_host
+        if ambassador_host
+        else f"ambassador.{ambassador_namespace}",
     )
 
 

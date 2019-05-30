@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
+import _thread
+import threading
+import logging
+import time
+from typing import Callable, Dict, Optional
 
-from typing import Optional, Dict, List
-
-from kubernetes import client as kubeclient, config
+import kubernetes
+from kubernetes import client as kubeclient, config, watch
 from kubernetes.client.rest import ApiException
-from kubernetes.client.models.v1_pod_status import V1PodStatus
-from kubernetes.client.models.v1_pod import V1Pod
+
+
+logger = logging.getLogger(__name__)
 
 
 def load_config():
@@ -22,253 +27,119 @@ def load_config():
         config.load_incluster_config()  # Within cluster auth for a pod
 
 
-def list_model_builders(
-    namespace: str,
-    project_name: str,
-    project_version: str,
-    client: kubeclient.CustomObjectsApi = None,
-    selectors: Optional[Dict[str, str]] = None,
-):
+class ThreadedWatcher(threading.Thread):
+    """Thread watching for changes in kubernetes. Will restart on
+    `kubernetes.client.rest.ApiException`, other exceptions causes an interrupt of the
+    main thread.
     """
-        Get a list of pods which were responsible for building models for a given
-        project and version
+
+    def __init__(self, watched_function: Callable, event_handler: Callable, **kwargs):
+        """
+        A  thread watching for kubernetes changes using `watched_function`, invoking
+        `event_handler` on each event emitted by the watched function.
+
+        `watched_function` is expected to be of a type which can be used by
+        :py:func:`kubernetes.watch.watch.Watch.stream`, most prominently
+        functions in :py:class:`kubernetes.client.apis.core_v1_api.CoreV1Api`.
+
+        The generated thread is returned, and it is the callers responsibility to call
+        `start` on it. The thread is started in daemon-mode: the entire Python program
+        exits when no alive non-daemon threads are left.
+
+        If a unhandled exception occurs in this thread it will call
+        :py:func:`_thread.interrupt_main`.
+
+
 
         Parameters
         ----------
-        namespace: str
-            Namespace to operate in
-        project_name: str
-            Project name
-        project_version: str
-            Project version
-        client: kubernetes.client.CustomObjectApi
-            The client to use in selecting custom objects from Kubernetes
-        selectors: Optional[Dict[str, str]]
-            A mapping of key value pairs representing the label in the workflow
-            to match to a value, if not set then match on project_name and project_version
-        """
+        watched_function: Callable
+            Function use to watch for kubernetes changes
+        event_handler:
+            Function which will be called to handle any events emitted by
+            `watched_function`
+        kwargs
+            Extra arguments which will be passed in to `watched_function`
 
-    # Set default selectors if not provided.
-    if selectors is None:
-        selectors = {
-            "applications.gordo.equinor.com/project-name": project_name,
-            "applications.gordo.equinor.com/project-version": project_version,
-        }
-    selectors.update({"app": "gordo-model-builder"})
+        """
+        self.process_event = event_handler
+        self.func = watched_function
+        self.kwargs = kwargs
+        threading.Thread.__init__(self, daemon=True)
+        # If this is set then the threads dies after the next received element. Useful
+        # for testing.
+        self._die_after_next = False
+
+    def run(self):
+        try:
+            while True:
+                try:
+                    w = watch.Watch()
+                    for event in w.stream(self.func, **self.kwargs):
+                        self.process_event(event)
+                        if self._die_after_next:
+                            return
+                except ApiException:
+                    logger.exception(
+                        "Exception encountered while watching for event stream"
+                    )
+                    time.sleep(0.5)
+                    pass
+        except Exception:
+            logger.exception("Got unhandled exception in k8s watching thread, exiting")
+            _thread.interrupt_main()
+
+    def die_after_next_elem(self, val=True):
+        self._die_after_next = val
+
+
+def watch_namespaced_services(
+    event_handler: Callable,
+    namespace: str,
+    client: Optional[kubernetes.client.apis.core_v1_api.CoreV1Api] = None,
+    selectors: Optional[Dict[str, str]] = None,
+) -> ThreadedWatcher:
+    """Watches changes to k8s services in a given namespace, and executed
+    `event_handler` for each event.
+
+    Returns the watching thread, which must be started by the caller.
+
+    Parameters
+    ----------
+    event_handler : Callable
+        Function which will be called on each service-event from k8s. Should take a
+        single argument, which will be the k8s event for a service change. See
+        `kubernetes.watch.watch.Watch.stream` for description of event structure.
+    namespace: str
+        Namespace to look for changes in
+    client: Optional[kubernetes.client.apis.core_v1_api.CoreV1Api]
+        K8s client to use to watch for changes. If None then we try to create one.
+    selectors: Optional[Dict[str, str]]
+
+
+    Returns
+    -------
+    gordo_components.watchman.gordo_k8s_interface.ThreadedWatcher
+        The watching thread, must be started by the caller.
+
+    """
 
     if client is None:
         load_config()
         client = kubeclient.CoreV1Api()
-
-    return [
-        ModelBuilderPod(pod, client=client)
-        for pod in client.list_namespaced_pod(
-            namespace=namespace,
+    else:
+        client = client
+    if selectors:
+        return ThreadedWatcher(
+            watched_function=client.list_namespaced_service,
+            event_handler=event_handler,
             label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
-        ).items
-    ]
-
-
-class Service:
-
-    pods: List["Pod"]
-    name: str
-    namespace: str
-    client: kubeclient.CoreV1Api
-
-    def __init__(self, namespace: str, name: str, client: kubeclient.CoreV1Api = None):
-        """
-        Construct a Gordo interface to a k8s service, and the pods it services.
-        Creates the list of pods on initialization, and does not refresh it
-
-        Parameters
-        ----------
-        namespace: str
-            Name of the namespace to look in for the service
-        name: str
-            Name of the service
-        client: Optional[kubernetes.client.CoreV1Api]
-            Client to use, otherwise will try to load environment config to create one.
-        """
-        self.namespace = namespace
-        self.name = name
-
-        if client is None:
-            load_config()
-            self.client = kubeclient.CoreV1Api()
-        else:
-            self.client = client
-
-        # Reference to the kubernetes service itself.
-        self._service = self.client.read_namespaced_service(
-            name=self.name, namespace=self.namespace
+            namespace=namespace,
         )
-
-        # Create a pod for each one in this service
-        self.pods = [
-            Pod(pod, client=self.client)
-            for pod in self.client.list_namespaced_pod(
-                namespace=self.namespace,
-                label_selector=",".join(
-                    f"{k}={v}" for k, v in self._service.spec.selector.items()
-                ),
-            ).items
-        ]
-
-    def __len__(self):
-        """Represents the number of pods in the service"""
-        return len(self.pods)
-
-    @property
-    def status(self):
-        """
-        Percentage of healthy pods in this service
-
-        Returns
-        -------
-        float:
-            percentage of healthy pods in this service
-        """
-        if len(self) > 0:
-            return sum(1 for p in self.pods if p.is_healthy) / len(self)
-        else:
-            return 0
-
-    def logs(self, limit=40) -> Dict[str, str]:
-        """
-        Get the logs from all pods related to this service
-
-        Parameters
-        ----------
-        limit: int
-            How many lines to retrieve from each pod
-
-        Returns
-        -------
-        Dict[str, str]
-            Mapping where each key is the pod name, and value of the log output
-        """
-        return {p.name: p.logs(limit) for p in self.pods}
-
-
-class Pod:
-
-    pod: V1Pod
-
-    def __init__(self, pod: V1Pod, client: Optional[kubeclient.CoreV1Api] = None):
-        """
-        Simple helper class around kubernetes.client.models.v1_pod.V1Pod for essential
-        gordo operations by Watchman
-
-        Parameters
-        ----------
-        pod: kubernetes.models.V1Pod
-        client: kubernetes.client.CoreV1Api
-        """
-        if client is None:
-            load_config()
-            self.client = kubeclient.CoreV1Api()
-        else:
-            self.client = client
-
-        self.pod = pod
-
-    def logs(self, limit: int = 40) -> str:
-        """
-        Return the tail of logs from this pod
-
-        Parameters
-        ----------
-        limit: int
-            Number of lines from the end of the logs
-
-        Returns
-        -------
-        logs: str
-        """
-        # Required arguments, potentially requiring container specification (main)
-        kwargs = dict(
-            name=self.pod.metadata.name,
-            namespace=self.pod.metadata.namespace,
-            tail_lines=limit,
-        )
-
-        try:
-            log = self.client.read_namespaced_pod_log(**kwargs)
-        except ApiException:
-            kwargs["container"] = "main"
-            log = self.client.read_namespaced_pod_log(**kwargs)
-        return log
-
-    def __repr__(self):
-        return (
-            f"Pod<namespace={self.pod.metadata.namespace}, "
-            f"name={self.pod.metadata.name}, healthy={self.is_healthy}>"
-        )
-
-    @property
-    def name(self):
-        """Name of the pod"""
-        return self.pod.metadata.name
-
-    @property
-    def is_healthy(self) -> bool:
-        """
-        Determine if the current pod is in a healthy state or has completed
-        successfully.
-
-        Returns
-        -------
-        bool:
-            Indication of success
-        """
-        return self.pod.status.phase in ["Succeeded", "Completed", "Running"]
-
-    @property
-    def status(self) -> V1PodStatus:
-        """
-        Return the pods' V1PodStatus object
-        """
-        return self.pod.status
-
-
-class ModelBuilderPod(Pod):
-    """
-    A pod specific to building a model for a given target/machine.
-    """
-
-    def __init__(self, pod: V1Pod, *args, **kwargs):
-        """
-        Get a Gordo ModelBuilderPod representation from the raw kubernetes V1Pod object
-
-        This specific one is expected to have spec.containers[0].env which contains
-        a 'MODEL_NAME' kubernetes.models.V1EnvVar
-
-        Parameters
-        ----------
-        pod: kubernetes.client.models.v1_pod.V1Pod
-
-        Returns
-        -------
-        ModelBuilderPod:
-            Gordo pod interface representing a Model builder pod.
-        """
-        if pod.metadata.labels["app"] != "gordo-model-builder":
-            raise ValueError(f"This pod does not appear to be a ModelBuilder pod.")
-
-        for envar in pod.spec.containers[0].env:
-            if envar.name == "MODEL_NAME":
-                self.target_name = envar.value
-                break
-        else:
-            raise ValueError(
-                f"Unable to find the MODEL_NAME in this pod's environment spec"
-            )
-
-        super().__init__(pod, *args, **kwargs)
-
-    def __repr__(self):
-        return (
-            f"ModelBuilderPod<namespace={self.pod.metadata.namespace}, name={self.pod.metadata.name}, "
-            f"target_name={self.target_name} healthy={self.is_healthy}>"
+    else:
+        return ThreadedWatcher(
+            client.list_namespaced_service,
+            event_handler,
+            field_selector=f"metadata.namespace=={namespace}",
+            namespace=namespace,
         )
