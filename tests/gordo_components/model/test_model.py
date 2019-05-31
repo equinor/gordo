@@ -20,6 +20,7 @@ from gordo_components.model.models import (
     KerasLSTMForecast,
     KerasLSTMBaseEstimator,
     KerasBaseEstimator,
+    create_keras_timeseriesgenerator,
 )
 from gordo_components.model.factories import lstm_autoencoder
 from gordo_components.model.base import GordoBase
@@ -158,13 +159,31 @@ class KerasModelTestCase(unittest.TestCase):
         # Assert that (for LSTMAutoEncoder) ValueError
         # is raised in fit method if lookback_window > number of readings (rows of X)
 
-        lookback_window = 6
+        lookback_window = 11
         with self.assertRaises(ValueError):
             model = KerasLSTMAutoEncoder(
                 kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
             )
-            X = np.random.random(size=(10,))
+            X = np.random.rand(10)
             model.fit(X)
+
+    def test_keras_ae_reshapes_array(self):
+        # Asserts that KerasLSTMAutoEncoder accepts an array of elements, which it will
+        # reshape into the matrix of single elements it needs
+        model = KerasLSTMAutoEncoder(kind=lstm_autoencoder.lstm_model)
+        X = np.random.rand(100)
+        model.fit(X)
+        X = np.random.rand(100)
+        model.transform(X)
+
+    def test_keras_forecast_reshapes_array(self):
+        # Asserts that KerasLSTMForecast accepts an array of elements, which it will
+        # reshape into the matrix of single elements it needs
+        model = KerasLSTMForecast(kind=lstm_autoencoder.lstm_model)
+        X = np.random.rand(100)
+        model.fit(X)
+        X = np.random.rand(100)
+        model.transform(X)
 
     def test_lookback_window_ae_valueerror_during_transform(self):
 
@@ -203,61 +222,81 @@ class KerasModelTestCase(unittest.TestCase):
             with self.assertRaises(ValueError):
                 model.fit(X)
 
-    def test_generate_window_lstm_ae_output(self):
-        # Check that right output is generated from generate_window (for KerasLSTMAutoEncoder)
-        X = np.random.random(size=10).reshape(5, 2)
-
-        lookback_window = 4
-        model = KerasLSTMAutoEncoder(
-            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
+    def test_create_keras_timeseriesgenerator_lb3_loah0_bs2(self):
+        # Check that right output is generated from create_keras_timeseriesgenerator
+        X = np.array([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]])
+        gen = create_keras_timeseriesgenerator(
+            X, batch_size=2, lookback_window=3, lookahead=0
         )
-        gen = model.generate_window(X)
-        gen_out_1 = next(gen)
-        gen_out_2 = next(gen)
-        self.assertEqual(gen_out_1[0].tolist(), X[0:4].reshape(1, 4, 2).tolist())
-        self.assertEqual(gen_out_2[0].tolist(), X[1:5].reshape(1, 4, 2).tolist())
-        self.assertEqual(gen_out_1[1].tolist(), X[3].reshape(1, 2).tolist())
-        self.assertEqual(gen_out_2[1].tolist(), X[4].reshape(1, 2).tolist())
+        batch_1 = gen[0]
+        batch_2 = gen[1]
 
-        X = np.random.random(size=8).reshape(4, 2)
-        lookback_window = 2
-        model = KerasLSTMAutoEncoder(
-            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
+        batch_1_x = batch_1[0].tolist()
+        batch_1_y = batch_1[1].tolist()
+
+        batch_2_x = batch_2[0].tolist()
+        batch_2_y = batch_2[1].tolist()
+
+        self.assertEquals(
+            [[[0, 1], [2, 3], [4, 5]], [[2, 3], [4, 5], [6, 7]]], batch_1_x
         )
-        gen_no_y = model.generate_window(X, output_y=False)
-        gen_no_y_out_1 = next(gen_no_y)
-        gen_no_y_out_2 = next(gen_no_y)
-        gen_no_y_out_3 = next(gen_no_y)
-        self.assertEqual(gen_no_y_out_1.tolist(), X[0:2].reshape(1, 2, 2).tolist())
-        self.assertEqual(gen_no_y_out_2.tolist(), X[1:3].reshape(1, 2, 2).tolist())
-        self.assertEqual(gen_no_y_out_3.tolist(), X[2:4].reshape(1, 2, 2).tolist())
+        self.assertEqual([[4, 5], [6, 7]], batch_1_y)
 
-    def test_generate_window_lstm_forecast_output(self):
-        # Check that right output is generated from generate_window (for KerasLSTMForecast)
-        X = np.random.random(size=(5, 2))
+        self.assertEqual([[[4, 5], [6, 7], [8, 9]]], batch_2_x)
+        self.assertEqual([[8, 9]], batch_2_y)
 
-        lookback_window = 3
-        model = KerasLSTMForecast(
-            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
+    def test_create_keras_timeseriesgenerator_lb2_loah1_bs2(self):
+        # Check that right output is generated from create_keras_timeseriesgenerator
+        # We use lookback_window 2 to get some more interesting batches with lookahead 1
+        X = np.array([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]])
+        gen = create_keras_timeseriesgenerator(
+            X, batch_size=2, lookback_window=2, lookahead=1
         )
-        gen = model.generate_window(X)
-        gen_out_1 = next(gen)
-        gen_out_2 = next(gen)
-        self.assertEqual(gen_out_1[0].tolist(), X[0:3].reshape(1, 3, 2).tolist())
-        self.assertEqual(gen_out_2[0].tolist(), X[1:4].reshape(1, 3, 2).tolist())
-        self.assertEqual(gen_out_1[1].tolist(), X[3].reshape(1, 2).tolist())
-        self.assertEqual(gen_out_2[1].tolist(), X[4].reshape(1, 2).tolist())
+        batch_1 = gen[0]
+        batch_2 = gen[1]
 
-        X = np.random.random(size=(4, 2))
-        lookback_window = 2
-        model = KerasLSTMForecast(
-            kind=lstm_autoencoder.lstm_model, lookback_window=lookback_window
+        batch_1_x = batch_1[0].tolist()
+        batch_1_y = batch_1[1].tolist()
+
+        batch_2_x = batch_2[0].tolist()
+        batch_2_y = batch_2[1].tolist()
+
+        self.assertEquals([[[0, 1], [2, 3]], [[2, 3], [4, 5]]], batch_1_x)
+        self.assertEqual([[4, 5], [6, 7]], batch_1_y)
+
+        self.assertEqual([[[4, 5], [6, 7]]], batch_2_x)
+        self.assertEqual([[8, 9]], batch_2_y)
+
+    def test_create_keras_timeseriesgenerator_lb3_loah2_bs2(self):
+        # Check that right output is generated from create_keras_timeseriesgenerator
+        # We use lookback_window 2 to get some more interesting batches with lookahead 1
+        X = np.array([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]])
+        gen = create_keras_timeseriesgenerator(
+            X, batch_size=2, lookback_window=2, lookahead=2
         )
-        gen_no_y = model.generate_window(X, output_y=False)
-        gen_no_y_out_1 = next(gen_no_y)
-        gen_no_y_out_2 = next(gen_no_y)
-        self.assertEqual(gen_no_y_out_1.tolist(), X[0:2].reshape(1, 2, 2).tolist())
-        self.assertEqual(gen_no_y_out_2.tolist(), X[1:3].reshape(1, 2, 2).tolist())
+        batch_1 = gen[0]
+        batch_2 = gen[1]
+
+        batch_1_x = batch_1[0].tolist()
+        batch_1_y = batch_1[1].tolist()
+
+        batch_2_x = batch_2[0].tolist()
+        batch_2_y = batch_2[1].tolist()
+
+        self.assertEquals([[[0, 1], [2, 3]], [[2, 3], [4, 5]]], batch_1_x)
+        self.assertEqual([[6, 7], [8, 9]], batch_1_y)
+
+        self.assertEqual([], batch_2_x)  # No more elements left
+        self.assertEqual([], batch_2_y)
+
+    def test_create_keras_timeseriesgenerator_raise_error_on_neg_lookahead(self):
+        # Check that create_keras_timeseriesgenerator raises an error on negative
+        # lookahead
+        X = np.array([[0, 1]])
+        with self.assertRaises(ValueError):
+            create_keras_timeseriesgenerator(
+                X, batch_size=2, lookback_window=2, lookahead=-1
+            )
 
     def test_lstmae_transform_output(self):
         # test for KerasLSTMAutoEncoder
