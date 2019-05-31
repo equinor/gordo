@@ -2,17 +2,16 @@
 
 import logging
 import json
-import math
 
 from typing import Union, Callable, Dict, Any, Optional
 from os import path
 from contextlib import contextmanager
 import pickle
-import abc
 from abc import ABCMeta
 
 import keras.models
 import keras.backend as K
+from keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from keras.wrappers.scikit_learn import BaseWrapper
 from keras.models import load_model
 import numpy as np
@@ -48,7 +47,8 @@ def possible_tf_mgmt(keras_model):
     Parameters
     ----------
     keras_model: KerasBaseEstimator
-        An instance of a `KerasBaseEstimator` which can potentially have a tensorflow backend
+        An instance of a `KerasBaseEstimator` which can potentially have a tensorflow
+        backend
     """
     logger.info(f"Keras backend: {K.backend()}")
     if K.backend() == "tensorflow":
@@ -66,17 +66,19 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         **kwargs,
     ) -> None:
         """
-        Initialized a Scikit-Learn API compatitble Keras model with a pre-registered function or a builder function
+        Initialized a Scikit-Learn API compatitble Keras model with a pre-registered
+        function or a builder function
         directly.
 
         Parameters
         ----------
         kind: Union[callable, str]
             The structure of the model to build. As designated by any registered builder
-            functions, registered with gordo_compontents.model.register.register_model_builder
-            Alternatively, one may pass a builder function directly to this argument. Such a
-            function should accept `n_features` as it's first argument, and pass any additional
-            parameters to `**kwargs`
+            functions, registered with
+            `gordo_compontents.model.register.register_model_builder`.
+            Alternatively, one may pass a builder function directly to this argument.
+            Such a function should accept `n_features` as it's first argument, and pass
+            any additional parameters to `**kwargs`
 
         kwargs: dict
             Any additional args which are passed to the factory
@@ -276,7 +278,8 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         The data returns from this method is double the feature length of its input.
         The first half of each sample output is the _input_ of the model, and the
         output is concatenated (axis=1) with the input. ie. If the input has 4 features,
-        the output will have 8, where the first 4 are the values which went into the model.
+        the output will have 8, where the first 4 are the values which went into the
+        model.
         """
         with possible_tf_mgmt(self):
             xhat = self.model.predict(X, **kwargs)
@@ -341,39 +344,39 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         ----------
         kind: Union[Callable, str]
             The structure of the model to build. As designated by any registered builder
-            functions, registered with gordo_components.model.register.register_model_builder
-            Alternatively, one may pass a builder function directly to this argument. Such a
-            function should accept `n_features` as it's first argument, and pass any additional
-            parameters to `**kwargs`.
+            functions, registered with
+            `gordo_components.model.register.register_model_builder`.
+            Alternatively, one may pass a builder function directly to this argument.
+            Such a function should accept `n_features` as it's first argument, and pass
+            any additional parameters to `**kwargs`.
         lookback_window: int
             Number of timestamps (lags) used to train the model.
         batch_size: int
             Number of training examples used in one epoch.
         epochs: int
-            Number of epochs to train the model. An epoch is an iteration over the entire
-            data provided.
+            Number of epochs to train the model. An epoch is an iteration over the
+            entire data provided.
         verbose: int
-            Verbosity mode. Possible values are 0, 1, or 2 where 0 = silent, 1 = progress bar,
-            2 = one line per epoch.
+            Verbosity mode. Possible values are 0, 1, or 2 where 0 = silent,
+            1 = progress bar, 2 = one line per epoch.
         kwargs: dict
             Any arguments which are passed to the factory building function and/or any
             additional args to be passed to the intermediate fit method.
         """
-        # default 1 for steps_per_epoch is only used to initiate an integer-type value. Actual value will be computed
-        # later
-        self.steps_per_epoch = 1  # type: int
         self.lookback_window = lookback_window
         self.batch_size = batch_size
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
 
-        # fit_generator_params is a set of strings with the keyword arguments of Keras fit_generator method (excluding
-        # "shuffle" as this will be hard coded).  This will be used in the fit method of the respective subclasses
-        # to match the kwargs supplied when instantiating the subclass.
-        # The matched kwargs will override the default kwargs of Keras fit_generator method when training the model.
-        # Note: The decorator "@interfaces.legacy_generator_methods_support" to Keras' fit_generator method
-        # does not forward any arguments to the inspect module
+        # fit_generator_params is a set of strings with the keyword arguments of
+        # Keras fit_generator method (excluding "shuffle" as this will be hardcoded).
+        # This will be used in the fit method of the respective subclasses to match
+        # the kwargs supplied when instantiating the subclass. The matched kwargs
+        # will override the default kwargs of Keras fit_generator method when
+        # training the model. Note: The decorator
+        # "@interfaces.legacy_generator_methods_support" to Keras' fit_generator
+        # method does not forward any arguments to the inspect module
         self.fit_generator_params = {
             "steps_per_epoch",
             "epochs",
@@ -390,149 +393,34 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         }
         super().__init__(**kwargs)
 
-    @abc.abstractmethod
-    def generate_window(self, X: np.ndarray, output_y: bool = True):
-        ...
-
-    def _reshape_samples(
-        self, n_feat: int, sample_in: np.ndarray, sample_out: np.ndarray
-    ):
-        """
-        This method is used to reshape one input sample to a 3D array of size 1 x lookback_window x number_features
-        and one output sample to a 2D array of size 1 x number_features.  Such reshapes are required
-        for the fit method (in Keras fit_generator).
-
-        Parameters
-        ----------
-        n_feat: int
-            number of features
-        sample_in: np.ndarray
-            2D numpy array.  One input sample of dimension lookback_window x n_features
-        sample_out: np.ndarray
-            1D numpy array. One output sample of dimension 1 x n_features
-
-        Returns
-        -------
-        reshaped input/output samples. A tuple of length 2 with first element being the reshaped
-        input sample and the second element the reshaped output sample.
-
-        """
-
-        return (
-            sample_in.reshape((1, self.lookback_window, n_feat)),
-            sample_out.reshape((1, n_feat)),
-        )
-
-    def calc_steps_per_epoch(self, X):
-        """
-        This method calculates the number of steps to yield from the generator prior to declaring one epoch
-        finished and starting the next epoch.
-
-        References
-            https://keras.io/models/model/#fit_generator
-        """
-
-        self.steps_per_epoch = math.ceil(
-            (X.shape[0] - (self.lookback_window - 1)) / self.batch_size
-        )
-        return self.steps_per_epoch
-
 
 class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
-    def generate_window(self, X: np.ndarray, output_y: bool = True):
-        """
-        Parameters
-        ----------
-        X: np.ndarray
-           2D numpy array of dimension n_samples x n_features. Data used to train model or predict/transform values
-           from fitted model.
-        output_y: bool
-            If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
-            If false, sample_in for Keras LSTM predict_generator will be generated.
-
-        Returns
-        -------
-        if output_y is True, it returns a tuple of length 2 with first element being one input sample and second element
-        one corresponding output sample.
-        The input sample is a 3D np array. Each iterate generates a window of data points of
-        size 1 x lookback_window x n_features to use within fit/transform methods.
-        Note: If all input samples are generated (when for example using Keras LSTM fit_generator) their form is given
-        by: np.array([X[0 : lookback_window], X[1 : lookback_window+1],...])
-        The output sample is the last data point on the input sample, reshaped to a 2D np array
-        of size 1 x n_features.
-        Note:  If all output samples generated (when for example using Keras LSTM fit_generator) their form is given by
-        np.array([X[lookback_window-1], X[lookback_window],...])
-
-
-        if output_y is False then only the input sample is returned.
-
-        Example
-        -------
-        >>> import numpy as np
-        >>> from gordo_components.model.models import KerasLSTMAutoEncoder
-        >>> from gordo_components.model.factories import lstm_autoencoder
-        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
-        >>> X
-        array([[1. , 0.1],
-               [0.5, 0.7],
-               [2. , 1. ],
-               [1. , 1.5]])
-        >>> lookback_window = 2
-        >>> model=KerasLSTMAutoEncoder(kind=lstm_autoencoder.lstm_hourglass,lookback_window=lookback_window)
-        >>> gen = model.generate_window(X)
-        >>> input_sample1, output_sample1 = next(gen)
-        >>> input_sample2, output_sample2 = next(gen)
-        >>> input_sample3, output_sample3 = next(gen)
-        >>> input_sample1
-        array([[[1. , 0.1],
-                [0.5, 0.7]]])
-        >>> output_sample1
-        array([[0.5, 0.7]])
-        >>> input_sample2
-        array([[[0.5, 0.7],
-                [2. , 1. ]]])
-        >>> output_sample2
-        array([[2., 1.]])
-        >>> input_sample3
-        array([[[2. , 1. ],
-                [1. , 1.5]]])
-        >>> output_sample3
-        array([[1. , 1.5]])
-        """
-        n_feat = X.shape[1]
-        while True:
-            for i in range(X.shape[0] - (self.lookback_window - 1)):
-                sample_in = X[i : self.lookback_window + i]
-                sample_out = sample_in[-1]
-                samples = self._reshape_samples(n_feat, sample_in, sample_out)
-                if output_y:
-                    yield samples
-                else:
-                    yield samples[0]
-
-    def _validate_size_of_X(self, X):
+    def _validate_and_fix_size_of_X(self, X):
         if X.ndim == 1:
-            X = X.reshape(1, len(X))
+            logger.info(
+                f"Reshaping X from an array to an matrix of shape {(len(X), 1)}"
+            )
+            X = X.reshape(len(X), 1)
 
         if self.lookback_window > X.shape[0]:
             raise ValueError(
                 "For KerasLSTMAutoEncoder lookback_window must be <= size of X"
             )
+        return X
 
     def fit(
         self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
     ) -> "KerasLSTMAutoEncoder":
         """
-        This fits a many-to-one LSTM architecture using Keras fit_generator method. For
-        further details on the input/output samples fed to this method, refer to the generate_window
-        method.
+        This fits a many-to-one LSTM architecture using Keras fit_generator method.
 
         Parameters
         ----------
         X: np.ndarray
            2D numpy array of dimension n_samples x n_features. Input data to train.
         y: Optional[np.ndarray]
-           This is an LSTM Autoencoder which does not need a y. Thus it will be ignored.
+           This is an LSTM Autoencoder which does not need a y. Thus it will be ignored,
+           and is only added as a parameter to be compatible with scikit-learn.
         kwargs: dict
             Any additional args to be passed to Keras fit_generator method.
 
@@ -549,26 +437,37 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
                 f"target, but a y was supplied. It will not be used."
             )
 
-        self._validate_size_of_X(X)
-        gen = self.generate_window(X, output_y=True)
+        X = self._validate_and_fix_size_of_X(X)
 
-        if not hasattr(self, "model"):
-            # these are only used for the intermediate fit method (fit method of KerasBaseEstimator),
-            # called only to initiate the model
-            super().fit(*next(gen), epochs=1, verbose=0, **kwargs)
+        # We call super.fit on a single sample (notice the batch_size=1) to initiate the
+        # model using the scikit-learn wrapper.
+        lookahead = 0
+        tsg = create_keras_timeseriesgenerator(
+            data=X[
+                : lookahead + self.lookback_window
+            ],  # We only need a bit of the data
+            batch_size=1,
+            lookback_window=self.lookback_window,
+            lookahead=lookahead,
+        )
+        x, y = tsg[0]
+        super().fit(X=x, y=y, epochs=1, verbose=0)
 
-        steps_per_epoch = self.calc_steps_per_epoch(X)
-
-        self.kwargs["steps_per_epoch"] = steps_per_epoch
-
+        tsg = create_keras_timeseriesgenerator(
+            data=X,
+            batch_size=self.batch_size,
+            lookback_window=self.lookback_window,
+            lookahead=0,
+        )
         gen_kwargs = {
-            k: v for k, v in self.kwargs.items() if k in self.fit_generator_params
+            k: v
+            for k, v in {**self.kwargs, **kwargs}.items()
+            if k in self.fit_generator_params
         }
-
         with possible_tf_mgmt(self):
             # shuffle is set to False since we are dealing with time series data and
             # so training data will not be shuffled before each epoch.
-            self.model.fit_generator(gen, shuffle=False, **gen_kwargs)
+            self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
@@ -577,16 +476,19 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         Parameters
         ----------
          X: np.ndarray
-            2D numpy array of dimension n_samples x n_features where n_samples must be >= lookback_window.
-            Data to autoencode.
+            Data to autoencode. 2D numpy array of dimension n_samples x n_features where
+            n_samples must be >= lookback_window.
+
 
         Returns
         -------
         results: np.ndarray
-                 2D numpy array of dimension (n_samples - (lookback_window - 1)) x 2*n_features.  The first half
-                 of the array (results[:,:n_features]) corresponds to X offset by the lookback_window
-                 (i.e., X[lookback_window - 1:,:]) whereas the second half corresponds to the autoencoded values
-                 of X[lookback_window - 1:,:].
+            2D numpy array of dimension `(n_samples - (lookback_window - 1)) x
+            2*n_features`.  The first half of the array ( results[:,:n_features])
+            corresponds to X offset by the lookback_window (i.e., X[lookback_window -
+            1:, :]) whereas the second half corresponds to the autoencoded values of
+            X[ lookback_window - 1:,:].
+
 
         Example
         -------
@@ -608,23 +510,26 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         >>> X_train = np.array([[1, 1], [2, 3], [0.5, 0.6], [0.3, 1], [0.6, 0.7]])
         >>> X_test = np.array([[2, 3], [1, 1], [0.1, 1], [0.5, 2]])
         >>> #Initiate model, fit and transform
-        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model", lookback_window=2, verbose=0)
+        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
+        ...                                lookback_window=2,
+        ...                                verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
         >>> model_transform = lstm_ae.transform(X_test)
-        >>> output_example = np.array([[1., 1., 0.00503557, 0.00501121],[0.1, 1.,0.00503096, 0.00500809],
-        ...                                        [0.5, 2.,0.00503031, 0.00500737]]) #Note: output can be non
-        ...                                                                           #deterministic so an example
-        ...                                                                           #output is provided
+        >>> output_example = np.array([[1., 1., 0.00503557, 0.00501121],
+        ...                            [0.1, 1.,0.00503096, 0.00500809],
+        ...                            [0.5, 2.,0.00503031, 0.00500737]])
+        ...  #Note: output can be non deterministic so an example output is provided
         >>> model_transform.shape
         (3, 4)
         """
-        self._validate_size_of_X(X)
-        gen = self.generate_window(X, output_y=False)
-
+        X = self._validate_and_fix_size_of_X(X)
+        # predict batch_size does not need to correspond to
+        # training batch_size
+        tsg = create_keras_timeseriesgenerator(
+            data=X, batch_size=10000, lookback_window=self.lookback_window, lookahead=0
+        )
         with possible_tf_mgmt(self):
-            xhat = self.model.predict_generator(
-                gen, steps=X.shape[0] - (self.lookback_window - 1)
-            )
+            xhat = self.model.predict_generator(tsg)
         X = X[self.lookback_window - 1 :]
         results = list()
         for sample_input, sample_output in zip(
@@ -683,95 +588,35 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         metadata.update(forecast_steps)
         return metadata
 
-    def generate_window(self, X: np.ndarray, output_y: bool = True):
-        """
+    def _validate_and_fix_size_of_X(self, X):
+        if X.ndim == 1:
+            logger.info(
+                f"Reshaping X from an array to an matrix of shape {(len(X), 1)}"
+            )
+            X = X.reshape(len(X), 1)
 
-        Parameters
-        ----------
-        X: np.ndarray
-           2D numpy array of dimension n_samples x n_features. Data used to train model or predict/transform values
-           from fitted model.
-        output_y: bool
-            If true, sample_in and sample_out for Keras LSTM fit_generator will be generated,
-            If false, sample_in for Keras LSTM predict_generator will be generated.
-
-        Returns
-        -------
-        If output_y is True, it returns a tuple of length 2 with the first element being the input sample and
-        the second element being the output sample.
-
-        The input sample is a 3D np array. Each iterate generates a window of data points of
-        size 1 x lookback_window x n_features to use within fit/transform methods.
-        Note: If all input samples are generated (when for example using Keras LSTM fit_generator) their form is given
-        by: np.array([X[0 : lookback_window], X[1 : lookback_window+1],...])
-        The output sample is X[lookback+i,:], where i is the index of the current window (i.e. the (lookback_window+i)th
-        sample from X)
-        Note: If all output samples generated (when for example using Keras LSTM fit_generator) their form is given by
-        np.array([X[lookback_window], X[lookback_window+1],...])
-
-        If output_y is False then only the input sample is returned.
-
-        Example
-        -------
-        >>> import numpy as np
-        >>> from gordo_components.model.models import KerasLSTMForecast
-        >>> from gordo_components.model.factories import lstm_autoencoder
-        >>> X = np.array([[1,0.1],[0.5,0.7],[2,1],[1,1.5]])
-        >>> X
-        array([[1. , 0.1],
-               [0.5, 0.7],
-               [2. , 1. ],
-               [1. , 1.5]])
-        >>> lookback_window = 2
-        >>> model=KerasLSTMForecast(kind=lstm_autoencoder.lstm_hourglass,lookback_window=lookback_window)
-        >>> gen = model.generate_window(X)
-        >>> input_sample1, output_sample1 = next(gen)
-        >>> input_sample2, output_sample2 = next(gen)
-        >>> input_sample1
-        array([[[1. , 0.1],
-                [0.5, 0.7]]])
-        >>> output_sample1
-        array([[2., 1.]])
-        >>> input_sample2
-        array([[[0.5, 0.7],
-                [2. , 1. ]]])
-        >>> output_sample2
-        array([[1. , 1.5]])
-        """
-
-        n_feat = X.shape[1]
-        while True:
-            for i in range(X.shape[0] - self.lookback_window):
-                sample_in = X[i : self.lookback_window + i]
-                sample_out = X[self.lookback_window + i, :]
-                samples = self._reshape_samples(n_feat, sample_in, sample_out)
-                if output_y:
-                    yield samples
-                else:
-                    yield samples[0]
-
-    def _validate_size_of_X(self, X):
         if self.lookback_window >= X.shape[0]:
             raise ValueError(
                 "For KerasLSTMForecast lookback_window must be < size of X"
             )
+        return X
 
     def fit(
         self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
     ) -> "KerasLSTMForecast":
 
         """
-        This fits a one step forecast LSTM architecture using Keras fit_generator method.  For further details
-        on the input/output samples fed to this method, refer to the generate_window method.
+        This fits a one step forecast LSTM architecture.
 
         Parameters
         ----------
         X: np.ndarray
            2D numpy array of dimension n_samples x n_features. Input data to train.
-        y: np.ndarray
-           This is a forecast based LSTM model which does not need a y. Thus it will be ignored.
+        y: Optional[np.ndarray]
+           This is an LSTM Autoencoder which does not need a y. Thus it will be ignored,
+           and is only added as a parameter to be compatible with scikit-learn.
         kwargs: dict
-            Any additional args to be passed to Keras fit_generator method.
+            Any additional args to be passed to Keras `fit_generator` method.
 
         Returns
         -------
@@ -785,26 +630,39 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
                 f"target, but a y was supplied. It will not be used."
             )
 
-        self._validate_size_of_X(X)
-        gen = self.generate_window(X, output_y=True)
+        X = self._validate_and_fix_size_of_X(X)
 
-        if not hasattr(self, "model"):
-            # these are only used for the intermediate fit method (fit method of KerasBaseEstimator),
-            # called only to initiate the model
-            super().fit(*next(gen), epochs=1, verbose=0, **kwargs)
+        # We call super.fit on a single sample (notice the batch_size=1) to initiate the
+        # model using the scikit-learn wrapper.
+        lookahead = 1
+        tsg = create_keras_timeseriesgenerator(
+            data=X[
+                : lookahead + self.lookback_window
+            ],  # We only need a bit of the data
+            batch_size=1,
+            lookback_window=self.lookback_window,
+            lookahead=lookahead,
+        )
+        x, y = tsg[0]
+        super().fit(X=x, y=y, epochs=1, verbose=0)
 
-        steps_per_epoch = self.calc_steps_per_epoch(X)
-
-        self.kwargs["steps_per_epoch"] = steps_per_epoch
+        tsg = create_keras_timeseriesgenerator(
+            data=X,
+            batch_size=self.batch_size,
+            lookback_window=self.lookback_window,
+            lookahead=1,
+        )
 
         gen_kwargs = {
-            k: v for k, v in self.kwargs.items() if k in self.fit_generator_params
+            k: v
+            for k, v in {**self.kwargs, **kwargs}.items()
+            if k in self.fit_generator_params
         }
 
         with possible_tf_mgmt(self):
             # shuffle is set to False since we are dealing with time series data and
             # so training data will not be shuffled before each epoch.
-            self.model.fit_generator(gen, shuffle=False, **gen_kwargs)
+            self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
     def transform(self, X: np.ndarray) -> np.ndarray:
@@ -812,16 +670,17 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         Parameters
         ----------
          X: np.ndarray
-            2D numpy array of dimension n_samples x n_features where n_samples must be > lookback_window.
-            Data to predict/transform.
+            Data to predict/transform. 2D numpy array of dimension `n_samples x
+            n_features` where `n_samples` must be > lookback_window.
 
         Returns
         -------
         results: np.ndarray
-                 2D numpy array of dimension (n_samples - lookback_window) x 2*n_features.  The first half
-                 of the array (results[:,:n_features]) corresponds to X offset by lookback_window+1
-                 (i.e., X[lookback_window:,:]) whereas the second half corresponds to the predicted values
-                 of X[lookback_window:,:].
+                 2D numpy array of dimension `(n_samples - lookback_window) x
+                 2*n_features`.  The first half of the array `(results[:,
+                 :n_features])` corresponds to X offset by `lookback_window+1` (i.e.,
+                 `X[lookback_window:,:]`) whereas the second half corresponds to the
+                 predicted values of `X[lookback_window:,:]`.
 
 
         Example
@@ -844,23 +703,24 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         >>> X_train = np.array([[1, 1], [2, 3], [0.5, 0.6], [0.3, 1], [0.6, 0.7]])
         >>> X_test = np.array([[2, 3], [1, 1], [0.1, 1], [0.5, 2]])
         >>> #Initiate model, fit and transform
-        >>> lstm_ae = KerasLSTMForecast(kind="lstm_model", lookback_window=2, verbose=0)
+        >>> lstm_ae = KerasLSTMForecast(kind="lstm_model",
+        ...                             lookback_window=2,
+        ...                             verbose=0)
         >>> model_fit = lstm_ae.fit(X_train)
         >>> model_transform = lstm_ae.transform(X_test)
-        >>> output_example = np.array([[0.1       , 1.        , 0.00467027, 0.00561625],
-        ...                            [0.5       , 2.        , 0.00466603, 0.00561359]]) #Note: output can be non
-        ...                                                                               #deterministic so an example
-        ...                                                                               #output is provided
+        >>> output_example = np.array([[0.1, 1., 0.00467027, 0.00561625],
+        ...                            [0.5, 2., 0.00466603, 0.00561359]])
+        ... #Note: output can be non deterministic so an example output is provided
         >>> model_transform.shape
         (2, 4)
         """
 
-        self._validate_size_of_X(X)
-        gen = self.generate_window(X, output_y=False)
+        X = self._validate_and_fix_size_of_X(X)
+        tsg = create_keras_timeseriesgenerator(
+            data=X, batch_size=10000, lookback_window=self.lookback_window, lookahead=1
+        )
         with possible_tf_mgmt(self):
-            xhat = self.model.predict_generator(
-                gen, steps=X.shape[0] - self.lookback_window
-            )
+            xhat = self.model.predict_generator(tsg)
         X = X[self.lookback_window :]
         results = list()
         for sample_input, sample_output in zip(
@@ -877,8 +737,8 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
-        Returns the explained variance score between 1 step forecasted input and true input at next time step
-        (note: for LSTM X is offset by lookback_window).
+        Returns the explained variance score between 1 step forecasted input and true
+        input at next time step (note: for LSTM X is offset by `lookback_window`).
 
         Parameters
         ----------
@@ -902,3 +762,88 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         out = self.transform(X)
 
         return explained_variance_score(out[:, : X.shape[1]], out[:, X.shape[1] :])
+
+
+def create_keras_timeseriesgenerator(
+    data: np.ndarray, batch_size: int, lookback_window: int, lookahead: int
+) -> keras.preprocessing.sequence.TimeseriesGenerator:
+    """
+    Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
+    LSTM's, but with the added ability to specify the lookahead of the target in y.
+
+    If lookahead==0 then the generated samples in X will have as their last element
+    the same as the corresponding Y. If lookahead is 1 then the values in Y is shifted
+    so it is one step in the future compared to the last value in the samples in X,
+    and similar for larger values.
+
+
+    Parameters
+    ----------
+    data: np.ndarray
+        2d array of values, each row being one sample.
+    batch_size: int
+        How big should the generated batches be?
+    lookback_window: int
+        How far back should each sample see. 1 means that it contains a single
+        measurement
+    lookahead: int
+        How much is Y shifted relative to X
+
+    Returns
+    -------
+    TimeseriesGenerator
+        3d matrix with a list of batchX-batchY pairs, where batchX is a batch of
+        X-values, and correspondingly for batchY. A batch consist of `batch_size` nr
+        of pairs of samples (or y-values), and each sample is a list of length
+        `lookback_window`.
+
+    Examples
+    -------
+    >>> import numpy as np
+    >>> data = np.random.rand(100,2)
+    >>> gen = create_keras_timeseriesgenerator(data,
+    ...                                        batch_size=10,
+    ...                                        lookback_window=20,
+    ...                                        lookahead=0)
+    >>> len(gen) # 9 = (100-20+1)/10
+    9
+    >>> len(gen[0]) # batchX and batchY
+    2
+    >>> len(gen[0][0]) # batch_size=10
+    10
+    >>> len(gen[0][0][0]) # a single sample, lookback_window = 20,
+    20
+    >>> len(gen[0][0][0][0]) # n_features = 2
+    2
+    """
+    new_length = len(data) + 1 - lookahead
+
+    if lookahead == 1:
+        input_data = data
+        target_data = data
+    elif lookahead == 0:
+        input_data = pad_sequences(
+            [data], maxlen=new_length, padding="post", dtype=data.dtype
+        )[0]
+        target_data = pad_sequences(
+            [data], maxlen=new_length, padding="pre", dtype=data.dtype
+        )[0]
+
+    elif lookahead > 1:
+        input_data = pad_sequences(
+            [data],
+            maxlen=new_length,
+            padding="post",
+            dtype=data.dtype,
+            truncating="post",
+        )[0]
+        target_data = pad_sequences(
+            [data], maxlen=new_length, padding="pre", dtype=data.dtype, truncating="pre"
+        )[0]
+    else:
+        raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
+
+    tsgen = TimeseriesGenerator(
+        input_data, targets=target_data, length=lookback_window, batch_size=batch_size
+    )
+    return tsgen
