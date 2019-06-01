@@ -43,3 +43,12 @@ deploy:
     script: make images push-prod-images
     on:
       tags: true
+  - provider: pypi
+    user: statoil-travis
+    distributions: bdist_wheel sdist
+    skip_existing: true
+    password:
+      secure: DvqBOH2KC3dDpuukkbuNytnYRGO+lTY3qIByaHwjAvibOgxUgNOft+jKkYHFy+a7SffH8bbOT58uGX9r2NbbXjVnFaBCkYwn+lqvf4tPFlNqL1F7TGIH1EIJz4EyHMw+wV7zPIfTwclUNxVe+0uwv+eUcQ0VvZVcoE3lxp5dcQ+UsjObMNFV8J7U7ClTNRGiODSTlBcwOLOK0BKl5i08zbxe4baeTAF6SA66vO/q8HYVZyDoFgLU16GyDsUCsCG+9UIUiZpl/ul/vST7SaPxyNnuPItxmVk10zdO/e2INye6h5Wg/2mbTosn6Is1kS6s8NuhCDGELxGJ95bN8/oCE6CGcnPcff3AyN8CEaQQZVMwLFyldFMHXIRmEpsTWVxqGJvQZCVHQ3kkEybaG6o6LnQr5XkHjuumxsCvpEe+iJJtXBPXaS1TEC2o5UPe00qdph5sXIquUS4rh24Ad7Yk7s99pNvBedkP6JVzZ5IeUWC8zRQWiae02HXhfL6ouNxnQ5lBAJEwFriGsTm9w8cPO3vxfywOv61OUvQqUJuQtqRzX/LVEAylS996oy2Zfy8T6bEu4WlvyCwwuMg+kZTvdNOgwC0bzjBsl04Ts8xVIU4/yrCmjMhaEkTUp9yUoqaBbIniuu6EVbq5HUcTRwTK1czL76BPTPPcAhWCcLgOnVs=
+    on:
+      tags: true
+      branch: master
