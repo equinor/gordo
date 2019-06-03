@@ -50,7 +50,7 @@ markupsafe==1.1.1         # via jinja2
 mock==3.0.5               # via tensorflow-estimator
 multidict==4.5.2          # via aiohttp, yarl
 numexpr==2.6.9
-numpy==1.16.3
+numpy==1.16.4
 oauthlib==3.0.1           # via requests-oauthlib
 packaging==19.0           # via sphinx
 pandas==0.24.2
