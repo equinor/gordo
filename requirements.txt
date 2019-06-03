@@ -15,7 +15,7 @@ astor==0.8.0              # via tensorflow
 async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp, jsonschema
 azure-datalake-store==0.0.45
-babel==2.6.0              # via sphinx
+babel==2.7.0              # via sphinx
 cachetools==3.1.0
 cchardet==2.1.4
 certifi==2019.3.9         # via kubernetes, requests
