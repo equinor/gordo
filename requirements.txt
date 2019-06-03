@@ -47,7 +47,7 @@ keras==2.2.4
 kubernetes==9.0.0
 markdown==3.1.1             # via tensorboard
 markupsafe==1.1.1         # via jinja2
-mock==2.0.0               # via tensorflow-estimator
+mock==3.0.5               # via tensorflow-estimator
 multidict==4.5.2          # via aiohttp, yarl
 numexpr==2.6.9
 numpy==1.16.3
