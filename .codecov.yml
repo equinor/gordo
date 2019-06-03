@@ -1,0 +1,12 @@
+coverage:
+  status:
+
+    # 80% of code changes in PR should be tested
+    patch:
+      default:
+        target: 80%
+
+    # Total project % cov should not go down by more than 5%
+    project:
+      default:
+        threshold: 5%
