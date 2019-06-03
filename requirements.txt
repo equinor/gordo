@@ -24,7 +24,7 @@ chardet==3.0.4            # via aiohttp, requests
 click==7.0
 commonmark==0.9.0         # via recommonmark
 coverage==4.5.3
-cryptography==2.6.1       # via adal
+cryptography==2.7       # via adal
 docutils==0.14            # via recommonmark, sphinx
 flask-restplus==0.12.1
 flask==1.0.2
