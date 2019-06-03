@@ -27,7 +27,7 @@ coverage==4.5.3
 cryptography==2.7       # via adal
 docutils==0.14            # via recommonmark, sphinx
 flask-restplus==0.12.1
-flask==1.0.2
+flask==1.0.3
 future==0.17.1            # via commonmark
 gast==0.2.2               # via tensorflow
 google-auth==1.6.3        # via kubernetes
