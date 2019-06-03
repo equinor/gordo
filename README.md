@@ -1,6 +1,8 @@
 # Gordo Components
 
 [![Build Status](https://travis-ci.com/equinor/gordo-components.svg?token=9cHSKigsoXktTGTEJsVA&branch=master)](https://travis-ci.com/equinor/gordo-components)
+[![codecov](https://codecov.io/gh/equinor/gordo-components/branch/master/graph/badge.svg)](https://codecov.io/gh/equinor/gordo-components)
+
 
 ---
 

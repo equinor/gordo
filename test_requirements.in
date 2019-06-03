@@ -4,6 +4,7 @@ pytest-xdist==1.26.1  # Parallelises the test-runs
 ruamel.yaml==0.15.76
 pytest-mypy==0.3.2
 pytest-timeout~=1.3
+pytest-cov~=2.7
 responses==0.10.5
 black==19.3b0
 pytest-flakes~=4.0
