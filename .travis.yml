@@ -20,7 +20,10 @@ jobs:
     install:
       - pip install -r requirements.txt
     script:
-      - make coverage
+      - make testall
+    after_success:
+      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
+      - bash <(curl -s https://codecov.io/bash)
   - name: "make images"
     install: skip
     script:
