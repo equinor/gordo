@@ -31,7 +31,7 @@ flask==1.0.3
 future==0.17.1            # via commonmark
 gast==0.2.2               # via tensorflow
 google-auth==1.6.3        # via kubernetes
-grpcio==1.20.1            # via tensorboard, tensorflow
+grpcio==1.21.1            # via tensorboard, tensorflow
 h5py==2.9.0
 idna-ssl==1.1.0           # via aiohttp
 idna==2.8                 # via idna-ssl, requests, yarl
