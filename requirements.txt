@@ -80,7 +80,7 @@ snowballstemmer==1.2.1    # via sphinx
 sphinx-click==2.1.0
 sphinx-rtd-theme==0.4.3
 sphinx==2.1.0
-sphinxcontrib-websupport==1.1.0
+sphinxcontrib-websupport==1.1.2
 tensorboard==1.13.1       # via tensorflow
 tensorflow-estimator==1.13.0  # via tensorflow
 tensorflow==1.13.1
