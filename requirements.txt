@@ -56,7 +56,7 @@ packaging==19.0           # via sphinx
 pandas==0.24.2
 pbr==5.2.1                # via mock, sphinx-click
 pip-tools==3.7.0
-protobuf==3.7.1
+protobuf==3.8.0
 pyasn1-modules==0.2.5     # via google-auth
 pyasn1==0.4.5             # via pyasn1-modules, rsa
 pycares==3.0.0            # via aiodns
