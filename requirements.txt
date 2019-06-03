@@ -11,7 +11,7 @@ aiohttp==3.5.4
 alabaster==0.7.12         # via sphinx
 aniso8601==6.0.0          # via flask-restplus
 asn1crypto==0.24.0        # via cryptography
-astor==0.7.1              # via tensorflow
+astor==0.8.0              # via tensorflow
 async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp, jsonschema
 azure-datalake-store==0.0.44
