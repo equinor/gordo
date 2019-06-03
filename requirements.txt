@@ -72,7 +72,7 @@ recommonmark==0.5.0
 requests-oauthlib==1.2.0  # via kubernetes
 requests==2.22.0
 rsa==4.0                  # via google-auth
-scikit-learn==0.20.3
+scikit-learn==0.21.2
 scipy==1.2.1              # via keras, scikit-learn
 simplejson==3.16.0
 six==1.12.0               # via absl-py, cryptography, flask-restplus, google-auth, grpcio, h5py, influxdb, jsonschema, keras, keras-preprocessing, kubernetes, mock, packaging, pip-tools, protobuf, pyrsistent, python-dateutil, sphinx, tensorboard, tensorflow, tensorflow-estimator, websocket-client
