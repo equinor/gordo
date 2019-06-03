@@ -22,7 +22,7 @@ certifi==2019.3.9         # via kubernetes, requests
 cffi==1.12.3              # via azure-datalake-store, cryptography, pycares
 chardet==3.0.4            # via aiohttp, requests
 click==7.0
-commonmark==0.8.1         # via recommonmark
+commonmark==0.9.0         # via recommonmark
 coverage==4.5.3
 cryptography==2.6.1       # via adal
 docutils==0.14            # via recommonmark, sphinx
