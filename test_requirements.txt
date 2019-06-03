@@ -57,7 +57,7 @@ ptyprocess==0.6.0         # via pexpect, terminado
 py==1.8.0                 # via pytest
 pycparser==2.19           # via cffi
 pyflakes==2.1.1           # via pytest-flakes
-pygments==2.3.1           # via ipython, jupyter-console, nbconvert, qtconsole
+pygments==2.4.2           # via ipython, jupyter-console, nbconvert, qtconsole
 pyjwt==1.7.1              # via adal
 pyrsistent==0.15.1        # via jsonschema
 pytest-asyncio==0.10.0
