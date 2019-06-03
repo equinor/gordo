@@ -73,7 +73,7 @@ pyzmq==18.0.1             # via jupyter-client, notebook
 qtconsole==4.5.1          # via jupyter
 requests==2.22.0          # via adal, docker, responses
 responses==0.10.6
-ruamel.yaml==0.15.76
+ruamel.yaml==0.15.96
 send2trash==1.5.0         # via notebook
 six==1.12.0               # via bleach, cryptography, docker, docker-pycreds, jsonschema, prompt-toolkit, pyrsistent, pytest, pytest-xdist, python-dateutil, responses, traitlets, websocket-client
 terminado==0.8.2          # via notebook
