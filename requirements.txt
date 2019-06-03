@@ -41,7 +41,7 @@ itsdangerous==1.1.0       # via flask
 jinja2==2.10.1
 joblib==0.13.2
 jsonschema==3.0.1         # via flask-restplus
-keras-applications==1.0.7  # via keras, tensorflow
+keras-applications==1.0.8  # via keras, tensorflow
 keras-preprocessing==1.0.9  # via keras, tensorflow
 keras==2.2.4
 kubernetes==8.0.1
