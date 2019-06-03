@@ -16,7 +16,7 @@ async-timeout==3.0.1      # via aiohttp
 attrs==19.1.0             # via aiohttp, jsonschema
 azure-datalake-store==0.0.45
 babel==2.7.0              # via sphinx
-cachetools==3.1.0
+cachetools==3.1.1
 cchardet==2.1.4
 certifi==2019.3.9         # via kubernetes, requests
 cffi==1.12.3              # via azure-datalake-store, cryptography, pycares
