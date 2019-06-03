@@ -70,7 +70,7 @@ pytz==2019.1              # via babel, flask-restplus, influxdb, pandas
 pyyaml==5.1
 recommonmark==0.5.0
 requests-oauthlib==1.2.0  # via kubernetes
-requests==2.21.0
+requests==2.22.0
 rsa==4.0                  # via google-auth
 scikit-learn==0.20.3
 scipy==1.2.1              # via keras, scikit-learn
