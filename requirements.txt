@@ -61,7 +61,7 @@ pyasn1-modules==0.2.5     # via google-auth
 pyasn1==0.4.5             # via pyasn1-modules, rsa
 pycares==3.0.0            # via aiodns
 pycparser==2.19           # via cffi
-pygments==2.3.1           # via sphinx
+pygments==2.4.2           # via sphinx
 pyjwt==1.7.1              # via adal
 pyparsing==2.4.0          # via packaging
 pyrsistent==0.15.1        # via jsonschema
