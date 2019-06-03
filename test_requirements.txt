@@ -19,7 +19,7 @@ cffi==1.12.3              # via cryptography
 chardet==3.0.4            # via requests
 click==7.0                # via black
 coverage==4.5.3           # via pytest-cov
-cryptography==2.6.1       # via adal
+cryptography==2.7       # via adal
 decorator==4.4.0          # via ipython, traitlets
 defusedxml==0.6.0         # via nbconvert
 docker-pycreds==0.4.0     # via docker
