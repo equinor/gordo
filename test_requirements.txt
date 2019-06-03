@@ -59,7 +59,7 @@ pycparser==2.19           # via cffi
 pyflakes==2.1.1           # via pytest-flakes
 pygments==2.4.2           # via ipython, jupyter-console, nbconvert, qtconsole
 pyjwt==1.7.1              # via adal
-pyrsistent==0.15.1        # via jsonschema
+pyrsistent==0.15.2        # via jsonschema
 pytest-asyncio==0.10.0
 pytest-cov==2.7.1
 pytest-flakes==4.0.0
