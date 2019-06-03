@@ -87,7 +87,7 @@ tensorflow==1.13.1
 termcolor==1.1.0          # via tensorflow
 typing-extensions==3.7.2  # via aiohttp
 typing==3.6.6             # via aiodns
-urllib3==1.24.2
+urllib3==1.25.3
 websocket-client==0.56.0  # via kubernetes
 werkzeug==0.15.2          # via flask, tensorboard
 wheel==0.33.1             # via tensorboard, tensorflow
