@@ -56,6 +56,7 @@ def pipeline_into_definition(
           whiten: false
       - gordo_components.model.models.KerasAutoEncoder:
           kind: feedforward_model
+      verbose: false
     <BLANKLINE>
     """
     steps = _decompose_node(pipeline, prune_default_params)
