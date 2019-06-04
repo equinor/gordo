@@ -24,40 +24,6 @@ from gordo_components.cli import custom_types
 from tests import utils as tu
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("session", (True, False))
-@pytest.mark.parametrize("timeout", (5, None))
-@pytest.mark.parametrize("params", ({"key": "value"}, {}))
-async def test_client_fetch_json(httpbin, session, timeout, params):
-    """
-    Test fetch_json accepts specific kwargs
-    """
-    session = aiohttp.ClientSession() if session else None
-    resp = await client_io.fetch_json(
-        f"http://{httpbin}/get", session=session, timeout=timeout, params=params
-    )
-    assert params == resp["args"]
-    if session:
-        await session.close()
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("session", (True, False))
-@pytest.mark.parametrize("timeout", (5, None))
-@pytest.mark.parametrize("json", ({"key": "value"}, {}))
-async def test_client_post_json(httpbin, session, timeout, json):
-    """
-    Test post_json accepts specific kwargs
-    """
-    session = aiohttp.ClientSession() if session else None
-    resp = await client_io.post_json(
-        f"http://{httpbin}/post", session=session, timeout=timeout, json=json
-    )
-    assert json == resp["json"]
-    if session:
-        await session.close()
-
-
 def test_client_get_metadata(watchman_service):
     """
     Test client's ability to get metadata from some target
