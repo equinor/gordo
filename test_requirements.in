@@ -16,3 +16,4 @@ tornado>=4, <6  # https://github.com/jupyter/notebook/pull/4310#issuecomment-452
 pytest-asyncio~=0.10
 asynctest~=0.12
 urllib3>=1.24.2,<2.0
+scikit-learn~=0.21
