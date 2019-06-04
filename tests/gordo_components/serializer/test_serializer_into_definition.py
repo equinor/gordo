@@ -159,11 +159,14 @@ class PipelineToConfigTestCase(unittest.TestCase):
                                 random_state:
                                 tol: 0.0
                             memory:
+                            verbose: false
                         n_jobs:
                         transformer_weights:
+                        verbose: false
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_hourglass
                 memory:
+                verbose: false
             """.rstrip()
             .strip()
             .replace(" ", "")
@@ -284,11 +287,14 @@ class PipelineToConfigTestCase(unittest.TestCase):
                                         random_state:
                                         tol: 0.0
                                     memory:
+                                    verbose: false
                                 n_jobs: 1
                                 transformer_weights:
+                                verbose: false
                             - gordo_components.model.models.{model}:
                                 kind: {model_kind}
                         memory:
+                        verbose: false
                     """
                 definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
                 pipe = pipeline_from_definition(definition)
