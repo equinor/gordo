@@ -10,22 +10,19 @@ def requirements(fp: str):
 
 
 setup(
-    author="Miles Granger",
-    author_email="milg@equinor.no",
+    author="Equinor ASA",
+    author_email="fg_gpl@equinor.com",
     classifiers=[
         "Intended Audience :: Developers",
-        "License :: OSI Approved :: Unlicense",
+        "License :: OSI Approved :: GNU Affero General Public License v3",
         "Natural Language :: English",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
     ],
     description="Train and build models for Argo / Kubernetes",
     entry_points={"console_scripts": ["gordo-components=gordo_components.cli:gordo"]},
     install_requires=requirements("requirements.in"),  # Allow flexible deps for install
-    license="Unlicense",
+    license="AGPLv3",
     name="gordo-components",
     packages=find_packages(),
     setup_requires=setup_requirements,
