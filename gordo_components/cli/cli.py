@@ -17,7 +17,11 @@ from gordo_components.data_provider.providers import (
     DataLakeProvider,
     InfluxDataProvider,
 )
-from gordo_components.serializer import load_metadata
+from gordo_components.serializer import (
+    load_metadata,
+    pipeline_into_definition,
+    pipeline_from_definition,
+)
 from gordo_components.server import server
 from gordo_components import watchman
 from gordo_components.cli.client import client as gordo_client
@@ -155,6 +159,11 @@ def build(
     model_parameter = dict(model_parameter)
     model_config = expand_model(model_config, model_parameter)
     model_config = yaml.full_load(model_config)
+
+    # Convert the config into a pipeline, and back into definition to ensure
+    # all default parameters are part of the config.
+    logger.debug(f"Ensuring the passed model config is fully expanded.")
+    model_config = pipeline_into_definition(pipeline_from_definition(model_config))
 
     model_location = provide_saved_model(
         name, model_config, data_config, metadata, output_dir, model_register_dir
