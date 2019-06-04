@@ -13,7 +13,7 @@ from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 
 from gordo_components.util import disk_registry
-from gordo_components import serializer, __version__
+from gordo_components import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
 from gordo_components.dataset.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.model.base import GordoBase
@@ -220,6 +220,8 @@ def calculate_model_key(
             "model_config": model_config,
             "data_config": data_config,
             "user-defined": metadata,
+            "gordo-major-version": MAJOR_VERSION,
+            "gordo-minor-version": MINOR_VERSION,
         },
         sort_keys=True,
         default=str,
