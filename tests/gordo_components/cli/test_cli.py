@@ -161,20 +161,32 @@ class CliTestCase(unittest.TestCase):
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=model,
             ):
+                location_file = f"{os.path.join(tmpdir, 'special-model-location.txt')}"
                 args = [
                     "build",
                     "--model-parameter",
                     f"svd_solver,{svd_solver}",
                     "--model-parameter",
                     f"n_components,{n_components}",
+                    "--model-location-file",
+                    location_file,
                 ]
-                result = self.runner.invoke(cli.gordo, args=args)
 
-            self.assertEqual(result.exit_code, 0, msg=f"Command failed: {result}")
-            self.assertTrue(
-                os.path.exists("/tmp/model-location.txt"),
-                msg='Building was supposed to create a "model-location.txt", but it did not!',
-            )
+                # Run it twice to ensure the model location in the location file
+                # is only written once and not appended.
+                for _ in range(2):
+
+                    result = self.runner.invoke(cli.gordo, args=args)
+
+                    self.assertEqual(
+                        result.exit_code, 0, msg=f"Command failed: {result}"
+                    )
+                    self.assertTrue(
+                        os.path.exists(location_file),
+                        msg=f'Building was supposed to create a model location file at "{location_file}", but it did not!',
+                    )
+                    with open(location_file, "r") as f:
+                        assert f.read() == tmpdir
 
     def test_expand_model_default_works(self):
         self.assertEquals(expand_model(DEFAULT_MODEL_CONFIG, {}), DEFAULT_MODEL_CONFIG)
