@@ -54,8 +54,8 @@ class EndpointStatuses:
         self.project_name = project_name
         self.namespace = namespace
         self.project_version = project_version
-        self.host = f"ambassador.{ambassador_namespace}"
-        # self.host = f"localhost:8000"
+        # self.host = f"ambassador.{ambassador_namespace}"
+        self.host = f"localhost:8000"
 
         self.scheduler = scheduler
         watcher = watch_for_model_server_service(
@@ -76,11 +76,11 @@ class EndpointStatuses:
         List[dict]
         """
 
-        return (es._asdict() for es in self.model_metadata.values())
+        return [es._asdict() for es in self.model_metadata.values()]
 
     def handle_updated_model_service_event(self, event):
         target_name = event["object"].metadata.labels.get(
-            "applications.gordo.equinor.com/machine-name", None
+            "applications.gordo.equinor.com/model-name", None
         )
         event_type = event.get("type", None)
         logger.info(f"Got K8s event for model {target_name} of type {event_type}")
@@ -110,7 +110,7 @@ class EndpointStatuses:
                 )
             else:
                 logger.warning(
-                    "Got updated model-server service notification, but found no machine-name"
+                    "Got updated model-server service notification, but found no model-name"
                 )
 
     def update_model_metadata(self, target_name):
@@ -141,7 +141,7 @@ def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
     host: str
         Name of the host to query
     target: str
-        Name of the target, aka machine-name
+        Name of the target, aka model-name
     endpoint: str
         Endpoint to check. ie. /gordo/v0/test-project/test-machine
     Returns
