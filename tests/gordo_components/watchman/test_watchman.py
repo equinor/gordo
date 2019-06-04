@@ -137,11 +137,3 @@ class WatchmanTestCase(unittest.TestCase):
         )
         self.assertEqual(len(service), 1)
         self.assertEqual(service.status, 1.0)
-
-    def test_endpoint_statuses(self):
-        """
-        EndpointStatuses should start with _statuses is None, this is so
-        the watchman server knows it has yet to be updated by the scheduler
-        and will then call .update() manually itself.
-        """
-        assert server.EndpointStatuses()._statuses is None

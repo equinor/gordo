@@ -2,7 +2,6 @@
 
 import os
 import logging
-import threading
 from functools import wraps
 from typing import Iterable, Optional
 from flask import Flask, jsonify, make_response, request, current_app
@@ -31,11 +30,10 @@ class WatchmanApi(MethodView):
 
     def get(self):
 
-        n_logs = int(request.args.get("logs") or 20) if "logs" in request.args else None
 
         payload = jsonify(
             {
-                "endpoints": ENDPOINT_STATUSES.statuses(n_logs),
+                "endpoints": ENDPOINT_STATUSES.statuses(),
                 "project-name": current_app.config["PROJECT_NAME"],
             }
         )
@@ -89,6 +87,7 @@ def build_app(
         namespace=namespace,
         project_version=project_version,
         ambassador_namespace=ambassador_namespace,
+        target_names=target_names
     )
 
     # App and routes

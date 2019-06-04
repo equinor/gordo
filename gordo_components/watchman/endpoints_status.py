@@ -1,38 +1,26 @@
 # -*- coding: utf-8 -*-
-import threading
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Iterable
 from collections import namedtuple
-from concurrent.futures import ThreadPoolExecutor
 
 import apscheduler.schedulers.base
 import requests
-from flask import current_app
 
-from gordo_components.watchman.gordo_k8s_interface import (
-    Service,
-    list_model_builders,
-    ModelBuilderPod,
-    watch_service,
-)
+from gordo_components.watchman.gordo_k8s_interface import watch_service
 
 
 logger = logging.getLogger(__name__)
 
 EndpointStatus = namedtuple(
     "EndpointStatus",
-    [
-        "endpoint",
-        "target",
-        "metadata",
-        "healthy",
-        "model_builder_status",
-        "model_server_status",
-    ],
+    ["endpoint", "target", "endpoint_metadata", "healthy", "last_seen"],
 )
-ModelBuilderStatus = namedtuple("ModelBuilderStatus", "status logs")
-ModelServerStatus = namedtuple("ModelServerStatus", "status logs")
+
+
+def endpoint_url_for_model(project_name, model_name):
+    endpoint_url = f"/gordo/v0/{project_name}/{model_name}/"
+    return endpoint_url
 
 
 class EndpointStatuses:
@@ -49,10 +37,18 @@ class EndpointStatuses:
         namespace: str,
         project_version: str,
         ambassador_namespace: str,
+        target_names: Iterable[str],
     ):
-        self._lock = threading.Lock()
-        self._statuses: List[dict] = None
-        self.model_metadata: dict = {}
+        self.model_metadata: dict = {
+            target_name: EndpointStatus(
+                endpoint=endpoint_url_for_model(project_name, target_name),
+                target=target_name,
+                healthy=False,
+                endpoint_metadata=dict(),
+                last_seen=None,
+            )
+            for target_name in target_names
+        }
         self.project_name = project_name
         self.namespace = namespace
         self.project_version = project_version
@@ -69,109 +65,34 @@ class EndpointStatuses:
 
         watcher.start()
 
-    def statuses(self, n_logs: Optional[int] = None) -> List[dict]:
+    def statuses(self) -> Iterable[dict]:
         """
-        Return the current List[EndpointStatus] as a list of JSON serializable dicts
+        Return the current Iterable[EndpointStatus] as a list of JSON serializable dicts
 
         Returns
         -------
         List[dict]
         """
-        if not n_logs:
-            ret = []
-            for endpoint, metadata in self.model_metadata.items():
-                ret.append(
-                    {
-                        "endpoint": endpoint,
-                        "healthy": True,
-                        "endpoint-metadata": metadata,
-                    }
-                )
-            return ret
 
-        # Otherwise we need a 'fresh' view of the statuses to include latest logs
-        else:
-            return self._endpoints_statuses(n_logs)
-
-    @staticmethod
-    def _endpoints_statuses(n_logs: Optional[int] = None) -> List[dict]:
-
-        # Get a list of ModelBuilderPod instances and map to target names
-        if n_logs is not None:
-            builders = list_model_builders(
-                namespace=current_app.config["NAMESPACE"],
-                project_name=current_app.config["PROJECT_NAME"],
-                project_version=current_app.config["PROJECT_VERSION"],
-            )
-            builders = {pod.target_name: pod for pod in builders}
-        else:
-            builders = {}
-
-        with ThreadPoolExecutor(max_workers=25) as executor:
-            futures = {
-                executor.submit(
-                    _check_endpoint,
-                    host=f'ambassador.{current_app.config["AMBASSADOR_NAMESPACE"]}',
-                    namespace=current_app.config["NAMESPACE"],
-                    project_name=current_app.config["PROJECT_NAME"],
-                    target=target,
-                    endpoint=endpoint,
-                    builder_pod=builders.get(target),
-                    n_logs=n_logs,
-                ): endpoint
-                for target, endpoint in zip(
-                    current_app.config["TARGET_NAMES"], current_app.config["ENDPOINTS"]
-                )
-            }
-
-            # List of dicts: [{'endpoint': /path/to/endpoint, 'healthy': bool, 'metadata': dict, ...}]
-            status_results = []
-            for f in futures:
-
-                exception = f.exception()
-
-                if exception is not None:
-                    status_results.append(
-                        {
-                            "endpoint": futures[f],
-                            "healthy": False,
-                            "error": f"Unable to properly probe endpoint: {exception}",
-                        }
-                    )
-                else:
-                    status = f.result()  # type: EndpointStatus
-
-                    status_results.append(
-                        {
-                            "endpoint": futures[f],
-                            "healthy": status.healthy,
-                            "endpoint-metadata": status.metadata,
-                            "model-server": {
-                                "logs": status.model_server_status.logs,
-                                "status": status.model_server_status.status,
-                            },
-                            "model-builder": {
-                                "logs": status.model_builder_status.logs,
-                                "status": status.model_builder_status.status,
-                            },
-                        }
-                    )
-            return status_results
+        return (es._asdict() for es in self.model_metadata.values())
 
     def handle_updated_model_service_event(self, event):
-        model_name = event["object"].metadata.labels.get(
+        target_name = event["object"].metadata.labels.get(
             "applications.gordo.equinor.com/machine-name", None
         )
         event_type = event.get("type", None)
-        logger.info(f"Got K8s event for model {model_name} of type {event_type}")
-        job_name = f"update_model_metadata_{model_name}"
+        logger.info(f"Got K8s event for model {target_name} of type {event_type}")
+        job_name = f"update_model_metadata_{target_name}"
         if event_type == "DELETED":
-            if model_name and self.scheduler.get_job(job_name):
+            if target_name and self.scheduler.get_job(job_name):
                 logger.info(f"Removing job {job_name}")
-                del self.model_metadata[model_name]
+                if target_name in self.model_metadata:
+                    self.model_metadata[target_name] = self.model_metadata[
+                        target_name
+                    ]._replace(healthy=False, last_seen=datetime.now().isoformat())
                 self.scheduler.remove_job(job_id=job_name)
         else:
-            if model_name:
+            if target_name:
                 logger.info(f"Adding update model metadata job: {job_name}")
                 self.scheduler.add_job(
                     func=self.update_model_metadata,
@@ -181,51 +102,33 @@ class EndpointStatuses:
                     max_instances=1,
                     id=job_name,
                     next_run_time=datetime.now(),
-                    kwargs={"model_name": model_name},
+                    kwargs={"target_name": target_name},
                 )
             else:
                 logger.warning(
                     "Got updated model-server service notification, but found no machine-name"
                 )
 
-    def update_model_metadata(self, model_name):
-        endpoint_url = self.endpoint_url_for_model(model_name)
+    def update_model_metadata(self, target_name):
+        endpoint_url = endpoint_url_for_model(self.project_name, target_name)
         logger.info(f"Checking endpoint {endpoint_url}")
         endpoint = _check_endpoint(
-            host=self.host,
-            namespace=self.namespace,
-            project_name=self.project_name,
-            target=model_name,
-            endpoint=endpoint_url,
-            builder_pod=None,
-            n_logs=None,
+            host=self.host, target=target_name, endpoint=endpoint_url
         )
         if endpoint.healthy:
             logger.info(
                 f"Found healthy endpoint {endpoint_url}, saving metadata and rescheduling update job"
             )
-            job_name = f"update_model_metadata_{model_name}"
-            self.model_metadata[model_name] = endpoint
+            job_name = f"update_model_metadata_{target_name}"
+            self.model_metadata[target_name] = endpoint
             self.scheduler.reschedule_job(
                 job_id=job_name, trigger="interval", minutes=5
             )
         else:
             logger.info(f"Found that endpoint {endpoint_url} was not up yet")
 
-    def endpoint_url_for_model(self, model_name):
-        endpoint_url = f"/gordo/v0/{self.project_name}/{model_name}/"
-        return endpoint_url
 
-
-def _check_endpoint(
-    host: str,
-    namespace: str,
-    project_name: str,
-    target: str,
-    endpoint: str,
-    builder_pod: Optional[ModelBuilderPod] = None,
-    n_logs: Optional[int] = None,
-) -> EndpointStatus:
+def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
     """
     Check if a given endpoint returning metadata about it.
 
@@ -233,19 +136,10 @@ def _check_endpoint(
     ----------
     host: str
         Name of the host to query
-    namespace: str
-        Namespace k8s client should operate in.
-    project_name: str
-        The name of this project we're going to query for.
     target: str
         Name of the target, aka machine-name
     endpoint: str
         Endpoint to check. ie. /gordo/v0/test-project/test-machine
-    builder_pod: Optional[ModelBuilderPod]
-        A reference to the pod responsible for building the model for this target
-    n_logs: int
-        Number of lines worth of logs to fetch from builders and services
-
     Returns
     -------
     EndpointStatus
@@ -260,34 +154,12 @@ def _check_endpoint(
     metadata_resp_ok = metadata_resp.ok if metadata_resp else False
     metadata = metadata_resp.json() if metadata_resp_ok else dict()
 
-    # Get model builder status / logs
-    if builder_pod is not None:
-        # Get the current phase and logs of the pod responsible for model building
-        status_model_builder, logs_model_builder = (
-            builder_pod.status.phase,
-            builder_pod.logs() if n_logs is None else builder_pod.logs(n_logs),
-        )
-    else:
-        status_model_builder, logs_model_builder = None, None  # type: ignore
-
-    # Get server (a Kubernetes service) status / logs
-    if n_logs is not None:
-        service = Service(  # type: ignore
-            namespace=namespace, name=f"gordoserver-{project_name}-{target}"
-        )
-        service_status, service_logs = service.status, service.logs(n_logs)
-    else:
-        service_status, service_logs = None, None  # type: ignore
-
     return EndpointStatus(
         endpoint=endpoint,
         target=target,
-        metadata=metadata,
+        endpoint_metadata=metadata,
         healthy=metadata_resp_ok,
-        model_builder_status=ModelBuilderStatus(
-            status=status_model_builder, logs=logs_model_builder
-        ),
-        model_server_status=ModelServerStatus(status=service_status, logs=service_logs),
+        last_seen=datetime.now().isoformat(),
     )
 
 
