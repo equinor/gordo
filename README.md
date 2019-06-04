@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.com/equinor/gordo-components.svg?token=9cHSKigsoXktTGTEJsVA&branch=master)](https://travis-ci.com/equinor/gordo-components)
 [![codecov](https://codecov.io/gh/equinor/gordo-components/branch/master/graph/badge.svg)](https://codecov.io/gh/equinor/gordo-components)
+[![Documentation Status](https://readthedocs.org/projects/gordo-components/badge/?version=latest)](https://gordo-components.readthedocs.io/en/latest/?badge=latest)
 
 
 ---
