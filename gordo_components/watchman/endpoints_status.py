@@ -6,6 +6,8 @@ from collections import namedtuple
 
 import apscheduler.schedulers.base
 import requests
+import pytz
+
 
 from gordo_components.watchman.gordo_k8s_interface import watch_service
 
@@ -89,7 +91,9 @@ class EndpointStatuses:
                 if target_name in self.model_metadata:
                     self.model_metadata[target_name] = self.model_metadata[
                         target_name
-                    ]._replace(healthy=False, last_seen=datetime.now().isoformat())
+                    ]._replace(
+                        healthy=False, last_seen=datetime.now(pytz.utc).isoformat()
+                    )
                 self.scheduler.remove_job(job_id=job_name)
         else:
             if target_name:
@@ -159,7 +163,7 @@ def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
         target=target,
         endpoint_metadata=metadata,
         healthy=metadata_resp_ok,
-        last_seen=datetime.now().isoformat(),
+        last_seen=datetime.now(pytz.utc).isoformat(),
     )
 
 
