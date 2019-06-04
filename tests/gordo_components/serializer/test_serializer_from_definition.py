@@ -6,15 +6,47 @@ import yaml
 import copy
 import pydoc
 
+import pytest
+import numpy as np
+
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
+from sklearn.multioutput import MultiOutputRegressor
 
+from gordo_components import serializer
 from gordo_components.serializer import pipeline_from_definition
 import gordo_components.model.transformer_funcs.general
 from gordo_components.model.register import register_model_builder
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.mark.parametrize(
+    "definition",
+    [
+        """ 
+    sklearn.multioutput.MultiOutputRegressor:
+      estimator: sklearn.ensemble.forest.RandomForestRegressor
+    """,
+        """ 
+    sklearn.multioutput.MultiOutputRegressor:
+      estimator: 
+        sklearn.ensemble.forest.RandomForestRegressor:
+          n_estimators: 20
+    """,
+    ],
+)
+def test_load_from_definition(definition):
+    """
+    Ensure serializer can load models which take other models as parameters.
+    """
+    X, y = np.random.random((10, 10)), np.random.random((10, 2))
+    definition = yaml.load(definition, Loader=yaml.SafeLoader)
+    model = serializer.pipeline_from_definition(definition)
+    assert isinstance(model, MultiOutputRegressor)
+    model.fit(X, y)
+    model.predict(X)
 
 
 class ConfigToScikitLearnPipeTestCase(unittest.TestCase):

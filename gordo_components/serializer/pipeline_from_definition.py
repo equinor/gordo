@@ -115,6 +115,10 @@ def _build_step(
         import_str = list(step.keys())[0]
         params = step.get(import_str, dict())
 
+        # Load any possible classes in the params if this is a dict of maybe kwargs
+        if isinstance(params, dict):
+            params = _load_param_classes(params)
+
         StepClass = pydoc.locate(
             import_str
         )  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
@@ -169,3 +173,85 @@ def _build_step(
         raise ValueError(
             f"Expected step to be either a string or a dict," f"found: {type(step)}"
         )
+
+
+def _load_param_classes(params: dict):
+    """
+    Inspect the params' values and determine if any can be loaded as a class.
+    if so, update that param's key value as the instantiation of the class.
+
+    Additionally, if the value of the top level is a dict, and that dict's len(.keys()) == 1
+    AND that key can be loaded, it's assumed to be a class whose associated values
+    should be passed in as kwargs.
+
+    Parameters
+    ----------
+    params: dict
+        key value pairs of kwargs, which can have full class paths defined.
+
+    Examples
+    --------
+    >>> params = {"key1": "value1"}
+    >>> assert _load_param_classes(params) == params  # No modifications
+
+    # Load an actual model, without any kwargs
+    >>> from sklearn.ensemble import RandomForestRegressor
+    >>> params = {"base_estimator": "sklearn.ensemble.forest.RandomForestRegressor"}
+    >>> print(_load_param_classes(params))
+    {'base_estimator': RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=None,
+                          max_features='auto', max_leaf_nodes=None,
+                          min_impurity_decrease=0.0, min_impurity_split=None,
+                          min_samples_leaf=1, min_samples_split=2,
+                          min_weight_fraction_leaf=0.0, n_estimators='warn',
+                          n_jobs=None, oob_score=False, random_state=None,
+                          verbose=0, warm_start=False)}
+
+    # Load an actual model, with kwargs
+    >>> params = {"base_estimator": {"sklearn.ensemble.forest.RandomForestRegressor": {"n_estimators": 20}}}
+    >>> print(_load_param_classes(params))
+    {'base_estimator': RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=None,
+                          max_features='auto', max_leaf_nodes=None,
+                          min_impurity_decrease=0.0, min_impurity_split=None,
+                          min_samples_leaf=1, min_samples_split=2,
+                          min_weight_fraction_leaf=0.0, n_estimators=20,
+                          n_jobs=None, oob_score=False, random_state=None,
+                          verbose=0, warm_start=False)}
+
+
+    Returns
+    -------
+    dict
+        Updated params which has any possible class paths loaded up as instantiated
+        objects
+    """
+    params = copy.copy(params)
+    for key, value in params.items():
+
+        # If value is a simple string, try to load the model/class
+        if isinstance(value, str):
+            Model = pydoc.locate(value)
+            if (
+                Model is not None
+                and isinstance(Model, type)
+                and issubclass(Model, BaseEstimator)
+            ):
+
+                params[key] = Model()
+
+        # For the next bit to work, the dict must have a single key (maybe) the class path,
+        # and its value must be a dict of kwargs
+        if (
+            isinstance(value, dict)
+            and len(value.keys()) == 1
+            and isinstance(value[list(value.keys())[0]], dict)
+        ):
+            Model = pydoc.locate(list(value.keys())[0])
+            if (
+                Model is not None
+                and isinstance(Model, type)
+                and issubclass(Model, BaseEstimator)
+            ):
+                # Call this func again, incase there is nested occurances of this problem in these kwargs
+                sub_params = value[list(value.keys())[0]]
+                params[key] = Model(**_load_param_classes(sub_params))
+    return params

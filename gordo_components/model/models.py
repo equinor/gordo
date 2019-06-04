@@ -22,7 +22,6 @@ from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
 from gordo_components.model.base import GordoBase
 
-
 # This is required to run `register_model_builder` against registered factories
 from gordo_components.model.factories import *  # pragma: no flakes
 
