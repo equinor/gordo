@@ -111,7 +111,7 @@ class GordoBaseDataset:
             logging.debug(series.head(3))
             logging.debug(series.tail(3))
 
-            resampled = series.resample(resolution).mean()
+            resampled = series.resample(resolution, label="left").mean()
             filled = resampled.fillna(method="ffill")
             resampled_series.append(filled)
 
