@@ -88,6 +88,15 @@ class BaseModelView(Resource):
     def tags(self) -> typing.List[SensorTag]:
         return normalize_sensor_tags(current_app.metadata["dataset"]["tag_list"])
 
+    @property
+    def target_tags(self) -> typing.List[SensorTag]:
+        if "target_tag_list" in current_app.metadata["dataset"]:
+            return normalize_sensor_tags(
+                current_app.metadata["dataset"]["target_tag_list"]
+            )
+        else:
+            return []
+
     @staticmethod
     def _parse_iso_datetime(datetime_str: str) -> datetime:
         parsed_date = dateutil.parser.isoparse(datetime_str)  # type: ignore
@@ -283,6 +292,8 @@ class BaseModelView(Resource):
             self._data = data  # Assign the base response DF for any children to use
 
         context["tags"] = self.tags
+        context["target-tags"] = self.target_tags
+
         if data is not None:
             context["data"] = self.multi_lvl_column_dataframe_to_dict(data)
         return make_response((jsonify(context), context.pop("status-code", 200)))
