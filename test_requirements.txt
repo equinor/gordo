@@ -33,6 +33,7 @@ ipython==7.5.0            # via ipykernel, ipywidgets, jupyter-console
 ipywidgets==7.4.2         # via jupyter
 jedi==0.13.3              # via ipython
 jinja2==2.10.1            # via nbconvert, notebook
+joblib==0.13.2            # via scikit-learn
 jsonschema==3.0.1         # via nbformat
 jupyter-client==5.2.4     # via ipykernel, jupyter-console, notebook, qtconsole
 jupyter-console==6.0.0    # via jupyter
@@ -46,6 +47,7 @@ mypy==0.701               # via pytest-mypy
 nbconvert==5.5.0
 nbformat==4.4.0           # via ipywidgets, nbconvert, notebook
 notebook==5.7.8
+numpy==1.16.4             # via scikit-learn, scipy
 packaging==19.0           # via pytest
 pandocfilters==1.4.2      # via nbconvert
 parso==0.4.0              # via jedi
@@ -76,6 +78,8 @@ qtconsole==4.5.1          # via jupyter
 requests==2.22.0          # via adal, docker, responses
 responses==0.10.6
 ruamel.yaml==0.15.96
+scikit-learn==0.21.2
+scipy==1.3.0              # via scikit-learn
 send2trash==1.5.0         # via notebook
 six==1.12.0               # via bleach, cryptography, docker, jsonschema, packaging, prompt-toolkit, pyrsistent, pytest, pytest-xdist, python-dateutil, responses, traitlets, websocket-client
 terminado==0.8.2          # via notebook
