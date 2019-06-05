@@ -25,6 +25,14 @@ def endpoint_url_for_model(project_name, model_name):
     return endpoint_url
 
 
+def rename_underscored_keys_to_dashes(d: dict):
+    """Renames keys like `endpoint_metadata` to `endpoint-metadata`"""
+    for k in d.copy().keys():
+        if "_" in k:
+            d[k.replace("_", "-")] = d.pop(k)
+    return d
+
+
 class EndpointStatuses:
     """
     Represents a thread-safe interface to getting endpoint metadata / statuses
@@ -76,7 +84,11 @@ class EndpointStatuses:
         List[dict]
         """
 
-        return [es._asdict() for es in self.model_metadata.values()]
+        return [
+            # Renames endpoint_metadata and last_seen to dashed versions
+            rename_underscored_keys_to_dashes(es._asdict())
+            for es in self.model_metadata.values()
+        ]
 
     def handle_updated_model_service_event(self, event):
         target_name = event["object"].metadata.labels.get(
@@ -152,7 +164,10 @@ def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
     endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
     base_url = f'http://{host}/{endpoint.rstrip("/")}'
     try:
-        metadata_resp = requests.get(f"{base_url}/metadata", timeout=2)
+        metadata_url = f"{base_url}/metadata"
+        logger.info(f"Trying to fetch metadata from url {metadata_url}")
+        metadata_resp = requests.get(metadata_url, timeout=2)
+        logger.info(f"Url {metadata_url} gave exit code: {metadata_resp.status_code}")
     except requests.exceptions.RequestException:
         metadata_resp = None
     metadata_resp_ok = metadata_resp.ok if metadata_resp else False

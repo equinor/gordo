@@ -30,7 +30,6 @@ class WatchmanApi(MethodView):
 
     def get(self):
 
-
         payload = jsonify(
             {
                 "endpoints": ENDPOINT_STATUSES.statuses(),
@@ -38,7 +37,7 @@ class WatchmanApi(MethodView):
             }
         )
         resp = make_response(payload, 200)
-        resp.headers["Cache-Control"] = "max-age=0"
+        resp.headers["Cache-Control"] = "max-age=5"
         return resp
 
 
@@ -87,7 +86,7 @@ def build_app(
         namespace=namespace,
         project_version=project_version,
         ambassador_namespace=ambassador_namespace,
-        target_names=target_names
+        target_names=target_names,
     )
 
     # App and routes

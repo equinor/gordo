@@ -103,37 +103,3 @@ class WatchmanTestCase(unittest.TestCase):
             self.assertTrue(actual["healthy"])
             self.assertTrue("endpoint-metadata" in actual)
             self.assertTrue(isinstance(actual["endpoint-metadata"], dict))
-
-    @mocked_kubernetes()
-    def test_gordo_k8s_workflow(self, *_args):
-        """
-        Test we can construct a workflow representation for Watchman to use
-        """
-        from gordo_components.watchman.gordo_k8s_interface import list_model_builders
-
-        model_builders = list_model_builders(
-            namespace="default", project_name="gordo-test", project_version="1"
-        )
-
-        self.assertEqual(len(model_builders), 1)
-
-        self.assertTrue(
-            "test-machine-name" in (pod.target_name for pod in model_builders)
-        )
-        self.assertTrue(all(pod.is_healthy for pod in model_builders))
-        self.assertTrue(
-            "gordo-test-pod-name-1234" in (pod.name for pod in model_builders)
-        )
-
-    @mocked_kubernetes()
-    def test_gordo_k8s_service(self, *_args):
-        """
-        Test we can construct a service representation for Watchman to use
-        """
-        from gordo_components.watchman.gordo_k8s_interface import Service
-
-        service = Service(
-            namespace="default", name="gordoserver-gordo-test-test-machine-name"
-        )
-        self.assertEqual(len(service), 1)
-        self.assertEqual(service.status, 1.0)
