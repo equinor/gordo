@@ -68,9 +68,11 @@ class ModelBuilderTestCase(unittest.TestCase):
             )
 
     def test_model_builder_model_withouth_pipeline(self):
+
+        # MinMax is only a transformer and does not have a score either.
         raw_model_config = """
-        sklearn.decomposition.pca.PCA:
-            svd_solver: auto
+        sklearn.preprocessing.data.MinMaxScaler:
+            feature_range: [-1, 1]
         """
 
         model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
@@ -158,9 +160,13 @@ class ModelBuilderTestCase(unittest.TestCase):
         self.assertTrue("model" in metadata)
         self.assertTrue("cross-validation" in metadata["model"])
         self.assertTrue("scores" in metadata["model"]["cross-validation"])
-        self.assertTrue(
-            "explained-variance" in metadata["model"]["cross-validation"]["scores"]
-        )
+
+        # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
+        # doesn't implement a .score()
+        if metadata["model"]["cross-validation"]["scores"] != dict():
+            self.assertTrue(
+                "explained-variance" in metadata["model"]["cross-validation"]["scores"]
+            )
         if check_history:
             self.assertTrue("history" in metadata["model"])
             self.assertTrue("params" in metadata["model"]["history"])

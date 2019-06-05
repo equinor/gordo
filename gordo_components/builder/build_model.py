@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Dict, Any
 
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
@@ -72,7 +72,23 @@ def build_model(
     # Cross validate
     logger.debug(f"Starting to do cross validation")
     start = time.time()
-    cv_scores = cross_val_score(model, X, y, cv=TimeSeriesSplit(n_splits=3))
+
+    scores: Dict[str, Any]
+    if hasattr(model, "score"):
+        cv_scores = cross_val_score(model, X, y, cv=TimeSeriesSplit(n_splits=3))
+        scores = {
+            "explained-variance": {
+                "mean": cv_scores.mean(),
+                "std": cv_scores.std(),
+                "max": cv_scores.max(),
+                "min": cv_scores.min(),
+                "raw-scores": cv_scores.tolist(),
+            }
+        }
+    else:
+        logger.debug("Unable to score model, has no attribute 'score'.")
+        scores = dict()
+
     cv_duration_sec = time.time() - start
 
     # Train
@@ -91,18 +107,7 @@ def build_model(
         "model-config": model_config,
         "data-query-duration-sec": time_elapsed_data,
         "model-training-duration-sec": time_elapsed_model,
-        "cross-validation": {
-            "cv-duration-sec": cv_duration_sec,
-            "scores": {
-                "explained-variance": {
-                    "mean": cv_scores.mean(),
-                    "std": cv_scores.std(),
-                    "max": cv_scores.max(),
-                    "min": cv_scores.min(),
-                    "raw-scores": cv_scores.tolist(),
-                }
-            },
-        },
+        "cross-validation": {"cv-duration-sec": cv_duration_sec, "scores": scores},
     }
 
     gordobase_final_step = _get_final_gordo_base_step(model)
