@@ -3,6 +3,7 @@
 import unittest
 from typing import List, Iterable, Optional
 
+import pytest
 import numpy as np
 import pandas as pd
 import dateutil.parser
@@ -194,6 +195,45 @@ class TimeSeriesDatasetTest(unittest.TestCase):
         self.assertEqual(3, len(X))
 
 
+@pytest.mark.parametrize(
+    "tag_list",
+    [
+        [SensorTag("Tag 1", None), SensorTag("Tag 2", None), SensorTag("Tag 3", None)],
+        [SensorTag("Tag 1", None)],
+    ],
+)
+@pytest.mark.parametrize(
+    "target_tag_list",
+    [
+        [SensorTag("Tag 2", None), SensorTag("Tag 1", None), SensorTag("Tag 3", None)],
+        [SensorTag("Tag 1", None)],
+        [SensorTag("Tag10", None)],
+        [],
+    ],
+)
+def test_timeseries_target_tags(tag_list, target_tag_list):
+    start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+    end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+    tsd = TimeSeriesDataset(MockDataSource(), start, end, tag_list, target_tag_list)
+    X, y = tsd.get_data()
+
+    # If we have targets, y and X should be equal length and axis=1 == N in target tag list
+    if target_tag_list:
+        assert len(X) == len(y)
+        assert y.shape[1] == len(target_tag_list)
+
+        # Ensure the order in maintained
+        assert [tag.name for tag in target_tag_list] == y.columns.tolist()
+    else:
+        assert y is None
+
+    # Features should match the tag_list
+    assert X.shape[1] == len(tag_list)
+
+    # Ensure the order in maintained
+    assert [tag.name for tag in tag_list] == X.columns.tolist()
+
+
 class MockDataSource(GordoBaseDataProvider):
     def __init__(self, **kwargs):
         pass
@@ -209,7 +249,7 @@ class MockDataSource(GordoBaseDataProvider):
         dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
         days = pd.date_range(from_ts, to_ts, freq="s")
-        tag_list_strings = [tag.name for tag in tag_list]
+        tag_list_strings = sorted([tag.name for tag in tag_list])
         for i, name in enumerate(tag_list_strings):
             series = pd.Series(
                 index=days, data=list(range(i, len(days) + i)), name=name
