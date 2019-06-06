@@ -169,6 +169,11 @@ def build(
 
     data_config["tag_list"] = tag_list
 
+    # Normalize target tag list if present
+    if "target_tag_list" in data_config:
+        target_tag_list = normalize_sensor_tags(data_config["target_tag_list"], asset)
+        data_config["target_tag_list"] = target_tag_list
+
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Raw model config: {model_config}")
     logger.info(f"Data config: {data_config}")

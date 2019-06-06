@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from typing import Tuple, List, Dict, Union
-import pandas as pd
+
+from typing import Tuple, List, Dict, Union, Optional, Iterable
 from datetime import datetime
+
+import pandas as pd
 
 from gordo_components.data_provider.providers import RandomDataProvider
 from gordo_components.dataset.base import GordoBaseDataset
@@ -22,6 +24,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         from_ts: datetime,
         to_ts: datetime,
         tag_list: List[Union[str, Dict, SensorTag]],
+        target_tag_list: Optional[List[Union[str, Dict, SensorTag]]] = None,
         resolution: str = "10T",
         row_filter: str = "",
         **_kwargs,
@@ -43,6 +46,10 @@ class TimeSeriesDataset(GordoBaseDataset):
         tag_list: List[Union[str, Dict, sensor_tag.SensorTag]]
             List of tags to include in the dataset. The elements can be strings,
             dictionaries or SensorTag namedtuples.
+        target_tag_list: Optional[List[Union[str, Dict, sensor_tag.SensorTag]]]
+            List of tags to set as the dataset y. These will be treated the same as
+            tag_list when fetching and pre-processing (resampling) but will be split
+            into the y return from ``.get_data()``
         resolution: str
             The bucket size for grouping all incoming time data (e.g. "10T").
         row_filter: str
@@ -54,6 +61,9 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.from_ts = from_ts
         self.to_ts = to_ts
         self.tag_list = normalize_sensor_tags(tag_list)
+        self.target_tag_list = (
+            normalize_sensor_tags(target_tag_list) if target_tag_list else []
+        )
         self.resolution = resolution
         self.data_provider = data_provider
         self.row_filter = row_filter
@@ -64,20 +74,31 @@ class TimeSeriesDataset(GordoBaseDataset):
                 f"information"
             )
 
-    def get_data(self) -> Tuple[pd.DataFrame, None]:
-        dataframes = self.data_provider.load_series(
-            from_ts=self.from_ts, to_ts=self.to_ts, tag_list=self.tag_list
+    def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
+
+        series_iter: Iterable[pd.Series] = self.data_provider.load_series(
+            from_ts=self.from_ts,
+            to_ts=self.to_ts,
+            tag_list=list(set(self.tag_list + self.target_tag_list)),
         )
-        X = self.join_timeseries(dataframes, self.from_ts, self.to_ts, self.resolution)
-        y = None
+        data: pd.DataFrame = self.join_timeseries(
+            series_iter, self.from_ts, self.to_ts, self.resolution
+        )
         if self.row_filter:
-            X = pandas_filter_rows(X, self.row_filter)
-        logger.info(f"First five rows of the filtered dataset are {X.head()}")
+            data = pandas_filter_rows(data, self.row_filter)
+
+        x_tag_names = [tag.name for tag in self.tag_list]
+        y_tag_names = [tag.name for tag in self.target_tag_list]
+
+        X = data[x_tag_names]
+        y = data[y_tag_names] if self.target_tag_list else None
+
         return X, y
 
     def get_metadata(self):
         metadata = {
             "tag_list": self.tag_list,
+            "target_tag_list": self.target_tag_list,
             "train_start_date": self.from_ts,
             "train_end_date": self.to_ts,
             "resolution": self.resolution,
