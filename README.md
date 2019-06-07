@@ -1,9 +1,28 @@
-# Gordo Components
 
-[![Build Status](https://travis-ci.com/equinor/gordo-components.svg?token=9cHSKigsoXktTGTEJsVA&branch=master)](https://travis-ci.com/equinor/gordo-components)
-[![codecov](https://codecov.io/gh/equinor/gordo-components/branch/master/graph/badge.svg)](https://codecov.io/gh/equinor/gordo-components)
-[![Documentation Status](https://readthedocs.org/projects/gordo-components/badge/?version=latest)](https://gordo-components.readthedocs.io/en/latest/?badge=latest)
 
+<h1 align="center">Gordo Components</h1>
+<div align="center">
+ <!-- Uncomment line below once we decided on 'logo.png' -->
+ <!--<img align="center" src="logo.png" width="250" height="250">-->
+ <br />
+ <strong>
+   Building thousands of models with timeseries data to monitor systems.
+ </strong>
+</div>
+
+<br />
+
+<div align="center">
+  <a href="https://travis-ci.com/equinor/gordo-components">
+    <img src="https://travis-ci.com/equinor/gordo-components.svg?token=9cHSKigsoXktTGTEJsVA&branch=master" alt="Build Status"/>
+  </a>
+  <a href="https://codecov.io/gh/equinor/gordo-components">
+    <img src="https://codecov.io/gh/equinor/gordo-components/branch/master/graph/badge.svg" alt="Codecov"/>
+  </a>
+  <a href="https://gordo-components.readthedocs.io/en/latest/?badge=latest">
+    <img src="https://readthedocs.org/projects/gordo-components/badge/?version=latest" alt="Documentation"/>
+  </a> 
+</div>
 
 ---
 
@@ -27,9 +46,10 @@ See our [example](./examples) notebooks for how to develop with `gordo` locally.
 ---
 
 ## Install: 
-`python setup.py install`  
-or...  
-`pip install git+https://github.com/Statoil/gordo-components.git`
+`pip install --upgrade gordo-components`  
+
+Bleeding edge:  
+`pip install git+https://github.com/equinor/gordo-components.git`
 
 ## Uninstall:
 `pip uninstall gordo-components`
