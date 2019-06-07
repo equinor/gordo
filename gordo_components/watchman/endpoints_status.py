@@ -5,6 +5,7 @@ from typing import List, Iterable
 from collections import namedtuple
 
 import apscheduler.schedulers.base
+import kubernetes
 import requests
 import pytz
 
@@ -35,8 +36,8 @@ def rename_underscored_keys_to_dashes(d: dict):
 
 class EndpointStatuses:
     """
-    Represents a thread-safe interface to getting endpoint metadata / statuses
-    for use inside of Watchman.
+    Represents a interface to getting endpoint metadata / statuses for use inside
+    of Watchman.
 
     """
 
@@ -46,7 +47,7 @@ class EndpointStatuses:
         project_name: str,
         namespace: str,
         project_version: str,
-        ambassador_namespace: str,
+        host: str,
         target_names: Iterable[str],
     ):
         self.model_metadata: dict = {
@@ -62,8 +63,7 @@ class EndpointStatuses:
         self.project_name = project_name
         self.namespace = namespace
         self.project_version = project_version
-        # self.host = f"ambassador.{ambassador_namespace}"
-        self.host = f"localhost:8000"
+        self.host = host
 
         self.scheduler = scheduler
         watcher = watch_for_model_server_service(
@@ -90,11 +90,13 @@ class EndpointStatuses:
             for es in self.model_metadata.values()
         ]
 
-    def handle_updated_model_service_event(self, event):
-        target_name = event["object"].metadata.labels.get(
+    def handle_updated_model_service_event(
+        self, event: kubernetes.client.models.v1_watch_event.V1WatchEvent
+    ):
+        target_name = event.object.metadata.labels.get(
             "applications.gordo.equinor.com/model-name", None
         )
-        event_type = event.get("type", None)
+        event_type = event.type
         logger.info(f"Got K8s event for model {target_name} of type {event_type}")
         job_name = f"update_model_metadata_{target_name}"
         if event_type == "DELETED":
@@ -122,7 +124,8 @@ class EndpointStatuses:
                 )
             else:
                 logger.warning(
-                    "Got updated model-server service notification, but found no model-name"
+                    "Got updated model-server service notification, but found no "
+                    "model-name"
                 )
 
     def update_model_metadata(self, target_name):
@@ -133,7 +136,8 @@ class EndpointStatuses:
         )
         if endpoint.healthy:
             logger.info(
-                f"Found healthy endpoint {endpoint_url}, saving metadata and rescheduling update job"
+                f"Found healthy endpoint {endpoint_url}, "
+                f"saving metadata and rescheduling update job"
             )
             job_name = f"update_model_metadata_{target_name}"
             self.model_metadata[target_name] = endpoint

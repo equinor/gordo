@@ -399,7 +399,7 @@ def run_watchman_cli(
         project_version,
         target_names,
         namespace=namespace,
-        ambassador_namespace=ambassador_namespace,
+        ambassador_host=f"ambassador.{ambassador_namespace}",
     )
 
 

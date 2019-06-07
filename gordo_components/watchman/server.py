@@ -70,7 +70,7 @@ def build_app(
     project_version: str,
     target_names: Iterable[str],
     namespace: str,
-    ambassador_namespace: Optional[str] = None,
+    ambassador_host: Optional[str] = None,
 ):
     """
     Build app and any associated routes
@@ -85,7 +85,7 @@ def build_app(
         project_name=project_name,
         namespace=namespace,
         project_version=project_version,
-        ambassador_namespace=ambassador_namespace,
+        host=ambassador_host,
         target_names=target_names,
     )
 
@@ -97,7 +97,6 @@ def build_app(
         PROJECT_VERSION=project_version,
         TARGET_NAMES=list(target_names),
         NAMESPACE=namespace,
-        AMBASSADOR_NAMESPACE=ambassador_namespace or namespace,
     )
     app.add_url_rule(rule="/healthcheck", view_func=healthcheck, methods=["GET"])
     app.add_url_rule(
@@ -118,13 +117,13 @@ def run_server(
     project_version: str,
     target_names: Iterable[str],
     namespace: str,
-    ambassador_namespace: Optional[str] = None,
+    ambassador_host: Optional[str] = None,
 ):
     app = build_app(
         project_name=project_name,
         project_version=project_version,
         target_names=target_names,
         namespace=namespace,
-        ambassador_namespace=ambassador_namespace,
+        ambassador_host=ambassador_host,
     )
     app.run(host, port, debug=debug, threaded=False)
