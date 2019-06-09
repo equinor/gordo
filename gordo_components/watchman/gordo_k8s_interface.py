@@ -43,7 +43,7 @@ class ThreadedWatcher(threading.Thread):
                         "Exception encountered while watching for event stream"
                     )
                     pass
-        except Exception as e:
+        except Exception:
             logger.exception("Got unhandled exception in k8s watching thread, exiting")
             _thread.interrupt_main()
 

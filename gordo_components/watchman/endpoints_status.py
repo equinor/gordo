@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from typing import List, Iterable
+from typing import Iterable
 from collections import namedtuple
 
 import apscheduler.schedulers.base
@@ -34,6 +34,19 @@ def rename_underscored_keys_to_dashes(d: dict):
     return d
 
 
+def model_metadata_to_response_list(model_metadata):
+    return [
+        # Renames endpoint_metadata and last_seen to dashed versions
+        rename_underscored_keys_to_dashes(es._asdict())
+        for es in model_metadata.values()
+    ]
+
+
+def job_name_for_target(target_name: str) -> str:
+    job_name = f"update_model_metadata_{target_name}"
+    return job_name
+
+
 class EndpointStatuses:
     """
     Represents a interface to getting endpoint metadata / statuses for use inside
@@ -47,8 +60,9 @@ class EndpointStatuses:
         project_name: str,
         namespace: str,
         project_version: str,
-        host: str,
+        ambassador_host: str,
         target_names: Iterable[str],
+        listen_to_kubernetes=True,
     ):
         self.model_metadata: dict = {
             target_name: EndpointStatus(
@@ -61,21 +75,22 @@ class EndpointStatuses:
             for target_name in target_names
         }
         self.project_name = project_name
-        self.namespace = namespace
-        self.project_version = project_version
-        self.host = host
-
+        self.host = ambassador_host
         self.scheduler = scheduler
-        watcher = watch_for_model_server_service(
-            namespace=self.namespace,
-            project_name=self.project_name,
-            project_version=self.project_version,
-            processor=self.handle_updated_model_service_event,
-        )
+        if listen_to_kubernetes:
+            watcher = watch_for_model_server_service(
+                namespace=namespace,
+                project_name=self.project_name,
+                project_version=project_version,
+                processor=self.handle_updated_model_service_event,
+            )
 
-        watcher.start()
+            watcher.start()
+        else:
+            for target in target_names:
+                self.update_model_metadata(target)
 
-    def statuses(self) -> Iterable[dict]:
+    def statuses(self,) -> Iterable[dict]:
         """
         Return the current Iterable[EndpointStatus] as a list of JSON serializable dicts
 
@@ -84,11 +99,7 @@ class EndpointStatuses:
         List[dict]
         """
 
-        return [
-            # Renames endpoint_metadata and last_seen to dashed versions
-            rename_underscored_keys_to_dashes(es._asdict())
-            for es in self.model_metadata.values()
-        ]
+        return model_metadata_to_response_list(self.model_metadata)
 
     def handle_updated_model_service_event(
         self, event: kubernetes.client.models.v1_watch_event.V1WatchEvent
@@ -98,8 +109,9 @@ class EndpointStatuses:
         )
         event_type = event.type
         logger.info(f"Got K8s event for model {target_name} of type {event_type}")
-        job_name = f"update_model_metadata_{target_name}"
+
         if event_type == "DELETED":
+            job_name = job_name_for_target(target_name)
             if target_name and self.scheduler.get_job(job_name):
                 logger.info(f"Removing job {job_name}")
                 if target_name in self.model_metadata:
@@ -111,44 +123,55 @@ class EndpointStatuses:
                 self.scheduler.remove_job(job_id=job_name)
         else:
             if target_name:
-                logger.info(f"Adding update model metadata job: {job_name}")
-                self.scheduler.add_job(
-                    func=self.update_model_metadata,
-                    trigger="interval",
-                    seconds=2,
-                    coalesce=True,
-                    max_instances=1,
-                    id=job_name,
-                    next_run_time=datetime.now(),
-                    kwargs={"target_name": target_name},
-                )
+                self._schedule_update_for_target(target_name)
             else:
                 logger.warning(
                     "Got updated model-server service notification, but found no "
                     "model-name"
                 )
 
+    def _schedule_update_for_target(self, target_name, seconds=2):
+        """Schedules a regular update job for the target, every `seconds`
+        seconds. If the job exists it will be updated with the new schedule,
+        and if it does not exist it will be added with next_run_time = now
+        and interval = `seconds`.
+
+        """
+        job_name = job_name_for_target(target_name)
+        logger.info(f"Adding update model metadata job: {job_name}")
+        if self.scheduler.get_job(job_name):
+            self.scheduler.reschedule_job(
+                job_id=job_name, trigger="interval", seconds=seconds
+            )
+        else:
+            self.scheduler.add_job(
+                func=self.update_model_metadata,
+                trigger="interval",
+                seconds=seconds,
+                coalesce=True,
+                max_instances=1,
+                id=job_name,
+                next_run_time=datetime.now(),
+                kwargs={"target_name": target_name},
+            )
+
     def update_model_metadata(self, target_name):
-        endpoint_url = endpoint_url_for_model(self.project_name, target_name)
-        logger.info(f"Checking endpoint {endpoint_url}")
-        endpoint = _check_endpoint(
-            host=self.host, target=target_name, endpoint=endpoint_url
+        logger.info(f"Checking target {target_name}")
+        endpoint = _check_target(
+            host=self.host, target=target_name, project_name=self.project_name
         )
         if endpoint.healthy:
             logger.info(
-                f"Found healthy endpoint {endpoint_url}, "
+                f"Found healthy target {target_name}, "
                 f"saving metadata and rescheduling update job"
             )
-            job_name = f"update_model_metadata_{target_name}"
             self.model_metadata[target_name] = endpoint
-            self.scheduler.reschedule_job(
-                job_id=job_name, trigger="interval", minutes=5
-            )
+            self._schedule_update_for_target(target_name=target_name, seconds=300)
         else:
-            logger.info(f"Found that endpoint {endpoint_url} was not up yet")
+            logger.info(f"Found that target {target_name} was not up yet")
 
 
-def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
+def _check_target(host: str, target: str, project_name: str) -> EndpointStatus:
     """
     Check if a given endpoint returning metadata about it.
 
@@ -158,15 +181,12 @@ def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
         Name of the host to query
     target: str
         Name of the target, aka model-name
-    endpoint: str
-        Endpoint to check. ie. /gordo/v0/test-project/test-machine
     Returns
     -------
     EndpointStatus
     """
-
-    endpoint = endpoint[1:] if endpoint.startswith("/") else endpoint
-    base_url = f'http://{host}/{endpoint.rstrip("/")}'
+    endpoint = endpoint_url_for_model(project_name, target).lstrip("/").rstrip("/")
+    base_url = f"http://{host}/{endpoint}"
     try:
         metadata_url = f"{base_url}/metadata"
         logger.info(f"Trying to fetch metadata from url {metadata_url}")
@@ -178,7 +198,7 @@ def _check_endpoint(host: str, target: str, endpoint: str) -> EndpointStatus:
     metadata = metadata_resp.json() if metadata_resp_ok else dict()
 
     return EndpointStatus(
-        endpoint=endpoint,
+        endpoint="/" + endpoint,
         target=target,
         endpoint_metadata=metadata,
         healthy=metadata_resp_ok,

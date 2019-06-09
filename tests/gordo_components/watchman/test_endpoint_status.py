@@ -39,7 +39,7 @@ def test_EndpointStatuses(mocker):
         project_version=project_version,
         namespace=namespace,
         project_name=project_name,
-        host=host,
+        ambassador_host=host,
         target_names=target_names,
     )
 

@@ -3,8 +3,8 @@
 import os
 import logging
 from functools import wraps
-from typing import Iterable, Optional
-from flask import Flask, jsonify, make_response, request, current_app
+from typing import Iterable
+from flask import Flask, jsonify, make_response, current_app
 from flask.views import MethodView
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -70,7 +70,8 @@ def build_app(
     project_version: str,
     target_names: Iterable[str],
     namespace: str,
-    ambassador_host: Optional[str] = None,
+    ambassador_host: str,
+    listen_to_kubernetes: bool = True,
 ):
     """
     Build app and any associated routes
@@ -85,8 +86,9 @@ def build_app(
         project_name=project_name,
         namespace=namespace,
         project_version=project_version,
-        host=ambassador_host,
+        ambassador_host=ambassador_host,
         target_names=target_names,
+        listen_to_kubernetes=listen_to_kubernetes,
     )
 
     # App and routes
@@ -117,7 +119,8 @@ def run_server(
     project_version: str,
     target_names: Iterable[str],
     namespace: str,
-    ambassador_host: Optional[str] = None,
+    ambassador_host: str,
+    listen_to_kubernetes: bool = True,
 ):
     app = build_app(
         project_name=project_name,
@@ -125,5 +128,6 @@ def run_server(
         target_names=target_names,
         namespace=namespace,
         ambassador_host=ambassador_host,
+        listen_to_kubernetes=listen_to_kubernetes,
     )
     app.run(host, port, debug=debug, threaded=False)
