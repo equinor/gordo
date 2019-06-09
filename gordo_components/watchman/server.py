@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get("WATCHMAN_LOGLEVEL", "INFO").upper())
 
 
-# Setup the scheduler to update the endpoint statuses, (fired in build_app)
+# Setup the scheduler to update the endpoint statuses
 scheduler = BackgroundScheduler()
 
 ENDPOINT_STATUSES = None  # Initialized below
@@ -34,6 +34,7 @@ class WatchmanApi(MethodView):
             {
                 "endpoints": ENDPOINT_STATUSES.statuses(),
                 "project-name": current_app.config["PROJECT_NAME"],
+                "project_version": current_app.config["PROJECT_VERSION"],
             }
         )
         resp = make_response(payload, 200)
@@ -46,7 +47,12 @@ def healthcheck():
     Return gordo version, route for Watchman server
     """
     payload = jsonify(
-        {"version": __version__, "config": current_app.config["TARGET_NAMES"]}
+        {
+            "version": __version__,
+            "config": current_app.config["TARGET_NAMES"],
+            "project-name": current_app.config["PROJECT_NAME"],
+            "project_version": current_app.config["PROJECT_VERSION"],
+        }
     )
     return payload, 200
 
@@ -77,28 +83,18 @@ def build_app(
     Build app and any associated routes
     """
 
-    endpoints = [
-        f"/gordo/v0/{project_name}/{target_name}/" for target_name in target_names
-    ]
     global ENDPOINT_STATUSES
-    ENDPOINT_STATUSES = EndpointStatuses(
-        scheduler=scheduler,
-        project_name=project_name,
-        namespace=namespace,
-        project_version=project_version,
-        ambassador_host=ambassador_host,
-        target_names=target_names,
-        listen_to_kubernetes=listen_to_kubernetes,
-    )
+    ENDPOINT_STATUSES = EndpointStatuses(scheduler=scheduler, project_name=project_name,
+                                         ambassador_host=ambassador_host, target_names=target_names,
+                                         project_version=project_version, namespace=namespace,
+                                         listen_to_kubernetes=listen_to_kubernetes)
 
     # App and routes
     app = Flask(__name__)
     app.config.update(
-        ENDPOINTS=endpoints,
         PROJECT_NAME=project_name,
         PROJECT_VERSION=project_version,
         TARGET_NAMES=list(target_names),
-        NAMESPACE=namespace,
     )
     app.add_url_rule(rule="/healthcheck", view_func=healthcheck, methods=["GET"])
     app.add_url_rule(

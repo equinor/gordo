@@ -2,7 +2,9 @@
 import _thread
 import threading
 import logging
+from typing import Callable, Dict
 
+import kubernetes
 from kubernetes import client as kubeclient, config, watch
 from kubernetes.client.rest import ApiException
 
@@ -25,7 +27,12 @@ def load_config():
 
 
 class ThreadedWatcher(threading.Thread):
-    def __init__(self, watched_function, processer, **kwargs):
+    """Thread watching for changes in kubernetes. Will restart on
+    `kubernetes.client.rest.ApiException`, other exceptions causes an interrupt of the
+    main thread.
+    """
+
+    def __init__(self, watched_function, processer: Callable, **kwargs):
         self.process_event = processer
         self.func = watched_function
         self.kwargs = kwargs
@@ -48,7 +55,12 @@ class ThreadedWatcher(threading.Thread):
             _thread.interrupt_main()
 
 
-def watch_service(processor, namespace, client=None, selectors=None):
+def watch_service(
+    processor: Callable,
+    namespace: str,
+    client: kubernetes.client.apis.core_v1_api.CoreV1Api = None,
+    selectors: Dict[str, str] = None,
+):
     """Watches services in a namespace, and executed processor for each event. Returns
     the watching thread."""
 
@@ -59,8 +71,8 @@ def watch_service(processor, namespace, client=None, selectors=None):
         client = client
     if selectors:
         return ThreadedWatcher(
-            client.list_service_for_all_namespaces,
-            processor,
+            watched_function=client.list_service_for_all_namespaces,
+            processer=processor,
             field_selector=f"metadata.namespace=={namespace}",
             label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
         )

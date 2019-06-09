@@ -34,14 +34,8 @@ def test_EndpointStatuses(mocker):
     mocked_watch = mocker.patch(
         "gordo_components.watchman.endpoints_status.watch_for_model_server_service"
     )
-    eps = EndpointStatuses(
-        scheduler=scheduler,
-        project_version=project_version,
-        namespace=namespace,
-        project_name=project_name,
-        ambassador_host=host,
-        target_names=target_names,
-    )
+    eps = EndpointStatuses(scheduler=scheduler, project_name=project_name, ambassador_host=host,
+                           target_names=target_names, project_version=project_version, namespace=namespace)
 
     assert namespace == mocked_watch.call_args[1]["namespace"]
     assert project_name == mocked_watch.call_args[1]["project_name"]
