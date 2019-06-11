@@ -163,6 +163,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
             Parameters used in this estimator
         """
         params = super().get_params(**params)
+        params.pop("build_fn", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
         return params
