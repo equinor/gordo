@@ -2,10 +2,10 @@
 
 import inspect
 import logging
-from typing import Iterable, Dict, Union, List  # pragma: no flakes
+from typing import Iterable, Dict, Union, List, Any  # pragma: no flakes
 
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.base import BaseEstimator
+from sklearn.pipeline import Pipeline
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ def pipeline_into_definition(
     return steps
 
 
-def _decompose_node(step: object, prune_default_params: bool = False):
+def _decompose_node(step: BaseEstimator, prune_default_params: bool = False):
     """
     Decompose a specific instance of a scikit-learn transformer,
     including Pipelines or FeatureUnions
@@ -84,34 +84,27 @@ def _decompose_node(step: object, prune_default_params: bool = False):
     """
 
     import_str = f"{step.__module__}.{step.__class__.__name__}"
-    init_params = inspect.getfullargspec(step.__class__.__init__).args
+    params = step.get_params(deep=False)
 
-    params = (
-        dict()
-    )  # type: Dict[str, Union[str, int, float, List[Dict[str, Dict[str, Union[str, int, float]]]]]]
+    for param, param_val in params.items():
 
-    for param in [p for p in init_params if p != "self"]:
+        if hasattr(param_val, "get_params"):
+            params[param] = _decompose_node(param_val)
 
-        # Can be a parameter (n_components=2) or another branch of the
-        # pipeline/feature union, (steps=[{'sklearn.decomposition.PCA': {...}}, ..])
-        param_val = getattr(step, param)
+        # Handle parameter value that is a list
+        elif isinstance(param_val, list):
 
-        # If the current step is an instance of FeatureUnion or Pipeline,
-        # We'll need to decompose the sub transformers for it if it's for the
-        # 'steps' input for Pipeline or 'transformer_list' for FeatureUnion
-        if (
-            isinstance(param_val, Iterable)
-            and param in ["steps", "transformer_list"]
-            and any(isinstance(step, Obj) for Obj in [FeatureUnion, Pipeline])
-        ):
-            params[param] = [_decompose_node(leaf[1]) for leaf in param_val]
+            # Decompose second elements; these are tuples of (str, BaseEstimator)
+            # or list of other types such as ints.
+            # TODO: Make this more robust, probably via another function to parse the iterable recursively
+            # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
+            params[param] = [
+                _decompose_node(leaf[1]) if isinstance(leaf, tuple) else leaf
+                for leaf in param_val
+            ]
 
         # Handle FunctionTransformer function object type parameters
-        elif (
-            isinstance(step, FunctionTransformer)
-            and param in ["func", "inverse_func"]
-            and callable(param_val)
-        ):
+        elif callable(param_val):
             # param_val is a function for FunctionTransformer.func init param
             params[param] = f"{param_val.__module__}.{param_val.__name__}"
 

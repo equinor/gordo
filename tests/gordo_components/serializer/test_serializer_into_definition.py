@@ -126,46 +126,46 @@ class PipelineToConfigTestCase(unittest.TestCase):
         expected_definition = (
             """
             sklearn.pipeline.Pipeline:
+              memory:
                 steps:
                     - sklearn.decomposition.pca.PCA:
-                        n_components: 2
                         copy: true
-                        whiten: false
+                        iterated_power: auto
+                        n_components: 2
+                        random_state:
                         svd_solver: auto
                         tol: 0.0
-                        iterated_power: auto
-                        random_state:
+                        whiten: false
                     - sklearn.pipeline.FeatureUnion:
+                        n_jobs:
                         transformer_list:
                         - sklearn.decomposition.pca.PCA:
-                            n_components: 3
                             copy: true
-                            whiten: false
+                            iterated_power: auto
+                            n_components: 3
+                            random_state:
                             svd_solver: auto
                             tol: 0.0
-                            iterated_power: auto
-                            random_state:
+                            whiten: false
                         - sklearn.pipeline.Pipeline:
+                            memory:
                             steps:
                             - sklearn.preprocessing.data.MinMaxScaler:
-                                feature_range:
-                                - 0
-                                - 1
                                 copy: true
+                                feature_range:
+                                  - 0
+                                  - 1
                             - sklearn.decomposition.truncated_svd.TruncatedSVD:
-                                n_components: 2
                                 algorithm: randomized
+                                n_components: 2
                                 n_iter: 5
                                 random_state:
                                 tol: 0.0
-                            memory:
                             verbose: false
-                        n_jobs:
                         transformer_weights:
                         verbose: false
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_hourglass
-                memory:
                 verbose: false
             """.rstrip()
             .strip()
@@ -299,3 +299,22 @@ class PipelineToConfigTestCase(unittest.TestCase):
                 definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
                 pipe = pipeline_from_definition(definition)
                 pipeline_into_definition(pipe)
+
+
+def test_captures_kwarg_to_init():
+    """
+    Our models allow kwargs which are put into the underlying keras model or to construct
+    the underlying model.
+    We want to ensure into defintion captures kwargs which are part of the model
+    parameters but not part of the __init__ signature
+    """
+    ae = KerasAutoEncoder(kind="feedforward_hourglass", some_fancy_param="Howdy!")
+    definition = pipeline_into_definition(ae)
+    parameters = definition[
+        f"{KerasAutoEncoder.__module__}.{KerasAutoEncoder.__name__}"
+    ]
+    assert "some_fancy_param" in parameters
+    assert parameters["some_fancy_param"] == "Howdy!"
+
+    # And make sure we can init again
+    KerasAutoEncoder(**parameters)
