@@ -113,3 +113,12 @@ def test_influx_dataset_attrs(influxdb):
 
     metadata = dataset.get_metadata()
     assert isinstance(metadata, dict)
+
+
+def test_influx_load_series_dry_run_raises():
+    ds = InfluxDataProvider(measurement="sensors", value_name="Value", client=None)
+    from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
+    to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
+    tag_list = tu.SENSORTAG_LIST
+    with pytest.raises(NotImplementedError):
+        ds.load_series(from_ts=from_ts, to_ts=to_ts, tag_list=tag_list, dry_run=True)

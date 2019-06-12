@@ -17,7 +17,11 @@ class MockProducerRegExp(GordoBaseDataProvider):
         return self.regexp.match(tag.name)
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: List[SensorTag],
+        dry_run=False,
     ) -> Iterable[pd.Series]:
         for tag in tag_list:
             if self.regexp.match(tag.name):

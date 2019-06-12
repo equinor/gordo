@@ -6,7 +6,7 @@ import functools
 import inspect
 
 from datetime import datetime
-from typing import Iterable, List, Callable
+from typing import Iterable, List, Callable, Optional
 
 import pandas as pd
 
@@ -52,7 +52,11 @@ def capture_args(method: Callable):
 class GordoBaseDataProvider(object):
     @abc.abstractmethod
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: List[SensorTag],
+        dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
         """
         Load the required data as an iterable of series where each
@@ -60,10 +64,15 @@ class GordoBaseDataProvider(object):
 
         Parameters
         ----------
-        from_ts: datetime - Datetime object representing the start of fetching data
-        to_ts: datetime - Datetime object representing the end of fetching data
-        tag_list: List[SensorTag] - List of tags to fetch,
-                  where each will end up being its own dataframe
+        from_ts: datetime
+            Datetime object representing the start of fetching data
+        to_ts: datetime
+            Datetime object representing the end of fetching data
+        tag_list: List[SensorTag]
+            List of tags to fetch, where each will end up being its own dataframe
+        dry_run: Optional[bool]
+            Set to true to perform a "dry run" of the loading.
+            Up to the implementations to determine what that means.
 
         Returns
         -------

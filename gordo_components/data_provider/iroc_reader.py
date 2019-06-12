@@ -3,7 +3,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from dateutil import tz
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 import pandas as pd
 from azure.datalake.store import core
@@ -37,12 +37,14 @@ class IrocReader(GordoBaseDataProvider):
         from_ts: datetime,
         to_ts: datetime,
         tag_list: List[SensorTag],
+        dry_run: Optional[bool] = False,
         base_path="raw/plant/uon/cygnet/ninenine/history",
     ):
         """
         See GordoBaseDataProvider for documentation
         """
-
+        if dry_run:
+            raise NotImplementedError("Dry run for IrocReader is not implemented")
         if not tag_list:
             logger.warning("Iroc reader called with empty tag_list, returning none")
             return
