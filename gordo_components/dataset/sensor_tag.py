@@ -11,14 +11,14 @@ SensorTag = namedtuple("SensorTag", ["name", "asset"])
 TagPatternToAsset = namedtuple("TagToAsset", ["tag_regexp", "asset_name"])
 
 TAG_TO_ASSET = [
-    TagPatternToAsset(re.compile(r"^asgb."), "1191-asgb"),
-    TagPatternToAsset(re.compile(r"^gra."), "1755-gra"),
-    TagPatternToAsset(re.compile(r"^1125."), "1125-kvb"),
-    TagPatternToAsset(re.compile(r"^trb."), "1775-trob"),
-    TagPatternToAsset(re.compile(r"^trc."), "1776-troc"),
-    TagPatternToAsset(re.compile(r"^tra."), "1130-troa"),
-    TagPatternToAsset(re.compile(r"^1218."), "1218-gkr"),
-    TagPatternToAsset(re.compile(r"^ninenine.+::.+"), "ninenine"),
+    TagPatternToAsset(re.compile(r"^asgb.", re.IGNORECASE), "1191-asgb"),
+    TagPatternToAsset(re.compile(r"^gra.", re.IGNORECASE), "1755-gra"),
+    TagPatternToAsset(re.compile(r"^1125.", re.IGNORECASE), "1125-kvb"),
+    TagPatternToAsset(re.compile(r"^trb.", re.IGNORECASE), "1775-trob"),
+    TagPatternToAsset(re.compile(r"^trc.", re.IGNORECASE), "1776-troc"),
+    TagPatternToAsset(re.compile(r"^tra.", re.IGNORECASE), "1130-troa"),
+    TagPatternToAsset(re.compile(r"^1218.", re.IGNORECASE), "1218-gkr"),
+    TagPatternToAsset(re.compile(r"^ninenine.+::.+", re.IGNORECASE), "ninenine"),
 ]
 
 
@@ -27,8 +27,6 @@ def _asset_from_tag_name(tag_name: str):
     Resolves a tag to the asset it belongs to, if possible.
     Returns None if it does not match any of the tag-regexps we know.
     """
-
-    tag_name = tag_name.lower()
     logger.debug(f"Looking for pattern for tag {tag_name}")
 
     for pattern in TAG_TO_ASSET:

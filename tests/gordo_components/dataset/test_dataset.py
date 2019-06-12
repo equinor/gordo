@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from typing import List, Iterable
+from typing import List, Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -202,7 +202,11 @@ class MockDataSource(GordoBaseDataProvider):
         return True
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: List[SensorTag],
+        dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
         days = pd.date_range(from_ts, to_ts, freq="s")
         tag_list_strings = [tag.name for tag in tag_list]

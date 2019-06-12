@@ -50,7 +50,11 @@ class NcsReader(GordoBaseDataProvider):
         return NcsReader.base_path_from_asset(tag.asset) is not None
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: List[SensorTag],
+        dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
@@ -69,6 +73,7 @@ class NcsReader(GordoBaseDataProvider):
                     adls_file_system_client=adls_file_system_client,
                     tag=tag,
                     years=years,
+                    dry_run=dry_run,
                 ),
                 tag_list,
             )
@@ -82,7 +87,10 @@ class NcsReader(GordoBaseDataProvider):
 
     @staticmethod
     def read_tag_files(
-        adls_file_system_client: core.AzureDLFileSystem, tag: SensorTag, years: range
+        adls_file_system_client: core.AzureDLFileSystem,
+        tag: SensorTag,
+        years: range,
+        dry_run: Optional[bool] = False,
     ) -> pd.Series:
         """
         Download tag files for the given years into dataframes,
@@ -96,6 +104,8 @@ class NcsReader(GordoBaseDataProvider):
             the tag to download data for
         years: range
             range object providing years to include
+        dry_run: bool
+            if True, don't download data, just check info, log, and return
 
         Returns
         -------
@@ -116,6 +126,9 @@ class NcsReader(GordoBaseDataProvider):
             info = adls_file_system_client.info(file_path)
             file_size = info.get("length") / (1024 ** 2)
             logger.info(f"File size: {file_size:.2f}MB")
+            if dry_run:
+                logger.info("Dry run only, returning empty frame early")
+                return pd.DataFrame()
 
             with adls_file_system_client.open(file_path, "rb") as f:
                 df = pd.read_csv(
