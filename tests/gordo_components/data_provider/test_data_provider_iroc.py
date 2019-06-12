@@ -192,3 +192,16 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         )
         # We get one dataframe per tag, so 3
         self.assertEqual(3, len(res))
+
+    def test_load_series_dry_run_raises(self):
+        iroc_reader = IrocReader(client=None)
+
+        with self.assertRaises(NotImplementedError):
+            list(
+                iroc_reader.load_series(
+                    from_ts=isoparse("2018-05-02T01:56:00+02:00"),
+                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    tag_list=IROC_HAPPY_TAG_LIST,
+                    dry_run=True,
+                )
+            )

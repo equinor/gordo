@@ -28,6 +28,7 @@ def load_series_from_multiple_providers(
     from_ts: datetime,
     to_ts: datetime,
     tag_list: typing.List[SensorTag],
+    dry_run: typing.Optional[bool] = False,
 ) -> typing.Iterable[pd.DataFrame]:
     """
     Loads the tags in `tag_list` using multiple instances of
@@ -63,7 +64,7 @@ def load_series_from_multiple_providers(
         if readers_tags:
             logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
             for series in tag_reader.load_series(
-                from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
+                from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags, dry_run=dry_run
             ):
                 yield series
     logger.debug(
@@ -124,7 +125,11 @@ class DataLakeProvider(GordoBaseDataProvider):
         self.client = None
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: typing.List[SensorTag],
+        dry_run: typing.Optional[bool] = False,
     ) -> typing.Iterable[pd.Series]:
         """
         See
@@ -140,7 +145,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         data_providers = self._get_sub_dataproviders()
 
         yield from load_series_from_multiple_providers(
-            data_providers, from_ts, to_ts, tag_list
+            data_providers, from_ts, to_ts, tag_list, dry_run
         )
 
     def _get_client(self):
@@ -224,11 +229,19 @@ class InfluxDataProvider(GordoBaseDataProvider):
                     self.influx_client._headers[api_key_header] = api_key
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: typing.List[SensorTag],
+        dry_run: typing.Optional[bool] = False,
     ) -> typing.Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
         """
+        if dry_run:
+            raise NotImplementedError(
+                "Dry run for InfluxDataProvider is not implemented"
+            )
         return (
             self.read_single_sensor(
                 from_ts=from_ts, to_ts=to_ts, tag=tag.name, measurement=self.measurement
@@ -339,8 +352,16 @@ class RandomDataProvider(GordoBaseDataProvider):
         )
 
     def load_series(
-        self, from_ts: datetime, to_ts: datetime, tag_list: typing.List[SensorTag]
+        self,
+        from_ts: datetime,
+        to_ts: datetime,
+        tag_list: typing.List[SensorTag],
+        dry_run: typing.Optional[bool] = False,
     ) -> typing.Iterable[pd.Series]:
+        if dry_run:
+            raise NotImplementedError(
+                "Dry run for RandomDataProvider is not implemented"
+            )
         for tag in tag_list:
             nr = random.randint(self.min_size, self.max_size)
 

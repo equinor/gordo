@@ -92,6 +92,20 @@ def test_load_series_need_asset_hint(dates, ncs_reader):
 def test_load_series_known_prefix(dates, ncs_reader):
     valid_tag_list_no_asset = normalize_sensor_tags(["TRC-123", "TRC-321"])
     for frame in ncs_reader.load_series(dates[0], dates[1], valid_tag_list_no_asset):
-        assert len(frame), 20
-    for frame in ncs_reader.load_series(dates[0], dates[1], valid_tag_list_no_asset):
-        assert len(frame), 20
+        assert len(frame) == 20
+
+
+@patch(
+    "gordo_components.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
+    {
+        "1776-troc": os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
+        )
+    },
+)
+def test_load_series_dry_run(dates, ncs_reader):
+    valid_tag_list_no_asset = normalize_sensor_tags(["TRC-123", "TRC-321"])
+    for frame in ncs_reader.load_series(
+        dates[0], dates[1], valid_tag_list_no_asset, dry_run=True
+    ):
+        assert len(frame) == 0
