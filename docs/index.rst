@@ -19,6 +19,7 @@ and deployed as a REST API on Kubernetes.
 
     ./general/quickstart.rst
     ./general/architecture.rst
+    ./general/endpoints.rst
 
 .. toctree::
     :maxdepth: 4
