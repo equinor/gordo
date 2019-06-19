@@ -387,7 +387,13 @@ class Client:
                 )
 
             # If it was an IO or TimeoutError, we can retry
-            except (IOError, TimeoutError, FutureTimeoutError, BadRequest) as exc:
+            except (
+                IOError,
+                TimeoutError,
+                FutureTimeoutError,
+                BadRequest,
+                aiohttp.ClientError,
+            ) as exc:
                 if i <= self.n_retries:
                     logger.warning(
                         f"Failed to get response on attempt {i} out of {self.n_retries} attempts."
