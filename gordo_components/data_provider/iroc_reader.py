@@ -2,6 +2,7 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from dateutil import tz
 from typing import Iterable, List
 
 import pandas as pd
@@ -57,8 +58,8 @@ class IrocReader(GordoBaseDataProvider):
         all_base_paths = (
             f"{base_path}/{t.year:0>4d}/{t.month:0>2d}/{t.day:0>2d}/"
             for t in pd.date_range(
-                start=from_ts - pd.Timedelta("1D"),
-                end=to_ts + pd.Timedelta("1D"),
+                start=from_ts.astimezone(tz.tzutc()) - pd.Timedelta("1D"),
+                end=to_ts.astimezone(tz.tzutc()) + pd.Timedelta("1D"),
                 freq="D",
             )
         )
