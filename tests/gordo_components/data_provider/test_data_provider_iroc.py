@@ -167,3 +167,28 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         )
         # We get one dataframe per tag, so 3
         self.assertEqual(3, len(res))
+
+    @mock.patch.object(
+        IrocReader,
+        "_fetch_all_iroc_files_from_paths",
+        side_effect=lambda all_base_paths, from_ts, to_ts, tag_list: [
+            read_iroc_file(
+                file_obj=StringIO(IROC_HAPPY_PATH_CSV),
+                from_ts=from_ts,
+                to_ts=to_ts,
+                tag_list=tag_list,
+            )
+        ],
+    )
+    def test_load_series_happy_path_different_timezones(self, _mocked_method):
+        """Happy-path testing of load_dataframe"""
+        iroc_reader = IrocReader(client=None, threads=1)
+        res = list(
+            iroc_reader.load_series(
+                from_ts=isoparse("2018-05-02T01:56:00+02:00"),
+                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                tag_list=IROC_HAPPY_TAG_LIST,
+            )
+        )
+        # We get one dataframe per tag, so 3
+        self.assertEqual(3, len(res))
