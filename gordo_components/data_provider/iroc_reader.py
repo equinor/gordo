@@ -29,6 +29,8 @@ class IrocReader(GordoBaseDataProvider):
         super().__init__(**kwargs)
         self.client = client
         self.threads = threads
+        if self.threads is None:
+            self.threads = 50
 
     def load_series(
         self,

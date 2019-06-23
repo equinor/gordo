@@ -95,6 +95,13 @@ DEFAULT_MODEL_CONFIG = (
     type=click.File(mode="w", lazy=False),
     default="/tmp/model-location.txt",
 )
+@click.option(
+    "--data-provider-threads",
+    help="Number of threads to use for the data provider when fetching data",
+    envvar="DATA_PROVIDER_THREADS",
+    type=int,
+    default=1,
+)
 def build(
     name,
     output_dir,
@@ -105,6 +112,7 @@ def build(
     print_cv_scores,
     model_parameter,
     model_location_file,
+    data_provider_threads,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -137,7 +145,8 @@ def build(
         config wherever there is a jinja variable with the key.
     model_location_file: str/path
         Path to a file to open and write the location of the serialized model to.
-
+    data_provider_threads: int
+        Number of threads to use for the data provider when fetching data.
     """
 
     # TODO: Move all data related input from environment variable to data_config,
@@ -154,7 +163,7 @@ def build(
     data_config["to_ts"] = dateutil.parser.isoparse(data_config.pop("train_end_date"))
 
     # Set default data provider for data config
-    data_config["data_provider"] = DataLakeProvider()
+    data_config["data_provider"] = DataLakeProvider(threads=data_provider_threads)
     asset = data_config.get("asset", None)
     tag_list = normalize_sensor_tags(data_config["tag_list"], asset)
 

@@ -49,7 +49,12 @@ def client(ctx: click.Context, *args, **kwargs):
 @click.command("predict")
 @click.argument("start", type=IsoFormatDateTime())
 @click.argument("end", type=IsoFormatDateTime())
-@click.option("--data-provider", type=DataProviderParam(), help="DataProvider dict")
+@click.option(
+    "--data-provider",
+    type=DataProviderParam(),
+    help="DataProvider dict. Must contain a 'type' key with the name of a DataProvider "
+    "as  value. If it does not contains a 'threads' key, 1 will be used ",
+)
 @click.option(
     "--output-dir",
     type=click.Path(exists=True),

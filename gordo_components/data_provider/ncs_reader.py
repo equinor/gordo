@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,14 +26,22 @@ class NcsReader(GordoBaseDataProvider):
         "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",
     }
 
-    def __init__(self, client: core.AzureDLFileSystem, **kwargs):
+    def __init__(
+        self, client: core.AzureDLFileSystem, threads: Optional[int] = None, **kwargs
+    ):
         """
         Creates a reader for tags from the Norwegian Continental Shelf. Currently
         only supports a small subset of assets.
 
+        Parameters
+        ----------
+        threads : Optional[int]
+            Number of threads to use. If None then use # of CPU's * 5
+
         """
         super().__init__(**kwargs)
         self.client = client
+        self.threads = threads
 
     def can_handle_tag(self, tag: SensorTag):
         """
@@ -54,17 +63,22 @@ class NcsReader(GordoBaseDataProvider):
 
         years = range(from_ts.year, to_ts.year + 1)
 
-        for tag in tag_list:
-            logger.info(f"Processing tag {tag.name}")
-
-            tag_frame_all_years = self.read_tag_files(
-                adls_file_system_client, tag, years
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            fetched_tags = executor.map(
+                lambda tag: self.read_tag_files(
+                    adls_file_system_client=adls_file_system_client,
+                    tag=tag,
+                    years=years,
+                ),
+                tag_list,
             )
-            filtered = tag_frame_all_years[
-                (tag_frame_all_years.index >= from_ts)
-                & (tag_frame_all_years.index < to_ts)
-            ]
-            yield filtered
+
+            for tag_frame_all_years in fetched_tags:
+                filtered = tag_frame_all_years[
+                    (tag_frame_all_years.index >= from_ts)
+                    & (tag_frame_all_years.index < to_ts)
+                ]
+                yield filtered
 
     @staticmethod
     def read_tag_files(
@@ -93,6 +107,7 @@ class NcsReader(GordoBaseDataProvider):
         if not tag_base_path:
             raise ValueError(f"Unable to find base path from tag {tag} ")
         all_years = []
+        logger.info(f"Downloading tag: {tag} for years: {years}")
 
         for year in years:
             file_path = tag_base_path + f"/{tag.name}/{tag.name}_{year}.csv"
