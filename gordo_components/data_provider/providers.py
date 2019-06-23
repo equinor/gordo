@@ -2,6 +2,7 @@
 import os
 import random
 import logging
+import timeit
 
 from datetime import datetime
 import typing
@@ -57,6 +58,7 @@ def load_series_from_multiple_providers(
         # The else branch is executed if the break is not called
         else:
             raise ValueError(f"Found no data providers able to download the tag {tag} ")
+    before_downloading = timeit.default_timer()
     for tag_reader, readers_tags in readers_to_tags.items():
         if readers_tags:
             logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
@@ -64,6 +66,9 @@ def load_series_from_multiple_providers(
                 from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags
             ):
                 yield series
+    logger.debug(
+        f"Downloading all tags took {timeit.default_timer()-before_downloading} seconds"
+    )
 
 
 class DataLakeProvider(GordoBaseDataProvider):
@@ -86,6 +91,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         storename: str = "dataplatformdlsprod",
         interactive: bool = False,
         dl_service_auth_str: str = None,
+        threads: typing.Optional[int] = None,
         **kwargs,
     ):
         """
@@ -93,6 +99,9 @@ class DataLakeProvider(GordoBaseDataProvider):
 
         Parameters
         ----------
+        threads : typing.Optional[int]
+            Threads to use. Leave at None to let the underlying dataprovider choose
+            as smart as it can.
         storename
             The store name to read data from
         interactive: bool
@@ -111,6 +120,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         self.dl_service_auth_str = dl_service_auth_str or os.environ.get(
             "DL_SERVICE_AUTH_STR"
         )
+        self.threads = threads
         self.client = None
 
     def load_series(
@@ -144,7 +154,7 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def _get_sub_dataproviders(self):
         data_providers = [
-            t_reader(client=self._get_client())
+            t_reader(client=self._get_client(), threads=self.threads)
             for t_reader in DataLakeProvider._SUB_READER_CLASSES
         ]
         return data_providers
@@ -183,6 +193,11 @@ class InfluxDataProvider(GordoBaseDataProvider):
         self.measurement = measurement
         self.value_name = value_name
         self.influx_client = client
+        if kwargs.pop("threads", None):
+            logger.warning(
+                "InfluxDataProvider got parameter 'threads' which is not supported, it "
+                "will be ignored."
+            )
 
         if self.influx_client is None:
             if uri:
