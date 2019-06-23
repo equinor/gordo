@@ -29,6 +29,8 @@ class DataProviderParam(click.ParamType):
             self.fail(f"Cannot create DataProvider without 'type' key defined")
 
         kind = kwargs.pop("type")
+        if "threads" not in kwargs:
+            kwargs["threads"] = 1
 
         Provider = getattr(providers, kind, None)
         if Provider is None:
