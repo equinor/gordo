@@ -24,6 +24,16 @@ def test_healthcheck_endpoint(gordo_ml_server_client):
     assert "gordo-server-version" in data
 
 
+def test_response_header_timing(gordo_ml_server_client):
+    """
+    Test that the response contains a `Server-Timing` header
+    """
+    resp = gordo_ml_server_client.get("/healthcheck")
+    assert resp.status_code == 200
+    assert "Server-Timing" in resp.headers
+    assert "request_walltime_s" in resp.headers["Server-Timing"]
+
+
 def test_metadata_endpoint(gordo_ml_server_client):
     """
     Test the expected behavior of /metadata
