@@ -111,7 +111,6 @@ class BaseModelView(Resource):
         """
         context = dict()  # type: typing.Dict[str, typing.Any]
         context["status-code"] = 200
-        start_time = timeit.default_timer()
 
         params = request.get_json() or request.args
 
@@ -138,7 +137,8 @@ class BaseModelView(Resource):
         if (end - start).days:
             message = dict(message="Need to request a time span less than 24 hours.")
             return make_response((jsonify(message), 400))
-
+        logger.debug("Fetching data from data provider")
+        before_data_fetch = timeit.default_timer()
         dataset = TimeSeriesDataset(
             data_provider=g.data_provider,
             from_ts=start - self.frequency.delta,
@@ -147,7 +147,10 @@ class BaseModelView(Resource):
             tag_list=self.tags,
         )
         X, _y = dataset.get_data()
-
+        logger.debug(
+            f"Fetching data from data provider took "
+            f"{timeit.default_timer()-before_data_fetch} seconds"
+        )
         # Want resampled buckets equal or greater than start, but less than end
         # b/c if end == 00:00:00 and req = 10 mins, a resampled bucket starting
         # at 00:00:00 would imply it has data until 00:10:00; which is passed
@@ -156,7 +159,7 @@ class BaseModelView(Resource):
             (X.index > start - self.frequency.delta)
             & (X.index + self.frequency.delta < end)
         ]
-        return self._process_request(context=context, X=X, start_time=start_time)
+        return self._process_request(context=context, X=X)
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)
@@ -172,7 +175,6 @@ class BaseModelView(Resource):
 
         context = dict()  # type: typing.Dict[str, typing.Any]
         context["status-code"] = 200
-        start_time = timeit.default_timer()
 
         X = request.json.get("X")
 
@@ -197,13 +199,10 @@ class BaseModelView(Resource):
             )
             return make_response((jsonify(message), 400))
 
-        return self._process_request(context=context, X=X, start_time=start_time)
+        return self._process_request(context=context, X=X)
 
     def _process_request(
-        self,
-        context: dict,
-        X: typing.Union[pd.DataFrame, np.ndarray],
-        start_time: float,
+        self, context: dict, X: typing.Union[pd.DataFrame, np.ndarray]
     ):
         """
         Construct a response which fetches model outputs (transformed) as well
@@ -217,8 +216,6 @@ class BaseModelView(Resource):
             items are capable of JSON serialization
         X: Union[pandas.DataFrame, numpy.ndarray]
             Data to use for gathering outputs in the response
-        start_time: float
-            Start time of the original request
 
         Returns
         -------
@@ -226,14 +223,31 @@ class BaseModelView(Resource):
         """
         self.X = X
         data = None
+        process_request_start_time_s = timeit.default_timer()
+
         try:
             output = model_io.get_model_output(model=current_app.model, X=X)
+            get_model_output_time_s = timeit.default_timer()
+            logger.debug(
+                f"Calculating model output took "
+                f"{get_model_output_time_s-process_request_start_time_s} s"
+            )
             transformed_model_input = model_io.get_transformed_input(
                 model=current_app.model, X=X
+            )
+            get_transformed_input_time_s = timeit.default_timer()
+            logger.debug(
+                f"Calculating model transformed input took "
+                f"{get_transformed_input_time_s- get_model_output_time_s} s "
             )
             if len(output.shape) == len(X.shape) and output.shape[1] == X.shape[1]:
                 inverse_transformed_model_output = model_io.get_inverse_transformed_input(
                     model=current_app.model, X=output
+                )
+
+                logger.debug(
+                    f"Calculating model inverse transformed output took "
+                    f"{timeit.default_timer() - get_transformed_input_time_s} s"
                 )
                 self._output_matches_input_shape = True
             else:
@@ -271,7 +285,6 @@ class BaseModelView(Resource):
         context["tags"] = self.tags
         if data is not None:
             context["data"] = self.multi_lvl_column_dataframe_to_dict(data)
-        context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
         return make_response((jsonify(context), context.pop("status-code", 200)))
 
     @staticmethod
@@ -319,6 +332,7 @@ class BaseModelView(Resource):
         -------
         pd.DataFrame
         """
+        start_time_s = timeit.default_timer()
         names_n_values = (
             ("original-input", original_input),
             ("model-output", model_output),
@@ -366,7 +380,9 @@ class BaseModelView(Resource):
                 data = other
             else:
                 data = data.join(other)
-
+        logger.debug(
+            f"make_base_dataframe took {timeit.default_timer() - start_time_s} s"
+        )
         return data
 
 

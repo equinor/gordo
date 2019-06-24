@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import logging
+import timeit
 import typing
 from functools import wraps
 
@@ -144,6 +145,17 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
     @app.before_request
     def _reg_data_provider():
         g.data_provider = data_provider
+
+    @app.before_request
+    def _start_timer():
+        g.start_time = timeit.default_timer()
+
+    @app.after_request
+    def _log_time_taken(response):
+        runtime_s = timeit.default_timer() - g.start_time
+        logger.debug(f"Total runtime for request: {runtime_s}s")
+        response.headers["Server-Timing"] = f"request_walltime_s;dur={runtime_s}"
+        return response
 
     with app.app_context():
         app.model, app.metadata = load_model_and_metadata(
