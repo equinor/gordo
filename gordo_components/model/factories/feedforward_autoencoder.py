@@ -44,8 +44,8 @@ def feedforward_model(
     input_dim = n_features
     encoding_dim = enc_dim or [256, 128, 64]
     decoding_dim = dec_dim or [64, 128, 256]
-    encoding_func = enc_func or ["relu", "relu", "relu"]
-    decoding_func = dec_func or ["relu", "relu", "relu"]
+    encoding_func = enc_func or ["tanh", "tanh", "tanh"]
+    decoding_func = dec_func or ["tanh", "tanh", "tanh"]
 
     model = KerasSequential()
 
@@ -86,7 +86,7 @@ def feedforward_model(
 def feedforward_symmetric(
     n_features: int,
     dims: Tuple[int, ...] = (256, 128, 64),
-    funcs: Tuple[str, ...] = ("relu", "relu", "relu"),
+    funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -117,7 +117,7 @@ def feedforward_hourglass(
     n_features: int,
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
-    func: str = "relu",
+    func: str = "tanh",
     **kwargs,
 ) -> keras.models.Sequential:
     """
