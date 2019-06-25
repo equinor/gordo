@@ -14,16 +14,17 @@ env:
   - PYTHON_VERSION=3.6
   - PYTHON_VERSION=3.7
 
+before_install:
+  - bash install_python.sh
+
+install:
+  - pip install -r requirements.txt
+
+script:
+  - make testall
+
 jobs:
   include:
-  - stage: test
-    name: "setup.py testall"
-    before_install:
-      - install_python.sh
-    install:
-      - pip install -r requirements.txt
-    script:
-      - make testall
 
   - stage: "success jobs"
     script:
