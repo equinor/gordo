@@ -182,6 +182,7 @@ def build(
     # all default parameters are part of the config.
     logger.debug(f"Ensuring the passed model config is fully expanded.")
     model_config = pipeline_into_definition(pipeline_from_definition(model_config))
+    logger.debug(f"Fully expanded model config: {model_config}")
 
     model_location = provide_saved_model(
         name, model_config, data_config, metadata, output_dir, model_register_dir
