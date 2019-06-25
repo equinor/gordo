@@ -18,6 +18,7 @@ def feedforward_model(
     dec_dim: List[int] = None,
     enc_func: List[str] = None,
     dec_func: List[str] = None,
+    out_func: str = "linear",
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -35,6 +36,8 @@ def feedforward_model(
         Activation functions for the encoder part
     dec_func: list
         Activation functions for the decoder part
+    out_func: str
+        Activation function for the output layer
 
     Returns
     -------
@@ -76,7 +79,7 @@ def feedforward_model(
         model.add(Dense(units=units, activation=activation))
 
     # Final output layer
-    model.add(Dense(input_dim, activation="tanh"))
+    model.add(Dense(input_dim, activation=out_func))
 
     model.compile(optimizer="adam", loss="mean_squared_error", metrics=["accuracy"])
     return model
