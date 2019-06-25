@@ -2,37 +2,50 @@ sudo: required
 
 services: docker
 
-language: python
-
-python:
-  - "3.6"
-
 cache: pip
 
 os:
   - linux
+  - osx
 
+language: generic
+
+env:
+  - PYTHON_VERSION=3.6
+  - PYTHON_VERSION=3.7
 
 jobs:
   include:
   - stage: test
     name: "setup.py testall"
+    before_install:
+      - install_python.sh
     install:
       - pip install -r requirements.txt
     script:
       - make testall
-    after_success:
+
+  - stage: "success jobs"
+    script:
       # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
       - bash <(curl -s https://codecov.io/bash)
+    env: PYTHON_VERSION=3.6
+    os: linux
+
   - name: "make images"
     install: skip
     script:
       - make images
+    env: PYTHON_VERSION=3.6
+    os: linux
+
   - name: "make docs"
     install:
       - pip install -r requirements.txt
     script:
       - make docs
+    env: PYTHON_VERSION=3.6
+    os: linux
 
 deploy:
   - provider: script
