@@ -236,6 +236,7 @@ def calculate_model_key(
         indent=None,
         separators=None,
     )
+    logger.debug(f"Calculating model hash key for model: {json_rep}")
     return hashlib.sha3_512(json_rep.encode("ascii")).hexdigest()
 
 
