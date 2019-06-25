@@ -15,7 +15,7 @@ env:
   - PYTHON_VERSION=3.7
 
 before_install:
-  - bash install_python.sh
+  - sudo bash install_python.sh
 
 install:
   - pip install -r requirements.txt
