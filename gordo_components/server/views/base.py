@@ -305,16 +305,44 @@ class BaseModelView(Resource):
         where each key is the top level column name, and the value is the array
         of columns under the top level name.
         """
+
+        # Note: It is possible to do this more simply with nested dict comprehension,
+        # but ends up making it ~5x slower.
+
         # This gets the 'top level' names of the multi level column names
         # it will contain names like 'model-output' and then sub column(s)
         # of the actual model output.
         names = df.columns.get_level_values(0).unique()
 
-        # Next, for each top level name, want to select all the values in that
-        # the outcome is similar to a list of {'model-output': [1, 2, 3, 4], ...} records
-        return [
-            {name: row[name].tolist() for name in names} for idx, row in df.iterrows()
-        ]
+        # Now a series where each row has an index with the name of the feature
+        # which corresponds to 'names' above.
+        records = (
+            # Stack the dataframe so second level column names become second level indexs
+            df.stack()
+            # For each column now, unstack the previous second level names (which are now the indexes of the series)
+            # back into a dataframe with those names, and convert to list
+            .apply(lambda col: col.unstack().dropna(axis=1).values.tolist())
+        )
+
+        results: typing.List[dict] = []
+
+        for i, name in enumerate(names):
+
+            # For each top level name, we'll select its column, unstack so that
+            # previous second level names moved into the index will then be column
+            # names again, and convert that to a list, matched to the name.
+            values = map(lambda row: {name: row}, records[name])
+
+            # If we have results, we'll update the record/row data with this
+            # current name. ie {'col1': [1, 2}} -> {'col1': [1, 2], 'col2': [3, 4]}
+            # if the current column name is 'col2' and values [3, 4] for the first row,
+            # and so on.
+            if i == 0:
+                results = list(values)
+            else:
+                [rec.update(d) for rec, d in zip(results, values)]
+
+        return results
 
     @staticmethod
     def make_base_dataframe(
