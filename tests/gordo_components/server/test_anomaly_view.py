@@ -49,13 +49,13 @@ def test_anomaly_prediction_endpoint(
     # start and end dates, because the server can't know what those are
     assert "start" in record
     assert (
-        record["start"][0] is None
+        len(record["start"]) == 0
         if data_to_post is not None
         else isinstance(record["start"][0], str)
     )
     assert "end" in record
     assert (
-        record["end"][0] is None
+        len(record["end"]) == 0
         if data_to_post is not None
         else isinstance(record["end"][0], str)
     )
