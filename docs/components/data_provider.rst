@@ -1,5 +1,5 @@
-Data Proivers & Readers
------------------------
+Data Providers & Readers
+------------------------
 
 Data Providers
 ==============

@@ -41,3 +41,4 @@ config files, by simply specifying their full path. For example:
 
     model-factories.rst
     transformer-funcs.rst
+    transformers.rst
