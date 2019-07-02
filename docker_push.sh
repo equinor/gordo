@@ -56,6 +56,10 @@ if [[ -z "${GORDO_PROD_MODE}" ]]; then
     export suffix="-dev"
 else
     export suffix=""
+
+    # if we're in prod mode, we'll push the latest image.
+    docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_NAME:latest
+    docker push $DOCKER_REGISTRY/$DOCKER_NAME:latest
 fi
 
 docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_NAME:$git_sha$suffix
