@@ -25,6 +25,7 @@ class NcsReader(GordoBaseDataProvider):
         "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/​1101-SFB",
         "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",
         "1295-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1295-PERA",
+        "1110-gfa": "/raw/corporate/Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA",
     }
 
     def __init__(
