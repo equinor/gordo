@@ -90,7 +90,7 @@ class LSTMAutoEncoderTestCase(unittest.TestCase):
             out_func="relu",
             optimizer="sgd",
             optimizer_kwargs={"lr": 0.02, "momentum": 0.001},
-            loss="mae",
+            compile_kwargs={"loss": "mae"},
         )
 
         # Ensure that the input dimension to Keras model matches the number of features.

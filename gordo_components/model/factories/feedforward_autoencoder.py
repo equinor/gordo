@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 from keras import regularizers
 from keras.layers import Dense
@@ -19,6 +19,7 @@ def feedforward_model(
     enc_func: List[str] = None,
     dec_func: List[str] = None,
     out_func: str = "linear",
+    compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -38,6 +39,8 @@ def feedforward_model(
         Activation functions for the decoder part
     out_func: str
         Activation function for the output layer
+    compile_kwargs: Dict[str, Any]
+        Parameters to pass to ``keras.Model.compile``
 
     Returns
     -------
@@ -81,7 +84,12 @@ def feedforward_model(
     # Final output layer
     model.add(Dense(input_dim, activation=out_func))
 
-    model.compile(optimizer="adam", loss="mean_squared_error", metrics=["accuracy"])
+    # Set some pre-determined default compile kwargs.
+    compile_kwargs.setdefault("optimizer", "adam")
+    compile_kwargs.setdefault("loss", "mean_squared_error")
+    compile_kwargs.setdefault("metrics", ["accuracy"])
+
+    model.compile(**compile_kwargs)
     return model
 
 
@@ -90,6 +98,7 @@ def feedforward_symmetric(
     n_features: int,
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
+    compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -104,6 +113,8 @@ def feedforward_symmetric(
          Must have len > 0
     funcs: List[str]
         Activation functions for the internal layers
+    compile_kwargs: Dict[str, Any]
+        Parameters to pass to ``keras.Model.compile``
 
     Returns
     -------
@@ -112,7 +123,15 @@ def feedforward_symmetric(
     """
     if len(dims) == 0:
         raise ValueError("Parameter dims must have len > 0")
-    return feedforward_model(n_features, dims, dims[::-1], funcs, funcs[::-1], **kwargs)
+    return feedforward_model(
+        n_features,
+        enc_dim=dims,
+        dec_dim=dims[::-1],
+        enc_func=funcs,
+        dec_func=funcs[::-1],
+        compile_kwargs=compile_kwargs,
+        **kwargs,
+    )
 
 
 @register_model_builder(type="KerasAutoEncoder")
@@ -121,6 +140,7 @@ def feedforward_hourglass(
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
     func: str = "tanh",
+    compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -142,6 +162,8 @@ def feedforward_hourglass(
         0 <= compression_factor <= 1.
     func: str
         Activation function for the internal layers
+    compile_kwargs: Dict[str, Any]
+        Parameters to pass to ``keras.Model.compile``
 
     Notes
     -----
@@ -181,4 +203,10 @@ def feedforward_hourglass(
     """
     dims = hourglass_calc_dims(compression_factor, encoding_layers, n_features)
 
-    return feedforward_symmetric(n_features, dims, [func] * len(dims), **kwargs)
+    return feedforward_symmetric(
+        n_features,
+        dims=dims,
+        funcs=[func] * len(dims),
+        compile_kwargs=compile_kwargs,
+        **kwargs,
+    )

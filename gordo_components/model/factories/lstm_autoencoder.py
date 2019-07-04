@@ -23,7 +23,7 @@ def lstm_model(
     out_func: str = "linear",
     optimizer: Union[str, Optimizer] = "adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
-    loss: str = "mse",
+    compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -57,13 +57,8 @@ def lstm_model(
     optimizer_kwargs: Dict[str, Any]
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
-    loss: str
-        Keras' supported loss functions (e.x. "mse", "MSE", "mean_squared_error"
-                                              for mean squared error,
-                                              "mae", "MAE", "mean_absolute_error"
-                                              for mean absolute error,
-                                              for other supported loss functions
-                                              refer to https://keras.io/losses/).
+    compile_kwargs: Dict[str, Any]
+        Parameters to pass to ``keras.Model.compile``
 
     Returns
     -------
@@ -115,7 +110,12 @@ def lstm_model(
         optimizer = Optim(**optimizer_kwargs)
 
     model.add(Dense(units=input_dim, activation=out_func))
-    model.compile(optimizer=optimizer, loss=loss)
+
+    # Update kwargs and compile model
+    compile_kwargs.setdefault("loss", "mse")
+    compile_kwargs.update({"optimizer": optimizer})
+    model.compile(**compile_kwargs)
+
     return model
 
 
@@ -129,7 +129,7 @@ def lstm_symmetric(
     out_func: str = "linear",
     optimizer: Union[str, Optimizer] = "adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
-    loss: str = "mse",
+    compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
     """
@@ -160,13 +160,8 @@ def lstm_symmetric(
     optimizer_kwargs: Dict[str, Any]
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
-    loss: str
-        Keras' supported loss functions (e.x. "mse", "MSE", "mean_squared_error"
-                                              for mean squared error,
-                                              "mae", "MAE", "mean_absolute_error"
-                                              for mean absolute error,
-                                              for other supported loss functions
-                                              refer to https://keras.io/losses/).
+    compile_kwargs: Dict[str, Any]
+        Parameters to pass to ``keras.Model.compile``
 
     Returns
     -------
@@ -186,7 +181,7 @@ def lstm_symmetric(
         out_func,
         optimizer,
         optimizer_kwargs,
-        loss,
+        compile_kwargs,
         **kwargs,
     )
 
@@ -202,7 +197,7 @@ def lstm_hourglass(
     out_func: str = "linear",
     optimizer: Union[str, Optimizer] = "adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
-    loss: str = "mse",
+    compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
 
@@ -238,13 +233,8 @@ def lstm_hourglass(
     optimizer_kwargs: Dict[str, Any]
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
-    loss: str
-        Keras' supported loss functions (e.x. "mse", "MSE", "mean_squared_error"
-                                              for mean squared error,
-                                              "mae", "MAE", "mean_absolute_error"
-                                              for mean absolute error,
-                                              for other supported loss functions
-                                              refer to https://keras.io/losses/).
+    compile_kwargs: Dict[str, Any]
+        Parameters to pass to ``keras.Model.compile``
 
 
     Returns
@@ -278,6 +268,6 @@ def lstm_hourglass(
         out_func,
         optimizer,
         optimizer_kwargs,
-        loss,
+        compile_kwargs,
         **kwargs,
     )
