@@ -194,6 +194,49 @@ class TimeSeriesDatasetTest(unittest.TestCase):
 
         self.assertEqual(3, len(X))
 
+    def test_aggregation_methods(self):
+        """Tests that it works to set aggregation method(s)"""
+
+        tag_list = [
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ]
+        start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+        end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+
+        # Default aggregation gives no extra columns
+        X, _ = TimeSeriesDataset(
+            MockDataSource(), start, end, tag_list=tag_list
+        ).get_data()
+
+        self.assertEqual((577, 3), X.shape)
+        # The default single aggregation method gives the tag-names as columns
+        self.assertEqual(list(X.columns), ["Tag 1", "Tag 2", "Tag 3"])
+
+        # Using two aggregation methods give a multi-level column with tag-names
+        # on top and aggregation_method as second level
+        X, _ = TimeSeriesDataset(
+            MockDataSource(),
+            start,
+            end,
+            tag_list=tag_list,
+            aggregation_methods=["mean", "max"],
+        ).get_data()
+
+        self.assertEqual((577, 6), X.shape)
+        self.assertEqual(
+            list(X.columns),
+            [
+                ("Tag 1", "mean"),
+                ("Tag 1", "max"),
+                ("Tag 2", "mean"),
+                ("Tag 2", "max"),
+                ("Tag 3", "mean"),
+                ("Tag 3", "max"),
+            ],
+        )
+
 
 @pytest.mark.parametrize(
     "tag_list",
