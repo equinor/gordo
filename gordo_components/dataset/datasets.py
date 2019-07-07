@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-
 import logging
 
-from typing import Tuple, List, Dict, Union, Optional, Iterable
+from typing import Tuple, List, Dict, Union, Optional, Iterable, Callable
 from datetime import datetime
 
 import pandas as pd
@@ -27,6 +26,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         target_tag_list: Optional[List[Union[str, Dict, SensorTag]]] = None,
         resolution: str = "10T",
         row_filter: str = "",
+        aggregation_methods: Union[str, List[str], Callable] = "mean",
         **_kwargs,
     ):
         """
@@ -56,6 +56,15 @@ class TimeSeriesDataset(GordoBaseDataset):
             Filter on the rows. Only rows satisfying the filter will be in the dataset.
             See :func:`gordo_components.dataset.filter_rows.pandas_filter_rows` for
             further documentation of the filter format.
+        aggregation_methods
+            Aggregation method(s) to use for the resampled buckets. If a single
+            resample method is provided then the resulting dataframe will have names
+            identical to the names of the series it got in. If several
+            aggregation-methods are provided then the resulting dataframe will
+            have a multi-level column index, with the series-name as the first level,
+            and the aggregation method as the second level.
+            See :py:func::`pandas.core.resample.Resampler#aggregate` for more
+            information on possible aggregation methods.
         _kwargs
         """
         self.from_ts = from_ts
@@ -67,6 +76,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.resolution = resolution
         self.data_provider = data_provider
         self.row_filter = row_filter
+        self.aggregation_methods = aggregation_methods
 
         if not self.from_ts.tzinfo or not self.to_ts.tzinfo:
             raise ValueError(
@@ -82,7 +92,11 @@ class TimeSeriesDataset(GordoBaseDataset):
             tag_list=list(set(self.tag_list + self.target_tag_list)),
         )
         data: pd.DataFrame = self.join_timeseries(
-            series_iter, self.from_ts, self.to_ts, self.resolution
+            series_iter,
+            self.from_ts,
+            self.to_ts,
+            self.resolution,
+            aggregation_methods=self.aggregation_methods,
         )
         if self.row_filter:
             data = pandas_filter_rows(data, self.row_filter)

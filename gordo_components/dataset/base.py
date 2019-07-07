@@ -2,7 +2,7 @@
 
 import abc
 import logging
-from typing import Iterable
+from typing import Iterable, Union, List, Callable
 from datetime import datetime
 
 import pandas as pd
@@ -31,6 +31,7 @@ class GordoBaseDataset:
         resampling_startpoint: datetime,
         resampling_endpoint: datetime,
         resolution: str,
+        aggregation_methods: Union[str, List[str], Callable] = "mean",
     ) -> pd.DataFrame:
         """
 
@@ -54,11 +55,23 @@ class GordoBaseDataset:
         resolution
             The bucket size for grouping all incoming time data (e.g. "10T")
 
+        aggregation_methods
+            Aggregation method(s) to use for the resampled buckets. If a single
+            resample method is provided then the resulting dataframe will have names
+            identical to the names of the series it got in. If several
+            aggregation-methods are provided then the resulting dataframe will
+            have a multi-level column index, with the series-name as the first level,
+            and the aggregation method as the second level.
+            See :py:func::`pandas.core.resample.Resampler#aggregate` for more
+            information on possible aggregation methods.
+
         Returns
         -------
         pd.DataFrame
             A dataframe without NaNs, a common time index, and one column per
-            element in the dataframe_generator
+            element in the dataframe_generator. If multiple aggregation methods
+            are provided then the resulting dataframe will have a multi-level column
+            index with series-names as top-level and aggregation-method as second-level.
 
         """
         resampled_series = []
@@ -111,7 +124,23 @@ class GordoBaseDataset:
             logging.debug(series.head(3))
             logging.debug(series.tail(3))
 
-            resampled = series.resample(resolution, label="left").mean()
+            resampled = series.resample(resolution, label="left").agg(
+                aggregation_methods
+            )
+            # If several aggregation methods are provided, agg returns a dataframe
+            # instead of a series. In this dataframe the column names are the
+            # aggregation methods, like "max" and "mean", so we have to make a
+            # multi-index with the series-name as the top-level and the
+            # aggregation-method as the lower-level index.
+            # For backwards-compatibility we *dont* return a multi-level index
+            # when we have a single resampling method.
+            if isinstance(
+                resampled, pd.DataFrame
+            ):  # Several aggregation methods provided
+                resampled.columns = pd.MultiIndex.from_product(
+                    [[series.name], resampled.columns],
+                    names=["tag", "aggregation_method"],
+                )
             filled = resampled.fillna(method="ffill")
             resampled_series.append(filled)
 
