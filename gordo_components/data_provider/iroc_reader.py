@@ -17,10 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 class IrocReader(GordoBaseDataProvider):
-    ASSET_TO_PATH = {"ninenine": "/raw/plant/uon/cygnet/ninenine/history"}
+    ASSET_TO_PATH = {
+        "ninenine": "/raw/plant/uon/cygnet/ninenine/history",
+        "uon_ef": "/raw/plant/uon/cygnet/efd/history",
+    }
 
-    def can_handle_tag(self, tag):
-        return tag.asset in IrocReader.ASSET_TO_PATH
+    def can_handle_tag(self, tag: SensorTag):
+        return IrocReader.base_path_from_asset(tag.asset) is not None
 
     def __init__(self, client: core.AzureDLFileSystem, threads: int = 50, **kwargs):
         """
@@ -38,7 +41,6 @@ class IrocReader(GordoBaseDataProvider):
         to_ts: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
-        base_path="raw/plant/uon/cygnet/ninenine/history",
     ):
         """
         See GordoBaseDataProvider for documentation
@@ -53,7 +55,21 @@ class IrocReader(GordoBaseDataProvider):
                 f"Iroc reader called with to_ts: {to_ts} before from_ts: {from_ts}"
             )
 
-        base_path = base_path.strip("/")
+        base_paths_from_assets = list(
+            map(lambda tag: IrocReader.base_path_from_asset(tag.asset), tag_list)
+        )
+        if len(set(base_paths_from_assets)) > 1:
+            logger.warning(
+                "Iroc reader found more than one asset from the tag list provided, returning none."
+            )
+            return
+        elif len(base_paths_from_assets) != len(tag_list):
+            logger.warning(
+                "Iroc reader could not associate some tags to an asset, returning none."
+            )
+            return
+
+        base_path = base_paths_from_assets[0]
 
         # We query with an extra day on both sides since the way the files are
         # organized in the datalake does not account for timezones, so some timestamps
@@ -136,6 +152,29 @@ class IrocReader(GordoBaseDataProvider):
         except:
             logger.warning(f"Problem parsing file {file_path}, skipping.")
             return None
+
+    @staticmethod
+    def base_path_from_asset(asset: str):
+        """
+        Resolves an asset code to the datalake basepath containing the data.
+        Returns None if it does not match any of the asset codes we know.
+        """
+        if not asset:
+            return None
+
+        logger.info(f"Looking for match for asset {asset}")
+        asset = asset.lower()
+        if asset not in IrocReader.ASSET_TO_PATH:
+            logger.info(
+                f"Could not find match for asset {asset} in the list of "
+                f"supported assets: {IrocReader.ASSET_TO_PATH.keys()}"
+            )
+            return None
+
+        logger.info(
+            f"Found asset code {asset}, returning {IrocReader.ASSET_TO_PATH[asset]}"
+        )
+        return IrocReader.ASSET_TO_PATH[asset]
 
 
 def read_iroc_file(
