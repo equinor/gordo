@@ -5,6 +5,7 @@ from unittest import mock
 from dateutil.parser import isoparse  # type: ignore
 
 from gordo_components.data_provider.iroc_reader import IrocReader, read_iroc_file
+from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 from gordo_components.dataset.sensor_tag import SensorTag
 
 IROC_HAPPY_TAG_LIST = [
@@ -17,20 +18,20 @@ HAPPY_FROM_TS = isoparse("2018-05-02T01:56:00+00:00")
 HAPPY_TO_TS = isoparse("2018-05-03T01:56:00+00:00")
 
 IROC_MANY_ASSETS_TAG_LIST = [
-    SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1410J0", None),
-    SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1840C1J0", None),
-    SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1840E1J0", None),
-    SensorTag("UON_EF.OPCIS::LO006-B1H.PRCASXIN", None),
-    SensorTag("UON_EF.OPCIS::LO006-B1H.PRTUBXIN", None),
-    SensorTag("UON_EF.OPCIS::LO006-B1H_M1.PRSTAXIN", None),
-    SensorTag("UON_EF.OPCIS::LO006-B1H_M1.RTGASDIN", None),
+    "NINENINE.OPCIS::NNFCDPC01.AI1410J0",
+    "NINENINE.OPCIS::NNFCDPC01.AI1840C1J0",
+    "NINENINE.OPCIS::NNFCDPC01.AI1840E1J0",
+    "UON_EF.OPCIS::LO006-B1H.PRCASXIN",
+    "UON_EF.OPCIS::LO006-B1H.PRTUBXIN",
+    "UON_EF.OPCIS::LO006-B1H_M1.PRSTAXIN",
+    "UON_EF.OPCIS::LO006-B1H_M1.RTGASDIN"
 ]
 
 IROC_NO_ASSET_TAG_LIST = [
-    SensorTag("NOT.OPCIS::NNFCDPC01.AI1410J0", None),
-    SensorTag("AN.OPCIS::NNFCDPC01.AI1840C1J0", None),
-    SensorTag("IROC.OPCIS::NNFCDPC01.AI1840E1J0", None),
-    SensorTag("ASSET.OPCIS::LO006-B1H.PRCASXIN", None),
+    SensorTag("NOT.OPCIS::NNFCDPC01.AI1410J0", "NOT"),
+    SensorTag("AN.OPCIS::NNFCDPC01.AI1840C1J0", "AN"),
+    SensorTag("IROC.OPCIS::NNFCDPC01.AI1840E1J0", "IROC"),
+    SensorTag("ASSET.OPCIS::LO006-B1H.PRCASXIN", "ASSET"),
 ]
 
 # Functioning CSV for IROC. Has 6 lines, 5 different timestamps
@@ -44,6 +45,21 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,48.92137,2018-05-02T06:43:59.7240000Z,Analo
 NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Analog Normal
                 """
 
+
+def test_normalize_iroc_tags():
+    normalized_tags = list(map(normalize_sensor_tags, IROC_MANY_ASSETS_TAG_LIST))
+    IROC_MANY_ASSETS_SENSOR_TAG_LIST = [
+        SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1410J0", "NINENINE"),
+        SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1840C1J0", "NINENINE"),
+        SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1840E1J0", "NINENINE"),
+        SensorTag("UON_EF.OPCIS::LO006-B1H.PRCASXIN", "UON_EF"),
+        SensorTag("UON_EF.OPCIS::LO006-B1H.PRTUBXIN", "UON_EF"),
+        SensorTag("UON_EF.OPCIS::LO006-B1H_M1.PRSTAXIN", "UON_EF"),
+        SensorTag("UON_EF.OPCIS::LO006-B1H_M1.RTGASDIN", "UON_EF"),
+    ]
+    assert normalized_tags == IROC_MANY_ASSETS_SENSOR_TAG_LIST
+
+IROC_MANY_ASSETS_SENSOR_TAG_LIST = list(map(normalize_sensor_tags, IROC_MANY_ASSETS_TAG_LIST))
 
 class IrocDataSourceTestCase(unittest.TestCase):
     def test_read_iroc_file_basic(self):
@@ -122,31 +138,44 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         )
         self.assertEqual([], res)
 
-    def test_load_series_many_assets(self, _mocked_method):
+    def test_can_handle_tag_ok():
+        iroc_reader = IrocReader(client=None, threads=1)
+        self.assert iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UON_EF"))
+
+    def test_can_handle_tag_unknown_asset():
+        iroc_reader = IrocReader(client=None, threads=1)
+        self.assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UNKNOWǸ_ASSET"))
+
+    def test_can_handle_tag_no_asset():
+        iroc_reader = IrocReader(client=None, threads=1)
+        self.assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", None))
+
+
+    def test_load_series_many_assets(self):
         """load_series will return an empty generator when called with tags
         related to several assets"""
         iroc_reader = IrocReader(client=None, threads=1)
-        res = list(
-            iroc_reader.load_series(
-                from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
-                tag_list=IROC_MANY_ASSETS_TAG_LIST,
+        with self.assertRaises(ValueError):
+            list(
+                iroc_reader.load_series(
+                    from_ts=isoparse("2018-05-02T01:56:00+00:00"),
+                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    tag_list=IROC_MANY_ASSETS_SENSOR_TAG_LIST,  # Not a tag in the input
+                )
             )
-        )
-        self.assertEqual([], res)
 
-    def test_load_series_no_asset_found(self, _mocked_method):
+    def test_load_series_no_asset_found(self):
         """load_series will return an empty generator when called with tags
         that cannot be related to any asset"""
         iroc_reader = IrocReader(client=None, threads=1)
-        res = list(
-            iroc_reader.load_series(
-                from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
-                tag_list=IROC_NO_ASSET_TAG_LIST,
+        with self.assertRaises(ValueError):
+            list(
+                iroc_reader.load_series(
+                    from_ts=isoparse("2018-05-02T01:56:00+00:00"),
+                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    tag_list=IROC_NO_ASSET_TAG_LIST,  # Not a tag in the input
+                )
             )
-        )
-        self.assertEqual([], res)
 
     def test_load_series_checks_date(self):
         """load_series will raise ValueError if to_ts<from_ts"""

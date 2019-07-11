@@ -59,11 +59,11 @@ class IrocReader(GordoBaseDataProvider):
             map(lambda tag: IrocReader.base_path_from_asset(tag.asset), tag_list)
         )
         if len(set(base_paths_from_assets)) > 1:
-            logger.warning(
+            logger.ValueError(
                 "Iroc reader found more than one asset from the tag list provided, returning none."
             )
             return
-        elif len(base_paths_from_assets) != len(tag_list):
+        elif any([path is None for path in base_paths_from_assets]):
             logger.warning(
                 "Iroc reader could not associate some tags to an asset, returning none."
             )
