@@ -127,7 +127,7 @@ class CliTestCase(unittest.TestCase):
                     ' "type": "RandomDataset",'
                     ' "train_start_date": "2019-01-01T00:00:00+00:00", '
                     ' "train_end_date": "2019-06-01T00:00:00+00:00",'
-                    ' "tags": ["TRC1", "TRC2"]'
+                    ' "tags": ["TRC1", "TRC2"],'
                     "}"
                 ),
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
@@ -247,7 +247,10 @@ def test_build_cv_mode(
             assert os.stat(location_file).st_size == 0
 
         # Checks the output contains 'explained-variance_raw-scores'
-        assert "explained-variance_raw-scores=" in result.output
+        assert "r2-score" in result.output
+        assert "mean-squared-error" in result.output
+        assert "mean-absolute-error" in result.output
+        assert "explained-variance-score" in result.output
 
 
 @pytest.mark.parametrize(

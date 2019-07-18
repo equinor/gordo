@@ -329,8 +329,22 @@ def expand_model(model_config: str, model_parameters: dict):
 
 def get_all_score_strings(metadata):
     """Given metadata from the model builder this function returns a list of
-    strings of the format {metric_name}_{score_name}={score_val} for katib
-    to pick up. Replaces all spaces with `-`.
+    strings of the following format:
+    {metric_name}-{tag_name}_{fold-fold-number} = {score_val}.  This computes the score for the given tag and
+    cross validation split.
+    {metric_name}-{tag_name}_{fold-aggregation} = {score_val}. This computes the score for the given tag and aggregates
+    the score over all cross validation splits (aggregations currently used are mean, std, min and max)
+    {metric_name}_{fold-fold-number} = {score_val}.  This computes the score aggregate across all tags (uses sklearn's default
+    aggregation method) for a given cross validation split.
+    {metric_name}_{fold-aggregation} = {score_val}.  This computes the score aggregate across all tags (uses sklearn's default
+    aggregation method) and cross validation splits (aggregations currently used are mean, std, min and max).
+
+    for katib to pick up.
+
+    Current metric names supported are sklearn score functions: 'r2_score', 'explained_variance_score',
+    'mean_squared_error' and 'mean_absolute_error'.  The underscores in such score names are replaced by '-'.
+
+    All spaces in the tag name are also replaced by '-'.
 
     Parameters
     ----------
@@ -345,15 +359,21 @@ def get_all_score_strings(metadata):
     ...  {
     ...     "model": {
     ...         "cross-validation": {
-    ...             "scores": {"explained variance": {"min": 0, "max": 2}}
-    ...         }
+    ...             "scores": {"explained variance tag 0": {"fold_1": 0, "fold_2": 0.9, "fold_3": 0.1,"min": 0.1, "max": 0.9, "mean": 1/3},
+    ...                        "explained variance tag 1": {"fold_1": 0.2, "fold_2": 0.3, "fold_3": 0.6, "min": 0.2, "max": 0.6, "mean": 0.3666666666666667},
+    ...                        "explained variance" : {"min": 0.1, "max": 0.6, "mean": 0.3499999999999999},
+    ...                        "r2 score tag 0" : {"fold_1": 0.8, "fold_2": 0.5, "fold_3": 0.6, "min": 0.5, "max": 0.8, "mean": 0.6333333333333333},
+    ...                        "r2 score tag 1" : {"fold_1": 0.4, "fold_2": 0.3, "fold_3": 0.5, "min": 0.3, "max": 0.5, "mean": 0.39999999999999997},
+    ...                        "r2 score"  : {"min": 0.4,"max": 0.6, "mean": 0.5166666666666666}
+    ...                          }
     ...     }
     ...   }
+    ... }
     ... )
     >>> len(score_strings)
-    2
+    30
     >>> score_strings
-    ['explained-variance_min=0', 'explained-variance_max=2']
+    ['explained-variance-tag-0_fold_1=0', 'explained-variance-tag-0_fold_2=0.9', 'explained-variance-tag-0_fold_3=0.1', 'explained-variance-tag-0_min=0.1', 'explained-variance-tag-0_max=0.9', 'explained-variance-tag-0_mean=0.3333333333333333', 'explained-variance-tag-1_fold_1=0.2', 'explained-variance-tag-1_fold_2=0.3', 'explained-variance-tag-1_fold_3=0.6', 'explained-variance-tag-1_min=0.2', 'explained-variance-tag-1_max=0.6', 'explained-variance-tag-1_mean=0.3666666666666667', 'explained-variance_min=0.1', 'explained-variance_max=0.6', 'explained-variance_mean=0.3499999999999999', 'r2-score-tag-0_fold_1=0.8', 'r2-score-tag-0_fold_2=0.5', 'r2-score-tag-0_fold_3=0.6', 'r2-score-tag-0_min=0.5', 'r2-score-tag-0_max=0.8', 'r2-score-tag-0_mean=0.6333333333333333', 'r2-score-tag-1_fold_1=0.4', 'r2-score-tag-1_fold_2=0.3', 'r2-score-tag-1_fold_3=0.5', 'r2-score-tag-1_min=0.3', 'r2-score-tag-1_max=0.5', 'r2-score-tag-1_mean=0.39999999999999997', 'r2-score_min=0.4', 'r2-score_max=0.6', 'r2-score_mean=0.5166666666666666']
 
 
     """
