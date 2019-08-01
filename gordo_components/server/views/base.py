@@ -320,8 +320,18 @@ class BaseModelView(Resource):
             # Stack the dataframe so second level column names become second level indexs
             df.stack()
             # For each column now, unstack the previous second level names (which are now the indexes of the series)
-            # back into a dataframe with those names, and convert to list
-            .apply(lambda col: col.unstack().dropna(axis=1).values.tolist())
+            # back into a dataframe with those names, and convert to list; if it's a Series we'll need to reshape it
+            .apply(
+                lambda col: col.reindex(df[col.name].columns, level=1)
+                .unstack()
+                .dropna(axis=1)
+                .values.tolist()
+                if isinstance(df[col.name], pd.DataFrame)
+                else col.unstack()
+                .rename(columns={"": col.name})[col.name]
+                .values.reshape(-1, 1)
+                .tolist()
+            )
         )
 
         results: typing.List[dict] = []

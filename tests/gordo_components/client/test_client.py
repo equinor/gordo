@@ -412,21 +412,22 @@ def _endpoint_metadata(name: str, healthy: bool) -> EndpointMetadata:
     )
 
 
-def test_ml_server_dataframe_to_dict_and_back():
+@pytest.mark.parametrize("tags", [["C", "A", "B", "D"], tu.SENSORS_STR_LIST])
+def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
     """
     Tests the flow of the server creating a dataframe from the model's data, putting into
-    a dict of string to lists of values, and the client being able to reconstruct it back
+    a dict of string to df. lists of values, and the client being able to reconstruct it back
     to the original dataframe (less the second level names)
     """
     # Some synthetic data
-    original_input = np.random.random((10, len(tu.SENSORTAG_LIST)))
-    model_output = np.random.random((10, len(tu.SENSORTAG_LIST)))
-    transformed_model_input = np.random.random((10, len(tu.SENSORTAG_LIST)))
-    inverse_transformed_model_output = np.random.random((10, len(tu.SENSORTAG_LIST)))
+    original_input = np.random.random((10, len(tags)))
+    model_output = np.random.random((10, len(tags)))
+    transformed_model_input = np.random.random((10, len(tags)))
+    inverse_transformed_model_output = np.random.random((10, len(tags)))
 
     # Convert this data into a dataframe with multi index columns
     df = BaseModelView.make_base_dataframe(
-        tu.SENSORTAG_LIST,
+        tags,
         original_input,
         model_output,
         transformed_model_input,
