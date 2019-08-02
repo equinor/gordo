@@ -147,12 +147,15 @@ class EndpointStatuses:
         None
         """
         event_obj: kubernetes.client.models.v1_service.V1Service = event["object"]
-        model_name = event_obj.metadata.labels.get(
-            "applications.gordo.equinor.com/model-name", None
-        )
+        logger.debug(f"Full k8s event: {event}")
+        model_name = None
+        if event_obj.metadata is not None and event_obj.metadata.labels is not None:
+            model_name = event_obj.metadata.labels.get(
+                "applications.gordo.equinor.com/model-name", None
+            )
+
         event_type = event["type"]
         logger.info(f"Got K8s event for model {model_name} of type {event_type}")
-        logger.debug(f"Full k8s event: {event}")
 
         if model_name:
             if event_type == "DELETED":
