@@ -2,17 +2,15 @@
 
 import logging
 import timeit
-from datetime import datetime
+import typing
 
-import numpy as np
-import pandas as pd
-
-from flask import Blueprint, make_response, Response, jsonify
+from flask import Blueprint, make_response, jsonify, current_app, g
 from flask_restplus import fields
 
 from gordo_components import __version__
 from gordo_components.server.rest_api import Api
 from gordo_components.server.views.base import BaseModelView
+from gordo_components.server import utils
 
 
 logger = logging.getLogger(__name__)
@@ -62,24 +60,17 @@ class AnomalyView(BaseModelView):
 
     Will take a ``start`` and ``end`` ISO format datetime string if a GET request
     or will take the raw input given in a POST request
-    and give back predictions in the following example::
+    and give back predictions looking something like this
+    (depending on anomaly model being served)::
 
         {
         'data': [
             {
            'end': ['2016-01-01T00:10:00+00:00'],
-           'error-transformed': [0.913027075986948,
-                                 0.3474043585419292,
-                                 0.8986610906818544,
-                                 0.11825221990818557],
-           'error-untransformed': [0.913027075986948,
-                                   0.3474043585419292,
-                                   0.8986610906818544,
-                                   0.11825221990818557],
-           'inverse-transformed-model-output': [0.0005317790200933814,
-                                                -0.0001525811239844188,
-                                                0.0008310950361192226,
-                                                0.0015755111817270517],
+           'tag-anomaly': [0.913027075986948,
+                         0.3474043585419292,
+                         0.8986610906818544,
+                         0.11825221990818557],
            'model-output': [0.0005317790200933814,
                             -0.0001525811239844188,
                             0.0008310950361192226,
@@ -89,12 +80,7 @@ class AnomalyView(BaseModelView):
                               0.8994921857179736,
                               0.11982773108991263],
            'start': ['2016-01-01T00:00:00+00:00'],
-           'total-transformed-error': [1.3326228173185086],
-           'total-untransformed-error': [1.3326228173185086],
-           'transformed-model-input': [0.9135588550070414,
-                                       0.3472517774179448,
-                                       0.8994921857179736,
-                                       0.11982773108991263]
+           'total-anomaly': [1.3326228173185086],
             },
             ...
         ],
@@ -113,10 +99,10 @@ class AnomalyView(BaseModelView):
             "X": "Nested list of samples to predict, or single list considered as one sample"
         }
     )
+    @utils.extract_X_y
     def post(self):
         start_time = timeit.default_timer()
-        base_response = super().post()
-        return self._process_base_response(base_response, start_time)
+        return self._create_anomaly_response(start_time)
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.doc(
@@ -125,12 +111,12 @@ class AnomalyView(BaseModelView):
             "end": "An ISO formatted datetime with timezone info string indicating prediction range end",
         }
     )
+    @utils.extract_X_y
     def get(self):
         start_time = timeit.default_timer()
-        base_response: Response = super().get()
-        return self._process_base_response(base_response, start_time)
+        return self._create_anomaly_response(start_time)
 
-    def _process_base_response(self, response: Response, start_time: float = None):
+    def _create_anomaly_response(self, start_time: float = None):
         """
         Process a base response from POST or GET endpoints, where it is expected in
         the anomaly endpoint that the keys "output", "transformed-model-input" and "inverse-transformed-output"
@@ -138,8 +124,6 @@ class AnomalyView(BaseModelView):
 
         Parameters
         ----------
-        response: Response
-            The response from the ``BaseModelView`` which represents the raw model output
         start_time: Optional[float]
             Start time to use when timing the processing time of the request, will construct a new
             one if not provided.
@@ -152,86 +136,34 @@ class AnomalyView(BaseModelView):
         if start_time is None:
             start_time = timeit.default_timer()
 
-        # If something went wrong with the basic model view, no point going further
-        if not 200 <= response.status_code <= 299:
-            return response
-
-        # If client is accessing the anomaly endpoint where the model doesn't give
-        # back the transformed model input, we can't do anomaly formatting
-        if not self._output_matches_input_shape:
+        # To use this endpoint, we need a 'y' to calculate the errors.
+        # It has either come from client providing it in POST or from
+        # Influx during 'GET' part of `..common.extract_X_y` decorator
+        if g.y is None:
             message = {
-                "message": "Cannot perform anomaly detection: model output shape != input shape"
+                "message": "Cannot perform anomaly without 'y' to compare against."
             }
             return make_response((jsonify(message), 400))
 
-        # Now create an anomaly dataframe from the base response dataframe
-        anomaly_df = self.make_anomaly_df(self._data)
+        # It is ok for y to be a subset of features in X, but we need at least one
+        # to compare against to calculate an error.
+        if not any(col in g.y.columns for col in [t.name for t in self.tags]):
+            message = {"message": "y is not a subset of X, cannot do anomaly detection"}
+            return make_response(jsonify(message), 400)
 
-        context = response.json.copy()
-        context["data"] = self.multi_lvl_column_dataframe_to_dict(anomaly_df)
+        # Now create an anomaly dataframe from the base response dataframe
+        try:
+            anomaly_df = current_app.model.anomaly(g.X, g.y, frequency=self.frequency)
+        except AttributeError:
+            msg = {
+                "message": f"Model is not an AnomalyDetector, it is of type: {type(current_app.model)}"
+            }
+            return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
+
+        context: typing.Dict[typing.Any, typing.Any] = dict()
+        context["data"] = utils.multi_lvl_column_dataframe_to_dict(anomaly_df)
         context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
         return make_response(jsonify(context), context.pop("status-code", 200))
-
-    def make_anomaly_df(self, X: pd.DataFrame):
-        """
-        Create an anomaly dataframe from the base provided dataframe.
-        It is expected that the 'inverse-transformed-model-output' columns are
-        included for the features.
-
-        Parameters
-        ----------
-        X: pd.DataFrame
-            DataFrame created by the base model view.
-
-        Returns
-        -------
-        pd.DataFrame
-            A superset of the original base dataframe with added anomaly specific
-            features
-        """
-
-        # Set the start and end times, setting them as ISO strings after calculations,
-        # to ensure they are JSON encoded successfully and with tz info
-        X["start"] = (
-            self.X.index
-            if isinstance(self.X, pd.DataFrame)
-            and isinstance(self.X.index, pd.DatetimeIndex)
-            else None
-        )
-        X["end"] = X["start"].map(
-            lambda start: (start + self.frequency).isoformat()
-            if isinstance(start, datetime)
-            else None
-        )
-        X["start"] = X["start"].map(
-            lambda start: start.isoformat() if hasattr(start, "isoformat") else None
-        )
-
-        # Calculate the total anomaly between all tags for the original/untransformed
-        X["total-transformed-error"] = np.linalg.norm(
-            X["transformed-model-input"] - X["model-output"], axis=1
-        )
-        X["total-untransformed-error"] = np.linalg.norm(
-            X["original-input"] - X["inverse-transformed-model-output"], axis=1
-        )
-
-        # Calculate anomaly values by tag for transformed values
-        error_transformed = (X["model-output"] - X["transformed-model-input"]).abs()
-        error_transformed.columns = pd.MultiIndex.from_tuples(
-            ("error-transformed", i) for i in error_transformed.columns
-        )
-        X = X.join(error_transformed)
-
-        # Calculate anomaly values by tag for untransformed values
-        error_untransformed = (
-            X["inverse-transformed-model-output"] - X["original-input"]
-        ).abs()
-        error_untransformed.columns = pd.MultiIndex.from_tuples(
-            ("error-untransformed", i) for i in error_untransformed.columns
-        )
-        X = X.join(error_untransformed)
-
-        return X
 
 
 api.add_resource(AnomalyView, "/prediction")

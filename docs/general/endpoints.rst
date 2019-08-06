@@ -97,19 +97,14 @@ is capable of returning. Namely, this will be:
       or ``.transform`` if the pipeline/model does not have a ``.predict`` method.
 - ``original-input``:
     - Represents the data supplied to the Pipeline, the raw untransformed values.
-- ``transformed-model-input``:
-    - This is the data which flowed through all steps of the pipeline,
-      except the final step. If your pipeline has a ``PCA`` transformer followed
-      by the actual model, then this field will contain the ``PCA`` output values
 
 Sample response:
 
 .. code-block:: python
 
     {'data': [{'model-output': [3.2764337898700404],
-               'original-input': [1.0, 2.0],
-               'transformed-model-input': [49.916953513004586,
-                                           -0.8864305042537453]}],
+               'original-input': [1.0, 2.0]}
+               ],
      'tags': [{'asset': 'ASSET-1', 'name': 'TAG-1'},
               {'asset': 'ASSET-2', 'name': 'TAG-2'}],
      'time-seconds': '0.0165'}
@@ -156,42 +151,29 @@ models.
 
 By this restriction, additional _features_ are calculated and returned:
 
-- ``error-transformed``:
-    - Error per feature/tag calculated from the transformed values
-- ``error-untransformed``:
-    - Error per feature/tag calculated from the ``inverse-transformed-model-output`` against ``original-input``
-- ``inverse-transformed-model-output``:
-    - The ``model-output`` which is ran backward through pipeline, which "untransforms" it to the same level
-      as the ``original-input``; this assumes that all steps in the pipeline support ``.inverse_transform``
-- ``total-transformed-error``:
-    - This is the vector norm of the error between a sample output and the sample input, using the transformed values
-- ``total-untransformed-error``:
-    - This is the vector norm of the error between a sample output and the sample input, using the inverse-transformed values
+- ``tag-anomaly``:
+    - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat)
+- ``total-anomaly``:
+    - This is the total anomaly for the given point as calculated by the model.
 
 Sample response:
 
 .. code-block:: python
 
     {'data': [{'end': [None],
-               'error-transformed': [2.746687859183499,
-                                     2.4497416272485886,
-                                     2.508896707372706],
-               'error-untransformed': [36.94235610961914,
-                                       33.25593566894531,
-                                       34.43174743652344],
-               'inverse-transformed-model-output': [37.94235610961914,
-                                                    35.25593566894531,
-                                                    37.43174743652344],
-               'model-output': [0.6726480722427368,
-                                0.5305765271186829,
-                                0.7146536707878113],
+               'tag-anomaly': [
+                    2.746687859183499,
+                    2.4497416272485886,
+                    2.508896707372706
+               ],
+               'total-anomaly': [60.4668517758241],
+               'model-output': [
+                    37.94235610961914,
+                    10.5305765271186829,
+                    12.7146536707878113
+               ],
                'original-input': [1, 2, 3],
-               'start': [None],
-               'total-transformed-error': [4.454221696809242],
-               'total-untransformed-error': [60.4668517758241],
-               'transformed-model-input': [-2.0740397869407623,
-                                           -1.919165100129906,
-                                           -1.7942430365848951]}],
+               'start': [None]}],
      'tags': [{'asset': 'ASSET-A', 'name': 'TAG-1'},
               {'asset': 'ASSET-B', 'name': 'TAG-2'},
               {'asset': 'ASSET-C', 'name': 'TAG-3'}],

@@ -10,11 +10,13 @@ import tests.utils as tu
     "data_to_post",
     [
         {
-            "X": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist()
+            "X": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist(),
+            "y": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist(),
         },  # Nested records
         {
-            "X": np.random.random(size=len(tu.SENSORS_STR_LIST)).tolist()
-        },  # Single records 1d
+            "X": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist(),
+            "y": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist(),
+        },  # Single record
         None,  # No data, use GET
     ],
 )
@@ -59,24 +61,14 @@ def test_anomaly_prediction_endpoint(
         if data_to_post is not None
         else isinstance(record["end"][0], str)
     )
+    assert "total-anomaly" in record
+    assert isinstance(record["total-anomaly"], list)
 
-    assert "total-transformed-error" in record
-    assert isinstance(record["total-transformed-error"], list)
+    assert "tag-anomaly" in record
+    assert isinstance(record["tag-anomaly"], list)
 
-    assert "total-untransformed-error" in record
-    assert isinstance(record["total-untransformed-error"], list)
-
-    assert "error-transformed" in record
-    assert isinstance(record["error-transformed"], list)
-
-    assert "error-untransformed" in record
-    assert isinstance(record["error-untransformed"], list)
-
-    assert "original-input" in record
-    assert isinstance(record["original-input"], list)
-
-    assert "inverse-transformed-model-output" in record
-    assert isinstance(record["inverse-transformed-model-output"], list)
+    assert "model-input" in record
+    assert isinstance(record["model-input"], list)
 
     assert "model-output" in record
     assert isinstance(record["model-output"], list)
@@ -88,14 +80,14 @@ def test_more_than_24_hrs(influxdb, gordo_ml_server_client):
         "/anomaly/prediction",
         json={"start": "2016-01-01T00:00:00+00:00", "end": "2016-01-02T00:00:00+00:00"},
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 400, f"Response content: {resp.data}"
 
     # and for sanity, less than 1 day are ok
     resp = gordo_ml_server_client.get(
         "/anomaly/prediction",
         json={"start": "2016-01-01T00:00:00+00:00", "end": "2016-01-01T01:00:00+00:00"},
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 200, f"Response content: {resp.data}"
 
 
 def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):

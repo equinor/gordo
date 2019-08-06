@@ -61,9 +61,10 @@ def build_model(
 
     logger.debug("Fetching training data")
     start = time.time()
+
     X, y = dataset.get_data()
-    end = time.time()
-    time_elapsed_data = end - start
+
+    time_elapsed_data = time.time() - start
 
     # Get the model and dataset
     logger.debug(f"Initializing Model with config: {model_config}")

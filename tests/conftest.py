@@ -62,12 +62,14 @@ def trained_model_directory(sensors: List[SensorTag]):
     with tempfile.TemporaryDirectory() as tmp_dir:
         definition = ruamel.yaml.load(
             """
-            sklearn.pipeline.Pipeline:
-                steps:
-                    - sklearn.preprocessing.data.MinMaxScaler
-                    - gordo_components.model.models.KerasAutoEncoder:
-                        kind: feedforward_hourglass
-                memory:
+            gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+                base_estimator:
+                    sklearn.pipeline.Pipeline:
+                        steps:
+                            - sklearn.preprocessing.data.MinMaxScaler
+                            - gordo_components.model.models.KerasAutoEncoder:
+                                kind: feedforward_hourglass
+                        memory:
             """,
             Loader=ruamel.yaml.Loader,
         )
@@ -78,7 +80,11 @@ def trained_model_directory(sensors: List[SensorTag]):
             model,
             tmp_dir,
             metadata={
-                "dataset": {"tag_list": sensors, "resolution": "10T"},
+                "dataset": {
+                    "tag_list": sensors,
+                    "resolution": "10T",
+                    "target_tag_list": sensors,
+                },
                 "name": "machine-1",
                 "user-defined": {"model-name": "test-model"},
             },

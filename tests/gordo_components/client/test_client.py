@@ -20,7 +20,8 @@ from gordo_components.client import io as client_io
 from gordo_components.client.client import dataframe_from_dict_with_list_values
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.data_provider import providers
-from gordo_components.server.views.base import BaseModelView
+from gordo_components.server import utils as server_utils
+from gordo_components.model import utils as model_utils
 from gordo_components import cli, serializer
 from gordo_components.cli import custom_types
 
@@ -408,7 +409,12 @@ def _endpoint_metadata(name: str, healthy: bool) -> EndpointMetadata:
     Helper to build a basic EndpointMetadata with only name and healthy fields set
     """
     return EndpointMetadata(
-        target_name=name, healthy=healthy, endpoint=None, tag_list=None, resolution=None
+        target_name=name,
+        healthy=healthy,
+        endpoint=None,
+        tag_list=None,
+        target_tag_list=None,
+        resolution=None,
     )
 
 
@@ -422,26 +428,19 @@ def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
     # Some synthetic data
     original_input = np.random.random((10, len(tags)))
     model_output = np.random.random((10, len(tags)))
-    transformed_model_input = np.random.random((10, len(tags)))
-    inverse_transformed_model_output = np.random.random((10, len(tags)))
 
     # Convert this data into a dataframe with multi index columns
-    df = BaseModelView.make_base_dataframe(
-        tags,
-        original_input,
-        model_output,
-        transformed_model_input,
-        inverse_transformed_model_output,
-    )
+    df = model_utils.make_base_dataframe(tags, original_input, model_output)
 
     # Server then converts this into a dict which maps top level names to lists
-    as_dict_to_list_vals = BaseModelView.multi_lvl_column_dataframe_to_dict(df)
+    as_dict_to_list_vals = server_utils.multi_lvl_column_dataframe_to_dict(df)
 
     # Client reproduces this dataframe
     df_clone = dataframe_from_dict_with_list_values(as_dict_to_list_vals)
 
     # each subset of column under the top level names should be equal
-    for top_lvl_name in df.columns.get_level_values(0):
+    top_lvl_names = df.columns.get_level_values(0)
+    for top_lvl_name in filter(lambda n: n not in ("start", "end"), top_lvl_names):
         assert np.allclose(df[top_lvl_name].values, df_clone[top_lvl_name].values)
 
 

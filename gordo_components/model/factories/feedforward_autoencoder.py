@@ -14,6 +14,7 @@ from gordo_components.model.factories.model_factories_utils import hourglass_cal
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_model(
     n_features: int,
+    n_features_out: int = None,
     enc_dim: List[int] = None,
     dec_dim: List[int] = None,
     enc_func: List[str] = None,
@@ -29,6 +30,8 @@ def feedforward_model(
     ----------
     n_features: int
         Number of features the dataset X will contain.
+    n_features_out: Optional[int]
+        Number of features the model will output, default to ``n_features``
     enc_dim: list
         List of numbers with the number of neurons in the encoding part
     dec_dim: list
@@ -48,6 +51,7 @@ def feedforward_model(
 
     """
     input_dim = n_features
+    n_features_out = n_features_out or n_features
     encoding_dim = enc_dim or [256, 128, 64]
     decoding_dim = dec_dim or [64, 128, 256]
     encoding_func = enc_func or ["tanh", "tanh", "tanh"]
@@ -82,7 +86,7 @@ def feedforward_model(
         model.add(Dense(units=units, activation=activation))
 
     # Final output layer
-    model.add(Dense(input_dim, activation=out_func))
+    model.add(Dense(n_features_out, activation=out_func))
 
     # Set some pre-determined default compile kwargs.
     compile_kwargs.setdefault("optimizer", "adam")
@@ -96,6 +100,7 @@ def feedforward_model(
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_symmetric(
     n_features: int,
+    n_features_out: int = None,
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     compile_kwargs: Dict[str, Any] = dict(),
@@ -108,6 +113,8 @@ def feedforward_symmetric(
     ----------
     n_features: int
          Number of input and output neurons
+    n_features_out: Optional[int]
+        Number of features the model will output, default to ``n_features``
     dim: List[int]
          Number of neurons per layers for the encoder, reversed for the decoder.
          Must have len > 0
@@ -125,6 +132,7 @@ def feedforward_symmetric(
         raise ValueError("Parameter dims must have len > 0")
     return feedforward_model(
         n_features,
+        n_features_out,
         enc_dim=dims,
         dec_dim=dims[::-1],
         enc_func=funcs,
@@ -137,6 +145,7 @@ def feedforward_symmetric(
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_hourglass(
     n_features: int,
+    n_features_out: int = None,
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
     func: str = "tanh",
@@ -152,6 +161,8 @@ def feedforward_hourglass(
     ----------
     n_features: int
         Number of input and output neurons
+    n_features_out: Optional[int]
+        Number of features the model will output, default to ``n_features``
     encoding_layers: int
         Number of layers from the input layer (exclusive) to the
         narrowest layer (inclusive). Must be > 0. The total nr of layers
@@ -205,6 +216,7 @@ def feedforward_hourglass(
 
     return feedforward_symmetric(
         n_features,
+        n_features_out,
         dims=dims,
         funcs=[func] * len(dims),
         compile_kwargs=compile_kwargs,
