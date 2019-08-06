@@ -42,3 +42,15 @@ config files, by simply specifying their full path. For example:
     model-factories.rst
     transformer-funcs.rst
     transformers.rst
+    anomaly.rst
+
+
+Utils
+=====
+Shared utility functions used by models and other components interacting
+with the model's.
+
+.. automodule:: gordo_components.model.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:

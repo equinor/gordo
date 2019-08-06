@@ -21,6 +21,7 @@ async def test_influx_forwarder(influxdb):
         healthy=True,
         endpoint="/some-endpoint",
         tag_list=tu.SENSORTAG_LIST,
+        target_tag_list=tu.SENSORTAG_LIST,
         resolution="10T",
     )
 

@@ -32,7 +32,7 @@ class GordoBase(abc.ABC):
     def score(
         self,
         X: Union[np.ndarray, pd.DataFrame],
-        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
     ):
         """

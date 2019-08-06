@@ -35,6 +35,14 @@ logger = logging.getLogger(__name__)
         sklearn.ensemble.forest.RandomForestRegressor:
           n_estimators: 20
     """,
+        """ 
+    sklearn.multioutput.MultiOutputRegressor:
+      estimator: 
+        sklearn.pipeline.Pipeline:
+            steps:
+                - sklearn.ensemble.forest.RandomForestRegressor:
+                    n_estimators: 20
+    """,
     ],
 )
 def test_load_from_definition(definition):

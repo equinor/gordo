@@ -229,7 +229,7 @@ def _load_param_classes(params: dict):
 
         # If value is a simple string, try to load the model/class
         if isinstance(value, str):
-            Model = pydoc.locate(value)
+            Model: Union[None, BaseEstimator, Pipeline] = pydoc.locate(value)
             if (
                 Model is not None
                 and isinstance(Model, type)
@@ -240,7 +240,7 @@ def _load_param_classes(params: dict):
 
         # For the next bit to work, the dict must have a single key (maybe) the class path,
         # and its value must be a dict of kwargs
-        if (
+        elif (
             isinstance(value, dict)
             and len(value.keys()) == 1
             and isinstance(value[list(value.keys())[0]], dict)
@@ -251,7 +251,14 @@ def _load_param_classes(params: dict):
                 and isinstance(Model, type)
                 and issubclass(Model, BaseEstimator)
             ):
-                # Call this func again, incase there is nested occurances of this problem in these kwargs
-                sub_params = value[list(value.keys())[0]]
-                params[key] = Model(**_load_param_classes(sub_params))
+
+                if issubclass(Model, Pipeline):
+                    # Model is a Pipeline, so 'value' is the definition of that Pipeline
+                    # Can can just re-use the entry to building a pipeline.
+                    params[key] = pipeline_from_definition(value)
+                else:
+                    # Call this func again, incase there is nested occurances of this problem in these kwargs
+                    sub_params = value[list(value.keys())[0]]
+                    kwargs = _load_param_classes(sub_params)
+                    params[key] = Model(**kwargs)  # type: ignore
     return params

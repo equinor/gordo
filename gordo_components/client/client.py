@@ -196,6 +196,9 @@ class Client:
                 tag_list=normalize_sensor_tags(
                     data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
                 ),
+                target_tag_list=normalize_sensor_tags(
+                    data["endpoint-metadata"]["metadata"]["dataset"]["target_tag_list"]
+                ),
                 resolution=data["endpoint-metadata"]["metadata"]["dataset"][
                     "resolution"
                 ],
@@ -206,6 +209,7 @@ class Client:
                 healthy=data["healthy"],
                 endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
                 tag_list=None,
+                target_tag_list=None,
                 resolution=None,
             )
             for data in resp.json()["endpoints"]
@@ -333,6 +337,7 @@ class Client:
             jobs = [
                 self._process_post_prediction_task(
                     X,
+                    y,
                     chunk=slice(i, i + self.batch_size),
                     endpoint=endpoint,
                     start=X.index[i],
@@ -350,6 +355,7 @@ class Client:
     async def _process_post_prediction_task(
         self,
         X: pd.DataFrame,
+        y: typing.Optional[pd.DataFrame],
         chunk: slice,
         endpoint: EndpointMetadata,
         start: datetime,
@@ -383,7 +389,10 @@ class Client:
                 resp = await gordo_io.post_json(
                     f"{endpoint.endpoint}{self.prediction_path}",
                     session=session,
-                    json={"X": X.iloc[chunk].values.tolist()},
+                    json={
+                        "X": X.iloc[chunk].to_dict("list"),
+                        "y": y.iloc[chunk].to_dict("list") if y is not None else None,
+                    },
                 )
 
             # If it was an IO or TimeoutError, we can retry
@@ -602,6 +611,7 @@ class Client:
             to_ts=end,
             resolution=endpoint.resolution,
             tag_list=endpoint.tag_list,
+            target_tag_list=endpoint.target_tag_list,
         )
 
         with ThreadPoolExecutor(max_workers=1) as executor:

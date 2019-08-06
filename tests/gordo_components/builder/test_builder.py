@@ -22,6 +22,7 @@ def get_random_data():
         "from_ts": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         "to_ts": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        "target_tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
     }
     return data
 

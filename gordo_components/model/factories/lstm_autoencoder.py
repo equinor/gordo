@@ -15,6 +15,7 @@ from gordo_components.model.factories.model_factories_utils import hourglass_cal
 @register_model_builder(type="KerasLSTMForecast")
 def lstm_model(
     n_features: int,
+    n_features_out: int = None,
     lookback_window: int = 1,
     encoding_dim: Tuple[int, ...] = (256, 128, 64),
     decoding_dim: Tuple[int, ...] = (64, 128, 256),
@@ -33,6 +34,8 @@ def lstm_model(
     ----------
     n_features: int
         Number of features the dataset X will contain.
+    n_features_out: Optional[int]
+        Number of features the model will output, default to ``n_features``
     lookback_window: int
         Number of timesteps used to train the model.
         One timestep = current observation in the sample.
@@ -66,8 +69,7 @@ def lstm_model(
         Returns Keras sequential model.
 
     """
-
-    input_dim = n_features
+    n_features_out = n_features_out or n_features
 
     if len(encoding_dim) != len(encoding_func):
         raise ValueError(
@@ -82,40 +84,30 @@ def lstm_model(
         )
 
     model = KerasSequential()
-    # encoding layers
-    for i, (n_neurons, activation) in enumerate(zip(encoding_dim, encoding_func)):
-        if i == 0:
-            model.add(
-                LSTM(
-                    n_neurons,
-                    activation=activation,
-                    input_shape=(lookback_window, input_dim),
-                    return_sequences=True,
-                )
-            )
 
-        else:
-            model.add(LSTM(n_neurons, activation=activation, return_sequences=True))
+    # encoding layers
+    kwargs = {"return_sequences": True}
+    for i, (n_neurons, activation) in enumerate(zip(encoding_dim, encoding_func)):
+        input_shape = (lookback_window, n_neurons if i != 0 else n_features)
+        kwargs.update(dict(activation=activation, input_shape=input_shape))
+        model.add(LSTM(n_neurons, **kwargs))
 
     # decoding layers
     for i, (n_neurons, activation) in enumerate(zip(decoding_dim, decoding_func)):
-        if i != len(decoding_dim) - 1:
-            model.add(LSTM(n_neurons, activation=activation, return_sequences=True))
-        else:
-            model.add(LSTM(n_neurons, activation=activation, return_sequences=False))
+        return_seq = i != len(decoding_dim) - 1  # Don't return sequences on 2nd to last
+        model.add(LSTM(n_neurons, activation=activation, return_sequences=return_seq))
 
     # output layer
     if isinstance(optimizer, str):
         Optim = getattr(keras.optimizers, optimizer)
         optimizer = Optim(**optimizer_kwargs)
 
-    model.add(Dense(units=input_dim, activation=out_func))
+    model.add(Dense(units=n_features_out, activation=out_func))
 
     # Update kwargs and compile model
     compile_kwargs.setdefault("loss", "mse")
     compile_kwargs.update({"optimizer": optimizer})
     model.compile(**compile_kwargs)
-
     return model
 
 
@@ -123,6 +115,7 @@ def lstm_model(
 @register_model_builder(type="KerasLSTMForecast")
 def lstm_symmetric(
     n_features: int,
+    n_features_out: int = None,
     lookback_window: int = 1,
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
@@ -139,6 +132,8 @@ def lstm_symmetric(
     ----------
     n_features: int
          Number of input and output neurons
+    n_features_out: Optional[int]
+        Number of features the model will output, default to ``n_features``
     lookback_window: int
         Number of timesteps used to train the model.
         One timestep = sample contains current observation.
@@ -173,6 +168,7 @@ def lstm_symmetric(
         raise ValueError("Parameter dims must have len > 0")
     return lstm_model(
         n_features,
+        n_features_out,
         lookback_window,
         dims,
         dims[::-1],
@@ -190,6 +186,7 @@ def lstm_symmetric(
 @register_model_builder(type="KerasLSTMForecast")
 def lstm_hourglass(
     n_features: int,
+    n_features_out: int = None,
     lookback_window: int = 1,
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
@@ -212,6 +209,8 @@ def lstm_hourglass(
     ----------
     n_features: int
         Number of input and output neurons
+    n_features_out: Optional[int]
+        Number of features the model will output, default to ``n_features``
     encoding_layers: int
         Number of layers from the input layer (exclusive) to the
         narrowest layer (inclusive). Must be > 0. The total nr of layers
@@ -262,6 +261,7 @@ def lstm_hourglass(
 
     return lstm_symmetric(
         n_features,
+        n_features_out,
         lookback_window,
         dims,
         [func] * len(dims),

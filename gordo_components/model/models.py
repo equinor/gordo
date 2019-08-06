@@ -5,9 +5,9 @@ import json
 
 from typing import Union, Callable, Dict, Any, Optional
 from os import path
-from contextlib import contextmanager
 import pickle
 from abc import ABCMeta
+from contextlib import contextmanager
 
 import keras.models
 import keras.backend as K
@@ -17,7 +17,7 @@ from keras.models import load_model
 import numpy as np
 import pandas as pd
 
-from sklearn.base import TransformerMixin
+from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
 from gordo_components.model.base import GordoBase
@@ -58,7 +58,7 @@ def possible_tf_mgmt(keras_model):
         yield
 
 
-class KerasBaseEstimator(BaseWrapper, GordoBase):
+class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
     def __init__(
         self,
         kind: Union[str, Callable[[int, Dict[str, Any]], keras.models.Model]],
@@ -117,7 +117,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         Parameters used for scikit learn kwargs"""
         return self.kwargs
 
-    def fit(self, X: np.ndarray, y: Optional[np.ndarray], **kwargs):
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
         """
         Fit the model to X given y.
 
@@ -137,6 +137,12 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         self
             'KerasAutoEncoder'
         """
+
+        # Reshape y if needed, and set n features of target
+        if y.ndim == 1:
+            y = y.reshape(-1, 1)
+        self.kwargs.update({"n_features_out": y.shape[1]})
+
         logger.debug(f"Fitting to data of length: {len(X)}")
         if len(X.shape) == 2:
             self.kwargs.update({"n_features": X.shape[1]})
@@ -146,6 +152,25 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
         with possible_tf_mgmt(self):
             super().fit(X, y, sample_weight=None, **kwargs)
         return self
+
+    def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
+        """
+
+        Parameters
+        ----------
+        X: np.ndarray
+            Input data
+        kwargs: dict
+            kwargs which are passed to Kera's ``predict`` method
+
+
+        Returns
+        -------
+        results:
+            np.ndarray
+        """
+        with possible_tf_mgmt(self):
+            return self.model.predict(X, **kwargs)
 
     def get_params(self, **params):
         """
@@ -245,42 +270,10 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
     Subclass of the KerasBaseEstimator to allow fitting to just X without requiring y.
     """
 
-    def fit(
-        self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
-    ) -> "KerasAutoEncoder":
-        if y is not None:
-            logger.warning(
-                f"This is an AutoEncoder and does not care about a "
-                f"target, but a y was supplied. It will be ignored!"
-            )
-        y = X.copy()
-        super().fit(X, y, **kwargs)
-        return self
-
-    def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
-        """
-
-        Parameters
-        ----------
-        X: np.ndarray
-            Input data
-        kwargs: dict
-            kwargs which are passed to Kera's ``predict`` method
-
-
-        Returns
-        -------
-        results:
-            np.ndarray
-        """
-        with possible_tf_mgmt(self):
-            xhat = self.model.predict(X, **kwargs)
-        return xhat
-
     def score(
         self,
         X: Union[np.ndarray, pd.DataFrame],
-        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
@@ -308,7 +301,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         with possible_tf_mgmt(self):
             out = self.model.predict(X)
 
-        return explained_variance_score(X, out)
+        return explained_variance_score(y, out)
 
 
 class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):
@@ -393,9 +386,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             )
         return X
 
-    def fit(
-        self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
-    ) -> "KerasLSTMAutoEncoder":
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> "KerasLSTMAutoEncoder":
         """
         This fits a many-to-one LSTM architecture using Keras fit_generator method.
 
@@ -403,9 +394,8 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         ----------
         X: np.ndarray
            2D numpy array of dimension n_samples x n_features. Input data to train.
-        y: Optional[np.ndarray]
-           This is an LSTM Autoencoder which does not need a y. Thus it will be ignored,
-           and is only added as a parameter to be compatible with scikit-learn.
+        y: np.ndarray
+           2D numpy array to representing the target.
         kwargs: dict
             Any additional args to be passed to Keras fit_generator method.
 
@@ -416,11 +406,8 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 
         """
 
-        if y is not None:
-            logger.warning(
-                f"This is a many-to-one LSTM AutoEncoder that does not need a "
-                f"target, but a y was supplied. It will not be used."
-            )
+        X = X.values if isinstance(X, pd.DataFrame) else X
+        y = y.values if isinstance(y, pd.DataFrame) else y
 
         X = self._validate_and_fix_size_of_X(X)
 
@@ -428,9 +415,8 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         # model using the scikit-learn wrapper.
         lookahead = 0
         tsg = create_keras_timeseriesgenerator(
-            data=X[
-                : lookahead + self.lookback_window
-            ],  # We only need a bit of the data
+            X=X[: lookahead + self.lookback_window],  # We only need a bit of the data
+            y=y[: lookahead + self.lookback_window],
             batch_size=1,
             lookback_window=self.lookback_window,
             lookahead=lookahead,
@@ -439,7 +425,8 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         super().fit(X=x, y=y, epochs=1, verbose=0)
 
         tsg = create_keras_timeseriesgenerator(
-            data=X,
+            X=X,
+            y=y,
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
             lookahead=0,
@@ -455,7 +442,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """
 
         Parameters
@@ -498,24 +485,31 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
         ...                                lookback_window=2,
         ...                                verbose=0)
-        >>> model_fit = lstm_ae.fit(X_train)
+        >>> model_fit = lstm_ae.fit(X_train, y=X_train.copy())
         >>> model_transform = lstm_ae.predict(X_test)
         >>> model_transform.shape
         (3, 2)
         """
+
+        X = X.values if isinstance(X, pd.DataFrame) else X
+
         X = self._validate_and_fix_size_of_X(X)
         # predict batch_size does not need to correspond to
         # training batch_size
         tsg = create_keras_timeseriesgenerator(
-            data=X, batch_size=10000, lookback_window=self.lookback_window, lookahead=0
+            X=X,
+            y=X,
+            batch_size=10000,
+            lookback_window=self.lookback_window,
+            lookahead=0,
         )
         with possible_tf_mgmt(self):
-            return self.model.predict_generator(tsg)
+            return self.model.predict_generator(tsg, **kwargs)
 
     def score(
         self,
         X: Union[np.ndarray, pd.DataFrame],
-        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
@@ -545,7 +539,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
 
         # Limit X samples to match the offset causes by LSTM lookback window
         # ie, if look back window is 5, 'out' will be 5 rows less than X by now
-        return explained_variance_score(X[-len(out) :], out)
+        return explained_variance_score(y[-len(out) :], out)
 
 
 class KerasLSTMForecast(KerasLSTMBaseEstimator):
@@ -576,9 +570,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             )
         return X
 
-    def fit(
-        self, X: np.ndarray, y: Optional[np.ndarray] = None, **kwargs
-    ) -> "KerasLSTMForecast":
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> "KerasLSTMForecast":
 
         """
         This fits a one step forecast LSTM architecture.
@@ -587,9 +579,8 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         ----------
         X: np.ndarray
            2D numpy array of dimension n_samples x n_features. Input data to train.
-        y: Optional[np.ndarray]
-           This is an LSTM Autoencoder which does not need a y. Thus it will be ignored,
-           and is only added as a parameter to be compatible with scikit-learn.
+        y: np.ndarray
+           2D numpy array representing the target
         kwargs: dict
             Any additional args to be passed to Keras `fit_generator` method.
 
@@ -599,11 +590,9 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             KerasLSTMForecast
 
         """
-        if y is not None:
-            logger.warning(
-                f"This is a forecast based LSTM model that does not need a "
-                f"target, but a y was supplied. It will not be used."
-            )
+
+        X = X.values if isinstance(X, pd.DataFrame) else X
+        y = y.values if isinstance(y, pd.DataFrame) else y
 
         X = self._validate_and_fix_size_of_X(X)
 
@@ -611,18 +600,20 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         # model using the scikit-learn wrapper.
         lookahead = 1
         tsg = create_keras_timeseriesgenerator(
-            data=X[
-                : lookahead + self.lookback_window
-            ],  # We only need a bit of the data
+            X=X[: lookahead + self.lookback_window],  # We only need a bit of the data
+            y=y[: lookahead + self.lookback_window],
             batch_size=1,
             lookback_window=self.lookback_window,
             lookahead=lookahead,
         )
-        x, y = tsg[0]
-        super().fit(X=x, y=y, epochs=1, verbose=0)
+
+        primer_x, primer_y = tsg[0]
+
+        super().fit(X=primer_x, y=primer_y, epochs=1, verbose=0)
 
         tsg = create_keras_timeseriesgenerator(
-            data=X,
+            X=X,
+            y=y,
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
             lookahead=1,
@@ -640,7 +631,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
+    def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """
         Parameters
         ----------
@@ -681,15 +672,20 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         >>> lstm_ae = KerasLSTMForecast(kind="lstm_model",
         ...                             lookback_window=2,
         ...                             verbose=0)
-        >>> model_fit = lstm_ae.fit(X_train)
+        >>> model_fit = lstm_ae.fit(X_train, y=X_train.copy())
         >>> model_transform = lstm_ae.predict(X_test)
         >>> model_transform.shape
         (2, 2)
         """
+        X = X.values if isinstance(X, pd.DataFrame) else X
 
         X = self._validate_and_fix_size_of_X(X)
         tsg = create_keras_timeseriesgenerator(
-            data=X, batch_size=10000, lookback_window=self.lookback_window, lookahead=1
+            X=X,
+            y=X,
+            batch_size=10000,
+            lookback_window=self.lookback_window,
+            lookahead=1,
         )
         with possible_tf_mgmt(self):
             return self.model.predict_generator(tsg)
@@ -697,7 +693,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
     def score(
         self,
         X: Union[np.ndarray, pd.DataFrame],
-        y: Optional[Union[np.ndarray, pd.DataFrame]] = None,
+        y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         """
@@ -727,11 +723,15 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
 
         # Limit X samples to match the offset causes by LSTM lookback window
         # ie, if look back window is 5, 'out' will be 5 rows less than X by now
-        return explained_variance_score(X[-len(out) :], out)
+        return explained_variance_score(y[-len(out) :], out)
 
 
 def create_keras_timeseriesgenerator(
-    data: np.ndarray, batch_size: int, lookback_window: int, lookahead: int
+    X: np.ndarray,
+    y: Optional[np.ndarray],
+    batch_size: int,
+    lookback_window: int,
+    lookahead: int,
 ) -> keras.preprocessing.sequence.TimeseriesGenerator:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
@@ -745,8 +745,10 @@ def create_keras_timeseriesgenerator(
 
     Parameters
     ----------
-    data: np.ndarray
+    X: np.ndarray
         2d array of values, each row being one sample.
+    y: Optional[np.ndarray]
+        array representing the target.
     batch_size: int
         How big should the generated batches be?
     lookback_window: int
@@ -766,8 +768,8 @@ def create_keras_timeseriesgenerator(
     Examples
     -------
     >>> import numpy as np
-    >>> data = np.random.rand(100,2)
-    >>> gen = create_keras_timeseriesgenerator(data,
+    >>> X, y = np.random.rand(100,2), np.random.rand(100, 2)
+    >>> gen = create_keras_timeseriesgenerator(X, y,
     ...                                        batch_size=10,
     ...                                        lookback_window=20,
     ...                                        lookahead=0)
@@ -782,34 +784,27 @@ def create_keras_timeseriesgenerator(
     >>> len(gen[0][0][0][0]) # n_features = 2
     2
     """
-    new_length = len(data) + 1 - lookahead
-
+    new_length = len(X) + 1 - lookahead
+    kwargs: Dict[str, Any] = dict(length=lookback_window, batch_size=batch_size)
     if lookahead == 1:
-        input_data = data
-        target_data = data
-    elif lookahead == 0:
-        input_data = pad_sequences(
-            [data], maxlen=new_length, padding="post", dtype=data.dtype
-        )[0]
-        target_data = pad_sequences(
-            [data], maxlen=new_length, padding="pre", dtype=data.dtype
-        )[0]
+        kwargs.update(dict(data=X, targets=y))
 
-    elif lookahead > 1:
-        input_data = pad_sequences(
-            [data],
-            maxlen=new_length,
-            padding="post",
-            dtype=data.dtype,
-            truncating="post",
-        )[0]
-        target_data = pad_sequences(
-            [data], maxlen=new_length, padding="pre", dtype=data.dtype, truncating="pre"
-        )[0]
+    elif lookahead >= 0:
+
+        pad_kw = dict(maxlen=new_length, dtype=X.dtype)
+
+        if lookahead == 0:
+            kwargs["data"] = pad_sequences([X], padding="post", **pad_kw)[0]
+            kwargs["targets"] = pad_sequences([y], padding="pre", **pad_kw)[0]
+
+        elif lookahead > 1:
+            kwargs["data"] = pad_sequences(
+                [X], padding="post", truncating="post", **pad_kw
+            )[0]
+            kwargs["targets"] = pad_sequences(
+                [y], padding="pre", truncating="pre", **pad_kw
+            )[0]
     else:
         raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
 
-    tsgen = TimeseriesGenerator(
-        input_data, targets=target_data, length=lookback_window, batch_size=batch_size
-    )
-    return tsgen
+    return TimeseriesGenerator(**kwargs)
