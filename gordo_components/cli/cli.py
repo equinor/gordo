@@ -5,9 +5,7 @@ CLI interfaces
 """
 
 import logging
-import ast
 import os
-from ast import literal_eval
 
 import jinja2
 import yaml
@@ -66,9 +64,9 @@ DEFAULT_MODEL_CONFIG = (
     "data-config",
     envvar="DATA_CONFIG",
     default='{"type": "TimeSeriesDataset"}',
-    type=literal_eval,
+    type=yaml.safe_load,
 )
-@click.option("--metadata", envvar="METADATA", default="{}", type=literal_eval)
+@click.option("--metadata", envvar="METADATA", default="{}", type=yaml.safe_load)
 @click.option(
     "--model-register-dir",
     default=None,
@@ -366,7 +364,7 @@ def run_server_cli(
 @click.command("run-watchman")
 @click.argument("project-name", envvar="PROJECT_NAME", type=str)
 @click.argument("project-version", envvar="PROJECT_VERSION", type=str)
-@click.argument("target-names", envvar="TARGET_NAMES", type=ast.literal_eval)
+@click.argument("target-names", envvar="TARGET_NAMES", type=yaml.safe_load)
 @click.option(
     "--host", type=str, help="The host to run the server on.", default="0.0.0.0"
 )

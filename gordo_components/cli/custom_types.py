@@ -2,9 +2,9 @@
 
 import os
 import json
-import ast
 import typing
 
+import yaml
 import click
 from dateutil import parser
 
@@ -23,7 +23,7 @@ class DataProviderParam(click.ParamType):
             with open(value) as f:
                 kwargs = json.load(f)
         else:
-            kwargs = ast.literal_eval(value)
+            kwargs = yaml.safe_load(value)
 
         if "type" not in kwargs:
             self.fail(f"Cannot create DataProvider without 'type' key defined")
