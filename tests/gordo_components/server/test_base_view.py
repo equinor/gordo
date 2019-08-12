@@ -4,6 +4,7 @@ import logging
 
 import pytest
 import numpy as np
+import pandas as pd
 
 import tests.utils as tu
 
@@ -15,11 +16,22 @@ import tests.utils as tu
         {"X": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist()},
     ],
 )
-def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_post):
+@pytest.mark.parametrize("as_msgpack", (True, False))
+def test_prediction_endpoint_post_ok(
+    sensors, gordo_ml_server_client, data_to_post, as_msgpack
+):
     """
     Test the expected successfull data posts
     """
-    resp = gordo_ml_server_client.post("/prediction", json=data_to_post)
+
+    # Either post a JSON or msgpacked pandas dataframe.
+    if as_msgpack:
+        data = pd.DataFrame(data_to_post["X"], columns=tu.SENSORS_STR_LIST)
+        kw = {"data": data.to_msgpack()}
+    else:
+        kw = {"json": data_to_post}
+
+    resp = gordo_ml_server_client.post("/prediction", **kw)
     assert resp.status_code == 200
 
     data = resp.get_json()

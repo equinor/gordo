@@ -3,6 +3,7 @@
 import logging
 import functools
 import timeit
+import traceback
 import typing
 import dateutil
 from datetime import datetime
@@ -76,7 +77,7 @@ def dataframe_from_dict(
         return df
 
 
-def multi_lvl_column_dataframe_to_dict(df: pd.DataFrame) -> typing.List[dict]:
+def multi_lvl_column_dataframe_to_dict(df: pd.DataFrame) -> dict:
     """
     Convert a dataframe which has a :class:`pandas.MultiIndex` as columns into a dict
     where each key is the top level column name, and the value is the array
@@ -195,28 +196,42 @@ def extract_X_y(method):
 
         # Data provided by the client
         if request.method == "POST":
-            X = request.json.get("X")
-            y = request.json.get("y")
 
-            if X is None:
-                message = dict(message='Cannot predict without "X"')
-                return make_response((jsonify(message), 400))
+            if request.json is not None:
+                X = request.json.get("X")
+                y = request.json.get("y")
 
-            # Convert X and (maybe) y into dataframes.
-            X = dataframe_from_dict(
-                X, tags=list(tag.name for tag in self.tags), name="X"
-            )
+                if X is None:
 
-            # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
-            if y is not None and self.target_tags:
-                y = dataframe_from_dict(
-                    y, list(tag.name for tag in self.target_tags), name="y"
+                    message = dict(message='Cannot predict without "X"')
+                    return make_response((jsonify(message), 400))
+
+                # Convert X and (maybe) y into dataframes.
+                X = dataframe_from_dict(
+                    X, tags=list(tag.name for tag in self.tags), name="X"
                 )
 
-            # If either X or y came back as a Response type, there was an error
-            for data_or_resp in [X, y]:
-                if isinstance(data_or_resp, Response):
-                    return data_or_resp
+                # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
+                if y is not None and self.target_tags:
+                    y = dataframe_from_dict(
+                        y, list(tag.name for tag in self.target_tags), name="y"
+                    )
+
+                # If either X or y came back as a Response type, there was an error
+                for data_or_resp in [X, y]:
+                    if isinstance(data_or_resp, Response):
+                        return data_or_resp
+            else:
+                try:
+                    data = pd.read_msgpack(request.data)
+                except Exception as exc:
+                    logger.error(f"Unable to parse msgpack: {traceback.format_exc()}")
+                    msg = {"message": "Unable to parse msgpack data"}
+                    return make_response((jsonify(msg), 400))
+                else:
+                    # TODO: Catch potential key error(s)
+                    X = data[list(tag.name for tag in self.tags)]
+                    y = data[list(tag.name for tag in self.target_tags)]
 
         # Data must be queried from Influx given dates passed in request.
         elif request.method == "GET":
