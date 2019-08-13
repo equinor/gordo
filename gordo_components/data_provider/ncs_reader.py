@@ -29,7 +29,7 @@ class NcsReader(GordoBaseDataProvider):
     }
 
     def __init__(
-        self, client: core.AzureDLFileSystem, threads: Optional[int] = None, **kwargs
+        self, client: core.AzureDLFileSystem, threads: Optional[int] = 1, **kwargs
     ):
         """
         Creates a reader for tags from the Norwegian Continental Shelf. Currently
@@ -38,12 +38,13 @@ class NcsReader(GordoBaseDataProvider):
         Parameters
         ----------
         threads : Optional[int]
-            Number of threads to use. If None then use # of CPU's * 5
+            Number of threads to use. If None then use 1 thread
 
         """
         super().__init__(**kwargs)
         self.client = client
         self.threads = threads
+        logger.info(f"Starting NCS reader with {self.threads} threads")
 
     def can_handle_tag(self, tag: SensorTag):
         """

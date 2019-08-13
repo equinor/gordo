@@ -34,6 +34,7 @@ class IrocReader(GordoBaseDataProvider):
         self.threads = threads
         if self.threads is None:
             self.threads = 50
+        logger.info(f"Starting IROC reader with {self.threads} threads")
 
     def load_series(
         self,
