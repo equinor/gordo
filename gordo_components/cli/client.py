@@ -52,8 +52,9 @@ def client(ctx: click.Context, *args, **kwargs):
 @click.option(
     "--data-provider",
     type=DataProviderParam(),
-    help="DataProvider dict. Must contain a 'type' key with the name of a DataProvider "
-    "as  value. If it does not contains a 'threads' key, 1 will be used ",
+    envvar="DATA_PROVIDER",
+    help="DataProvider dict encoded as json. Must contain a 'type' key with the name of"
+    " a DataProvider as value.",
 )
 @click.option(
     "--output-dir",
