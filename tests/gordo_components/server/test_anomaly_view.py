@@ -3,6 +3,7 @@
 import pytest
 import numpy as np
 
+from gordo_components.server import utils as server_utils
 import tests.utils as tu
 
 
@@ -41,37 +42,24 @@ def test_anomaly_prediction_endpoint(
     assert resp.status_code == 200
     assert "data" in resp.json
 
-    # Verify keys & structure of one output record output contains a list of:
-    # {'start': timestamp, 'end': timestamp, 'tags': {'tag': float}, 'total_abnormality': float}
-    assert isinstance(resp.json["data"], list)
-    record = resp.json["data"][0]
-    assert isinstance(record, dict)
+    # Load data into dataframe
+    data = server_utils.multi_lvl_column_dataframe_from_dict(resp.json["data"])
 
     # Only different between POST and GET is POST will return None for
     # start and end dates, because the server can't know what those are
-    assert "start" in record
-    assert (
-        record["start"][0] is None
-        if data_to_post is not None
-        else isinstance(record["start"][0], str)
+    assert "start" in data
+    assert "end" in data
+    if data_to_post is not None:
+        assert np.all(data["start"].isna())
+        assert np.all(data["end"].isna())
+    else:
+        assert not np.any(data["start"].isna())
+        assert not np.any(data["end"].isna())
+
+    assert all(
+        key in data
+        for key in ("total-anomaly", "tag-anomaly", "model-input", "model-output")
     )
-    assert "end" in record
-    assert (
-        record["end"][0] is None
-        if data_to_post is not None
-        else isinstance(record["end"][0], str)
-    )
-    assert "total-anomaly" in record
-    assert isinstance(record["total-anomaly"], list)
-
-    assert "tag-anomaly" in record
-    assert isinstance(record["tag-anomaly"], list)
-
-    assert "model-input" in record
-    assert isinstance(record["model-input"], list)
-
-    assert "model-output" in record
-    assert isinstance(record["model-output"], list)
 
 
 def test_more_than_24_hrs(influxdb, gordo_ml_server_client):
@@ -106,6 +94,8 @@ def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):
         json={"start": "2016-01-01T00:11:00+00:00", "end": "2016-01-01T00:21:00+00:00"},
     )
     assert resp.status_code == 200
-    assert len(resp.json["data"]) == 1, f"Expected one prediction, got: {resp.json}"
-    assert resp.json["data"][0]["start"] == ["2016-01-01T00:10:00+00:00"]
-    assert resp.json["data"][0]["end"] == ["2016-01-01T00:20:00+00:00"]
+    data = server_utils.multi_lvl_column_dataframe_from_dict(resp.json["data"])
+
+    assert len(data) == 1, f"Expected one prediction, got: {resp.json}"
+    assert data["start"].iloc[0].tolist() == ["2016-01-01T00:10:00+00:00"]
+    assert data["end"].iloc[0].tolist() == ["2016-01-01T00:20:00+00:00"]

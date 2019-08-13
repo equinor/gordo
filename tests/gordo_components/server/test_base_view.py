@@ -3,8 +3,10 @@
 import logging
 
 import pytest
+import pandas as pd
 import numpy as np
 
+from gordo_components.server import utils as server_utils
 import tests.utils as tu
 
 
@@ -13,6 +15,24 @@ import tests.utils as tu
     [
         {"X": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist()},
         {"X": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist()},
+        {
+            "X": pd.DataFrame(
+                np.random.random((10, len(tu.SENSORS_STR_LIST))),
+                columns=tu.SENSORS_STR_LIST,
+            ).to_dict("records")
+        },
+        {
+            "X": pd.DataFrame(
+                np.random.random((10, len(tu.SENSORS_STR_LIST))),
+                columns=tu.SENSORS_STR_LIST,
+            ).to_dict("list")
+        },
+        {
+            "X": pd.DataFrame(
+                np.random.random((10, len(tu.SENSORS_STR_LIST))),
+                columns=tu.SENSORS_STR_LIST,
+            ).to_dict("dict")
+        },
     ],
 )
 def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_post):
@@ -20,19 +40,13 @@ def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_po
     Test the expected successfull data posts
     """
     resp = gordo_ml_server_client.post("/prediction", json=data_to_post)
+
     assert resp.status_code == 200
 
-    data = resp.get_json()
+    data = server_utils.multi_lvl_column_dataframe_from_dict(resp.json["data"])
 
-    # Data should be a list of dicts
-    assert "data" in data
-    assert isinstance(data["data"], list)
-
-    # One record (dict) should have keys mapped to lists of values
-    record = data["data"][0]
-    for key in ("model-output", "model-input"):
-        assert key in record
-        assert isinstance(record[key], list)
+    # Expected column names
+    assert all(key in data for key in ("model-output", "model-input"))
 
 
 @pytest.mark.parametrize(
