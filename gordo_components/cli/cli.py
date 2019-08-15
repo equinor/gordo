@@ -11,10 +11,7 @@ import jinja2
 import yaml
 import click
 from gordo_components.builder.build_model import provide_saved_model
-from gordo_components.data_provider.providers import (
-    DataLakeProvider,
-    InfluxDataProvider,
-)
+from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.serializer import (
     load_metadata,
     pipeline_into_definition,
@@ -23,7 +20,7 @@ from gordo_components.serializer import (
 from gordo_components.server import server
 from gordo_components import watchman
 from gordo_components.cli.client import client as gordo_client
-from gordo_components.cli.custom_types import key_value_par
+from gordo_components.cli.custom_types import key_value_par, DataProviderParam
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 import dateutil.parser
@@ -66,6 +63,14 @@ DEFAULT_MODEL_CONFIG = (
     default='{"type": "TimeSeriesDataset"}',
     type=yaml.safe_load,
 )
+@click.option(
+    "--data-provider",
+    type=DataProviderParam(),
+    envvar="DATA_PROVIDER",
+    default='{"type": "DataLakeProvider"}',
+    help="DataProvider dict encoded as json. Must contain a 'type' key with the name of"
+    " a DataProvider as value.",
+)
 @click.option("--metadata", envvar="METADATA", default="{}", type=yaml.safe_load)
 @click.option(
     "--model-register-dir",
@@ -93,24 +98,17 @@ DEFAULT_MODEL_CONFIG = (
     type=click.File(mode="w", lazy=False),
     default="/tmp/model-location.txt",
 )
-@click.option(
-    "--data-provider-threads",
-    help="Number of threads to use for the data provider when fetching data",
-    envvar="DATA_PROVIDER_THREADS",
-    type=int,
-    default=1,
-)
 def build(
     name,
     output_dir,
     model_config,
     data_config,
+    data_provider,
     metadata,
     model_register_dir,
     print_cv_scores,
     model_parameter,
     model_location_file,
-    data_provider_threads,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -143,25 +141,18 @@ def build(
         config wherever there is a jinja variable with the key.
     model_location_file: str/path
         Path to a file to open and write the location of the serialized model to.
-    data_provider_threads: int
-        Number of threads to use for the data provider when fetching data.
     """
-
-    # TODO: Move all data related input from environment variable to data_config,
-    # TODO: thereby removing all these data_config['variable'] lines
 
     data_config["tag_list"] = data_config.pop("tags")
 
-    # TODO: Move parsing from here, into the InfluxDataSet class
     data_config["from_ts"] = dateutil.parser.isoparse(
         data_config.pop("train_start_date")
     )
 
-    # TODO: Move parsing from here, into the InfluxDataSet class
     data_config["to_ts"] = dateutil.parser.isoparse(data_config.pop("train_end_date"))
 
     # Set default data provider for data config
-    data_config["data_provider"] = DataLakeProvider(threads=data_provider_threads)
+    data_config["data_provider"] = data_provider
     asset = data_config.get("asset", None)
     tag_list = normalize_sensor_tags(data_config["tag_list"], asset)
 
