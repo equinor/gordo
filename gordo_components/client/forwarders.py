@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import itertools
 import logging
+import time
 import typing
 from typing import Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -59,6 +61,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         destination_influx_uri: Optional[str] = None,
         destination_influx_api_key: Optional[str] = None,
         destination_influx_recreate: bool = False,
+        n_retries=5,
     ):
         """
         Create an instance which, when called, is a coroutine capable of
@@ -75,6 +78,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             Drop the database before filling it with data?
         """
         # Create df client if provided
+        self.n_retries = n_retries
         self.dataframe_client = (
             influx_client_from_uri(
                 destination_influx_uri,
@@ -152,39 +156,58 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             if len(sub_df.columns) == len(endpoint.tag_list):
                 sub_df.columns = [tag.name for tag in endpoint.tag_list]
 
-            # Async write predictions to influx
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                logger.info(
-                    f"Writing {len(sub_df)} points to Influx for measurement: {top_lvl_name}"
-                )
-                future = executor.submit(
-                    self.dataframe_client.write_points,
-                    dataframe=sub_df,
-                    measurement=top_lvl_name,
-                    tags=tags,
-                    batch_size=10000,
-                )
-                await asyncio.wrap_future(future)
+            await self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
+
+    async def _write_to_influx_with_retries(self, df, tags, measurement):
+        """Async write data to influx with retries and exponential backof. Will sleep
+        exponentially longer between each retry, starting at 8 seconds, capped at 5 min.
+        """
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            logger.info(
+                f"Writing {len(df)} points to Influx for measurement: {measurement}"
+            )
+            for current_attempt in itertools.count(start=1):
+                try:
+                    future = executor.submit(
+                        self.dataframe_client.write_points,
+                        dataframe=df,
+                        measurement=measurement,
+                        tags=tags,
+                        batch_size=10000,
+                    )
+                    await asyncio.wrap_future(future)
+                except Exception as exc:
+                    if current_attempt <= self.n_retries:
+                        # Sleep at most 5 min
+                        time_to_sleep = min(2 ^ (current_attempt + 2), 300)
+                        logger.warning(
+                            f"Failed to forward data to influx on attempt "
+                            f"{current_attempt} out of {self.n_retries} attempts. "
+                            f"Error: {exc}."
+                            f"Sleeping {time_to_sleep} seconds and trying again"
+                        )
+                        time.sleep(time_to_sleep)  # Not async on purpose.
+                        continue
+                    else:
+                        msg = f"Failed to forward data to influx. Error: {exc}"
+                        logger.error(msg)
+                else:
+                    break
 
     async def send_sensor_data(self, sensors: pd.DataFrame):
         """
         Async write sensor-data to influx
         """
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            # Write the per-sensor points to influx
-            logger.info(f"Writing {len(sensors)} sensor points to Influx")
+        # Write the per-sensor points to influx
+        logger.info(f"Writing {len(sensors)} sensor points to Influx")
 
-            for tag_name, tag_data in _explode_df(sensors).items():
-                future = executor.submit(
-                    self.dataframe_client.write_points,
-                    tag_data,
-                    measurement="resampled",
-                    batch_size=10000,
-                    tags={"tag": tag_name},
-                )
-                await asyncio.wrap_future(future)
-                logger.debug(f"Wrote resampled tag data for {tag_name} to Influx")
-            logger.debug("Done writing resamples sensor values to influx")
+        for tag_name, tag_data in _explode_df(sensors).items():
+            await self._write_to_influx_with_retries(
+                tag_data, {"tag": tag_name}, "resampled"
+            )
+            logger.debug(f"Wrote resampled tag data for {tag_name} to Influx")
+        logger.debug("Done writing resampled sensor values to influx")
 
 
 def _explode_df(

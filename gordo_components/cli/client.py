@@ -124,6 +124,7 @@ def predict(
             destination_influx_uri=influx_uri,
             destination_influx_api_key=influx_api_key,
             destination_influx_recreate=influx_recreate_db,
+            n_retries=n_retries,
         )
 
     # Fire off getting predictions
