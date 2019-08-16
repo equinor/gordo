@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import os
 import dateutil.parser
 import yaml
+from sklearn.base import BaseEstimator
 
 from typing import List, Optional, Dict
 from tempfile import TemporaryDirectory
+
+import pytest
+import sklearn
+import numpy as np
+
+import gordo_components
 from gordo_components.builder.build_model import (
     _save_model_for_workflow,
     provide_saved_model,
+    _get_metadata,
 )
 from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
@@ -106,6 +113,22 @@ def test_output_dir(tmp_dir):
                     - sklearn.decomposition.pca.PCA:
                         svd_solver: auto
         """,
+        # Pipeline as a parameter to another estimator
+        """
+        sklearn.compose.TransformedTargetRegressor:
+            regressor: 
+                sklearn.pipeline.Pipeline:
+                    steps: 
+                    - sklearn.preprocessing.data.MinMaxScaler
+                    - gordo_components.model.models.KerasAutoEncoder:
+                        kind: feedforward_hourglass
+                        compression_factor: 0.5
+                        encoding_layers: 2
+                        func: tanh
+                        out_func: linear
+                        epochs: 3
+            transformer: sklearn.preprocessing.data.MinMaxScaler
+    """,
     ),
 )
 def test_builder_metadata(raw_model_config):
@@ -124,6 +147,93 @@ def test_builder_metadata(raw_model_config):
     )
     # Check metadata, and only verify 'history' if it's a *Keras* type model
     metadata_check(metadata, "Keras" in raw_model_config)
+
+
+import sklearn.compose
+import sklearn.ensemble
+
+
+@pytest.mark.parametrize(
+    "model,expect_empty_dict",
+    (
+        # Model is not a GordoBase, first parameter is a pipeline and no GordoBase either
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=sklearn.pipeline.Pipeline(
+                    steps=[
+                        ("s1", sklearn.preprocessing.data.MinMaxScaler()),
+                        ("s2", sklearn.ensemble.RandomForestRegressor()),
+                    ]
+                ),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            True,
+        ),
+        # Model is not a GordoBase, first parameter is not GordoBase either.
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=sklearn.ensemble.RandomForestRegressor(),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            True,
+        ),
+        # Model is not a GordoBase, first parameter is a pipeline with GordoBase
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=sklearn.pipeline.Pipeline(
+                    steps=[
+                        ("s1", sklearn.preprocessing.data.MinMaxScaler()),
+                        (
+                            "s2",
+                            gordo_components.model.models.KerasAutoEncoder(
+                                kind="feedforward_hourglass"
+                            ),
+                        ),
+                    ]
+                ),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            False,
+        ),
+        # Model is not GordoBase but the first parameter is.
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=gordo_components.model.models.KerasAutoEncoder(
+                    kind="feedforward_hourglass"
+                ),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            False,
+        ),
+        # Plain model, no GordoBase
+        (sklearn.ensemble.RandomForestRegressor(), True),
+        # GordoBase bare
+        (
+            gordo_components.model.models.KerasAutoEncoder(
+                kind="feedforward_hourglass"
+            ),
+            False,
+        ),
+    ),
+)
+def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
+    """
+    Ensure the builder works with various model configs and that each has
+    expected/valid metadata results.
+    """
+
+    X, y = np.random.random((1000, 4)), np.random.random((1000,))
+
+    model.fit(X, y)
+
+    metadata = _get_metadata(model)
+
+    # All the metadata we've implemented so far is 'history', so we'll check that
+    if not expect_empty_dict:
+        assert "history" in metadata
+        assert all(name in metadata["history"] for name in ("params", "loss", "acc"))
+    else:
+        assert dict() == metadata
 
 
 def test_provide_saved_model_simple_happy_path(tmp_dir):

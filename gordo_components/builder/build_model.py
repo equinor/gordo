@@ -111,9 +111,7 @@ def build_model(
         "cross-validation": {"cv-duration-sec": cv_duration_sec, "scores": scores},
     }
 
-    gordobase_final_step = _get_final_gordo_base_step(model)
-    if gordobase_final_step:
-        metadata["model"].update(gordobase_final_step.get_metadata())
+    metadata["model"].update(_get_metadata(model))
 
     return model, metadata
 
@@ -141,6 +139,50 @@ def _save_model_for_workflow(
     os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
     serializer.dump(model, output_dir, metadata=metadata)
     return output_dir
+
+
+def _get_metadata(model: BaseEstimator, metadata: dict = dict()) -> dict:
+    """
+    Recursively check for :class:`gordo_components.model.base.GordoBase` in a
+    given ``model``. If such a model exists buried inside of a
+    :class:`sklearn.pipelilne.Pipeline` which is then part of another
+    :class:`sklearn.base.BaseEstimator`, this function will return its metadata.
+
+    Parameters
+    ----------
+    model: BaseEstimator
+    metadata: dict
+        Any initial starting metadata, but is mainly meant to be used during
+        the recursive calls to accumulate any multiple :class:`gordo_components.model.base.GordoBase`
+        models found in this model
+
+    Notes
+    -----
+    If there is a ``GordoBase`` model inside of a ``Pipeline`` which is not the final
+    step, this function will not find it.
+
+    Returns
+    -------
+    dict
+        Dictionary representing accumulated calls to :meth:`gordo_components.model.base.GordoBase.get_metadata`
+    """
+    metadata = metadata.copy()
+
+    if not isinstance(model, GordoBase):
+
+        for attr, val in model.__dict__.items():
+            if isinstance(val, Pipeline):
+                final_step = _get_final_gordo_base_step(val)
+                if final_step is not None:
+                    metadata.update(_get_metadata(final_step))
+            elif isinstance(val, GordoBase):
+                metadata.update(val.get_metadata())
+            elif isinstance(val, BaseEstimator):
+                metadata.update(_get_metadata(val))
+    else:
+        metadata.update(model.get_metadata())
+
+    return metadata
 
 
 def _get_final_gordo_base_step(model: BaseEstimator):
