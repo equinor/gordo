@@ -15,6 +15,13 @@ os:
 
 jobs:
   include:
+
+  - stage: build-rust
+    name: "Build deployer"
+    language: rust
+    script: |
+      cd deployer && cargo build
+
   - stage: test
     name: "setup.py testall"
     install:
