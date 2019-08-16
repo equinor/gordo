@@ -72,6 +72,10 @@ def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnySt
         in the registry.
     """
     output_val = None
+
+    if registry_dir is None:
+        return output_val
+
     key_file_path = Path(registry_dir).joinpath(key)
     logger.info(f"Looking for registry key {key} at path " f"{key_file_path}")
     # If the model location exists
