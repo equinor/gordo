@@ -360,3 +360,36 @@ def test_provide_saved_model_caching(
             assert model_location == model_location2
         else:
             assert model_location != model_location2
+
+
+@pytest.mark.parametrize(
+    "should_be_equal,cv_mode", [(True, "full_build"), (False, "cross_val_only")]
+)
+def test_model_builder_cv_scores_only(should_be_equal: bool, cv_mode: str):
+    """
+    Test checks that the model is None if cross_val_only is used as the cv_mode.
+    If the default mode ('full_build') is used, the model should not be None.
+
+    Parameters
+    ----------
+    should_be_equal: bool
+        Refers to whether or not the cv_mode should be equal to full (default) or cross_val only.
+    cv_mode: str
+        The mode which is tested, is either full or cross_val_only
+
+    """
+
+    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    data_config = get_random_data()
+
+    model, metadata = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        cv_mode=cv_mode,
+    )
+    if should_be_equal:
+        assert model is not None
+    else:
+        assert model is None
