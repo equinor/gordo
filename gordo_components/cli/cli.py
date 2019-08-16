@@ -12,7 +12,13 @@ import os
 import jinja2
 import yaml
 import click
-from gordo_components.builder.build_model import provide_saved_model
+
+from gordo_components.builder.build_model import (
+    provide_saved_model,
+    check_cache,
+    calculate_model_key,
+    build_model,
+)
 from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.serializer import (
     load_metadata,
@@ -124,6 +130,12 @@ DEFAULT_MODEL_CONFIG = (
     type=click.File(mode="w", lazy=False),
     default="/tmp/model-location.txt",
 )
+@click.option(
+    "--cv-mode",
+    envvar="CV_MODE",
+    default="full_build",
+    type=click.Choice(["full_build", "build_only", "cross_val_only"]),
+)
 def build(
     name,
     output_dir,
@@ -135,6 +147,7 @@ def build(
     print_cv_scores,
     model_parameter,
     model_location_file,
+    cv_mode,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -175,6 +188,11 @@ def build(
         config wherever there is a jinja variable with the key.
     model_location_file: str/path
         Path to a file to open and write the location of the serialized model to.
+    cv_mode: str
+        String which enables three different modes:
+        * cross_val_only: Only perform cross validation
+        * build_only: Skip cross validation and only build the model
+        * full_build: Cross validation and full build of the model, default value
     """
 
     data_config["tag_list"] = data_config.pop("tags")
@@ -212,15 +230,40 @@ def build(
     model_config = pipeline_into_definition(pipeline_from_definition(model_config))
     logger.debug(f"Fully expanded model config: {model_config}")
 
-    model_location = provide_saved_model(
-        name, model_config, data_config, metadata, output_dir, model_register_dir
-    )
+    if cv_mode == "cross_val_only":
+
+        cache_model_location = None
+        if model_register_dir is not None:
+            cache_key = calculate_model_key(
+                name, model_config, data_config, metadata=metadata
+            )
+            cache_model_location = check_cache(model_register_dir, cache_key)
+
+        if cache_model_location:
+            metadata = load_metadata(cache_model_location)
+        else:
+            _, metadata = build_model(
+                name, model_config, data_config, metadata, cv_mode
+            )
+
+    else:
+        model_location = provide_saved_model(
+            name,
+            model_config,
+            data_config,
+            metadata,
+            output_dir,
+            model_register_dir,
+            cv_mode=cv_mode,
+        )
+        metadata = load_metadata(model_location)
+
     # If the model is cached but without CV scores then we force a rebuild. We do this
     # by deleting the entry in the cache and then rerun `provide_saved_model`
     # (leaving the old model laying around)
     if print_cv_scores:
-        saved_metadata = load_metadata(model_location)
-        all_scores = get_all_score_strings(saved_metadata)
+        retrieved_metadata = metadata
+        all_scores = get_all_score_strings(retrieved_metadata)
         if not all_scores:
             logger.warning(
                 "Found that loaded model does not have cross validation values "
@@ -236,6 +279,7 @@ def build(
                 output_dir,
                 model_register_dir,
                 replace_cache=True,
+                cv_mode=cv_mode,
             )
             saved_metadata = load_metadata(model_location)
             all_scores = get_all_score_strings(saved_metadata)
@@ -243,8 +287,9 @@ def build(
         for score in all_scores:
             print(score)
 
-    # Write out the model location to this file.
-    model_location_file.write(model_location)
+    # Write out the model location to this file if it exists and cv_mode is not equal to cross_val_only.
+    if cv_mode != "cross_val_only":
+        model_location_file.write(model_location)
     return 0
 
 

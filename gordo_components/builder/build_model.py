@@ -6,7 +6,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Union, Optional, Dict, Any
+from typing import Union, Optional, Dict, Any, Tuple
 
 import pandas as pd
 import numpy as np
@@ -32,7 +32,8 @@ def build_model(
     model_config: dict,
     data_config: Union[GordoBaseDataset, dict],
     metadata: dict,
-):
+    cv_mode: str = "full_build",
+) -> Tuple[Union[BaseEstimator, None], dict]:
     """
     Build a model and serialize to a directory for later serving.
 
@@ -51,10 +52,15 @@ def build_model(
         Mapping of the Dataset to initialize, following the same logic as model_config.
     metadata: dict
         Mapping of arbitrary metadata data.
+    cv_mode: str
+        String which enables three different modes:
+        * cross_val_only: Only perform cross validation
+        * build_only: Skip cross validation and only build the model
+        * full_build: Cross validation and full build of the model, default value
 
     Returns
     -------
-        Tuple[sklearn.base.BaseEstimator, dict]
+        Tuple[Optional[sklearn.base.BaseEstimator], dict]
     """
     # Get the dataset from config
     logger.debug(f"Initializing Dataset with config {data_config}")
@@ -76,34 +82,53 @@ def build_model(
     logger.debug(f"Initializing Model with config: {model_config}")
     model = serializer.pipeline_from_definition(model_config)
 
-    # Cross validate
-    logger.debug(f"Starting to do cross validation")
-    start = time.time()
+    cv_duration_sec = None
 
-    scores: Dict[str, Any]
-    if hasattr(model, "predict"):
-        cv_scores = cross_val_score(
-            model,
-            X,
-            y,
-            scoring=make_scorer(metric_wrapper(explained_variance_score)),
-            cv=TimeSeriesSplit(n_splits=3),
-        )
-        scores = {
-            "explained-variance": {
-                "mean": cv_scores.mean(),
-                "std": cv_scores.std(),
-                "max": cv_scores.max(),
-                "min": cv_scores.min(),
-                "raw-scores": cv_scores.tolist(),
+    if cv_mode.lower() in ("cross_val_only", "full_build"):
+
+        # Cross validate
+        logger.debug("Starting cross validation")
+        start = time.time()
+
+        scores: Dict[str, Any]
+
+        if hasattr(model, "predict"):
+
+            cv_scores = cross_val_score(
+                model,
+                X,
+                y,
+                scoring=make_scorer(metric_wrapper(explained_variance_score)),
+                cv=TimeSeriesSplit(n_splits=3),
+            )
+
+            scores = {
+                "explained-variance": {
+                    "mean": cv_scores.mean(),
+                    "std": cv_scores.std(),
+                    "max": cv_scores.max(),
+                    "min": cv_scores.min(),
+                    "raw-scores": cv_scores.tolist(),
+                }
             }
-        }
+        else:
+            logger.debug("Unable to score model, has no attribute 'score'.")
+            scores = dict()
+
+        cv_duration_sec = time.time() - start
+
+        # If cross_val_only, return the cv_scores and empty model.
+        if cv_mode == "cross_val_only":
+            metadata["model"] = {
+                "cross-validation": {
+                    "cv-duration-sec": cv_duration_sec,
+                    "scores": scores,
+                }
+            }
+            return None, metadata
     else:
-        logger.debug("Unable to score model, has no attribute 'score'.")
+        # Setting cv scores to zero when not used.
         scores = dict()
-
-    cv_duration_sec = time.time() - start
-
     # Train
     logger.debug("Starting to train model.")
     start = time.time()
@@ -295,6 +320,44 @@ def calculate_model_key(
     return hashlib.sha3_512(json_rep.encode("ascii")).hexdigest()
 
 
+def check_cache(model_register_dir: Union[os.PathLike, str], cache_key: str):
+    """
+    Checks if a model is cached, and returns its path if it exists.
+
+    Parameters
+    ----------
+    model_register_dir: [os.PathLike, None]
+        The register dir where the model lies.
+    cache_key: str
+        A 512 byte hex value as a string based on the content of the parameters.
+
+     Returns
+    -------
+    Union[os.PathLike, None]:
+        The path to the cached model, or None if it does not exist.
+    """
+    existing_model_location = disk_registry.get_value(model_register_dir, cache_key)
+
+    # Check that the model is actually there
+    if existing_model_location and Path(existing_model_location).exists():
+        logger.debug(
+            f"Found existing model at path {existing_model_location}, returning it"
+        )
+        return existing_model_location
+    elif existing_model_location:
+        logger.warning(
+            f"Found that the model-path {existing_model_location} stored in the "
+            f"registry did not exist."
+        )
+        return None
+    else:
+        logger.info(
+            f"Did not find the model with key {cache_key} in the register at "
+            f"{model_register_dir}."
+        )
+        return None
+
+
 def provide_saved_model(
     name: str,
     model_config: dict,
@@ -303,6 +366,7 @@ def provide_saved_model(
     output_dir: Union[os.PathLike, str],
     model_register_dir: Union[os.PathLike, str] = None,
     replace_cache=False,
+    cv_mode: str = "full_build",
 ) -> Union[os.PathLike, str]:
     """
     Ensures that the desired model exists on disk, and returns the path to it.
@@ -334,6 +398,11 @@ def provide_saved_model(
     replace_cache: bool
         Forces a rebuild of the model, and replaces the entry in the cache with the new
         model.
+    cv_mode: str
+        String which enables three different modes:
+        * cross_val_only: Only perform cross validation
+        * build_only: Skip cross validation and only build the model
+        * full_build: Cross validation and full build of the model, default value
 
     Returns
     -------
@@ -353,27 +422,17 @@ def provide_saved_model(
             )
             disk_registry.delete_value(model_register_dir, cache_key)
 
-        existing_model_location = disk_registry.get_value(model_register_dir, cache_key)
+        cached_model_location = check_cache(model_register_dir, cache_key)
 
-        # Check that the model is actually there
-        if existing_model_location and Path(existing_model_location).exists():
-            logger.debug(
-                f"Found existing model at path {existing_model_location}, returning it"
-            )
+        if cached_model_location:
+            return cached_model_location
 
-            return existing_model_location
-        elif existing_model_location:
-            logger.warning(
-                f"Found that the model-path {existing_model_location} stored in the "
-                f"registry did not exist."
-            )
-        else:
-            logger.info(
-                f"Did not find the model with key {cache_key} in the register at "
-                f"{model_register_dir}."
-            )
     model, metadata = build_model(
-        name=name, model_config=model_config, data_config=data_config, metadata=metadata
+        name=name,
+        model_config=model_config,
+        data_config=data_config,
+        metadata=metadata,
+        cv_mode=cv_mode,
     )
     model_location = _save_model_for_workflow(
         model=model, metadata=metadata, output_dir=output_dir
