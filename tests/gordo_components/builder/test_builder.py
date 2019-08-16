@@ -27,6 +27,7 @@ def get_random_data():
 
 
 def metadata_check(metadata, check_history):
+    """Helper to verify model builder metadata creation"""
     assert "name" in metadata
     assert "model" in metadata
     assert "cross-validation" in metadata["model"]
@@ -72,71 +73,29 @@ def test_output_dir(tmp_dir):
     ), "Expected saving of model to create at least one subdir, but got {len(dirs)}"
 
 
-def test_model_builder_model_withouth_pipeline():
-
-    # MinMax is only a transformer and does not have a score either.
-    raw_model_config = """
+@pytest.mark.parametrize(
+    "raw_model_config",
+    (
+        # Without pipeline
+        """
     sklearn.preprocessing.data.MinMaxScaler:
         feature_range: [-1, 1]
-    """
-
-    model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    data_config = get_random_data()
-
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-    )
-    metadata_check(metadata, False)
-
-
-def test_model_builder_save_history():
-    """Checks that the metadata contains the keras model build history"""
-    raw_model_config = """
+    """,
+        # Saves history
+        """
     gordo_components.model.models.KerasAutoEncoder:
         kind: feedforward_hourglass
-    """
-
-    model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    data_config = get_random_data()
-
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-    )
-    metadata_check(metadata, True)
-
-
-def test_model_builder_pipeline():
-    raw_model_config = """
+    """,
+        # With typical pipeline
+        """
     sklearn.pipeline.Pipeline:
         steps:
           - sklearn.preprocessing.data.MinMaxScaler
           - sklearn.decomposition.pca.PCA:
               svd_solver: auto
-    """
-
-    model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    data_config = get_random_data()
-
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-    )
-    metadata_check(metadata, False)
-
-
-def test_model_builder_pipeline_in_pipeline():
-    from gordo_components.builder import build_model
-    import yaml
-
-    raw_model_config = """
+    """,
+        # Nested pipelilnes
+        """
         sklearn.pipeline.Pipeline:
             steps:
               - sklearn.pipeline.Pipeline:
@@ -146,8 +105,14 @@ def test_model_builder_pipeline_in_pipeline():
                   steps:
                     - sklearn.decomposition.pca.PCA:
                         svd_solver: auto
-        """
-
+        """,
+    ),
+)
+def test_builder_metadata(raw_model_config):
+    """
+    Ensure the builder works with various model configs and that each has
+    expected/valid metadata results.
+    """
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     data_config = get_random_data()
 
@@ -157,7 +122,8 @@ def test_model_builder_pipeline_in_pipeline():
         data_config=data_config,
         metadata={},
     )
-    metadata_check(metadata, False)
+    # Check metadata, and only verify 'history' if it's a *Keras* type model
+    metadata_check(metadata, "Keras" in raw_model_config)
 
 
 def test_provide_saved_model_simple_happy_path(tmp_dir):
