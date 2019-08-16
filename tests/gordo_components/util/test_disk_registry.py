@@ -66,3 +66,8 @@ def test_double_delete():
         existed_p = disk_registry.delete_value(tmpdir, the_key)
         assert disk_registry.get_value(tmpdir, the_key) is None
         assert not existed_p
+
+
+def test_get_value_without_registry_dir():
+    """Test that it works to have registry_dir as None, and that it returns None as expected"""
+    assert disk_registry.get_value(None, "akey") is None
