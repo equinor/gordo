@@ -17,7 +17,6 @@ from sklearn.base import BaseEstimator
 from gordo_components.client import Client, utils as client_utils
 from gordo_components.client.utils import EndpointMetadata
 from gordo_components.client import io as client_io
-from gordo_components.client.client import dataframe_from_dict_with_list_values
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.data_provider import providers
 from gordo_components.server import utils as server_utils
@@ -433,10 +432,10 @@ def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
     df = model_utils.make_base_dataframe(tags, original_input, model_output)
 
     # Server then converts this into a dict which maps top level names to lists
-    as_dict_to_list_vals = server_utils.multi_lvl_column_dataframe_to_dict(df)
+    serialized = server_utils.multi_lvl_column_dataframe_to_dict(df)
 
     # Client reproduces this dataframe
-    df_clone = dataframe_from_dict_with_list_values(as_dict_to_list_vals)
+    df_clone = server_utils.multi_lvl_column_dataframe_from_dict(serialized)
 
     # each subset of column under the top level names should be equal
     top_lvl_names = df.columns.get_level_values(0)

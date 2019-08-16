@@ -11,7 +11,6 @@ import time
 import typing
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
-from dateutil.parser import isoparse  # type: ignore
 
 import aiohttp
 import pandas as pd
@@ -25,6 +24,8 @@ from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
+from gordo_components.server import utils as server_utils
+
 
 logger = logging.getLogger(__name__)
 
@@ -390,8 +391,14 @@ class Client:
                     f"{endpoint.endpoint}{self.prediction_path}",
                     session=session,
                     json={
-                        "X": X.iloc[chunk].to_dict("list"),
-                        "y": y.iloc[chunk].to_dict("list") if y is not None else None,
+                        "X": server_utils.multi_lvl_column_dataframe_to_dict(
+                            X.iloc[chunk]
+                        ),
+                        "y": server_utils.multi_lvl_column_dataframe_to_dict(
+                            y.iloc[chunk]
+                        )
+                        if y is not None
+                        else None,
                     },
                 )
 
@@ -436,13 +443,9 @@ class Client:
             # Process response and return if no exception
             else:
 
-                # Chunks can have None as end-point
-                chunk_stop = chunk.stop if chunk.stop else len(X)
-                # Chunks can also be larger than the actual data
-                chunk_stop = min(chunk_stop, len(X))
-
-                predictions = dataframe_from_dict_with_list_values(resp["data"])
-                predictions.index = X.index[chunk_stop - len(predictions) : chunk_stop]
+                predictions = server_utils.multi_lvl_column_dataframe_from_dict(
+                    resp["data"]
+                )
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
@@ -532,10 +535,9 @@ class Client:
             )
 
         logger.info(f"Processing {start} -> {end}")
-
-        predictions = dataframe_from_dict_with_list_values(response["data"])
-        predictions["start"] = predictions["start"].applymap(isoparse)
-        predictions.set_index(("start", 0), inplace=True)
+        predictions = server_utils.multi_lvl_column_dataframe_from_dict(
+            response["data"]
+        )
 
         if self.prediction_forwarder is not None:
             await self.prediction_forwarder(
@@ -650,47 +652,3 @@ def make_date_ranges(
         ]
     else:
         return [(start, end)]
-
-
-def dataframe_from_dict_with_list_values(data: typing.List[dict]) -> pd.DataFrame:
-    """
-    Construct a multi-level column dataframe from a dict which has keys mapped
-    to lists
-
-    Parameters
-    ----------
-    data: dict
-        'data' from server prediction response which is expected to have, for
-        each key, an associated list of values. Resulting dataframe has top
-        level column names matching key names, and then 0..n named columns
-        for the length of the associated list of values under that key.
-
-    Examples
-    --------
-    >>> data = [{"col1": [1, 2, 3, 4], "col2": [11, 12]}, ]
-    >>> df = dataframe_from_dict_with_list_values(data)
-    >>> df[["col1", "col2"]]
-    ... # doctest: +NORMALIZE_WHITESPACE
-      col1          col2
-         0  1  2  3    0   1
-    0    1  2  3  4   11  12
-
-
-    Returns
-    -------
-    pd.DataFrame
-    """
-    # grab the keys from all dicts in the data, these will be top level column names
-    top_lvl_names = set(k for record in data for k in record.keys())
-
-    # Create the double column index, where second level names are the 0..N range
-    # of the values in the top level names list value
-    columns = pd.MultiIndex.from_tuples(
-        (name, i) for name in top_lvl_names for i in range(len(data[0][name]))
-    )
-
-    # Return dataframe, while unpacking each dict by the order of the top level names
-    return pd.DataFrame(
-        [[v for name in top_lvl_names for v in record[name]] for record in data],
-        columns=columns,
-    )

@@ -1,62 +1,28 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Union
-
-import flask
-import pytest
 import pandas as pd
 import numpy as np
 
-from gordo_components.server import utils
+from gordo_components.server import utils as server_utils
 
 
-@pytest.mark.parametrize(
-    "data,tags,expect_success",
-    [
-        # Tags match length of data keys and data can be parsed; even though column names don't match tag names
-        ({"c1": [1, 2, 3], "c2": [3, 2, 1]}, ["t1", "t2"], True),
-        # Tags match length of data keys and data can be parsed.
-        ([{"t1": 0, "t2": 1}, {"t1": 1, "t2": 2}], ["t1", "t2"], True),
-        # Extra keys not matching tags should be ok, (trimmed out).
-        ([{"t1": 0, "t2": 1}, {"t1": 1, "t2": 2}], ["t1"], True),
-        # Column names aren't supplied in the dataframe data, tags should be applied as column names
-        ([{0: 0, 1: 1}, {0: 1, 1: 2}], ["t1", "t2"], True),
-        # If keys aren't all the keys in tags then return a response
-        ([{"t1": 0, "t2": 1}, {"t1": 1, "t2": 2}], ["t1", "t2", "t3"], False),
-        # Can't parse this data into a dataframe.
-        ("Hello, I'm bad data :)", ["t1"], False),
-    ],
-)
-def test_dataframe_from_dict(data: dict, tags: List[str], expect_success: bool):
-    """
-    Data can get into the server in a number of ways, basically any format
-    that pandas.DataFrame.from_dict() supports. It opens for good flexibility
-    we just need to test the function it is used in will 'fail' correctly or
-    will reassign column names to tag names if needed.
-    """
-    app = flask.Flask(__name__)
+def test_multi_lvl_column_dataframe_from_to_dict():
 
-    with app.app_context():
-        result: Union[flask.Response, pd.DataFrame] = utils.dataframe_from_dict(
-            data, tags, name="TEST"
-        )
+    columns = pd.MultiIndex.from_product((("feature1", "feature2"), ("col1", "col2")))
+    df = pd.DataFrame(
+        np.random.random((10, 4)),
+        columns=columns,
+        index=pd.date_range("2016-01-01", "2016-02-01", periods=10),
+    )
 
-    if expect_success:
+    assert isinstance(df.index, pd.DatetimeIndex)
 
-        assert isinstance(result, pd.DataFrame)
+    cloned = server_utils.multi_lvl_column_dataframe_from_dict(
+        server_utils.multi_lvl_column_dataframe_to_dict(df)
+    )
 
-        # Check expected column names, if equal, or subset of tags
-        if len(result.columns) == len(tags):
-            assert result.columns.tolist() == tags
-        else:
-            assert all(col in tags for col in result.columns)
-    else:
+    # Ensure the function hasn't mutated the index.
+    assert isinstance(df.index, pd.DatetimeIndex)
 
-        # If it's not a dataframe it should be a response.
-        assert isinstance(result, flask.Response)
-
-        # Return a failed client request
-        assert 400 <= result.status_code <= 499
-
-        # Should have the name of the data being parsed in the error message
-        assert "TEST" in result.data.decode()
+    assert np.allclose(df.values, cloned.values)
+    assert df.columns.tolist() == cloned.columns.tolist()
