@@ -1,45 +1,74 @@
 use kube::{
-    api::v1Event,
-    api::{Api, Informer, WatchEvent},
     client::APIClient,
-    config,
+    config, api::{Api, Object, PostParams, RawApi, Reflector, Void},
 };
-use log::{info, warn};
+use log::info;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct GordoSpec {
+    version: String,
+    info: String,
+}
+
+type Gordo = Object<GordoSpec, Void>;
 
 fn main() -> Result<(), failure::Error> {
     std::env::set_var("RUST_LOG", "info,kube=trace");
     env_logger::init();
+
     let config = config::load_kube_config().expect("failed to load kubeconfig");
     let client = APIClient::new(config);
 
     let namespace = std::env::var("NAMESPACE").unwrap_or("kubeflow".into());
 
-    let events = Api::v1Event(client).within(&namespace);
-    let ei = Informer::new(events).init()?;
+    let resource = RawApi::customResource("gordo").within(&namespace);
+    let reflector: Reflector<Gordo> = Reflector::raw(client.clone(), resource).init()?;
 
     loop {
-        ei.poll()?;
+        // Update state changes
+        reflector.poll()?;
 
-        while let Some(event) = ei.pop() {
-            handle_event(event)?;
-        }
-    }
-}
+        // Read updates
+        reflector.read()?
+            .into_iter()
+            .for_each(|crd: Gordo| {
 
-fn handle_event(ev: WatchEvent<v1Event>) -> Result<(), failure::Error> {
-    match ev {
-        WatchEvent::Added(o) => {
-            info!("New Event: {}, {}", o.type_, o.message);
-        }
-        WatchEvent::Modified(o) => {
-            info!("Modified Event: {}", o.reason);
-        }
-        WatchEvent::Deleted(o) => {
-            info!("Deleted Event: {}", o.message);
-        }
-        WatchEvent::Error(e) => {
-            warn!("Error event: {:?}", e);
-        }
+                let jobs = Api::v1Job(client.clone())
+                    .within(&namespace);
+
+                // Create the job.
+                let spec = json!({
+                    "apiVersion": "batch/v1",
+                    "kind": "Job",
+                    "metadata": {
+                        "name": "gordo-deploy-job"
+                    },
+                    "template": {
+                        "metadata": {
+                            "name": "gordo-deploy"
+                        },
+                        "spec": {
+                            "containers": [{
+                                "name": "gordo-deploy",
+                                "image": &format!("gordo-infrastructure/gordo-deploy:{}", crd.spec.version),
+                                "env": [
+                                    {"name": "GORDO_CONFIG", "value": &crd.spec.info}
+                                ]
+                            }],
+                            "restartPolicy": "Never"
+                        }
+                    }
+                });
+
+                let gdj_serialized = serde_json::to_vec(&spec).unwrap();
+                let postparams = PostParams::default();
+
+                // Send off job, later we can add support to watching the job if needed via `jobs.watch(..)`
+                info!("Launching job!");
+                jobs.create(&postparams, gdj_serialized).expect("Failed to launch job.");
+
+            });
     }
-    Ok(())
 }

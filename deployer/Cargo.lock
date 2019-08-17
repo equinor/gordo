@@ -247,6 +247,8 @@ dependencies = [
  "k8s-openapi 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kube 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.98 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.40 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -16,12 +16,6 @@ os:
 jobs:
   include:
 
-  - stage: build-rust
-    name: "Build deployer"
-    language: rust
-    script: |
-      cd deployer && cargo build
-
   - stage: test
     name: "setup.py testall"
     install:
@@ -31,16 +25,24 @@ jobs:
     after_success:
       # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
       - bash <(curl -s https://codecov.io/bash)
+
   - name: "make images"
     install: skip
     script:
       - make images
+
   - name: "make docs"
     install:
       - pip install -r requirements.txt
       - pip install -r dev_requirements.txt
     script:
       - make docs
+
+  - name: "Build deployer"
+    language: rust
+    cache: cargo
+    script: |
+      cd deployer && cargo build
 
 deploy:
   - provider: script
