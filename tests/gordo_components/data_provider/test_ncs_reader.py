@@ -109,3 +109,24 @@ def test_load_series_dry_run(dates, ncs_reader):
         dates[0], dates[1], valid_tag_list_no_asset, dry_run=True
     ):
         assert len(frame) == 0
+
+
+@patch(
+    "gordo_components.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
+    {
+        "1776-troc": os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
+        )
+    },
+)
+@pytest.mark.parametrize("remove_status_codes", [[], [0]])
+def test_load_series_with_filter_bad_data(dates, ncs_reader, remove_status_codes):
+    valid_tag_list = normalize_sensor_tags(["TRC-322"])
+    series_gen = ncs_reader.load_series(
+        dates[0], dates[1], valid_tag_list, remove_status_codes=remove_status_codes
+    )
+    # Checks if the bad data from the files under tests/gordo_components/data_provider/data/datalake/TRC-322
+    # are filtered out. 20 rows exists, 5 of then have the value 0.
+
+    n_expected = 15 if remove_status_codes != [] else 20
+    assert all(len(series) == n_expected for series in series_gen)
