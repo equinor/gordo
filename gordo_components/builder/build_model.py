@@ -168,48 +168,25 @@ def _get_metadata(model: BaseEstimator, metadata: dict = dict()) -> dict:
     """
     metadata = metadata.copy()
 
-    if not isinstance(model, GordoBase):
+    # If it's a Pipeline, only need to get the last step, which potentially has metadata
+    if isinstance(model, Pipeline):
+        final_step = model.steps[-1][1]
+        metadata.update(_get_metadata(final_step))
+        return metadata
 
-        for attr, val in model.__dict__.items():
-            if isinstance(val, Pipeline):
-                final_step = _get_final_gordo_base_step(val)
-                if final_step is not None:
-                    metadata.update(_get_metadata(final_step))
-            elif isinstance(val, GordoBase):
-                metadata.update(val.get_metadata())
-            elif isinstance(val, BaseEstimator):
-                metadata.update(_get_metadata(val))
-    else:
+    # GordoBase is simple, having a .get_metadata()
+    if isinstance(model, GordoBase):
         metadata.update(model.get_metadata())
 
+    # Continue to look at object values in case, we decided to have a GordoBase
+    # which also had a GordoBase as a parameter/attribute, but will satisfy BaseEstimators
+    # which can take a GordoBase model as a parameter, which will then have metadata to get
+    for val in model.__dict__.values():
+        if isinstance(val, Pipeline):
+            metadata.update(_get_metadata(val.steps[-1][1]))
+        elif isinstance(val, GordoBase) or isinstance(val, BaseEstimator):
+            metadata.update(_get_metadata(val))
     return metadata
-
-
-def _get_final_gordo_base_step(model: BaseEstimator):
-    """
-    Get the final GordoBase step in a (potential) Pipeline, if it exists.
-    Parameters
-    ----------
-    model: BaseEstimator
-        The input model or Pipeline to investigate. If a Pipeline is given, look for
-        the last step in (the possibly nested) Pipeline.
-
-    Returns
-    -------
-    GordoBase
-        The final GordoBase object in the pipeline, or None if not found.
-
-    """
-    if isinstance(model, GordoBase):
-        return model
-
-    elif isinstance(model, Pipeline):
-        last_step_tuple = model.steps[-1]  # Get the last step tuple
-        estimator = last_step_tuple[1]  # The actual step is the second element
-        return _get_final_gordo_base_step(estimator)
-
-    else:
-        return None
 
 
 def calculate_model_key(
