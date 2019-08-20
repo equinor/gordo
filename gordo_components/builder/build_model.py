@@ -145,7 +145,7 @@ def _get_metadata(model: BaseEstimator, metadata: dict = dict()) -> dict:
     """
     Recursively check for :class:`gordo_components.model.base.GordoBase` in a
     given ``model``. If such a model exists buried inside of a
-    :class:`sklearn.pipelilne.Pipeline` which is then part of another
+    :class:`sklearn.pipeline.Pipeline` which is then part of another
     :class:`sklearn.base.BaseEstimator`, this function will return its metadata.
 
     Parameters
