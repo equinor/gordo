@@ -111,9 +111,7 @@ def build_model(
         "cross-validation": {"cv-duration-sec": cv_duration_sec, "scores": scores},
     }
 
-    gordobase_final_step = _get_final_gordo_base_step(model)
-    if gordobase_final_step:
-        metadata["model"].update(gordobase_final_step.get_metadata())
+    metadata["model"].update(_get_metadata(model))
 
     return model, metadata
 
@@ -143,31 +141,52 @@ def _save_model_for_workflow(
     return output_dir
 
 
-def _get_final_gordo_base_step(model: BaseEstimator):
+def _get_metadata(model: BaseEstimator, metadata: dict = dict()) -> dict:
     """
-    Get the final GordoBase step in a (potential) Pipeline, if it exists.
+    Recursively check for :class:`gordo_components.model.base.GordoBase` in a
+    given ``model``. If such a model exists buried inside of a
+    :class:`sklearn.pipeline.Pipeline` which is then part of another
+    :class:`sklearn.base.BaseEstimator`, this function will return its metadata.
+
     Parameters
     ----------
     model: BaseEstimator
-        The input model or Pipeline to investigate. If a Pipeline is given, look for
-        the last step in (the possibly nested) Pipeline.
+    metadata: dict
+        Any initial starting metadata, but is mainly meant to be used during
+        the recursive calls to accumulate any multiple :class:`gordo_components.model.base.GordoBase`
+        models found in this model
+
+    Notes
+    -----
+    If there is a ``GordoBase`` model inside of a ``Pipeline`` which is not the final
+    step, this function will not find it.
 
     Returns
     -------
-    GordoBase
-        The final GordoBase object in the pipeline, or None if not found.
-
+    dict
+        Dictionary representing accumulated calls to :meth:`gordo_components.model.base.GordoBase.get_metadata`
     """
+    metadata = metadata.copy()
+
+    # If it's a Pipeline, only need to get the last step, which potentially has metadata
+    if isinstance(model, Pipeline):
+        final_step = model.steps[-1][1]
+        metadata.update(_get_metadata(final_step))
+        return metadata
+
+    # GordoBase is simple, having a .get_metadata()
     if isinstance(model, GordoBase):
-        return model
+        metadata.update(model.get_metadata())
 
-    elif isinstance(model, Pipeline):
-        last_step_tuple = model.steps[-1]  # Get the last step tuple
-        estimator = last_step_tuple[1]  # The actual step is the second element
-        return _get_final_gordo_base_step(estimator)
-
-    else:
-        return None
+    # Continue to look at object values in case, we decided to have a GordoBase
+    # which also had a GordoBase as a parameter/attribute, but will satisfy BaseEstimators
+    # which can take a GordoBase model as a parameter, which will then have metadata to get
+    for val in model.__dict__.values():
+        if isinstance(val, Pipeline):
+            metadata.update(_get_metadata(val.steps[-1][1]))
+        elif isinstance(val, GordoBase) or isinstance(val, BaseEstimator):
+            metadata.update(_get_metadata(val))
+    return metadata
 
 
 def calculate_model_key(

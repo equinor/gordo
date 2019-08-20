@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import unittest
-import pytest
 import os
 import dateutil.parser
 import yaml
+from sklearn.base import BaseEstimator
 
 from typing import List, Optional, Dict
 from tempfile import TemporaryDirectory
+
+import pytest
+import sklearn
+import numpy as np
+
+import gordo_components
 from gordo_components.builder.build_model import (
     _save_model_for_workflow,
     provide_saved_model,
+    _get_metadata,
 )
 from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
@@ -27,182 +33,232 @@ def get_random_data():
     return data
 
 
-class ModelBuilderTestCase(unittest.TestCase):
-    """
-    Test functionality of the builder processes
-    """
+def metadata_check(metadata, check_history):
+    """Helper to verify model builder metadata creation"""
+    assert "name" in metadata
+    assert "model" in metadata
+    assert "cross-validation" in metadata["model"]
+    assert "scores" in metadata["model"]["cross-validation"]
 
-    def test_output_dir(self):
-        """
-        Test building of model will create subdirectories for model saving if needed.
-        """
-        from gordo_components.builder import build_model
-
-        with TemporaryDirectory() as tmpdir:
-
-            model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
-            data_config = get_random_data()
-            output_dir = os.path.join(tmpdir, "some", "sub", "directories")
-
-            model, metadata = build_model(
-                name="model-name",
-                model_config=model_config,
-                data_config=data_config,
-                metadata={},
-            )
-
-            self.metadata_check(metadata, False)
-
-            _save_model_for_workflow(
-                model=model, metadata=metadata, output_dir=output_dir
-            )
-
-            # Assert the model was saved at the location
-            # using gordo_components.serializer should create some subdir(s)
-            # which start with 'n_step'
-            dirs = [d for d in os.listdir(output_dir) if d.startswith("n_step")]
-            self.assertGreaterEqual(
-                len(dirs),
-                1,
-                msg="Expected saving of model to create at "
-                f"least one subdir, but got {len(dirs)}",
-            )
-
-    def test_model_builder_model_withouth_pipeline(self):
-
-        # MinMax is only a transformer and does not have a score either.
-        raw_model_config = """
-        sklearn.preprocessing.data.MinMaxScaler:
-            feature_range: [-1, 1]
-        """
-
-        model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-        data_config = get_random_data()
-
-        model, metadata = build_model(
-            name="model-name",
-            model_config=model_config,
-            data_config=data_config,
-            metadata={},
+    # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
+    # doesn't implement a .score()
+    if metadata["model"]["cross-validation"]["scores"] != dict():
+        assert "explained-variance" in metadata["model"]["cross-validation"]["scores"]
+    if check_history:
+        assert "history" in metadata["model"]
+        assert all(
+            name in metadata["model"]["history"] for name in ("params", "loss", "acc")
         )
 
-        self.metadata_check(metadata, False)
 
-    def test_model_builder_save_history(self):
-        """Checks that the metadata contains the keras model build history"""
-        raw_model_config = """
-        gordo_components.model.models.KerasAutoEncoder:
-            kind: feedforward_hourglass
+def test_output_dir(tmp_dir):
+    """
+    Test building of model will create subdirectories for model saving if needed.
+    """
+    from gordo_components.builder import build_model
+
+    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    data_config = get_random_data()
+    output_dir = os.path.join(tmp_dir.name, "some", "sub", "directories")
+
+    model, metadata = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+    )
+    metadata_check(metadata, False)
+
+    _save_model_for_workflow(model=model, metadata=metadata, output_dir=output_dir)
+
+    # Assert the model was saved at the location
+    # using gordo_components.serializer should create some subdir(s)
+    # which start with 'n_step'
+    dirs = [d for d in os.listdir(output_dir) if d.startswith("n_step")]
+    assert (
+        len(dirs) >= 1
+    ), "Expected saving of model to create at least one subdir, but got {len(dirs)}"
+
+
+@pytest.mark.parametrize(
+    "raw_model_config",
+    (
+        # Without pipeline
         """
-
-        model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-        data_config = get_random_data()
-
-        model, metadata = build_model(
-            name="model-name",
-            model_config=model_config,
-            data_config=data_config,
-            metadata={},
-        )
-
-        self.metadata_check(metadata, True)
-
-    def test_model_builder_pipeline(self):
-        raw_model_config = """
+    sklearn.preprocessing.data.MinMaxScaler:
+        feature_range: [-1, 1]
+    """,
+        # Saves history
+        """
+    gordo_components.model.models.KerasAutoEncoder:
+        kind: feedforward_hourglass
+    """,
+        # With typical pipeline
+        """
+    sklearn.pipeline.Pipeline:
+        steps:
+          - sklearn.preprocessing.data.MinMaxScaler
+          - sklearn.decomposition.pca.PCA:
+              svd_solver: auto
+    """,
+        # Nested pipelilnes
+        """
         sklearn.pipeline.Pipeline:
             steps:
-              - sklearn.preprocessing.data.MinMaxScaler
-              - sklearn.decomposition.pca.PCA:
-                  svd_solver: auto
+              - sklearn.pipeline.Pipeline:
+                  steps:
+                    - sklearn.preprocessing.data.MinMaxScaler
+              - sklearn.pipeline.Pipeline:
+                  steps:
+                    - sklearn.decomposition.pca.PCA:
+                        svd_solver: auto
+        """,
+        # Pipeline as a parameter to another estimator
         """
+        sklearn.compose.TransformedTargetRegressor:
+            regressor: 
+                sklearn.pipeline.Pipeline:
+                    steps: 
+                    - sklearn.preprocessing.data.MinMaxScaler
+                    - gordo_components.model.models.KerasAutoEncoder:
+                        kind: feedforward_hourglass
+                        compression_factor: 0.5
+                        encoding_layers: 2
+                        func: tanh
+                        out_func: linear
+                        epochs: 3
+            transformer: sklearn.preprocessing.data.MinMaxScaler
+    """,
+    ),
+)
+def test_builder_metadata(raw_model_config):
+    """
+    Ensure the builder works with various model configs and that each has
+    expected/valid metadata results.
+    """
+    model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
+    data_config = get_random_data()
 
-        model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-        data_config = get_random_data()
+    model, metadata = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+    )
+    # Check metadata, and only verify 'history' if it's a *Keras* type model
+    metadata_check(metadata, "Keras" in raw_model_config)
 
-        model, metadata = build_model(
-            name="model-name",
-            model_config=model_config,
-            data_config=data_config,
-            metadata={},
-        )
 
-        self.metadata_check(metadata, False)
+import sklearn.compose
+import sklearn.ensemble
 
-    def test_model_builder_pipeline_in_pipeline(self):
-        from gordo_components.builder import build_model
-        import yaml
 
-        raw_model_config = """
-            sklearn.pipeline.Pipeline:
-                steps:
-                  - sklearn.pipeline.Pipeline:
-                      steps:
-                        - sklearn.preprocessing.data.MinMaxScaler
-                  - sklearn.pipeline.Pipeline:
-                      steps:
-                        - sklearn.decomposition.pca.PCA:
-                            svd_solver: auto
-            """
+@pytest.mark.parametrize(
+    "model,expect_empty_dict",
+    (
+        # Model is not a GordoBase, first parameter is a pipeline and no GordoBase either
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=sklearn.pipeline.Pipeline(
+                    steps=[
+                        ("s1", sklearn.preprocessing.data.MinMaxScaler()),
+                        ("s2", sklearn.ensemble.RandomForestRegressor()),
+                    ]
+                ),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            True,
+        ),
+        # Model is not a GordoBase, first parameter is not GordoBase either.
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=sklearn.ensemble.RandomForestRegressor(),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            True,
+        ),
+        # Model is not a GordoBase, first parameter is a pipeline with GordoBase
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=sklearn.pipeline.Pipeline(
+                    steps=[
+                        ("s1", sklearn.preprocessing.data.MinMaxScaler()),
+                        (
+                            "s2",
+                            gordo_components.model.models.KerasAutoEncoder(
+                                kind="feedforward_hourglass"
+                            ),
+                        ),
+                    ]
+                ),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            False,
+        ),
+        # Model is not GordoBase but the first parameter is.
+        (
+            sklearn.compose.TransformedTargetRegressor(
+                regressor=gordo_components.model.models.KerasAutoEncoder(
+                    kind="feedforward_hourglass"
+                ),
+                transformer=sklearn.preprocessing.MinMaxScaler(),
+            ),
+            False,
+        ),
+        # Plain model, no GordoBase
+        (sklearn.ensemble.RandomForestRegressor(), True),
+        # GordoBase bare
+        (
+            gordo_components.model.models.KerasAutoEncoder(
+                kind="feedforward_hourglass"
+            ),
+            False,
+        ),
+    ),
+)
+def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
+    """
+    Ensure the builder works with various model configs and that each has
+    expected/valid metadata results.
+    """
 
-        model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-        data_config = get_random_data()
+    X, y = np.random.random((1000, 4)), np.random.random((1000,))
 
-        model, metadata = build_model(
-            name="model-name",
-            model_config=model_config,
-            data_config=data_config,
-            metadata={},
-        )
+    model.fit(X, y)
 
-        self.metadata_check(metadata, False)
+    metadata = _get_metadata(model)
 
-    def metadata_check(self, metadata, check_history):
-        self.assertTrue("name" in metadata)
-        self.assertTrue("model" in metadata)
-        self.assertTrue("cross-validation" in metadata["model"])
-        self.assertTrue("scores" in metadata["model"]["cross-validation"])
+    # All the metadata we've implemented so far is 'history', so we'll check that
+    if not expect_empty_dict:
+        assert "history" in metadata
+        assert all(name in metadata["history"] for name in ("params", "loss", "acc"))
+    else:
+        assert dict() == metadata
 
-        # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
-        # doesn't implement a .score()
-        if metadata["model"]["cross-validation"]["scores"] != dict():
-            self.assertTrue(
-                "explained-variance" in metadata["model"]["cross-validation"]["scores"]
-            )
-        if check_history:
-            self.assertTrue("history" in metadata["model"])
-            self.assertTrue("params" in metadata["model"]["history"])
-            self.assertTrue("loss" in metadata["model"]["history"])
-            self.assertTrue("acc" in metadata["model"]["history"])
 
-    def test_provide_saved_model_simple_happy_path(self):
-        """
-        Test provide_saved_model with no caching
-        """
+def test_provide_saved_model_simple_happy_path(tmp_dir):
+    """
+    Test provide_saved_model with no caching
+    """
+    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    data_config = get_random_data()
+    output_dir = os.path.join(tmp_dir.name, "model")
 
-        with TemporaryDirectory() as tmpdir:
+    model_location = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        output_dir=output_dir,
+    )
 
-            model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
-            data_config = get_random_data()
-            output_dir = os.path.join(tmpdir, "model")
-
-            model_location = provide_saved_model(
-                name="model-name",
-                model_config=model_config,
-                data_config=data_config,
-                metadata={},
-                output_dir=output_dir,
-            )
-
-            # Assert the model was saved at the location
-            # using gordo_components.serializer should create some subdir(s)
-            # which start with 'n_step'
-            dirs = [d for d in os.listdir(model_location) if d.startswith("n_step")]
-            self.assertGreaterEqual(
-                len(dirs),
-                1,
-                msg="Expected saving of model to create at "
-                f"least one subdir, but got {len(dirs)}",
-            )
+    # Assert the model was saved at the location
+    # using gordo_components.serializer should create some subdir(s)
+    # which start with 'n_step'
+    dirs = [d for d in os.listdir(model_location) if d.startswith("n_step")]
+    assert (
+        len(dirs) >= 1
+    ), "Expected saving of model to create at least one subdir, but got {len(dirs)}"
 
 
 @pytest.mark.parametrize(
