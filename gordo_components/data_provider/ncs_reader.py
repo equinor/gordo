@@ -58,6 +58,7 @@ class NcsReader(GordoBaseDataProvider):
         to_ts: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
+        remove_status_codes: Optional[list] = [0],
     ) -> Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
@@ -77,6 +78,7 @@ class NcsReader(GordoBaseDataProvider):
                     tag=tag,
                     years=years,
                     dry_run=dry_run,
+                    remove_status_codes=remove_status_codes,
                 ),
                 tag_list,
             )
@@ -94,6 +96,7 @@ class NcsReader(GordoBaseDataProvider):
         tag: SensorTag,
         years: range,
         dry_run: Optional[bool] = False,
+        remove_status_codes: Optional[list] = [0],
     ) -> pd.Series:
         """
         Download tag files for the given years into dataframes,
@@ -109,6 +112,9 @@ class NcsReader(GordoBaseDataProvider):
             range object providing years to include
         dry_run: bool
             if True, don't download data, just check info, log, and return
+        remove_status_codes: list
+            removes data with Status code(s) in the list. By default it removes data
+            with Status code 0.
 
         Returns
         -------
@@ -139,13 +145,14 @@ class NcsReader(GordoBaseDataProvider):
                     sep=";",
                     header=None,
                     names=["Sensor", tag.name, "Timestamp", "Status"],
-                    usecols=[tag.name, "Timestamp"],
+                    usecols=[tag.name, "Timestamp", "Status"],
                     dtype={tag.name: np.float32},
                     parse_dates=["Timestamp"],
                     date_parser=lambda col: pd.to_datetime(col, utc=True),
                     index_col="Timestamp",
                 )
 
+                df = df[~df["Status"].isin(remove_status_codes)]
                 all_years.append(df)
                 logger.info(f"Done parsing file {file_path}")
 
