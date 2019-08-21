@@ -6,6 +6,16 @@ import aiohttp
 from werkzeug.exceptions import BadRequest
 
 
+class HttpUnprocessableEntity(BaseException):
+    """
+    Represents an error from an HTTP status code of 422: UnprocessableEntity.
+    Used in our case for calling /anomaly/prediction on a model which does not
+    support anomaly behavior.
+    """
+
+    pass
+
+
 async def fetch_json(
     url: str, *args, session: Optional[aiohttp.ClientSession] = None, **kwargs
 ) -> dict:
@@ -73,7 +83,9 @@ async def _handle_json(resp: aiohttp.ClientResponse) -> dict:
         content = await resp.content.read()
         msg = f"Failed to get JSON with status code: {resp.status}: {content}"
 
-        if 400 <= resp.status <= 499:
+        if resp.status == 422:
+            raise HttpUnprocessableEntity()
+        elif 400 <= resp.status <= 499:
             raise BadRequest(msg)
         else:
             raise IOError(msg)
