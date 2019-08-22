@@ -10,6 +10,7 @@ from typing import Union, Optional, Dict, Any
 
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
+from sklearn.metrics import explained_variance_score, make_scorer
 from sklearn.pipeline import Pipeline
 
 from gordo_components.util import disk_registry
@@ -17,6 +18,8 @@ from gordo_components import serializer, __version__, MAJOR_VERSION, MINOR_VERSI
 from gordo_components.dataset.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.model.base import GordoBase
+from gordo_components.model.utils import metric_wrapper
+
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +78,14 @@ def build_model(
     start = time.time()
 
     scores: Dict[str, Any]
-    if hasattr(model, "score"):
-        cv_scores = cross_val_score(model, X, y, cv=TimeSeriesSplit(n_splits=3))
+    if hasattr(model, "predict"):
+        cv_scores = cross_val_score(
+            model,
+            X,
+            y,
+            scoring=make_scorer(metric_wrapper(explained_variance_score)),
+            cv=TimeSeriesSplit(n_splits=3),
+        )
         scores = {
             "explained-variance": {
                 "mean": cv_scores.mean(),

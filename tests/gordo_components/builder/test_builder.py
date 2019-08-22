@@ -9,7 +9,6 @@ from typing import List, Optional, Dict
 from tempfile import TemporaryDirectory
 
 import pytest
-import sklearn
 import numpy as np
 
 import gordo_components

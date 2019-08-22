@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import typing
+import functools
 from typing import Optional, Union, List
 from datetime import timedelta, datetime
 
@@ -8,6 +9,19 @@ import numpy as np
 import pandas as pd
 
 from gordo_components.dataset.sensor_tag import SensorTag
+
+
+def metric_wrapper(metric):
+    """
+    Ensures that a given metric works properly when the model itself returns
+    a y which is shorter than the target y.
+    """
+
+    @functools.wraps(metric)
+    def _wrapper(y_true, y_pred, *args, **kwargs):
+        return metric(y_true[-len(y_pred) :], y_pred, *args, **kwargs)
+
+    return _wrapper
 
 
 def make_base_dataframe(
