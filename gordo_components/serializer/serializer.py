@@ -242,7 +242,24 @@ def _load_step(source_dir: str) -> Tuple[str, object]:
                 f"in directory: {source_dir}"
             )
         with bz2.open(path.join(source_dir, file[0]), "rb") as f:  # type: IO[bytes]
-            return step_name, pickle.load(f)
+            model = pickle.load(f)
+
+        # This model may have been an estimator which took a GordoBase as a parameter
+        # and would have had that parameter/model dumped to a seperate directory and
+        # replaced the attribute with the location of that model.
+        for attr_name, attr_value in model.__dict__.items():
+            if isinstance(attr_value, dict) and all(
+                k in attr_value for k in ("class_path", "load_dir")
+            ):
+                class_path, load_dir = attr_value["class_path"], attr_value["load_dir"]
+                if class_path is not None:
+                    GordoModel: GordoBase = pydoc.locate(class_path)  # type: ignore
+                    attr_model = GordoModel.load_from_dir(load_dir)
+                else:
+                    # Otherwise it was another attr which required dumping
+                    attr_model = load(load_dir)
+                setattr(model, attr_name, attr_model)
+        return step_name, model
 
 
 def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
@@ -345,7 +362,8 @@ def _dump_step(
             with open(os.path.join(sub_dir, "params.json"), "w") as f:
                 simplejson.dump(params, f)
     else:
-        if hasattr(step_transformer, "save_to_dir"):
+
+        if isinstance(step_transformer, GordoBase):
             if not hasattr(step_transformer, "load_from_dir"):
                 raise AttributeError(
                     f'The object in this step implements a "save_to_dir" but '
@@ -353,7 +371,34 @@ def _dump_step(
                 )
             logger.info(f"Saving model to sub_dir: {sub_dir}")
             step_transformer.save_to_dir(os.path.join(sub_dir))
+
+        # This may be a transformer which has a GordoBase as a parameter
         else:
+
+            # We have to ensure this is a pickle-able transformer, in that it doesn't
+            # have any GordoBase models hiding as a parameter to it.
+            attrs_dir = os.path.join(sub_dir, "_gordo_base_attributes")
+            for attr_name, attr_value in step_transformer.__dict__.items():
+                if isinstance(attr_value, Pipeline):
+                    attr_serialization_dir = os.path.join(attrs_dir, attr_name)
+                    new_attr_val = {
+                        "class_path": None,
+                        "load_dir": attr_serialization_dir,
+                    }
+                    dump(attr_value, attr_serialization_dir)
+                    setattr(step_transformer, attr_name, new_attr_val)
+
+                elif isinstance(attr_value, GordoBase):
+                    attr_serialization_dir = os.path.join(attrs_dir, attr_name)
+                    os.makedirs(attr_serialization_dir, exist_ok=True)
+
+                    attr_value.save_to_dir(attr_serialization_dir)
+                    new_attr_val = {
+                        "class_path": f"{attr_value.__module__}.{attr_value.__class__.__name__}",
+                        "load_dir": attr_serialization_dir,
+                    }
+                    setattr(step_transformer, attr_name, new_attr_val)
+
             with bz2.open(
                 os.path.join(sub_dir, f"{step_name}.pkl.gz"), "wb"
             ) as s:  # type: IO[bytes]

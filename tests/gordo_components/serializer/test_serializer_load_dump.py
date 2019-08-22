@@ -7,10 +7,13 @@ from collections import OrderedDict
 from os import path, listdir
 from tempfile import TemporaryDirectory
 
+import pytest
 import numpy as np
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.compose import TransformedTargetRegressor
+from gordo_components.model.anomaly.diff import DiffBasedAnomalyDetector
 
 from gordo_components.model.models import KerasAutoEncoder
 from gordo_components import serializer
@@ -160,21 +163,37 @@ class PipelineSerializationTestCase(unittest.TestCase):
             y_hat_pipe2 = pipe_clone.predict(X.copy()).flatten()
             self.assertTrue(np.allclose(y_hat_pipe1, y_hat_pipe2))
 
-    def test_dump_load_keras_directly(self):
 
-        model = KerasAutoEncoder(kind="feedforward_hourglass")
-
-        X = np.random.random(size=100).reshape(10, 10)
-        model.fit(X.copy(), X.copy())
-
-        with TemporaryDirectory() as tmp:
-            serializer.dump(model, tmp)
-
-            model_clone = serializer.load(tmp)
-
-            self.assertTrue(
-                np.allclose(
-                    model.predict(X.copy()).flatten(),
-                    model_clone.predict(X.copy()).flatten(),
-                )
+@pytest.mark.parametrize(
+    "model",
+    [
+        KerasAutoEncoder(kind="feedforward_hourglass"),
+        DiffBasedAnomalyDetector(
+            base_estimator=TransformedTargetRegressor(
+                regressor=KerasAutoEncoder(kind="feedforward_symmetric"),
+                transformer=MinMaxScaler(),
             )
+        ),
+        TransformedTargetRegressor(
+            regressor=Pipeline(
+                steps=[
+                    ("stp1", MinMaxScaler()),
+                    ("stp2", KerasAutoEncoder(kind="feedforward_symmetric")),
+                ]
+            )
+        ),
+    ],
+)
+def test_dump_load_models(model):
+
+    X = np.random.random(size=100).reshape(10, 10)
+    model.fit(X.copy(), X.copy())
+    model_out = model.predict(X.copy())
+
+    with TemporaryDirectory() as tmp:
+        serializer.dump(model, tmp)
+
+        model_clone = serializer.load(tmp)
+        model_clone_out = model_clone.predict(X.copy())
+
+        assert np.allclose(model_out.flatten(), model_clone_out.flatten())
