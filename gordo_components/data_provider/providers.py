@@ -123,6 +123,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
         self.threads = threads
         self.client = None
+        self.kwargs = kwargs
 
     def load_series(
         self,
@@ -159,7 +160,7 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def _get_sub_dataproviders(self):
         data_providers = [
-            t_reader(client=self._get_client(), threads=self.threads)
+            t_reader(client=self._get_client(), threads=self.threads, **self.kwargs)
             for t_reader in DataLakeProvider._SUB_READER_CLASSES
         ]
         return data_providers
