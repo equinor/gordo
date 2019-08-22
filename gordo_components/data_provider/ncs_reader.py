@@ -29,7 +29,11 @@ class NcsReader(GordoBaseDataProvider):
     }
 
     def __init__(
-        self, client: core.AzureDLFileSystem, threads: Optional[int] = 1, **kwargs
+        self,
+        client: core.AzureDLFileSystem,
+        threads: Optional[int] = 1,
+        remove_status_codes: Optional[list] = [0],
+        **kwargs,
     ):
         """
         Creates a reader for tags from the Norwegian Continental Shelf. Currently
@@ -39,11 +43,15 @@ class NcsReader(GordoBaseDataProvider):
         ----------
         threads : Optional[int]
             Number of threads to use. If None then use 1 thread
+        remove_status_codes: Optional[list]
+            Removes data with Status code(s) in the list. By default it removes data
+            with Status code 0.
 
         """
         super().__init__(**kwargs)
         self.client = client
         self.threads = threads
+        self.remove_status_codes = remove_status_codes
         logger.info(f"Starting NCS reader with {self.threads} threads")
 
     def can_handle_tag(self, tag: SensorTag):
@@ -58,7 +66,6 @@ class NcsReader(GordoBaseDataProvider):
         to_ts: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
-        remove_status_codes: Optional[list] = [0],
     ) -> Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
@@ -78,7 +85,7 @@ class NcsReader(GordoBaseDataProvider):
                     tag=tag,
                     years=years,
                     dry_run=dry_run,
-                    remove_status_codes=remove_status_codes,
+                    remove_status_codes=self.remove_status_codes,
                 ),
                 tag_list,
             )
@@ -113,7 +120,7 @@ class NcsReader(GordoBaseDataProvider):
         dry_run: bool
             if True, don't download data, just check info, log, and return
         remove_status_codes: list
-            removes data with Status code(s) in the list. By default it removes data
+            Removes data with Status code(s) in the list. By default it removes data
             with Status code 0.
 
         Returns

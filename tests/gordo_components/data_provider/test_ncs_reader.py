@@ -6,6 +6,7 @@ import pytest
 import dateutil.parser
 
 from gordo_components.data_provider.ncs_reader import NcsReader
+from gordo_components.data_provider.providers import DataLakeProvider
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 from gordo_components.dataset.sensor_tag import SensorTag
 
@@ -120,13 +121,33 @@ def test_load_series_dry_run(dates, ncs_reader):
     },
 )
 @pytest.mark.parametrize("remove_status_codes", [[], [0]])
-def test_load_series_with_filter_bad_data(dates, ncs_reader, remove_status_codes):
-    valid_tag_list = normalize_sensor_tags(["TRC-322"])
-    series_gen = ncs_reader.load_series(
-        dates[0], dates[1], valid_tag_list, remove_status_codes=remove_status_codes
+def test_load_series_with_filter_bad_data(dates, remove_status_codes):
+
+    ncs_reader = NcsReader(
+        AzureDLFileSystemMock(), remove_status_codes=remove_status_codes
     )
+
+    valid_tag_list = normalize_sensor_tags(["TRC-322"])
+    series_gen = ncs_reader.load_series(dates[0], dates[1], valid_tag_list)
     # Checks if the bad data from the files under tests/gordo_components/data_provider/data/datalake/TRC-322
     # are filtered out. 20 rows exists, 5 of then have the value 0.
 
     n_expected = 15 if remove_status_codes != [] else 20
     assert all(len(series) == n_expected for series in series_gen)
+
+
+@pytest.mark.parametrize("remove_status_codes", [[], [0]])
+def test_ncs_reader_kwargs_contains_remove_status_codes(remove_status_codes):
+    # Creates a DataLakeProvider with remove_status_codes as kwargs
+    data_provider = DataLakeProvider(
+        interactive=False, remove_status_codes=remove_status_codes
+    )
+
+    # Set the data_provider's client to the AzureDLFileSystemMock as interactive can be False.
+    data_provider.client = AzureDLFileSystemMock()
+    # Get the ncs_reader from data_provider.
+    ncs_reader = data_provider._get_sub_dataproviders()[0]
+
+    # Cheks that the kwargs remove_status_codes has been passed to the sub_provider
+    expected = [] if remove_status_codes == [] else [0]
+    assert ncs_reader.remove_status_codes == expected
