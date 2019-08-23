@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Union
 
+from keras.optimizers import Optimizer
 from keras import regularizers
 from keras.layers import Dense
 import keras
@@ -23,6 +24,8 @@ def feedforward_model(
     decoding_dim: Tuple[int, ...] = (64, 128, 256),
     decoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     out_func: str = "linear",
+    optimizer: Union[str, Optimizer] = "adam",
+    optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
@@ -44,7 +47,16 @@ def feedforward_model(
     decoding_func: tuple
         Activation functions for the decoder part.
     out_func: str
-        Activation function for the output layer.
+        Activation function for the output layer
+    optimizer: Union[str, Optimizer]
+        If str then the name of the optimizer must be provided (e.x. "adam").
+        The arguments of the optimizer can be supplied in optimize_kwargs.
+        If a Keras optimizer call the instance of the respective
+        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        provided Keras default values will be set.
+    optimizer_kwargs: Dict[str, Any]
+        The arguments for the chosen optimizer. If not provided Keras'
+        default values will be used.
     compile_kwargs: Dict[str, Any]
         Parameters to pass to ``keras.Model.compile``.
 
@@ -78,11 +90,16 @@ def feedforward_model(
     for i, (units, activation) in enumerate(zip(decoding_dim, decoding_func)):
         model.add(Dense(units=units, activation=activation))
 
+    # Instantiate optimizer with kwargs
+    if isinstance(optimizer, str):
+        Optim = getattr(keras.optimizers, optimizer)
+        optimizer = Optim(**optimizer_kwargs)
+
     # Final output layer
     model.add(Dense(n_features_out, activation=out_func))
 
     # Set some pre-determined default compile kwargs.
-    compile_kwargs.setdefault("optimizer", "adam")
+    compile_kwargs.update({"optimizer": optimizer})
     compile_kwargs.setdefault("loss", "mean_squared_error")
     compile_kwargs.setdefault("metrics", ["accuracy"])
 
@@ -96,6 +113,8 @@ def feedforward_symmetric(
     n_features_out: int = None,
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
+    optimizer: Union[str, Optimizer] = "adam",
+    optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
@@ -112,7 +131,16 @@ def feedforward_symmetric(
          Number of neurons per layers for the encoder, reversed for the decoder.
          Must have len > 0.
     funcs: List[str]
-        Activation functions for the internal layers.
+        Activation functions for the internal layers
+    optimizer: Union[str, Optimizer]
+        If str then the name of the optimizer must be provided (e.x. "adam").
+        The arguments of the optimizer can be supplied in optimization_kwargs.
+        If a Keras optimizer call the instance of the respective
+        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        provided Keras default values will be set.
+    optimizer_kwargs: Dict[str, Any]
+        The arguments for the chosen optimizer. If not provided Keras'
+        default values will be used.
     compile_kwargs: Dict[str, Any]
         Parameters to pass to ``keras.Model.compile``.
 
@@ -130,6 +158,8 @@ def feedforward_symmetric(
         decoding_dim=dims[::-1],
         encoding_func=funcs,
         decoding_func=funcs[::-1],
+        optimizer=optimizer,
+        optimizer_kwargs=optimizer_kwargs,
         compile_kwargs=compile_kwargs,
         **kwargs,
     )
@@ -142,6 +172,8 @@ def feedforward_hourglass(
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
     func: str = "tanh",
+    optimizer: Union[str, Optimizer] = "adam",
+    optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> keras.models.Sequential:
@@ -165,7 +197,16 @@ def feedforward_hourglass(
         (smallest layer is rounded up to nearest integer). Must satisfy
         0 <= compression_factor <= 1.
     func: str
-        Activation function for the internal layers.
+        Activation function for the internal layers
+    optimizer: Union[str, Optimizer]
+        If str then the name of the optimizer must be provided (e.x. "adam").
+        The arguments of the optimizer can be supplied in optimization_kwargs.
+        If a Keras optimizer call the instance of the respective
+        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        provided Keras default values will be set.
+    optimizer_kwargs: Dict[str, Any]
+        The arguments for the chosen optimizer. If not provided Keras'
+        default values will be used.
     compile_kwargs: Dict[str, Any]
         Parameters to pass to ``keras.Model.compile``.
 
@@ -212,6 +253,8 @@ def feedforward_hourglass(
         n_features_out,
         dims=dims,
         funcs=tuple([func] * len(dims)),
+        optimizer=optimizer,
+        optimizer_kwargs=optimizer_kwargs,
         compile_kwargs=compile_kwargs,
         **kwargs,
     )
