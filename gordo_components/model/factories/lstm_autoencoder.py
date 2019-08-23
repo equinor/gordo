@@ -56,7 +56,7 @@ def lstm_model(
         Activation function for the output Dense layer.
     optimizer: Union[str, Optimizer]
         If str then the name of the optimizer must be provided (e.x. "adam").
-        The arguments of the optimizer can be supplied in optimization_kwargs.
+        The arguments of the optimizer can be supplied in optimize_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
