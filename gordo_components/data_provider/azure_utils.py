@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_datalake_token(
-    interactive=True, dl_service_auth_str=None
+    interactive: bool = False, dl_service_auth_str: str = None
 ) -> lib.DataLakeCredential:
     """
     Provides a token for azure datalake, either by parsing a datalake service
@@ -19,10 +19,9 @@ def get_datalake_token(
 
     Parameters
     ----------
-    interactive
-        If true then fall back to interactive authentication in case
-        `dl_service_auth_str` is empty
-    dl_service_auth_str
+    interactive: bool
+        If true then use interactive authentication
+    dl_service_auth_str: str
         String on the format tenant:client_id:client_secret
 
     Returns
@@ -30,8 +29,11 @@ def get_datalake_token(
     lib.DataLakeCredential
         A lib.DataLakeCredential which can be used to authenticate towards the datalake
     """
-    logger.info("Looking for ways to authenticate with data lake")
-    if dl_service_auth_str:
+
+    if interactive:
+        logger.info("Attempting to use interactive azure authentication")
+        return lib.auth()
+    elif dl_service_auth_str:
         logger.info("Attempting to use datalake service authentication")
         dl_service_auth_elems = dl_service_auth_str.split(":")
         tenant = dl_service_auth_elems[0]
@@ -44,9 +46,6 @@ def get_datalake_token(
             resource="https://datalake.azure.net/",
         )
         return token
-    elif interactive:
-        logger.info("Attempting to use interactive azure authentication")
-        return lib.auth()
     else:
         raise ValueError(
             f"Either interactive (value: {interactive}) must be True, "
@@ -63,12 +62,12 @@ def create_adls_client(
 
     Parameters
     ----------
-    storename
+    storename: str
         Name of datalake store.
-    dl_service_auth_str
+    dl_service_auth_str: str
         Authentication string to use
-    interactive
-        If true then use interactive authentication if dl_service_auth_str is not set
+    interactive: bool
+        If true then use interactive authentication
 
 
     Returns
