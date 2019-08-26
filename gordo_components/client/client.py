@@ -19,6 +19,7 @@ from werkzeug.exceptions import BadRequest
 
 from gordo_components import serializer
 from gordo_components.client import io as gordo_io
+from gordo_components.client.io import HttpUnprocessableEntity
 from gordo_components.client.forwarders import PredictionForwarder
 from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
@@ -45,7 +46,6 @@ class Client:
         port: int = 443,
         scheme: str = "https",
         gordo_version: str = "v0",
-        prediction_path: str = "/anomaly/prediction",
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
         prediction_forwarder: typing.Optional[PredictionForwarder] = None,
@@ -72,8 +72,6 @@ class Client:
             The request scheme to use, ie 'https'.
         gordo_version: str
             The version of major gordo the services are using, ie. 'v0'.
-        prediction_path: str
-            Url path to use for making predictions, default '/anomaly/prediction'
         metadata: Optional[dict]
             Arbitrary mapping of key-value pairs to save to influx with
             prediction runs in 'tags' property
@@ -105,7 +103,9 @@ class Client:
         self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
-        self.prediction_path = prediction_path
+
+        # Default, failing back to /prediction on http code 422
+        self.prediction_path = "/anomaly/prediction"
         self.batch_size = batch_size
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
@@ -385,23 +385,28 @@ class Client:
         PredictionResult
         """
 
+        json = {
+            "X": server_utils.multi_lvl_column_dataframe_to_dict(X.iloc[chunk]),
+            "y": server_utils.multi_lvl_column_dataframe_to_dict(y.iloc[chunk])
+            if y is not None
+            else None,
+        }
+
         for i in itertools.count(start=1):
             try:
-                resp = await gordo_io.post_json(
-                    f"{endpoint.endpoint}{self.prediction_path}",
-                    session=session,
-                    json={
-                        "X": server_utils.multi_lvl_column_dataframe_to_dict(
-                            X.iloc[chunk]
-                        ),
-                        "y": server_utils.multi_lvl_column_dataframe_to_dict(
-                            y.iloc[chunk]
-                        )
-                        if y is not None
-                        else None,
-                    },
-                )
-
+                try:
+                    resp = await gordo_io.post_json(
+                        url=f"{endpoint.endpoint}{self.prediction_path}",
+                        session=session,
+                        json=json,
+                    )
+                except HttpUnprocessableEntity:
+                    self.prediction_path = "/prediction"
+                    resp = await gordo_io.post_json(
+                        url=f"{endpoint.endpoint}{self.prediction_path}",
+                        session=session,
+                        json=json,
+                    )
             # If it was an IO or TimeoutError, we can retry
             except (
                 IOError,
@@ -517,12 +522,22 @@ class Client:
         -------
         PredictionResult
         """
+        json = {"start": start.isoformat(), "end": end.isoformat()}
+
         try:
-            response = await gordo_io.fetch_json(
-                f"{endpoint.endpoint}{self.prediction_path}",
-                session=session,
-                json={"start": start.isoformat(), "end": end.isoformat()},
-            )
+            try:
+                response = await gordo_io.fetch_json(
+                    f"{endpoint.endpoint}{self.prediction_path}",
+                    session=session,
+                    json=json,
+                )
+            except HttpUnprocessableEntity:
+                self.prediction_path = "/prediction"
+                response = await gordo_io.fetch_json(
+                    f"{endpoint.endpoint}{self.prediction_path}",
+                    session=session,
+                    json=json,
+                )
         except IOError as exc:
             msg = (
                 f"Failed to get predictions for dates {start} -> {end} "
