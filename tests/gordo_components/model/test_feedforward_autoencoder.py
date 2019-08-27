@@ -39,21 +39,21 @@ class FeedForwardAutoEncoderTestCase(unittest.TestCase):
         Test that feedforward_symmetric calls feedforward_model correctly
         """
         n_features, n_features_out, encoding_dim, decoding_dim, encoding_func, decoding_func, compile_kwargs = feedforward_symmetric(
-            5, 5, [4, 3, 2, 1], ["relu", "relu", "tanh", "tanh"], {}
+            5, 5, (4, 3, 2, 1), ("relu", "relu", "tanh", "tanh"), {}
         )
         self.assertEqual(n_features, 5)
         self.assertEqual(compile_kwargs, {})
-        self.assertEqual(encoding_dim, [4, 3, 2, 1])
-        self.assertEqual(decoding_dim, [1, 2, 3, 4])
-        self.assertEqual(encoding_func, ["relu", "relu", "tanh", "tanh"])
-        self.assertEqual(decoding_func, ["tanh", "tanh", "relu", "relu"])
+        self.assertEqual(encoding_dim, (4, 3, 2, 1))
+        self.assertEqual(decoding_dim, (1, 2, 3, 4))
+        self.assertEqual(encoding_func, ("relu", "relu", "tanh", "tanh"))
+        self.assertEqual(decoding_func, ("tanh", "tanh", "relu", "relu"))
 
     def test_feedforward_symmetric_checks_dims(self):
         """
         Test that feedforward_symmetric validates parameter requirements
         """
         with self.assertRaises(ValueError):
-            feedforward_symmetric(4, [], [])
+            feedforward_symmetric(4, (), ())
 
     @mock.patch(
         "gordo_components.model.factories.feedforward_autoencoder.feedforward_model",
@@ -68,30 +68,30 @@ class FeedForwardAutoEncoderTestCase(unittest.TestCase):
         )
         self.assertEqual(n_features, 10)
         self.assertEqual(n_features_out, 10)
-        self.assertEqual(encoding_dim, [8, 7, 5])
-        self.assertEqual(decoding_dim, [5, 7, 8])
-        self.assertEqual(encoding_func, ["relu", "relu", "relu"])
-        self.assertEqual(decoding_func, ["relu", "relu", "relu"])
+        self.assertEqual(encoding_dim, (8, 7, 5))
+        self.assertEqual(decoding_dim, (5, 7, 8))
+        self.assertEqual(encoding_func, ("relu", "relu", "relu"))
+        self.assertEqual(decoding_func, ("relu", "relu", "relu"))
 
         n_features, n_features_out, encoding_dim, decoding_dim, encoding_func, decoding_func, compile_kwargs = feedforward_hourglass(
             3, 3
         )
         self.assertEqual(n_features, 3)
         self.assertEqual(n_features_out, 3)
-        self.assertEqual(encoding_dim, [3, 2, 2])
-        self.assertEqual(decoding_dim, [2, 2, 3])
-        self.assertEqual(encoding_func, ["tanh", "tanh", "tanh"])
-        self.assertEqual(decoding_func, ["tanh", "tanh", "tanh"])
+        self.assertEqual(encoding_dim, (3, 2, 2))
+        self.assertEqual(decoding_dim, (2, 2, 3))
+        self.assertEqual(encoding_func, ("tanh", "tanh", "tanh"))
+        self.assertEqual(decoding_func, ("tanh", "tanh", "tanh"))
 
         n_features, n_features_out, encoding_dim, decoding_dim, encoding_func, decoding_func, compile_kwargs = feedforward_hourglass(
             10, 10, compression_factor=0.3
         )
         self.assertEqual(n_features, 10)
         self.assertEqual(n_features_out, 10)
-        self.assertEqual(encoding_dim, [8, 5, 3])
-        self.assertEqual(decoding_dim, [3, 5, 8])
-        self.assertEqual(encoding_func, ["tanh", "tanh", "tanh"])
-        self.assertEqual(decoding_func, ["tanh", "tanh", "tanh"])
+        self.assertEqual(encoding_dim, (8, 5, 3))
+        self.assertEqual(decoding_dim, (3, 5, 8))
+        self.assertEqual(encoding_func, ("tanh", "tanh", "tanh"))
+        self.assertEqual(decoding_func, ("tanh", "tanh", "tanh"))
 
     @mock.patch(
         "gordo_components.model.factories.feedforward_autoencoder.feedforward_model",
@@ -109,10 +109,10 @@ class FeedForwardAutoEncoderTestCase(unittest.TestCase):
         )
         self.assertEqual(n_features, 10)
         self.assertEqual(n_features_out, 10)
-        self.assertEqual(encoding_dim, [10, 10, 10])
-        self.assertEqual(decoding_dim, [10, 10, 10])
-        self.assertEqual(encoding_func, ["tanh", "tanh", "tanh"])
-        self.assertEqual(decoding_func, ["tanh", "tanh", "tanh"])
+        self.assertEqual(encoding_dim, (10, 10, 10))
+        self.assertEqual(decoding_dim, (10, 10, 10))
+        self.assertEqual(encoding_func, ("tanh", "tanh", "tanh"))
+        self.assertEqual(decoding_func, ("tanh", "tanh", "tanh"))
 
         # compression_factor=0 has smallest layer with 1 node.
         n_features, n_features_out, encoding_dim, decoding_dim, encoding_func, decoding_func, compile_kwargs = feedforward_hourglass(
@@ -120,10 +120,10 @@ class FeedForwardAutoEncoderTestCase(unittest.TestCase):
         )
         self.assertEqual(n_features, 100000)
         self.assertEqual(n_features_out, 100000)
-        self.assertEqual(encoding_dim, [66667, 33334, 1])
-        self.assertEqual(decoding_dim, [1, 33334, 66667])
-        self.assertEqual(encoding_func, ["tanh", "tanh", "tanh"])
-        self.assertEqual(decoding_func, ["tanh", "tanh", "tanh"])
+        self.assertEqual(encoding_dim, (66667, 33334, 1))
+        self.assertEqual(decoding_dim, (1, 33334, 66667))
+        self.assertEqual(encoding_func, ("tanh", "tanh", "tanh"))
+        self.assertEqual(decoding_func, ("tanh", "tanh", "tanh"))
 
     def test_feedforward_hourglass_checks_enc_layers(self):
         """

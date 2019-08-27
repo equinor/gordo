@@ -8,18 +8,43 @@ import keras.backend as K
 from keras import optimizers
 
 from gordo_components.model.factories.lstm_autoencoder import (
+    lstm_model,
     lstm_symmetric,
     lstm_hourglass,
 )
 
 
 class LSTMAutoEncoderTestCase(unittest.TestCase):
+    def test_lstm_defaults(self):
+        """
+        Test that models with all defaults are created without failure and are equal
+        """
+        # Create models with default parameters
+        base = lstm_model(4)
+        symmetric = lstm_symmetric(4)
+        hourglass = lstm_hourglass(4)
+
+        # Ensure LSTM model layers are equal to base model layers
+        for i in range(len(base.layers)):
+            # Rename layers so as to not fail on names, only configuration
+            config = base.layers[i].get_config().update({"name": "test"})
+            symmetric_config = symmetric.layers[i].get_config().update({"name": "test"})
+            hourglass_config = hourglass.layers[i].get_config().update({"name": "test"})
+            assert config == symmetric_config
+            assert config == hourglass_config
+
     def test_lstm_symmetric_checks_dims(self):
         """
         Test that lstm_symmetric validates parameter requirements
         """
+
+        # Raise an error if empty dimension and function layers defined.
         with self.assertRaises(ValueError):
-            lstm_symmetric(4, dims=[], funcs=[])
+            lstm_symmetric(4, dims=(), funcs=())
+
+        # Ensure failure with default 3 dimension layers when 2 function layers passed.
+        with self.assertRaises(ValueError):
+            lstm_symmetric(4, funcs=("tanh", "tanh"))
 
     def test_lstm_hourglass_basic(self):
         """
