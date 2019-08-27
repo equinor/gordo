@@ -15,10 +15,10 @@ from gordo_components.model.factories.model_factories_utils import hourglass_cal
 def feedforward_model(
     n_features: int,
     n_features_out: int = None,
-    enc_dim: List[int] = None,
-    dec_dim: List[int] = None,
-    enc_func: List[str] = None,
-    dec_func: List[str] = None,
+    encoding_dim: List[int] = None,
+    decoding_dim: List[int] = None,
+    encoding_func: List[str] = None,
+    decoding_func: List[str] = None,
     out_func: str = "linear",
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
@@ -32,13 +32,13 @@ def feedforward_model(
         Number of features the dataset X will contain.
     n_features_out: Optional[int]
         Number of features the model will output, default to ``n_features``
-    enc_dim: list
+    encoding_dim: list
         List of numbers with the number of neurons in the encoding part
-    dec_dim: list
+    decoding_dim: list
         List of numbers with the number of neurons in the decoding part
-    enc_func: list
+    encoding_func: list
         Activation functions for the encoder part
-    dec_func: list
+    decoding_func: list
         Activation functions for the decoder part
     out_func: str
         Activation function for the output layer
@@ -52,10 +52,10 @@ def feedforward_model(
     """
     input_dim = n_features
     n_features_out = n_features_out or n_features
-    encoding_dim = enc_dim or [256, 128, 64]
-    decoding_dim = dec_dim or [64, 128, 256]
-    encoding_func = enc_func or ["tanh", "tanh", "tanh"]
-    decoding_func = dec_func or ["tanh", "tanh", "tanh"]
+    encoding_dim = encoding_dim or [256, 128, 64]
+    decoding_dim = decoding_dim or [64, 128, 256]
+    encoding_func = encoding_func or ["tanh", "tanh", "tanh"]
+    decoding_func = decoding_func or ["tanh", "tanh", "tanh"]
 
     model = KerasSequential()
 
@@ -133,10 +133,10 @@ def feedforward_symmetric(
     return feedforward_model(
         n_features,
         n_features_out,
-        enc_dim=dims,
-        dec_dim=dims[::-1],
-        enc_func=funcs,
-        dec_func=funcs[::-1],
+        encoding_dim=dims,
+        decoding_dim=dims[::-1],
+        encoding_func=funcs,
+        decoding_func=funcs[::-1],
         compile_kwargs=compile_kwargs,
         **kwargs,
     )
