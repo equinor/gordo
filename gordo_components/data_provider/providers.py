@@ -92,7 +92,6 @@ class DataLakeProvider(GordoBaseDataProvider):
         storename: str = "dataplatformdlsprod",
         interactive: bool = False,
         dl_service_auth_str: str = None,
-        threads: typing.Optional[int] = None,
         **kwargs,
     ):
         """
@@ -100,9 +99,6 @@ class DataLakeProvider(GordoBaseDataProvider):
 
         Parameters
         ----------
-        threads : typing.Optional[int]
-            Threads to use. Leave at None to let the underlying dataprovider choose
-            as smart as it can.
         storename
             The store name to read data from
         interactive: bool
@@ -121,7 +117,6 @@ class DataLakeProvider(GordoBaseDataProvider):
         self.dl_service_auth_str = dl_service_auth_str or os.environ.get(
             "DL_SERVICE_AUTH_STR"
         )
-        self.threads = threads
         self.client = None
         self.kwargs = kwargs
 
@@ -160,7 +155,7 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def _get_sub_dataproviders(self):
         data_providers = [
-            t_reader(client=self._get_client(), threads=self.threads, **self.kwargs)
+            t_reader(client=self._get_client(), **self.kwargs)
             for t_reader in DataLakeProvider._SUB_READER_CLASSES
         ]
         return data_providers
