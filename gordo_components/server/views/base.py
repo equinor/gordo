@@ -206,7 +206,7 @@ class BaseModelView(Resource):
                 target_tag_list=self.target_tags,
                 index=X.index,
             )
-            context["data"] = server_utils.multi_lvl_column_dataframe_to_dict(data)
+            context["data"] = server_utils.dataframe_to_dict(data)
             return make_response((jsonify(context), context.pop("status-code", 200)))
 
 

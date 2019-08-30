@@ -386,8 +386,8 @@ class Client:
         """
 
         json = {
-            "X": server_utils.multi_lvl_column_dataframe_to_dict(X.iloc[chunk]),
-            "y": server_utils.multi_lvl_column_dataframe_to_dict(y.iloc[chunk])
+            "X": server_utils.dataframe_to_dict(X.iloc[chunk]),
+            "y": server_utils.dataframe_to_dict(y.iloc[chunk])
             if y is not None
             else None,
         }
@@ -448,9 +448,7 @@ class Client:
             # Process response and return if no exception
             else:
 
-                predictions = server_utils.multi_lvl_column_dataframe_from_dict(
-                    resp["data"]
-                )
+                predictions = server_utils.dataframe_from_dict(resp["data"])
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
@@ -550,9 +548,7 @@ class Client:
             )
 
         logger.info(f"Processing {start} -> {end}")
-        predictions = server_utils.multi_lvl_column_dataframe_from_dict(
-            response["data"]
-        )
+        predictions = server_utils.dataframe_from_dict(response["data"])
 
         if self.prediction_forwarder is not None:
             await self.prediction_forwarder(

@@ -43,7 +43,7 @@ def test_anomaly_prediction_endpoint(
     assert "data" in resp.json
 
     # Load data into dataframe
-    data = server_utils.multi_lvl_column_dataframe_from_dict(resp.json["data"])
+    data = server_utils.dataframe_from_dict(resp.json["data"])
 
     # Only different between POST and GET is POST will return None for
     # start and end dates, because the server can't know what those are
@@ -94,7 +94,7 @@ def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):
         json={"start": "2016-01-01T00:11:00+00:00", "end": "2016-01-01T00:21:00+00:00"},
     )
     assert resp.status_code == 200
-    data = server_utils.multi_lvl_column_dataframe_from_dict(resp.json["data"])
+    data = server_utils.dataframe_from_dict(resp.json["data"])
 
     assert len(data) == 1, f"Expected one prediction, got: {resp.json}"
     assert data["start"].iloc[0].tolist() == ["2016-01-01T00:10:00+00:00"]

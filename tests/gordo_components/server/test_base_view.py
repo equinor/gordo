@@ -43,7 +43,7 @@ def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_po
 
     assert resp.status_code == 200
 
-    data = server_utils.multi_lvl_column_dataframe_from_dict(resp.json["data"])
+    data = server_utils.dataframe_from_dict(resp.json["data"])
 
     # Expected column names
     assert all(key in data for key in ("model-output", "model-input"))
