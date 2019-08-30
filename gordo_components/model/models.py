@@ -421,8 +421,8 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             lookback_window=self.lookback_window,
             lookahead=lookahead,
         )
-        x, y = tsg[0]
-        super().fit(X=x, y=y, epochs=1, verbose=0)
+        _x, _y = tsg[0]
+        super().fit(X=_x, y=_y, epochs=1, verbose=0)
 
         tsg = create_keras_timeseriesgenerator(
             X=X,
