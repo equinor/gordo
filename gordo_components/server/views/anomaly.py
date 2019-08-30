@@ -161,7 +161,7 @@ class AnomalyView(BaseModelView):
             return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
 
         context: typing.Dict[typing.Any, typing.Any] = dict()
-        context["data"] = utils.multi_lvl_column_dataframe_to_dict(anomaly_df)
+        context["data"] = utils.dataframe_to_dict(anomaly_df)
         context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
         return make_response(jsonify(context), context.pop("status-code", 200))
 

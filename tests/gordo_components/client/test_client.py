@@ -432,10 +432,10 @@ def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
     df = model_utils.make_base_dataframe(tags, original_input, model_output)
 
     # Server then converts this into a dict which maps top level names to lists
-    serialized = server_utils.multi_lvl_column_dataframe_to_dict(df)
+    serialized = server_utils.dataframe_to_dict(df)
 
     # Client reproduces this dataframe
-    df_clone = server_utils.multi_lvl_column_dataframe_from_dict(serialized)
+    df_clone = server_utils.dataframe_from_dict(serialized)
 
     # each subset of column under the top level names should be equal
     top_lvl_names = df.columns.get_level_values(0)

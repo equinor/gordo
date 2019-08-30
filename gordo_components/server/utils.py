@@ -25,11 +25,12 @@ basic dataframe output, respectively.
 logger = logging.getLogger(__name__)
 
 
-def multi_lvl_column_dataframe_to_dict(df: pd.DataFrame) -> dict:
+def dataframe_to_dict(df: pd.DataFrame) -> dict:
     """
-    Convert a dataframe which has a :class:`pandas.MultiIndex` as columns into a dict
+    Convert a dataframe can have a :class:`pandas.MultiIndex` as columns into a dict
     where each key is the top level column name, and the value is the array
-    of columns under the top level name.
+    of columns under the top level name. If it's a simple dataframe, :meth:`pandas.core.DataFrame.to_dict`
+    will be used.
 
     This allows :func:`json.dumps` to be performed, where :meth:`pandas.DataFrame.to_dict()`
     would convert such a multi-level column dataframe into keys of ``tuple`` objects, which are
@@ -59,7 +60,7 @@ def multi_lvl_column_dataframe_to_dict(df: pd.DataFrame) -> dict:
                sub-feature-0 sub-feature-1 sub-feature-0 sub-feature-1
     2019-01-01             0             1             2             3
     2019-02-01             4             5             6             7
-    >>> serialized = multi_lvl_column_dataframe_to_dict(df)
+    >>> serialized = dataframe_to_dict(df)
     >>> pprint.pprint(serialized)
     {'feature0': {'sub-feature-0': {'2019-01-01': 0, '2019-02-01': 4},
                   'sub-feature-1': {'2019-01-01': 1, '2019-02-01': 5}},
@@ -71,15 +72,18 @@ def multi_lvl_column_dataframe_to_dict(df: pd.DataFrame) -> dict:
     data = df.copy()
     if isinstance(data.index, pd.DatetimeIndex):
         data.index = data.index.astype(str)
-    return {
-        col: data[col].to_dict()
-        if isinstance(data[col], pd.DataFrame)
-        else pd.DataFrame(data[col]).to_dict()
-        for col in data.columns.get_level_values(0)
-    }
+    if isinstance(df.columns, pd.MultiIndex):
+        return {
+            col: data[col].to_dict()
+            if isinstance(data[col], pd.DataFrame)
+            else pd.DataFrame(data[col]).to_dict()
+            for col in data.columns.get_level_values(0)
+        }
+    else:
+        return data.to_dict()
 
 
-def multi_lvl_column_dataframe_from_dict(data: dict) -> pd.DataFrame:
+def dataframe_from_dict(data: dict) -> pd.DataFrame:
     """
     The inverse procedure done by :func:`.multi_lvl_column_dataframe_from_dict`
     Reconstructed a MultiIndex column dataframe from a previously serialized one.
@@ -105,20 +109,27 @@ def multi_lvl_column_dataframe_from_dict(data: dict) -> pd.DataFrame:
     ... 'feature1': {'sub-feature-0': {'2019-01-01': 2, '2019-02-01': 6},
     ...              'sub-feature-1': {'2019-01-01': 3, '2019-02-01': 7}}
     ... }
-    >>> multi_lvl_column_dataframe_from_dict(serialized)  # doctest: +NORMALIZE_WHITESPACE
+    >>> dataframe_from_dict(serialized)  # doctest: +NORMALIZE_WHITESPACE
                     feature0                    feature1
            sub-feature-0 sub-feature-1 sub-feature-0 sub-feature-1
     2019-01-01             0             1             2             3
     2019-02-01             4             5             6             7
     """
 
-    keys = data.keys()
-    df: pd.DataFrame = pd.concat(
-        (pd.DataFrame.from_dict(data[key]) for key in keys), axis=1, keys=keys
-    )
+    if isinstance(data, dict) and any(isinstance(val, dict) for val in data.values()):
+        try:
+            keys = data.keys()
+            df: pd.DataFrame = pd.concat(
+                (pd.DataFrame.from_dict(data[key]) for key in keys), axis=1, keys=keys
+            )
+        except (ValueError, AttributeError):
+            df = pd.DataFrame.from_dict(data)
+    else:
+        df = pd.DataFrame.from_dict(data)
+
     try:
-        df.index = pd.to_datetime(df.index)
-    except ValueError:
+        df.index = df.index.map(dateutil.parser.isoparse)  # type: ignore
+    except (TypeError, ValueError):
         logger.debug("Could not parse index to pandas.DatetimeIndex")
         pass  # It wasn't a datetime index after all, no worries.
     return df
@@ -134,20 +145,19 @@ def parse_iso_datetime(datetime_str: str) -> datetime:
     return parsed_date
 
 
-def _df_or_response_from_dict(
-    data: Union[dict, list], expected_columns: List[str]
+def _verify_dataframe(
+    df: pd.DataFrame, expected_columns: List[str]
 ) -> Union[Response, pd.DataFrame]:
     """
-    Convert a dict or list of dicts into a :class:`pandas.core.DataFrame`.
-    Setting the column names to ``expected_columns`` if not already labeled and
-    the length of the columns match the length of the expected columns.
+    Verify the dataframe, setting the column names to ``expected_columns``
+    if not already labeled and the length of the columns match the length of the expected columns.
 
     If it fails, it will return an instance of :class:`flask.wrappers.Response`
 
     Parameters
     ----------
-    data: Union[dict, list]
-        Data to convert into a dataframe with :meth:`pandas.core.DataFrame.from_dict`
+    df: pandas.core.DataFrame
+        DataFrame to verify.
     expected_columns: List[str]
         List of expected column names to give if the dataframe does not consist of them
         but the number of columns matches ``len(expected_columns)``
@@ -156,29 +166,32 @@ def _df_or_response_from_dict(
     -------
     Union[flask.wrappers.Response, pandas.core.DataFrame]
     """
-    df = pd.DataFrame.from_dict(data)
+    if not isinstance(df.columns, pd.MultiIndex):
+        if not all(col in df.columns for col in expected_columns):
 
-    if not all(col in df.columns for col in expected_columns):
+            # If the length doesn't mach, then we can't reliably determine what data we have hre.
+            if len(df.columns) != len(expected_columns):
+                msg = dict(
+                    message=f"Unexpected features: "
+                    f"was expecting {expected_columns} length of {len(expected_columns)}, "
+                    f"but got {df.columns} length of {len(df.columns)}"
+                )
+                return make_response((jsonify(msg), 400))
 
-        # If the length doesn't mach, then we can't reliably determine what data we have hre.
-        if len(df.columns) != len(expected_columns):
-            msg = dict(
-                message=f"Unexpected features: "
-                f"was expecting {expected_columns} length of {len(expected_columns)}, "
-                f"but got {df.columns} length of {len(df.columns)}"
-            )
-            return make_response((jsonify(msg), 400))
+            # Otherwise we were send a list/ndarray data format which we assume the client has
+            # ordered correctly to the order of the expected_columns.
+            else:
+                df.columns = expected_columns
 
-        # Otherwise we were send a list/ndarray data format which we assume the client has
-        # ordered correctly to the order of the expected_columns.
+        # All columns exist in the dataframe, select them which thus ensures order and removes extra columns
         else:
-            df.columns = expected_columns
-
-    # All columns exist in the dataframe, select them which thus ensures order and removes extra columns
+            df = df[expected_columns]
+        return df
     else:
-        df = df[expected_columns]
-
-    return df
+        msg = {
+            "message": f"Server does not support multi-level dataframes at this time: {df.columns.tolist()}"
+        }
+        return make_response((jsonify(msg), 400))
 
 
 def extract_X_y(method):
@@ -216,17 +229,13 @@ def extract_X_y(method):
                 return make_response((jsonify(message), 400))
 
             # Convert X and (maybe) y into dataframes.
-            try:
-                X = multi_lvl_column_dataframe_from_dict(X)
-            except (AttributeError, ValueError):
-                X = _df_or_response_from_dict(X, [t.name for t in self.tags])
+            X = dataframe_from_dict(X)
+            X = _verify_dataframe(X, [t.name for t in self.tags])
 
             # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
             if y is not None:
-                try:
-                    y = multi_lvl_column_dataframe_from_dict(y)
-                except (AttributeError, ValueError):
-                    y = _df_or_response_from_dict(y, [t.name for t in self.target_tags])
+                y = dataframe_from_dict(y)
+                y = _verify_dataframe(y, [t.name for t in self.target_tags])
 
             # If either X or y came back as a Response type, there was an error
             for data_or_resp in [X, y]:
