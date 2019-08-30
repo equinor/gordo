@@ -145,12 +145,6 @@ class AnomalyView(BaseModelView):
             }
             return make_response((jsonify(message), 400))
 
-        # It is ok for y to be a subset of features in X, but we need at least one
-        # to compare against to calculate an error.
-        if not any(col in g.y.columns for col in [t.name for t in self.tags]):
-            message = {"message": "y is not a subset of X, cannot do anomaly detection"}
-            return make_response(jsonify(message), 400)
-
         # Now create an anomaly dataframe from the base response dataframe
         try:
             anomaly_df = current_app.model.anomaly(g.X, g.y, frequency=self.frequency)
