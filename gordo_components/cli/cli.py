@@ -154,6 +154,14 @@ def build(
     data_config: dict
         kwargs to be used in intializing the dataset. Should also
         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
+    data_provider: str
+        A quoted data provider configuration in  JSON/YAML format.
+        Should also contain key 'type' which references the data provider to use.
+
+        Example::
+
+          '{"type": "DataLakeProvider", "storename" : "example_store"}'
+
     metadata: dict
         Any additional metadata to save under the key 'user-defined'
     model_register_dir: path
