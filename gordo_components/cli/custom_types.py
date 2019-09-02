@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import json
 import typing
 
 import yaml
@@ -13,7 +12,7 @@ from gordo_components.data_provider import providers
 
 class DataProviderParam(click.ParamType):
     """
-    Load a DataProvider from JSON/dict representation or from a JSON file
+    Load a DataProvider from JSON/YAML representation or from a JSON/YAML file
     """
 
     name = "data-provider"
@@ -21,7 +20,7 @@ class DataProviderParam(click.ParamType):
     def convert(self, value, param, ctx):
         if os.path.isfile(value):
             with open(value) as f:
-                kwargs = json.load(f)
+                kwargs = yaml.safe_load(f)
         else:
             kwargs = yaml.safe_load(value)
 
