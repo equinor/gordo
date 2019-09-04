@@ -8,7 +8,10 @@ from keras.layers import Dense, LSTM
 from keras.models import Sequential as KerasSequential
 
 from gordo_components.model.register import register_model_builder
-from gordo_components.model.factories.model_factories_utils import hourglass_calc_dims
+from gordo_components.model.factories.utils import (
+    hourglass_calc_dims,
+    check_dim_func_len,
+)
 
 
 @register_model_builder(type="KerasLSTMAutoEncoder")
@@ -18,8 +21,8 @@ def lstm_model(
     n_features_out: int = None,
     lookback_window: int = 1,
     encoding_dim: Tuple[int, ...] = (256, 128, 64),
-    decoding_dim: Tuple[int, ...] = (64, 128, 256),
     encoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
+    decoding_dim: Tuple[int, ...] = (64, 128, 256),
     decoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     out_func: str = "linear",
     optimizer: Union[str, Optimizer] = "adam",
@@ -35,22 +38,22 @@ def lstm_model(
     n_features: int
         Number of features the dataset X will contain.
     n_features_out: Optional[int]
-        Number of features the model will output, default to ``n_features``
+        Number of features the model will output, default to ``n_features``.
     lookback_window: int
         Number of timesteps used to train the model.
         One timestep = current observation in the sample.
         Two timesteps = current observation + previous observation in the sample.
         ...
-    encoding_func: list
+    encoding_dim: tuple
+        Tuple of numbers with the number of neurons in the encoding part.
+    decoding_dim: tuple
+        Tuple of numbers with the number of neurons in the decoding part.
+    encoding_func: tuple
         Activation functions for the encoder part.
-    decoding_func: list
+    decoding_func: tuple
         Activation functions for the decoder part.
-    func_output: str
+    out_func: str
         Activation function for the output Dense layer.
-    enc_dim: list
-        List of numbers with the number of neurons in the encoding part.
-    dec_dim: list
-        List of numbers with the number of neurons in the decoding part.
     optimizer: Union[str, Optimizer]
         If str then the name of the optimizer must be provided (e.x. "adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
@@ -61,7 +64,7 @@ def lstm_model(
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
     compile_kwargs: Dict[str, Any]
-        Parameters to pass to ``keras.Model.compile``
+        Parameters to pass to ``keras.Model.compile``.
 
     Returns
     -------
@@ -71,17 +74,8 @@ def lstm_model(
     """
     n_features_out = n_features_out or n_features
 
-    if len(encoding_dim) != len(encoding_func):
-        raise ValueError(
-            f"Number of layers ({len(encoding_dim)}) and number of functions ({len(encoding_func)}) "
-            f"must be equal for the encoder."
-        )
-
-    if len(decoding_dim) != len(decoding_func):
-        raise ValueError(
-            f"Number of layers ({len(decoding_dim)}) and number of functions ({len(decoding_func)}) "
-            f"must be equal for the decoder."
-        )
+    check_dim_func_len("encoding", encoding_dim, encoding_func)
+    check_dim_func_len("decoding", decoding_dim, decoding_func)
 
     model = KerasSequential()
 
@@ -131,9 +125,9 @@ def lstm_symmetric(
     Parameters
     ----------
     n_features: int
-         Number of input and output neurons
+         Number of input and output neurons.
     n_features_out: Optional[int]
-        Number of features the model will output, default to ``n_features``
+        Number of features the model will output, default to ``n_features``.
     lookback_window: int
         Number of timesteps used to train the model.
         One timestep = sample contains current observation.
@@ -143,7 +137,7 @@ def lstm_symmetric(
          Number of neurons per layers for the encoder, reversed for the decoder.
          Must have len > 0
     funcs: List[str]
-        Activation functions for the internal layers
+        Activation functions for the internal layers.
     out_func: str
         Activation function for the output Dense layer.
     optimizer: Union[str, Optimizer]
@@ -156,7 +150,7 @@ def lstm_symmetric(
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
     compile_kwargs: Dict[str, Any]
-        Parameters to pass to ``keras.Model.compile``
+        Parameters to pass to ``keras.Model.compile``.
 
     Returns
     -------
@@ -166,18 +160,19 @@ def lstm_symmetric(
 
     if len(dims) == 0:
         raise ValueError("Parameter dims must have len > 0")
+
     return lstm_model(
-        n_features,
-        n_features_out,
-        lookback_window,
-        dims,
-        dims[::-1],
-        funcs,
-        funcs[::-1],
-        out_func,
-        optimizer,
-        optimizer_kwargs,
-        compile_kwargs,
+        n_features=n_features,
+        n_features_out=n_features_out,
+        lookback_window=lookback_window,
+        encoding_dim=dims,
+        decoding_dim=dims[::-1],
+        encoding_func=funcs,
+        decoding_func=funcs[::-1],
+        out_func=out_func,
+        optimizer=optimizer,
+        optimizer_kwargs=optimizer_kwargs,
+        compile_kwargs=compile_kwargs,
         **kwargs,
     )
 
@@ -208,9 +203,9 @@ def lstm_hourglass(
     Parameters
     ----------
     n_features: int
-        Number of input and output neurons
+        Number of input and output neurons.
     n_features_out: Optional[int]
-        Number of features the model will output, default to ``n_features``
+        Number of features the model will output, default to ``n_features``.
     encoding_layers: int
         Number of layers from the input layer (exclusive) to the
         narrowest layer (inclusive). Must be > 0. The total nr of layers
@@ -220,7 +215,7 @@ def lstm_hourglass(
         (smallest layer is rounded up to nearest integer). Must satisfy
         0 <= compression_factor <= 1.
     func: str
-        Activation function for the internal layers
+        Activation function for the internal layers.
     out_func: str
         Activation function for the output Dense layer.
     optimizer: Union[str, Optimizer]
@@ -233,7 +228,7 @@ def lstm_hourglass(
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
     compile_kwargs: Dict[str, Any]
-        Parameters to pass to ``keras.Model.compile``
+        Parameters to pass to ``keras.Model.compile``.
 
 
     Returns
@@ -260,14 +255,14 @@ def lstm_hourglass(
     dims = hourglass_calc_dims(compression_factor, encoding_layers, n_features)
 
     return lstm_symmetric(
-        n_features,
-        n_features_out,
-        lookback_window,
-        dims,
-        [func] * len(dims),
-        out_func,
-        optimizer,
-        optimizer_kwargs,
-        compile_kwargs,
+        n_features=n_features,
+        n_features_out=n_features_out,
+        lookback_window=lookback_window,
+        dims=dims,
+        funcs=[func] * len(dims),
+        out_func=out_func,
+        optimizer=optimizer,
+        optimizer_kwargs=optimizer_kwargs,
+        compile_kwargs=compile_kwargs,
         **kwargs,
     )

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Tuple, Dict, Any
+from typing import Tuple, Dict, Any
 
 from keras import regularizers
 from keras.layers import Dense
@@ -8,17 +8,20 @@ import keras
 
 from keras.models import Sequential as KerasSequential
 from gordo_components.model.register import register_model_builder
-from gordo_components.model.factories.model_factories_utils import hourglass_calc_dims
+from gordo_components.model.factories.utils import (
+    hourglass_calc_dims,
+    check_dim_func_len,
+)
 
 
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_model(
     n_features: int,
     n_features_out: int = None,
-    enc_dim: List[int] = None,
-    dec_dim: List[int] = None,
-    enc_func: List[str] = None,
-    dec_func: List[str] = None,
+    encoding_dim: Tuple[int, ...] = (256, 128, 64),
+    encoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
+    decoding_dim: Tuple[int, ...] = (64, 128, 256),
+    decoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     out_func: str = "linear",
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
@@ -31,43 +34,33 @@ def feedforward_model(
     n_features: int
         Number of features the dataset X will contain.
     n_features_out: Optional[int]
-        Number of features the model will output, default to ``n_features``
-    enc_dim: list
-        List of numbers with the number of neurons in the encoding part
-    dec_dim: list
-        List of numbers with the number of neurons in the decoding part
-    enc_func: list
-        Activation functions for the encoder part
-    dec_func: list
-        Activation functions for the decoder part
+        Number of features the model will output, default to ``n_features``.
+    encoding_dim: tuple
+        Tuple of numbers with the number of neurons in the encoding part.
+    decoding_dim: tuple
+        Tuple of numbers with the number of neurons in the decoding part.
+    encoding_func: tuple
+        Activation functions for the encoder part.
+    decoding_func: tuple
+        Activation functions for the decoder part.
     out_func: str
-        Activation function for the output layer
+        Activation function for the output layer.
     compile_kwargs: Dict[str, Any]
-        Parameters to pass to ``keras.Model.compile``
+        Parameters to pass to ``keras.Model.compile``.
 
     Returns
     -------
     keras.models.Sequential
 
     """
+
     input_dim = n_features
     n_features_out = n_features_out or n_features
-    encoding_dim = enc_dim or [256, 128, 64]
-    decoding_dim = dec_dim or [64, 128, 256]
-    encoding_func = enc_func or ["tanh", "tanh", "tanh"]
-    decoding_func = dec_func or ["tanh", "tanh", "tanh"]
+
+    check_dim_func_len("encoding", encoding_dim, encoding_func)
+    check_dim_func_len("decoding", decoding_dim, decoding_func)
 
     model = KerasSequential()
-
-    if len(encoding_dim) != len(encoding_func):
-        raise ValueError(
-            f"Number of layers ({len(encoding_dim)}) and number of functions ({len(encoding_func)}) must be equal for the encoder."
-        )
-
-    if len(decoding_dim) != len(decoding_func):
-        raise ValueError(
-            f"Number of layers ({len(decoding_dim)}) and number of functions ({len(decoding_func)}) must be equal for the decoder."
-        )
 
     # Add encoding layers
     for i, (units, activation) in enumerate(zip(encoding_dim, encoding_func)):
@@ -112,16 +105,16 @@ def feedforward_symmetric(
     Parameters
     ----------
     n_features: int
-         Number of input and output neurons
+         Number of input and output neurons.
     n_features_out: Optional[int]
-        Number of features the model will output, default to ``n_features``
+        Number of features the model will output, default to ``n_features``.
     dim: List[int]
          Number of neurons per layers for the encoder, reversed for the decoder.
-         Must have len > 0
+         Must have len > 0.
     funcs: List[str]
-        Activation functions for the internal layers
+        Activation functions for the internal layers.
     compile_kwargs: Dict[str, Any]
-        Parameters to pass to ``keras.Model.compile``
+        Parameters to pass to ``keras.Model.compile``.
 
     Returns
     -------
@@ -133,10 +126,10 @@ def feedforward_symmetric(
     return feedforward_model(
         n_features,
         n_features_out,
-        enc_dim=dims,
-        dec_dim=dims[::-1],
-        enc_func=funcs,
-        dec_func=funcs[::-1],
+        encoding_dim=dims,
+        decoding_dim=dims[::-1],
+        encoding_func=funcs,
+        decoding_func=funcs[::-1],
         compile_kwargs=compile_kwargs,
         **kwargs,
     )
@@ -160,9 +153,9 @@ def feedforward_hourglass(
     Parameters
     ----------
     n_features: int
-        Number of input and output neurons
+        Number of input and output neurons.
     n_features_out: Optional[int]
-        Number of features the model will output, default to ``n_features``
+        Number of features the model will output, default to ``n_features``.
     encoding_layers: int
         Number of layers from the input layer (exclusive) to the
         narrowest layer (inclusive). Must be > 0. The total nr of layers
@@ -172,9 +165,9 @@ def feedforward_hourglass(
         (smallest layer is rounded up to nearest integer). Must satisfy
         0 <= compression_factor <= 1.
     func: str
-        Activation function for the internal layers
+        Activation function for the internal layers.
     compile_kwargs: Dict[str, Any]
-        Parameters to pass to ``keras.Model.compile``
+        Parameters to pass to ``keras.Model.compile``.
 
     Notes
     -----
@@ -218,7 +211,7 @@ def feedforward_hourglass(
         n_features,
         n_features_out,
         dims=dims,
-        funcs=[func] * len(dims),
+        funcs=tuple([func] * len(dims)),
         compile_kwargs=compile_kwargs,
         **kwargs,
     )
