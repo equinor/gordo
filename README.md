@@ -13,8 +13,8 @@
 <br />
 
 <div align="center">
-  <a href="https://travis-ci.com/equinor/gordo-components">
-    <img src="https://travis-ci.com/equinor/gordo-components.svg?token=9cHSKigsoXktTGTEJsVA&branch=master" alt="Build Status"/>
+  <a href="https://circleci.com/gh/equinor/gordo-components">
+    <img src="https://circleci.com/gh/equinor/gordo-components/tree/master.svg?style=svg" alt="Build Status"/>
   </a>
   <a href="https://codecov.io/gh/equinor/gordo-components">
     <img src="https://codecov.io/gh/equinor/gordo-components/branch/master/graph/badge.svg" alt="Codecov"/>

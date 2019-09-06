@@ -1,9 +1,8 @@
-export DOCKER_REGISTRY := auroradevacr.azurecr.io
 
-MODEL_BUILDER_IMG_NAME := gordo-components/gordo-model-builder
-MODEL_SERVER_IMG_NAME  := gordo-components/gordo-model-server
-WATCHMAN_IMG_NAME := gordo-components/gordo-watchman
-CLIENT_IMG_NAME := gordo-components/gordo-client
+MODEL_BUILDER_IMG_NAME := gordo-model-builder
+MODEL_SERVER_IMG_NAME  := gordo-model-server
+WATCHMAN_IMG_NAME := gordo-watchman
+CLIENT_IMG_NAME := gordo-client
 
 # Create the image capable to building/training a model
 model-builder:
@@ -23,22 +22,22 @@ client:
 push-server: model-server
 	export DOCKER_NAME=$(MODEL_SERVER_IMG_NAME);\
 	export DOCKER_IMAGE=$(MODEL_SERVER_IMG_NAME);\
-	./docker_push.sh
+	bash ./docker_push.sh
 
 push-builder: model-builder
 	export DOCKER_NAME=$(MODEL_BUILDER_IMG_NAME);\
 	export DOCKER_IMAGE=$(MODEL_BUILDER_IMG_NAME);\
-	./docker_push.sh
+	bash ./docker_push.sh
 
 push-watchman: watchman
 	export DOCKER_NAME=$(WATCHMAN_IMG_NAME);\
 	export DOCKER_IMAGE=$(WATCHMAN_IMG_NAME);\
-	./docker_push.sh
+	bash ./docker_push.sh
 
 push-client: client
 	export DOCKER_NAME=$(CLIENT_IMG_NAME);\
 	export DOCKER_IMAGE=$(CLIENT_IMG_NAME);\
-	./docker_push.sh
+	bash ./docker_push.sh
 
 # Publish images to the currently logged in docker repo
 push-dev-images: push-builder push-server push-watchman push-client
