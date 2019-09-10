@@ -44,6 +44,8 @@ def metadata_check(metadata, check_history):
     assert "model" in metadata
     assert "cross-validation" in metadata["model"]
     assert "scores" in metadata["model"]["cross-validation"]
+    assert "model-offset" in metadata["model"]
+    assert isinstance(metadata["model"]["model-offset"], int)
 
     # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
     # doesn't implement a .score()

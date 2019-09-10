@@ -115,6 +115,7 @@ def build_model(
     metadata["dataset"] = dataset.get_metadata()
     utc_dt = datetime.datetime.now(datetime.timezone.utc)
     metadata["model"] = {
+        "model-offset": _determine_offset(model, X),
         "model-creation-date": str(utc_dt.astimezone()),
         "model-builder-version": __version__,
         "model-config": model_config,
