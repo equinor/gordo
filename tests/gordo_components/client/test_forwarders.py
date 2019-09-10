@@ -23,6 +23,7 @@ async def test_influx_forwarder(influxdb):
         tag_list=tu.SENSORTAG_LIST,
         target_tag_list=tu.SENSORTAG_LIST,
         resolution="10T",
+        model_offset=0,
     )
 
     # Feature outs which match length of tags
