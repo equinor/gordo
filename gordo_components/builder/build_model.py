@@ -8,6 +8,9 @@ import time
 from pathlib import Path
 from typing import Union, Optional, Dict, Any
 
+import pandas as pd
+import numpy as np
+
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from sklearn.metrics import explained_variance_score, make_scorer
@@ -123,6 +126,28 @@ def build_model(
     metadata["model"].update(_get_metadata(model))
 
     return model, metadata
+
+
+def _determine_offset(model: BaseEstimator, X: Union[np.ndarray, pd.DataFrame]) -> int:
+    """
+    Determine the model's offset. How much does the output of the model differ
+    from its input?
+
+    Parameters
+    ----------
+    model: sklearn.base.BaseEstimator
+        Trained model with either ``predict`` or ``transform`` method, preference
+        given to ``predict``.
+    X: Union[np.ndarray, pd.DataFrame]
+        Data to pass to the model's ``predict`` or ``transform`` method.
+
+    Returns
+    -------
+    int
+        The difference between X and the model's output lengths.
+    """
+    out = model.predict(X) if hasattr(model, "predict") else model.transform(X)
+    return len(X) - len(out)
 
 
 def _save_model_for_workflow(

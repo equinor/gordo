@@ -11,14 +11,20 @@ from tempfile import TemporaryDirectory
 import pytest
 import numpy as np
 
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.linear_model import LinearRegression
+
 import gordo_components
 from gordo_components.builder.build_model import (
     _save_model_for_workflow,
     provide_saved_model,
     _get_metadata,
+    _determine_offset,
 )
 from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
+
+from gordo_components.model import models
 
 
 def get_random_data():
@@ -48,6 +54,25 @@ def metadata_check(metadata, check_history):
         assert all(
             name in metadata["model"]["history"] for name in ("params", "loss", "acc")
         )
+
+
+@pytest.mark.parametrize(
+    "model,expected_offset",
+    (
+        (models.KerasLSTMAutoEncoder(kind="lstm_hourglass", lookback_window=10), 9),
+        (models.KerasLSTMForecast(kind="lstm_symmetric", lookback_window=13), 13),
+        (models.KerasAutoEncoder(kind="feedforward_hourglass"), 0),
+        (MultiOutputRegressor(LinearRegression()), 0),
+    ),
+)
+def test_determine_offset(model: BaseEstimator, expected_offset: int):
+    """
+    Determine the correct output difference from the model
+    """
+    X, y = np.random.random((100, 10)), np.random.random((100, 10))
+    model.fit(X, y)
+    offset = _determine_offset(model, X)
+    assert offset == expected_offset
 
 
 def test_output_dir(tmp_dir):
