@@ -12,28 +12,15 @@ cache: pip
 os:
   - linux
 
+env:
+  global:
+    - DOCKER_REGISTRY=auroradevacr.azurecr.io
+    - DOCKER_REPO=gordo-components
 
-jobs:
-  include:
-  - stage: test
-    name: "setup.py testall"
-    install:
-      - pip install -r requirements.txt
-    script:
-      - make testall
-    after_success:
-      # https://docs.codecov.io/docs/about-the-codecov-bash-uploader
-      - bash <(curl -s https://codecov.io/bash)
-  - name: "make images"
-    install: skip
-    script:
-      - make images
-  - name: "make docs"
-    install:
-      - pip install -r requirements.txt
-      - pip install -r dev_requirements.txt
-    script:
-      - make docs
+install: skip
+
+script:
+  - make images
 
 deploy:
   - provider: script
@@ -44,12 +31,3 @@ deploy:
     script: make images push-prod-images
     on:
       tags: true
-  - provider: pypi
-    user: statoil-travis
-    distributions: bdist_wheel sdist
-    skip_existing: true
-    password:
-      secure: "uaYTCKqRiL0F8Tum1qMRymtxA/KIsKGNGPDUo98V56VPpmmG43OHkV3N3CQsQaMCXpfCck1LWnPHhPHTghZgZfGUDDjZkUn81whUVUGnspLtgQ8bN5HnCBf28wuONyL1Nbdqmqv1UIxlaA/QCrfgZssg6rrGbzQOdoD5NuEOR7UqhYvpDmoMQl2/Gwl1bgaVwsK96yAw8OlNxFz+7B4YspId7AWBx5S9uqI7KJG8hOnxKSp+IyjrO27ZiKyvxp/gippTSAINu2roVDq6hjtfDOBzGrYecCFH4Tyibo+kapWjz5UdgsSkWPnXQbdDupTlxbfUhAjFKEv56Mkz40DnhURjt1o4ZMPpCVn/rx3czRwRBEiHMIi2lpR6XzXWNZDdtpKDcDulMDm3qOrU87KmyNOwa+wvjY4txX2LlwIGEVeE7qGL2oq8dkETK5oxkgv7p9Hatef8R661sH/sw7vzXVZpb5f4wp9xJcSu+Zd+p+cf9qIXBOSEruD9WfiLAPhuCafc9Ib60CKCRUVF4tMPItXTQG4qjyWzRHD3zL6ouIbqz834qxp0Jkm3BjpzjRNY91e4DSHLBvD19hEIFF4RXPIomrEgvbb4TuDLYH/eRc72sjHbeRjIqHjikqnrv6iQJg2EcmKDgGvDMOUezM1k5VQ7jX0ZtV9zAoCwjS/7uvY="
-    on:
-      tags: true
-      branch: master

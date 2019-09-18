@@ -1,0 +1,310 @@
+
+version: 2.1
+
+executors:
+  python-executor:
+    working_directory: ~/code
+    machine:
+      docker_layer_caching: true
+      image: "circleci/classic:201808-01"
+
+commands:
+  save-eggs-cache:
+    description: "Save the .eggs directory after tests"
+    steps:
+      - save_cache:
+          key: v1-test-eggs-cache-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
+          paths:
+            - ~/code/.eggs
+  restore-eggs-cache:
+    description: "Load .eggs cache"
+    steps:
+      - restore_cache:
+          keys:
+            - v1-test-eggs-cache-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
+  save-venv-cache:
+    description: "Save the virtualenv"
+    steps:
+      - save_cache:
+          key: v1-cache-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
+          paths:
+            - ~/code/venv
+  restore-venv-cache:
+    description: "Restore the virtualenv"
+    steps:
+      - restore_cache:
+          keys:
+            - v1-cache-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
+  run-test:
+    description: "Run a group of tests, ie 'formatting'."
+    parameters:
+      for:
+        type: string
+        default: all
+    steps:
+      - checkout
+      - restore-venv-cache
+      - restore-eggs-cache
+      - run:
+          name: Test
+          command: |
+            source ~/code/venv/bin/activate
+            python setup.py test<< parameters.for >>
+      - run:
+          name: Upload Test Coverage
+          command: bash <(curl -s https://codecov.io/bash)
+      - save-eggs-cache
+
+jobs:
+
+  # Make the docker images this project uses.
+  make-images:
+    machine:
+      docker_layer_caching: true
+    steps:
+      - checkout
+      - run:
+          name: Make Images
+          command: make images
+
+  # Push images, only when on master and/or tagged commits.
+  push-images:
+    machine:
+      docker_layer_caching: true
+    environment:
+      GORDO_PROD_MODE: true
+      DOCKER_REGISTRY: docker.io
+      DOCKER_REPO: equinor
+    steps:
+      - checkout
+      - run:
+          name: Push Images
+          command: make images push-prod-images
+
+  # Publish to PyPi, only on tagged commits.
+  publish-to-pypi:
+    executor: python-executor
+    steps:
+      - checkout
+      - restore-venv-cache
+      - run:
+          name: Build
+          command: |
+            source ~/code/venv/bin/activate
+            python setup.py sdist
+            python setup.py bdist_wheel
+      - run:
+          # Requires TWINE_PASSWORD to be set.
+          name: Publish
+          command: |
+            source ~/code/venv/bin/activate
+            python -m pip install twine
+            twine upload -u statoil-travis --skip-existing dist/*
+
+  # Make the Sphinx documentation for the project; without errors or warnings.
+  make-docs:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - python-docs-cache-{{ checksum "requirements.txt" }}-{{ checksum "dev_requirements.txt"}}
+      - run:
+          name: Install Dependencies
+          command: |
+            python -m venv ~/venv
+            source ~/venv/bin/activate
+            pip install -r requirements.txt
+            pip install -r dev_requirements.txt
+      - save_cache:
+          key: python-docs-cache-{{ checksum "requirements.txt" }}-{{ checksum "dev_requirements.txt"}}
+          paths:
+            - ~/venv
+      - run:
+          name: Make Documentation
+          command: |
+            source ~/venv/bin/activate
+            make docs
+
+  # Install step, before any tests are run to create the cache
+  install:
+    executor: python-executor
+    steps:
+      - checkout
+      - restore-venv-cache
+      - run:
+          name: Set Python Version
+          command: |
+            pyenv versions
+            pyenv global 3.6.5
+            pyenv versions
+      - run:
+          name: Virtual Environment
+          command: |
+            python -m venv ~/code/venv
+            echo "source ~/code/venv/bin/activate" >> $BASH_ENV
+      - run:
+          name: Install Requirements
+          command: |
+            echo $(which python)
+            pip install -r requirements.txt
+      - run:
+          name: Test Requirements
+          command: |
+            echo $(which python)
+            pip install -r test_requirements.txt
+      - save-venv-cache
+
+  # Specific collections of python tests
+  test-builder:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: builder
+
+  test-cli:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: cli
+
+  test-client:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: client
+
+  test-data-provider:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: dataprovider
+
+  test-dataset:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: dataset
+
+  test-model:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: model
+
+  test-serializer:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: serializer
+
+  test-server:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: server
+
+  test-util:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: util
+
+  test-watchman:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: watchman
+
+  test-formatting:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: formatting
+
+  test-allelse:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: allelse
+
+workflows:
+  version: 2.1
+
+  # Run all tests, ensure images and docs can be built
+  test:
+    jobs:
+      - make-docs
+      - install
+      - test-builder:
+          requires:
+            - install
+      - test-cli:
+          requires:
+            - install
+      - test-client:
+          requires:
+            - install
+      - test-data-provider:
+          requires:
+            - install
+      - test-dataset:
+          requires:
+            - install
+      - test-model:
+          requires:
+            - install
+      - test-serializer:
+          requires:
+            - install
+      - test-server:
+          requires:
+            - install
+      - test-util:
+          requires:
+            - install
+      - test-watchman:
+          requires:
+            - install
+      - test-formatting:
+          requires:
+            - install
+      - test-allelse:
+          requires:
+            - install
+      - make-images:
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
+      - push-images:
+          requires:
+            - make-images
+            - test-builder
+            - test-cli
+            - test-client
+            - test-data-provider
+            - test-dataset
+            - test-model
+            - test-serializer
+            - test-server
+            - test-util
+            - test-watchman
+            - test-formatting
+            - test-allelse
+          filters:
+            branches:
+              only:
+                - master
+            tags:
+              only: /.*/
+      - publish-to-pypi:
+          requires:
+            - push-images
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
