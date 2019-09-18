@@ -51,9 +51,26 @@ commands:
             source ~/code/venv/bin/activate
             python setup.py test<< parameters.for >>
       - run:
-          name: Upload Test Coverage
-          command: bash <(curl -s https://codecov.io/bash)
+          name: Move coverage report to workspace
+          command: |
+            mkdir /tmp/coverage-reports
+            mv ./coverage.xml /tmp/coverage-reports/<< parameters.for >>-coverage.xml
+      - persist_to_workspace:
+          root: /tmp/coverage-reports
+          paths:
+            - ./*-coverage.xml
       - save-eggs-cache
+  upload-coverage-reports:
+    description: "Upload the coverage reports"
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/coverage-reports
+      - run:
+          name: "Upload coverage reports"
+          command: |
+            cp /tmp/coverage-reports/*.xml .
+            bash <(curl -s https://codecov.io/bash)
 
 jobs:
 
@@ -229,6 +246,11 @@ jobs:
       - run-test:
           for: allelse
 
+  upload-coverage-reports:
+    executor: python-executor
+    steps:
+      - upload-coverage-reports
+
 workflows:
   version: 2.1
 
@@ -279,9 +301,8 @@ workflows:
               only: /.*/
             tags:
               only: /.*/
-      - push-images:
+      - upload-coverage-reports:
           requires:
-            - make-images
             - test-builder
             - test-cli
             - test-client
@@ -294,6 +315,15 @@ workflows:
             - test-watchman
             - test-formatting
             - test-allelse
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
+      - push-images:
+          requires:
+            - make-images
+            - upload-coverage-reports
           filters:
             branches:
               only:
