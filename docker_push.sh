@@ -58,14 +58,14 @@ else
     export suffix=""
 
     # if we're in prod mode, we'll push the latest image.
-    docker tag $DOCKER_IMAGE $DOCKER_REPO/$DOCKER_NAME:latest
-    docker push $DOCKER_REPO/$DOCKER_NAME:latest
+    docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:latest
+    docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:latest
 fi
 
-docker tag $DOCKER_IMAGE $DOCKER_REPO/$DOCKER_NAME:$git_sha$suffix
-docker push $DOCKER_REPO/$DOCKER_NAME:$git_sha$suffix
+docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$git_sha$suffix
+docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$git_sha$suffix
 
 git tag --points-at HEAD | while read -r tag ; do
-    docker tag $DOCKER_IMAGE $DOCKER_REPO/$DOCKER_NAME:$tag$suffix
-    docker push $DOCKER_REPO/$DOCKER_NAME:$tag$suffix
+    docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$tag$suffix
+    docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$tag$suffix
 done
