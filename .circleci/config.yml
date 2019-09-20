@@ -161,6 +161,7 @@ jobs:
           command: |
             python -m venv ~/code/venv
             echo "source ~/code/venv/bin/activate" >> $BASH_ENV
+      - run: pip install --upgrade pip
       - run:
           name: Install Requirements
           command: |
