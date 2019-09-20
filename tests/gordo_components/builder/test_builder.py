@@ -573,9 +573,10 @@ def test_provide_saved_model_caching(
 
 
 @pytest.mark.parametrize(
-    "should_be_equal,cv_mode", [(True, "full_build"), (False, "cross_val_only")]
+    "should_be_equal,evaluation_config",
+    [(True, {"cv_mode": "full_build"}), (False, {"cv_mode": "cross_val_only"})],
 )
-def test_model_builder_cv_scores_only(should_be_equal: bool, cv_mode: str):
+def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: dict):
     """
     Test checks that the model is None if cross_val_only is used as the cv_mode.
     If the default mode ('full_build') is used, the model should not be None.
@@ -584,8 +585,8 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, cv_mode: str):
     ----------
     should_be_equal: bool
         Refers to whether or not the cv_mode should be equal to full (default) or cross_val only.
-    cv_mode: str
-        The mode which is tested, is either full or cross_val_only
+    evaluation_config: dict
+        The mode which is tested from within the evaluation_config, is either full or cross_val_only
 
     """
 
@@ -597,7 +598,7 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, cv_mode: str):
         model_config=model_config,
         data_config=data_config,
         metadata={},
-        cv_mode=cv_mode,
+        evaluation_config=evaluation_config,
     )
     if should_be_equal:
         assert model is not None

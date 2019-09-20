@@ -125,10 +125,10 @@ DEFAULT_MODEL_CONFIG = (
     "--model-parameter some_key,some_value",
 )
 @click.option(
-    "--cv-mode",
-    envvar="CV_MODE",
-    default="full_build",
-    type=click.Choice(["full_build", "build_only", "cross_val_only"]),
+    "--evaluation-config",
+    envvar="EVALUATION_CONFIG",
+    default='{"cv_mode": "full_build"}',
+    type=yaml.safe_load,
 )
 def build(
     name,
@@ -140,7 +140,7 @@ def build(
     model_register_dir,
     print_cv_scores,
     model_parameter,
-    cv_mode,
+    evaluation_config,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -179,11 +179,17 @@ def build(
     model_parameter: List[Tuple]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
-    cv_mode: str
-        String which enables three different modes:
-        * cross_val_only: Only perform cross validation
-        * build_only: Skip cross validation and only build the model
-        * full_build: Cross validation and full build of the model, default value
+
+    evaluation_config: dict
+        Dict of parameters which are exposed to build_model.
+            - cv_mode: str
+                String which enables three different modes, represented as a key value in evaluation_config:
+                * cross_val_only: Only perform cross validation
+                * build_only: Skip cross validation and only build the model
+                * full_build: Cross validation and full build of the model, default value
+                Example::
+
+                    {"cv_mode": "cross_val_only"}
     """
 
     data_config["tag_list"] = data_config.pop("tags")
@@ -221,12 +227,12 @@ def build(
     model_config = pipeline_into_definition(pipeline_from_definition(model_config))
     logger.debug(f"Fully expanded model config: {model_config}")
 
-    if cv_mode == "cross_val_only":
+    if evaluation_config["cv_mode"] == "cross_val_only":
 
         cache_model_location = None
         if model_register_dir is not None:
             cache_key = calculate_model_key(
-                name, model_config, data_config, metadata=metadata
+                name, model_config, data_config, evaluation_config, metadata=metadata
             )
             cache_model_location = check_cache(model_register_dir, cache_key)
 
@@ -234,7 +240,7 @@ def build(
             metadata = load_metadata(cache_model_location)
         else:
             _, metadata = build_model(
-                name, model_config, data_config, metadata, cv_mode
+                name, model_config, data_config, metadata, evaluation_config
             )
 
     else:
@@ -245,7 +251,7 @@ def build(
             metadata,
             output_dir,
             model_register_dir,
-            cv_mode=cv_mode,
+            evaluation_config=evaluation_config,
         )
         metadata = load_metadata(model_location)
 
@@ -270,7 +276,7 @@ def build(
                 output_dir,
                 model_register_dir,
                 replace_cache=True,
-                cv_mode=cv_mode,
+                evaluation_config=evaluation_config,
             )
             saved_metadata = load_metadata(model_location)
             all_scores = get_all_score_strings(saved_metadata)
