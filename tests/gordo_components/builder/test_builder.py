@@ -50,7 +50,22 @@ def metadata_check(metadata, check_history):
     # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
     # doesn't implement a .score()
     if metadata["model"]["cross-validation"]["scores"] != dict():
-        assert "explained-variance" in metadata["model"]["cross-validation"]["scores"]
+        tag_list = [
+            tag.name.replace(" ", "-") for tag in metadata["dataset"]["tag_list"]
+        ]
+        scores_list = [
+            "r2-score",
+            "explained-variance-score",
+            "mean-squared-error",
+            "mean-absolute-error",
+        ]
+        all_scores_list = [
+            f"{score}-{tag}" for score in scores_list for tag in tag_list
+        ] + scores_list
+        scores_metadata = metadata["model"]["cross-validation"]["scores"]
+
+        assert all(score in scores_metadata for score in all_scores_list)
+
     if check_history:
         assert "history" in metadata["model"]
         assert all(
@@ -260,6 +275,122 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
         assert all(name in metadata["history"] for name in ("params", "loss", "acc"))
     else:
         assert dict() == metadata
+
+
+@pytest.mark.parametrize(
+    "raw_model_config",
+    (
+        f"""
+    gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+        scaler: sklearn.preprocessing.data.MinMaxScaler
+        base_estimator:
+            sklearn.compose.TransformedTargetRegressor:
+                transformer: sklearn.preprocessing.data.MinMaxScaler
+                regressor:
+                    sklearn.pipeline.Pipeline:
+                        steps:
+                        - sklearn.preprocessing.data.MinMaxScaler
+                        - gordo_components.model.models.KerasAutoEncoder:
+                            kind: feedforward_hourglass
+                            batch_size: 3
+                            compression_factor: 0.5
+                            encoding_layers: 1
+                            func: tanh
+                            out_func: linear
+                            epochs: 1
+        """,
+        f"""
+   sklearn.compose.TransformedTargetRegressor:
+       transformer: sklearn.preprocessing.data.MinMaxScaler
+       regressor:
+          sklearn.pipeline.Pipeline:
+              steps:
+              - sklearn.preprocessing.data.MinMaxScaler
+              - gordo_components.model.models.KerasAutoEncoder:
+                  kind: feedforward_hourglass
+                  batch_size: 2
+                  compression_factor: 0.5
+                  encoding_layers: 1
+                  func: tanh
+                  out_func: linear
+                  epochs: 1
+                 """,
+        f""" 
+  sklearn.pipeline.Pipeline:
+      steps:
+      - sklearn.preprocessing.data.MinMaxScaler
+      - gordo_components.model.models.KerasAutoEncoder:
+          kind: feedforward_hourglass
+          batch_size: 2
+          compression_factor: 0.5
+          encoding_layers: 1
+          func: tanh
+          out_func: linear
+          epochs: 1
+         """,
+    ),
+)
+def test_scores_metadata(raw_model_config):
+    data_config = get_random_data()
+    model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
+    model, metadata = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+    )
+    metadata_check(metadata, False)
+
+
+def test_output_scores_metadata():
+    data_config = get_random_data()
+    raw_model_config = f"""
+            gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+                scaler: sklearn.preprocessing.data.MinMaxScaler
+                base_estimator:
+                    sklearn.compose.TransformedTargetRegressor:
+                        transformer: sklearn.preprocessing.data.MinMaxScaler
+                        regressor:
+                            sklearn.pipeline.Pipeline:
+                                steps:
+                                - sklearn.preprocessing.data.MinMaxScaler
+                                - gordo_components.model.models.KerasAutoEncoder:
+                                    kind: feedforward_hourglass
+                                    batch_size: 3
+                                    compression_factor: 0.5
+                                    encoding_layers: 1
+                                    func: tanh
+                                    out_func: linear
+                                    epochs: 1
+            """
+
+    model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
+    model, metadata = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+    )
+    scores_metadata = metadata["model"]["cross-validation"]["scores"]
+    assert (
+        scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
+        + scores_metadata["explained-variance-score-Tag-2"]["fold-mean"]
+    ) / 2 == pytest.approx(scores_metadata["explained-variance-score"]["fold-mean"])
+
+    assert (
+        scores_metadata["r2-score-Tag-1"]["fold-mean"]
+        + scores_metadata["r2-score-Tag-2"]["fold-mean"]
+    ) / 2 == pytest.approx(scores_metadata["r2-score"]["fold-mean"])
+
+    assert (
+        scores_metadata["mean-squared-error-Tag-1"]["fold-mean"]
+        + scores_metadata["mean-squared-error-Tag-2"]["fold-mean"]
+    ) / 2 == pytest.approx(scores_metadata["mean-squared-error"]["fold-mean"])
+
+    assert (
+        scores_metadata["mean-absolute-error-Tag-1"]["fold-mean"]
+        + scores_metadata["mean-absolute-error-Tag-2"]["fold-mean"]
+    ) / 2 == pytest.approx(scores_metadata["mean-absolute-error"]["fold-mean"])
 
 
 def test_provide_saved_model_simple_happy_path(tmp_dir):

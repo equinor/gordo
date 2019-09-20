@@ -12,8 +12,14 @@ import pandas as pd
 import numpy as np
 
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import cross_val_score, TimeSeriesSplit
-from sklearn.metrics import explained_variance_score, make_scorer
+from sklearn.metrics import (
+    explained_variance_score,
+    make_scorer,
+    r2_score,
+    mean_squared_error,
+    mean_absolute_error,
+)
+from sklearn.model_selection import cross_validate, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 
 from gordo_components.util import disk_registry
@@ -22,7 +28,6 @@ from gordo_components.dataset.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.model.base import GordoBase
 from gordo_components.model.utils import metric_wrapper
-
 
 logger = logging.getLogger(__name__)
 
@@ -85,34 +90,45 @@ def build_model(
     cv_duration_sec = None
 
     if cv_mode.lower() in ("cross_val_only", "full_build"):
-
+        metrics_list = [
+            explained_variance_score,
+            r2_score,
+            mean_squared_error,
+            mean_absolute_error,
+        ]
         # Cross validate
         logger.debug("Starting cross validation")
         start = time.time()
-
-        scores: Dict[str, Any]
-
+        scores: Dict[str, Any] = dict()
         if hasattr(model, "predict"):
 
-            cv_scores = cross_val_score(
+            metrics_dict = get_metrics_dict(metrics_list, y)
+
+            cv = cross_validate(
                 model,
                 X,
                 y,
-                scoring=make_scorer(metric_wrapper(explained_variance_score)),
+                scoring=metrics_dict,
+                return_estimator=True,
                 cv=TimeSeriesSplit(n_splits=3),
             )
-
-            scores = {
-                "explained-variance": {
-                    "mean": cv_scores.mean(),
-                    "std": cv_scores.std(),
-                    "max": cv_scores.max(),
-                    "min": cv_scores.min(),
-                    "raw-scores": cv_scores.tolist(),
+            for metric, test_metric in map(lambda k: (k, f"test_{k}"), metrics_dict):
+                val = {
+                    "fold-mean": cv[test_metric].mean(),
+                    "fold-std": cv[test_metric].std(),
+                    "fold-max": cv[test_metric].max(),
+                    "fold-min": cv[test_metric].min(),
                 }
-            }
+                val.update(
+                    {
+                        f"fold-{i + 1}": raw_value
+                        for i, raw_value in enumerate(cv[test_metric].tolist())
+                    }
+                )
+                scores.update({metric: val})
+
         else:
-            logger.debug("Unable to score model, has no attribute 'score'.")
+            logger.debug("Unable to score model, has no attribute 'predict'.")
             scores = dict()
 
         cv_duration_sec = time.time() - start
@@ -150,8 +166,61 @@ def build_model(
     }
 
     metadata["model"].update(_get_metadata(model))
-
     return model, metadata
+
+
+def get_metrics_dict(metrics_list: list, y: pd.DataFrame) -> dict:
+
+    """
+    Given a list of metrics that accept a true_y and pred_y as inputs this returns
+    a dictionary with keys in the form '{score}-{tag_name}' for each given target tag
+    and '{score}' for the average score across all target tags and folds,
+    and values being the callable make_scorer(metric_wrapper(score)).
+    Note: score in {score}-{tag_name} is a sklearn's score function name with '_' replaced by '-' and tag_name
+    corresponds to given target tag name with ' ' replaced by '-'.
+
+    Parameters
+    ----------
+    metrics: list
+        List of sklearn score functions
+    y: pd.DataFrame
+        Target data
+
+
+    Returns
+    -------
+        dict
+    """
+
+    def _score_factory(metric=r2_score, index=0):
+        def _score_per_tag(y_true, y_pred):
+            # This function extracts the score for each given target_tag to
+            # use as scoring argument in sklearn cross_validate, as the scoring
+            # must return a single value.
+            if hasattr(y_true, "values"):
+                y_true = y_true.values
+            if hasattr(y_pred, "values"):
+                y_pred = y_pred.values
+
+            return metric(y_true[:, index], y_pred[:, index])
+
+        return _score_per_tag
+
+    metrics_dict = {}
+    for metric in metrics_list:
+        for index, col in enumerate(y.columns):
+            metric_str = metric.__name__.replace("_", "-")
+            metrics_dict.update(
+                {
+                    metric_str
+                    + f'-{col.replace(" ", "-")}': make_scorer(
+                        metric_wrapper(_score_factory(metric=metric, index=index))
+                    )
+                }
+            )
+
+        metrics_dict.update({metric_str: make_scorer(metric_wrapper(metric))})
+    return metrics_dict
 
 
 def _determine_offset(model: BaseEstimator, X: Union[np.ndarray, pd.DataFrame]) -> int:
