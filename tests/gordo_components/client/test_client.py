@@ -292,7 +292,7 @@ def test_client_cli_predict(
     if forwarder_args and data_provider:
         vals = influx_client.query(query)
         assert len(vals) == 1
-        assert len(vals["resampled"]) == 28
+        assert len(vals["resampled"]) == 48
         influx_client.drop_measurement("resampled")
 
     # Did it save dataframes to output dir if specified?
@@ -380,6 +380,7 @@ def _endpoint_metadata(name: str, healthy: bool) -> EndpointMetadata:
         tag_list=None,
         target_tag_list=None,
         resolution=None,
+        model_offset=None,
     )
 
 

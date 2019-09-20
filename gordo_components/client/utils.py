@@ -8,7 +8,8 @@ from influxdb import DataFrameClient, InfluxDBClient
 
 # Representation of data gathered from Watchman for a given endpoint
 EndpointMetadata = namedtuple(
-    "Endpoint", "target_name healthy endpoint tag_list target_tag_list resolution"
+    "Endpoint",
+    "target_name healthy endpoint tag_list target_tag_list resolution model_offset",
 )
 
 # Prediction result representation, name=str, predictions=dataframe, error_messages=List[str]

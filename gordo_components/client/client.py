@@ -203,6 +203,9 @@ class Client:
                 resolution=data["endpoint-metadata"]["metadata"]["dataset"][
                     "resolution"
                 ],
+                model_offset=data["endpoint-metadata"]["metadata"]["model"].get(
+                    "model-offset", 0
+                ),
             )
             if data["healthy"]
             else EndpointMetadata(
@@ -212,6 +215,7 @@ class Client:
                 tag_list=None,
                 target_tag_list=None,
                 resolution=None,
+                model_offset=None,
             )
             for data in resp.json()["endpoints"]
         ]
@@ -618,6 +622,15 @@ class Client:
             Dataframe of required tags and index reflecting the datetime point
         """
 
+        # We want to adjust for any model offset. If the model outputs less than it got in, it requires
+        # extra data than what we're being asked to get predictions for.
+        # just to give us some buffer zone.
+        start = self._adjust_for_offset(
+            dt=start,
+            resolution=endpoint.resolution,
+            n_intervals=endpoint.model_offset + 5,
+        )
+
         dataset = TimeSeriesDataset(  # type: ignore
             data_provider=self.data_provider,
             from_ts=start,
@@ -630,6 +643,37 @@ class Client:
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(dataset.get_data)
             return await asyncio.wrap_future(future)
+
+    @staticmethod
+    def _adjust_for_offset(dt: datetime, resolution: str, n_intervals: int = 100):
+        """
+        Adjust the given date by multiplying ``n_intervals`` by ``resolution``. Such that
+        a date of 12:00:00 with ``n_intervals=2`` and ``resolution='10m'`` (10 minutes)
+        would result in 11:40
+
+        Parameters
+        ----------
+        dt: datetime
+            Initial datetime to adjust.
+        resolution: str
+            A string code capable of being parsed by :meth::`pandas.Timedelta`.
+        n_intervals: int
+            Number of resolution steps to take earlier than the given date.
+
+        Returns
+        -------
+        datetime
+            The new offset datetime object.
+
+        Examples
+        --------
+        >>> import dateutil
+        >>> date = dateutil.parser.isoparse("2019-01-01T12:00:00+00:00")
+        >>> offset_date = Client._adjust_for_offset(dt=date, resolution='15m', n_intervals=5)
+        >>> str(offset_date)
+        '2019-01-01 10:45:00+00:00'
+        """
+        return dt - (pd.Timedelta(resolution) * n_intervals)
 
 
 def make_date_ranges(

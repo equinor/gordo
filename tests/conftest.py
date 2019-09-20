@@ -86,6 +86,7 @@ def trained_model_directory(sensors: List[SensorTag]):
                     "target_tag_list": sensors,
                 },
                 "name": "machine-1",
+                "model": {"model-offset": 0},
                 "user-defined": {"model-name": "test-model"},
             },
         )
