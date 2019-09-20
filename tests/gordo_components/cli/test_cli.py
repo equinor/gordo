@@ -224,7 +224,8 @@ class CliTestCase(unittest.TestCase):
 
 
 @pytest.mark.parametrize(
-    "should_save_model, cv_mode", [(True, "full_build"), (False, "cross_val_only")]
+    "should_save_model, cv_mode",
+    [(True, {"cv_mode": "full_build"}), (False, {"cv_mode": "cross_val_only"})],
 )
 def test_build_cv_mode(
     should_save_model: bool, cv_mode: str, tmp_dir: tempfile.TemporaryDirectory
@@ -245,7 +246,7 @@ def test_build_cv_mode(
         MODEL_CONFIG=json.dumps(MODEL_CONFIG_WITH_PREDICT),
     ):
         result = runner.invoke(
-            cli.gordo, ["build", "--print-cv-scores", f"--cv-mode={cv_mode}"]
+            cli.gordo, ["build", "--print-cv-scores", f"--evaluation-config={cv_mode}"]
         )
         # Checks that the file is empty or not depending on the mode.
         if should_save_model:
@@ -263,8 +264,8 @@ def test_build_cv_mode(
 @pytest.mark.parametrize(
     "should_be_equal,cv_mode_1, cv_mode_2",
     [
-        (True, "full_build", "cross_val_only"),
-        (False, "cross_val_only", "cross_val_only"),
+        (True, {"cv_mode": "full_build"}, {"cv_mode": "cross_val_only"}),
+        (False, {"cv_mode": "cross_val_only"}, {"cv_mode": "cross_val_only"}),
     ],
 )
 def test_build_cv_mode_cross_val_cache(
@@ -292,8 +293,8 @@ def test_build_cv_mode_cross_val_cache(
         MODEL_REGISTER_DIR=model_register_dir,
     ):
 
-        runner.invoke(cli.gordo, ["build", f"--cv-mode={cv_mode_1}"])
-        runner.invoke(cli.gordo, ["build", f"--cv-mode={cv_mode_2}"])
+        runner.invoke(cli.gordo, ["build", f"--evaluation-config={cv_mode_1}"])
+        runner.invoke(cli.gordo, ["build", f"--evaluation-config={cv_mode_2}"])
 
         if should_be_equal:
             assert os.path.exists(model_register_dir)
@@ -320,7 +321,9 @@ def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
     ):
 
         metadata_file = f"{os.path.join(tmp_dir.name, 'metadata.json')}"
-        runner.invoke(cli.gordo, ["build", "--cv-mode=build_only"])
+        runner.invoke(
+            cli.gordo, ["build", '--evaluation-config={"cv_mode": "build_only"}']
+        )
 
         # A model has been saved
         assert len(os.listdir(tmp_dir.name)) != 0

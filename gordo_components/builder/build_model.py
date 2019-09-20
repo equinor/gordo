@@ -38,7 +38,7 @@ def build_model(
     model_config: dict,
     data_config: Union[GordoBaseDataset, dict],
     metadata: dict,
-    cv_mode: str = "full_build",
+    evaluation_config: dict = {"cv_mode": "full_build"},
 ) -> Tuple[Union[BaseEstimator, None], dict]:
     """
     Build a model and serialize to a directory for later serving.
@@ -58,11 +58,17 @@ def build_model(
         Mapping of the Dataset to initialize, following the same logic as model_config.
     metadata: dict
         Mapping of arbitrary metadata data.
-    cv_mode: str
-        String which enables three different modes:
-        * cross_val_only: Only perform cross validation
-        * build_only: Skip cross validation and only build the model
-        * full_build: Cross validation and full build of the model, default value
+    evaluation_config: dict
+        Dict of parameters which are exposed to build_model.
+            - cv_mode: str
+                String which enables three different modes, represented as a key value in evaluation_config:
+                * cross_val_only: Only perform cross validation
+                * build_only: Skip cross validation and only build the model
+                * full_build: Cross validation and full build of the model, default value
+                Example::
+
+                    {"cv_mode": "cross_val_only"}
+
 
     Returns
     -------
@@ -90,7 +96,7 @@ def build_model(
 
     cv_duration_sec = None
 
-    if cv_mode.lower() in ("cross_val_only", "full_build"):
+    if evaluation_config["cv_mode"].lower() in ("cross_val_only", "full_build"):
         metrics_list = [
             explained_variance_score,
             r2_score,
@@ -135,7 +141,7 @@ def build_model(
         cv_duration_sec = time.time() - start
 
         # If cross_val_only, return the cv_scores and empty model.
-        if cv_mode == "cross_val_only":
+        if evaluation_config["cv_mode"] == "cross_val_only":
             metadata["model"] = {
                 "cross-validation": {
                     "cv-duration-sec": cv_duration_sec,
@@ -320,7 +326,11 @@ def _get_metadata(model: BaseEstimator, metadata: dict = dict()) -> dict:
 
 
 def calculate_model_key(
-    name: str, model_config: dict, data_config: dict, metadata: Optional[dict] = None
+    name: str,
+    model_config: dict,
+    data_config: dict,
+    evaluation_config: dict,
+    metadata: Optional[dict] = None,
 ) -> str:
     """
     Calculates a hash-key from a model and data-config.
@@ -339,6 +349,9 @@ def calculate_model_key(
     data_config: dict
         Config for the data-configuration. See
         :func:`gordo_components.builder.build_model.build_model`.
+    evaluation_config: dict
+        Config for the evaluation-configuration. See
+        :func:`gordo_components.builder.build_moodel.build_model`.
     metadata: Optional[dict] = None
         Metadata for the models. See
         :func:`gordo_components.builder.build_model.build_model`.
@@ -351,7 +364,7 @@ def calculate_model_key(
     Examples
     -------
     >>> len(calculate_model_key(name="My-model", model_config={"model": "something"},
-    ... data_config={"tag_list": ["tag1", "tag 2"]} ))
+    ... data_config={"tag_list": ["tag1", "tag 2"]}, evaluation_config={"cv_mode": "full_build"} ))
     128
     """
     if metadata is None:
@@ -373,6 +386,7 @@ def calculate_model_key(
             "model_config": model_config,
             "data_config": data_config,
             "user-defined": metadata,
+            "evaluation_config": evaluation_config,
             "gordo-major-version": MAJOR_VERSION,
             "gordo-minor-version": MINOR_VERSION,
         },
@@ -436,7 +450,7 @@ def provide_saved_model(
     output_dir: Union[os.PathLike, str],
     model_register_dir: Union[os.PathLike, str] = None,
     replace_cache=False,
-    cv_mode: str = "full_build",
+    evaluation_config: dict = {"cv_mode": "full_build"},
 ) -> Union[os.PathLike, str]:
     """
     Ensures that the desired model exists on disk in `output_dir`, and returns the path
@@ -471,18 +485,18 @@ def provide_saved_model(
     replace_cache: bool
         Forces a rebuild of the model, and replaces the entry in the cache with the new
         model.
-    cv_mode: str
-        String which enables three different modes:
-        * cross_val_only: Only perform cross validation
-        * build_only: Skip cross validation and only build the model
-        * full_build: Cross validation and full build of the model, default value
+    evaluation_config: dict
+        Config for the evaluation. See
+        :func:`gordo_components.builder.build_model.build_model`.
 
     Returns
     -------
     Union[os.PathLike, str]:
         Path to the model
     """
-    cache_key = calculate_model_key(name, model_config, data_config, metadata=metadata)
+    cache_key = calculate_model_key(
+        name, model_config, data_config, evaluation_config, metadata=metadata
+    )
     if model_register_dir:
         logger.info(
             f"Model caching activated, attempting to read model-location with key "
@@ -525,7 +539,7 @@ def provide_saved_model(
         model_config=model_config,
         data_config=data_config,
         metadata=metadata,
-        cv_mode=cv_mode,
+        evaluation_config=evaluation_config,
     )
     model_location = _save_model_for_workflow(
         model=model, metadata=metadata, output_dir=output_dir
