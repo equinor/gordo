@@ -29,7 +29,7 @@
 #                  Defaults to false
 # DOCKER_REPO: The docker repository of concern
 
-if [[ -z "${DOCKER_REGISTRY}"]]; then
+if [[ -z "${DOCKER_REGISTRY}" ]]; then
     echo "DOCKER_REGISTRY must be set, exiting"
     exit 1
 fi
