@@ -20,7 +20,14 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     description="Train and build models for Argo / Kubernetes",
-    entry_points={"console_scripts": ["gordo-components=gordo_components.cli:gordo"]},
+    entry_points={
+        "console_scripts": [
+            "gordo-components=gordo_components.cli:gordo",
+            "workflow_generator = gordo_components.workflow_generator.workflow_generator:main",
+            "unique_tags = gordo_components.workflow_generator.workflow_generator:main_tag_list",
+            "watchman-to-sql=gordo_components.watchman_to_sql.watchman_to_sql:watchman_to_sql_cli",
+        ]
+    },
     install_requires=requirements("requirements.in"),  # Allow flexible deps for install
     license="AGPLv3",
     name="gordo-components",
@@ -33,5 +40,9 @@ setup(
         "write_to": "gordo_components/_version.py",
         "relative_to": __file__,
     },
+    package_data={
+        "": ["gordo_components/workflow_generator/resources/argo-workflow.yml.template"]
+    },
+    include_package_data=True,
     zip_safe=True,
 )

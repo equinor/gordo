@@ -1,6 +1,8 @@
 apscheduler~=3.6
 Click~=7.0
 cachetools~=3.1
+configargparse~=0.13.0
+dictdiffer
 h5py~=2.8
 influxdb~=5.2
 jinja2~=2.10

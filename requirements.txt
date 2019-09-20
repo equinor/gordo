@@ -21,8 +21,10 @@ certifi==2019.6.16        # via kubernetes, requests
 cffi==1.12.3              # via azure-datalake-store, cryptography, pycares
 chardet==3.0.4            # via aiohttp, requests
 click==7.0
+configargparse==0.13.0
 coverage==4.5.4
 cryptography==2.7         # via adal
+dictdiffer==0.8.0
 flask-restplus==0.13.0
 flask==1.1.1
 gast==0.2.2               # via tensorflow

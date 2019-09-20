@@ -247,6 +247,18 @@ jobs:
       - run-test:
           for: allelse
 
+  test-config-elements:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: config_elements
+
+  test-workflow-generator:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: workflow_generator
+
   upload-coverage-reports:
     executor: python-executor
     steps:
@@ -269,6 +281,9 @@ workflows:
       - test-client:
           requires:
             - install
+      - test-config-elements:
+          requires:
+            - install
       - test-data-provider:
           requires:
             - install
@@ -285,6 +300,9 @@ workflows:
           requires:
             - install
       - test-util:
+          requires:
+            - install
+      - test-workflow-generator:
           requires:
             - install
       - test-watchman:
@@ -307,12 +325,14 @@ workflows:
             - test-builder
             - test-cli
             - test-client
+            - test-config-elements
             - test-data-provider
             - test-dataset
             - test-model
             - test-serializer
             - test-server
             - test-util
+            - test-workflow-generator
             - test-watchman
             - test-formatting
             - test-allelse
