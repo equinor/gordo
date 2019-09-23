@@ -52,6 +52,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             into the y return from ``.get_data()``
         resolution: str
             The bucket size for grouping all incoming time data (e.g. "10T").
+            Available strings come from https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
         row_filter: str
             Filter on the rows. Only rows satisfying the filter will be in the dataset.
             See :func:`gordo_components.dataset.filter_rows.pandas_filter_rows` for

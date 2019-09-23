@@ -37,25 +37,21 @@ class GordoBaseDataset:
 
         Parameters
         ----------
-        series_iterable
+        series_iterable: Iterable[pd.Series]
             An iterator supplying series with time index
-
-        resampling_startpoint
+        resampling_startpoint: datetime.datetime
             The starting point for resampling. Most data frames will not have this
             in their datetime index, and it will be inserted with a NaN as the value.
             The resulting NaNs will be removed, so the only important requirement for this is
             that this resampling_startpoint datetime must be before or equal to the first
             (earliest) datetime in the data to be resampled.
-
-        resampling_endpoint
+        resampling_endpoint: datetime.datetime
             The end point for resampling. This datetime must be equal to or after the last datetime in the
             data to be resampled.
-
-
-        resolution
+        resolution: str
             The bucket size for grouping all incoming time data (e.g. "10T")
-
-        aggregation_methods
+            Available strings come from https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+        aggregation_methods: Union[str, List[str], Callable]
             Aggregation method(s) to use for the resampled buckets. If a single
             resample method is provided then the resulting dataframe will have names
             identical to the names of the series it got in. If several
