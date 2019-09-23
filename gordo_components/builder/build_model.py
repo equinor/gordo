@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
+from distutils.dir_util import copy_tree
 import hashlib
 import json
 import logging
@@ -438,7 +439,10 @@ def provide_saved_model(
     cv_mode: str = "full_build",
 ) -> Union[os.PathLike, str]:
     """
-    Ensures that the desired model exists on disk, and returns the path to it.
+    Ensures that the desired model exists on disk in `output_dir`, and returns the path
+    to it. If `output_dir` exists we assume the model is there (no validation), and
+    return that path.
+
 
     Builds the model if needed, or finds it among already existing models if
     ``model_register_dir`` is non-None, and we find the model there. If
@@ -486,15 +490,35 @@ def provide_saved_model(
         )
         if replace_cache:
             logger.info("replace_cache activated, deleting any existing cache entry")
-            cache_key = calculate_model_key(
-                name, model_config, data_config, metadata=metadata
-            )
             disk_registry.delete_value(model_register_dir, cache_key)
-
-        cached_model_location = check_cache(model_register_dir, cache_key)
-
-        if cached_model_location:
-            return cached_model_location
+        else:
+            cached_model_location = check_cache(model_register_dir, cache_key)
+            if cached_model_location:
+                logger.info(
+                    f"Found model in cache, copying from {cached_model_location} to "
+                    f"new location {output_dir} "
+                )
+                if cached_model_location == output_dir:
+                    return output_dir
+                else:
+                    try:
+                        # Why not shutil.copytree? Because in python <3.7 it causes
+                        # errors on Azure NFS, see:
+                        # - https://bugs.python.org/issue24564
+                        # - https://stackoverflow.com/questions/51616058/shutil-copystat-fails-inside-docker-on-azure/51635427#51635427
+                        copy_tree(
+                            str(cached_model_location),
+                            str(output_dir),
+                            preserve_mode=0,
+                            preserve_times=0,
+                        )
+                    except FileExistsError:
+                        logger.warning(
+                            f"Found that output directory {output_dir} "
+                            f"already exists, assuming model is "
+                            f"already located there"
+                        )
+                    return output_dir
 
     model, metadata = build_model(
         name=name,
