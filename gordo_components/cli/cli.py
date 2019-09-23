@@ -125,12 +125,6 @@ DEFAULT_MODEL_CONFIG = (
     "--model-parameter some_key,some_value",
 )
 @click.option(
-    "--model-location-file",
-    help="Full path to a file to create and write the location of where the serialized model is placed.",
-    type=click.File(mode="w", lazy=False),
-    default="/tmp/model-location.txt",
-)
-@click.option(
     "--cv-mode",
     envvar="CV_MODE",
     default="full_build",
@@ -146,7 +140,6 @@ def build(
     model_register_dir,
     print_cv_scores,
     model_parameter,
-    model_location_file,
     cv_mode,
 ):
     """
@@ -186,8 +179,6 @@ def build(
     model_parameter: List[Tuple]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
-    model_location_file: str/path
-        Path to a file to open and write the location of the serialized model to.
     cv_mode: str
         String which enables three different modes:
         * cross_val_only: Only perform cross validation
@@ -287,9 +278,6 @@ def build(
         for score in all_scores:
             print(score)
 
-    # Write out the model location to this file if it exists and cv_mode is not equal to cross_val_only.
-    if cv_mode != "cross_val_only":
-        model_location_file.write(model_location)
     return 0
 
 

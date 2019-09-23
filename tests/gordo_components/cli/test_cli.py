@@ -11,6 +11,7 @@ from click.testing import CliRunner
 
 from gordo_components import cli
 from gordo_components.cli.cli import expand_model, DEFAULT_MODEL_CONFIG
+from gordo_components.serializer import serializer
 from tests.utils import temp_env_vars
 
 import json
@@ -59,21 +60,26 @@ class CliTestCase(unittest.TestCase):
                 result = self.runner.invoke(cli.gordo, ["build"])
 
             self.assertEqual(result.exit_code, 0, msg=f"Command failed: {result}")
-            self.assertTrue(
-                os.path.exists("/tmp/model-location.txt"),
-                msg='Building was supposed to create a "model-location.txt", but it did not!',
+            self.assertGreater(
+                len(os.listdir(tmpdir)),
+                1,
+                msg="Building was supposed to create at least two files (model and "
+                "metadata) in OUTPUT_DIR, but it did not!",
             )
 
     def test_build_use_registry(self):
         """
-        Using a registry causes the second build of a model to return the path to the
-        first.
+        Using a registry causes the second build of a model to copy the first to the
+        new location.
         """
 
         with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir_1 = os.path.join(tmpdir, "dir1")
+            output_dir_2 = os.path.join(tmpdir, "dir2")
+
             with temp_env_vars(
                 MODEL_NAME="model-name",
-                OUTPUT_DIR=os.path.join(tmpdir, "dir1"),
+                OUTPUT_DIR=output_dir_1,
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
                 MODEL_REGISTER_DIR=tmpdir + "/reg",
@@ -81,22 +87,26 @@ class CliTestCase(unittest.TestCase):
                 result1 = self.runner.invoke(cli.gordo, ["build"])
 
             self.assertEqual(result1.exit_code, 0, msg=f"Command failed: {result1}")
-            with open("/tmp/model-location.txt") as f:
-                first_path = f.read()
-
             # OUTPUT_DIR is the only difference
             with temp_env_vars(
                 MODEL_NAME="model-name",
-                OUTPUT_DIR=os.path.join(tmpdir, "dir2"),
+                OUTPUT_DIR=output_dir_2,
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
                 MODEL_REGISTER_DIR=tmpdir + "/reg",
             ):
                 result2 = self.runner.invoke(cli.gordo, ["build"])
             self.assertEqual(result2.exit_code, 0, msg=f"Command failed: {result2}")
-            with open("/tmp/model-location.txt") as f:
-                second_path = f.read()
-            assert first_path == second_path
+
+            first_metadata = serializer.load_metadata(output_dir_1)
+            second_metadata = serializer.load_metadata(output_dir_2)
+
+            # The metadata contains the model build date, so if it got rebuilt these two
+            # would be different
+            assert (
+                first_metadata["model"]["model-creation-date"]
+                == second_metadata["model"]["model-creation-date"]
+            )
 
     def test_build_use_registry_bust_cache(self):
         """
@@ -105,9 +115,12 @@ class CliTestCase(unittest.TestCase):
         """
 
         with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir_1 = os.path.join(tmpdir, "dir1")
+            output_dir_2 = os.path.join(tmpdir, "dir2")
+
             with temp_env_vars(
                 MODEL_NAME="model-name",
-                OUTPUT_DIR=os.path.join(tmpdir, "dir1"),
+                OUTPUT_DIR=output_dir_1,
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=json.dumps(MODEL_CONFIG),
                 MODEL_REGISTER_DIR=tmpdir + "/reg",
@@ -115,12 +128,10 @@ class CliTestCase(unittest.TestCase):
                 result1 = self.runner.invoke(cli.gordo, ["build"])
 
             self.assertEqual(result1.exit_code, 0, msg=f"Command failed: {result1}")
-            with open("/tmp/model-location.txt") as f:
-                first_path = f.read()
 
             with temp_env_vars(
                 MODEL_NAME="model-name",
-                OUTPUT_DIR=os.path.join(tmpdir, "dir2"),
+                OUTPUT_DIR=output_dir_2,
                 # NOTE: Different train dates!
                 DATA_CONFIG=(
                     "{"
@@ -135,9 +146,15 @@ class CliTestCase(unittest.TestCase):
             ):
                 result2 = self.runner.invoke(cli.gordo, ["build"])
             self.assertEqual(result2.exit_code, 0, msg=f"Command failed: {result2}")
-            with open("/tmp/model-location.txt") as f:
-                second_path = f.read()
-            assert first_path != second_path
+
+            first_metadata = serializer.load_metadata(output_dir_1)
+            second_metadata = serializer.load_metadata(output_dir_2)
+            # The metadata contains the model build date, so if it got rebuilt these two
+            # would be different
+            assert (
+                first_metadata["model"]["model-creation-date"]
+                != second_metadata["model"]["model-creation-date"]
+            )
 
     def test_build_model_with_parameters(self):
         """
@@ -166,15 +183,12 @@ class CliTestCase(unittest.TestCase):
                 DATA_CONFIG=DATA_CONFIG,
                 MODEL_CONFIG=model,
             ):
-                location_file = f"{os.path.join(tmpdir, 'special-model-location.txt')}"
                 args = [
                     "build",
                     "--model-parameter",
                     f"svd_solver,{svd_solver}",
                     "--model-parameter",
                     f"n_components,{n_components}",
-                    "--model-location-file",
-                    location_file,
                 ]
 
                 # Run it twice to ensure the model location in the location file
@@ -186,12 +200,12 @@ class CliTestCase(unittest.TestCase):
                     self.assertEqual(
                         result.exit_code, 0, msg=f"Command failed: {result}"
                     )
-                    self.assertTrue(
-                        os.path.exists(location_file),
-                        msg=f'Building was supposed to create a model location file at "{location_file}", but it did not!',
+                    self.assertGreater(
+                        len(os.listdir(tmpdir)),
+                        1,
+                        msg="Building was supposed to create at least two files ("
+                        "model and metadata) in OUTPUT_DIR, but it did not!",
                     )
-                    with open(location_file, "r") as f:
-                        assert f.read() == tmpdir
 
     def test_expand_model_default_works(self):
         self.assertEquals(expand_model(DEFAULT_MODEL_CONFIG, {}), DEFAULT_MODEL_CONFIG)
@@ -210,10 +224,10 @@ class CliTestCase(unittest.TestCase):
 
 
 @pytest.mark.parametrize(
-    "should_be_equal, cv_mode", [(True, "full_build"), (False, "cross_val_only")]
+    "should_save_model, cv_mode", [(True, "full_build"), (False, "cross_val_only")]
 )
 def test_build_cv_mode(
-    should_be_equal: bool, cv_mode: str, tmp_dir: tempfile.TemporaryDirectory
+    should_save_model: bool, cv_mode: str, tmp_dir: tempfile.TemporaryDirectory
 ):
     """
     Testing build with cv_mode set to full and cross_val_only. Checks that cv_scores are
@@ -230,21 +244,14 @@ def test_build_cv_mode(
         DATA_CONFIG=DATA_CONFIG,
         MODEL_CONFIG=json.dumps(MODEL_CONFIG_WITH_PREDICT),
     ):
-        location_file = f"{os.path.join(tmp_dir.name, 'location.txt')}"
         result = runner.invoke(
-            cli.gordo,
-            [
-                "build",
-                "--print-cv-scores",
-                f"--cv-mode={cv_mode}",
-                f"--model-location-file={location_file}",
-            ],
+            cli.gordo, ["build", "--print-cv-scores", f"--cv-mode={cv_mode}"]
         )
         # Checks that the file is empty or not depending on the mode.
-        if should_be_equal:
-            assert os.stat(location_file).st_size != 0
+        if should_save_model:
+            assert len(os.listdir(tmp_dir.name)) != 0
         else:
-            assert os.stat(location_file).st_size == 0
+            assert len(os.listdir(tmp_dir.name)) == 0
 
         # Checks the output contains 'explained-variance_raw-scores'
         assert "r2-score" in result.output
@@ -296,8 +303,9 @@ def test_build_cv_mode_cross_val_cache(
 
 def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
     """
-    Testing build with cv_mode set to build_only. Checks that the model-location-file exists and
-    are not empty. It also checks that the metadata contains cv-duration-sec=None and cv-scores={}
+    Testing build with cv_mode set to build_only. Checks that OUTPUT_DIR gets a model
+    saved to it. It also checks that the metadata contains cv-duration-sec=None and
+    cv-scores={}
     """
 
     runner = CliRunner()
@@ -311,15 +319,11 @@ def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
         MODEL_CONFIG=json.dumps(MODEL_CONFIG),
     ):
 
-        location_file = f"{os.path.join(tmp_dir.name, 'location.txt')}"
         metadata_file = f"{os.path.join(tmp_dir.name, 'metadata.json')}"
-        runner.invoke(
-            cli.gordo,
-            ["build", "--cv-mode=build_only", f"--model-location-file={location_file}"],
-        )
+        runner.invoke(cli.gordo, ["build", "--cv-mode=build_only"])
 
-        assert os.path.exists(location_file)
-        assert os.stat(location_file).st_size != 0
+        # A model has been saved
+        assert len(os.listdir(tmp_dir.name)) != 0
         with open(metadata_file) as f:
             metadata_json = json.loads(f.read())
             assert metadata_json["model"]["cross-validation"]["cv-duration-sec"] is None

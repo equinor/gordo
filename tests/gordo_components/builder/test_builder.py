@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import dateutil.parser
 import yaml
@@ -25,6 +24,7 @@ from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
 
 from gordo_components.model import models
+from gordo_components.serializer import serializer
 
 
 def get_random_data():
@@ -418,6 +418,79 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     ), "Expected saving of model to create at least one subdir, but got {len(dirs)}"
 
 
+def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
+    """If the model exists in the model register, and the path there is the
+    same as output_dir, output_dir is returned"""
+    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    data_config = get_random_data()
+    output_dir = os.path.join(tmp_dir.name, "model")
+    registry_dir = os.path.join(tmp_dir.name, "registry")
+
+    model_location1 = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        output_dir=output_dir,
+        model_register_dir=registry_dir,
+    )
+
+    assert model_location1 == output_dir
+
+    # Saving to same output_dir as the one saved in the registry just returns the
+    # output_dir
+    model_location2 = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        output_dir=output_dir,
+        model_register_dir=registry_dir,
+    )
+    assert model_location2 == output_dir
+
+
+def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir):
+    """If the model exists in the model register, but the output_dir is not where
+    the model is, the model is copied to the new location, unless the new location
+    already exists. If it does then return it"""
+    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    data_config = get_random_data()
+    output_dir1 = os.path.join(tmp_dir.name, "model1")
+    output_dir2 = os.path.join(tmp_dir.name, "model2")
+
+    registry_dir = os.path.join(tmp_dir.name, "registry")
+
+    provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        output_dir=output_dir1,
+        model_register_dir=registry_dir,
+    )
+
+    model_location2 = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        output_dir=output_dir2,
+        model_register_dir=registry_dir,
+    )
+    assert model_location2 == output_dir2
+
+    model_location3 = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        output_dir=output_dir2,
+        model_register_dir=registry_dir,
+    )
+    assert model_location3 == output_dir2
+
+
 @pytest.mark.parametrize(
     "should_be_equal,metadata,tag_list,replace_cache",
     [
@@ -437,8 +510,8 @@ def test_provide_saved_model_caching(
     Test provide_saved_model with caching and possible cache busting if metadata,
     tag_list, or replace_cache is set.
 
-    Builds two models and checks if their locations are the same, which will be if and
-    only if there is caching.
+    Builds two models and checks if their model-creation-date's are the same,
+    which will be if and only if there is caching.
 
     Parameters
     ----------
@@ -487,10 +560,16 @@ def test_provide_saved_model_caching(
             model_register_dir=registry_dir,
             replace_cache=replace_cache,
         )
+
+        first_metadata = serializer.load_metadata(str(model_location))
+        second_metadata = serializer.load_metadata(str(model_location2))
+
+        model1_creation_date = first_metadata["model"]["model-creation-date"]
+        model2_creation_date = second_metadata["model"]["model-creation-date"]
         if should_be_equal:
-            assert model_location == model_location2
+            assert model1_creation_date == model2_creation_date
         else:
-            assert model_location != model_location2
+            assert model1_creation_date != model2_creation_date
 
 
 @pytest.mark.parametrize(
