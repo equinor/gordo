@@ -22,21 +22,23 @@ import tests.utils as tu
     ],
 )
 def test_anomaly_prediction_endpoint(
-    influxdb, gordo_ml_server_client, data_to_post, sensors
+    gordo_name, influxdb, gordo_ml_server_client, data_to_post, sensors
 ):
     """
     Anomaly GET and POST responses are the same
     """
     if data_to_post is None:
         resp = gordo_ml_server_client.get(
-            "/anomaly/prediction",
+            f"/{gordo_name}/anomaly/prediction",
             json={
                 "start": "2016-01-01T00:00:00+00:00",
                 "end": "2016-01-01T12:00:00+00:00",
             },
         )
     else:
-        resp = gordo_ml_server_client.post("/anomaly/prediction", json=data_to_post)
+        resp = gordo_ml_server_client.post(
+            f"/{gordo_name}/anomaly/prediction", json=data_to_post
+        )
 
     # From here, the response should be (pretty much) the same format from GET or POST
     assert resp.status_code == 200
@@ -62,23 +64,23 @@ def test_anomaly_prediction_endpoint(
     )
 
 
-def test_more_than_24_hrs(influxdb, gordo_ml_server_client):
+def test_more_than_24_hrs(gordo_name, influxdb, gordo_ml_server_client):
     # Request greater than 1 day should be a bad request
     resp = gordo_ml_server_client.get(
-        "/anomaly/prediction",
+        f"/{gordo_name}/anomaly/prediction",
         json={"start": "2016-01-01T00:00:00+00:00", "end": "2016-01-02T00:00:00+00:00"},
     )
     assert resp.status_code == 400, f"Response content: {resp.data}"
 
     # and for sanity, less than 1 day are ok
     resp = gordo_ml_server_client.get(
-        "/anomaly/prediction",
+        f"/{gordo_name}/anomaly/prediction",
         json={"start": "2016-01-01T00:00:00+00:00", "end": "2016-01-01T01:00:00+00:00"},
     )
     assert resp.status_code == 200, f"Response content: {resp.data}"
 
 
-def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):
+def test_overlapping_time_buckets(gordo_name, influxdb, gordo_ml_server_client):
     """
     Requests for overlapping time sample buckets should only produce
     predictions whose bucket falls completely within the requested
@@ -90,7 +92,7 @@ def test_overlapping_time_buckets(influxdb, gordo_ml_server_client):
     but can give a bucket which contains data before the requested start date.
     """
     resp = gordo_ml_server_client.get(
-        "/anomaly/prediction",
+        f"/{gordo_name}/anomaly/prediction",
         json={"start": "2016-01-01T00:11:00+00:00", "end": "2016-01-01T00:21:00+00:00"},
     )
     assert resp.status_code == 200

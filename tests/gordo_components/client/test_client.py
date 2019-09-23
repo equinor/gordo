@@ -245,7 +245,13 @@ def test_client_cli_download_model(watchman_service):
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
 def test_client_cli_predict(
-    influxdb, watchman_service, forwarder_args, output_dir, data_provider
+    influxdb,
+    gordo_name,
+    watchman_service,
+    forwarder_args,
+    output_dir,
+    data_provider,
+    trained_model_directory,
 ):
     """
     Test ability for client to get predictions via CLI

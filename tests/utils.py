@@ -118,7 +118,7 @@ def watchman(
     from gordo_components.dataset import datasets
     from gordo_components.server import server as gordo_ml_server
 
-    with temp_env_vars(MODEL_LOCATION=model_location):
+    with temp_env_vars(MODEL_COLLECTION_DIR=model_location):
         # Create gordo ml servers
         gordo_server_app = gordo_ml_server.build_app(
             data_provider=datasets.RandomDataProvider()
@@ -141,7 +141,8 @@ def watchman(
             # directly to the app itself, we need to strip this prefix
             # Example:
             # /gordo/v0/project-name/target-name/metadata -> metadata
-            last_path = "/".join(request.path_url.split("/")[5:])
+            last_path = "/".join(request.path_url.split("/")[4:])
+
             if request.method == "GET":
                 # we may have json data being passed
                 kwargs = dict()

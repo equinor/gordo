@@ -4,7 +4,7 @@ import logging
 import timeit
 import typing
 
-from flask import Blueprint, make_response, jsonify, current_app, g
+from flask import Blueprint, make_response, jsonify, g
 from flask_restplus import fields
 
 from gordo_components import __version__
@@ -15,7 +15,9 @@ from gordo_components.server import utils
 
 logger = logging.getLogger(__name__)
 
-anomaly_blueprint = Blueprint("ioc_anomaly_blueprint", __name__, url_prefix="/anomaly")
+anomaly_blueprint = Blueprint(
+    "ioc_anomaly_blueprint", __name__, url_prefix="/<gordo_name>/anomaly"
+)
 
 api = Api(
     app=anomaly_blueprint,
@@ -99,6 +101,7 @@ class AnomalyView(BaseModelView):
             "X": "Nested list of samples to predict, or single list considered as one sample"
         }
     )
+    @utils.model_required
     @utils.extract_X_y
     def post(self):
         start_time = timeit.default_timer()
@@ -111,6 +114,7 @@ class AnomalyView(BaseModelView):
             "end": "An ISO formatted datetime with timezone info string indicating prediction range end",
         }
     )
+    @utils.model_required
     @utils.extract_X_y
     def get(self):
         start_time = timeit.default_timer()
@@ -147,10 +151,10 @@ class AnomalyView(BaseModelView):
 
         # Now create an anomaly dataframe from the base response dataframe
         try:
-            anomaly_df = current_app.model.anomaly(g.X, g.y, frequency=self.frequency)
+            anomaly_df = g.model.anomaly(g.X, g.y, frequency=self.frequency)
         except AttributeError:
             msg = {
-                "message": f"Model is not an AnomalyDetector, it is of type: {type(current_app.model)}"
+                "message": f"Model is not an AnomalyDetector, it is of type: {type(g.model)}"
             }
             return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
 

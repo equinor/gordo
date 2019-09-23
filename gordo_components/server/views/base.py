@@ -22,7 +22,7 @@ from gordo_components.server import model_io
 
 logger = logging.getLogger(__name__)
 
-base_blueprint = Blueprint("base_model_view", __name__)
+base_blueprint = Blueprint("base_model_view", __name__, url_prefix="/<gordo_name>")
 
 api = Api(
     app=base_blueprint,
@@ -106,20 +106,16 @@ class BaseModelView(Resource):
         """
         The frequency the model was trained with in the dataset
         """
-        return pd.tseries.frequencies.to_offset(
-            current_app.metadata["dataset"]["resolution"]
-        )
+        return pd.tseries.frequencies.to_offset(g.metadata["dataset"]["resolution"])
 
     @property
     def tags(self) -> typing.List[SensorTag]:
-        return normalize_sensor_tags(current_app.metadata["dataset"]["tag_list"])
+        return normalize_sensor_tags(g.metadata["dataset"]["tag_list"])
 
     @property
     def target_tags(self) -> typing.List[SensorTag]:
-        if "target_tag_list" in current_app.metadata["dataset"]:
-            return normalize_sensor_tags(
-                current_app.metadata["dataset"]["target_tag_list"]
-            )
+        if "target_tag_list" in g.metadata["dataset"]:
+            return normalize_sensor_tags(g.metadata["dataset"]["target_tag_list"])
         else:
             return []
 
@@ -130,6 +126,7 @@ class BaseModelView(Resource):
             "end": "An ISO formatted datetime with timezone info string indicating prediction range end",
         }
     )
+    @server_utils.model_required
     @server_utils.extract_X_y
     def get(self):
         """
@@ -140,6 +137,7 @@ class BaseModelView(Resource):
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)
     @api.doc(params={"X": "Nested or single list of sample(s) to predict"})
+    @server_utils.model_required
     @server_utils.extract_X_y
     def post(self):
         """
@@ -174,7 +172,7 @@ class BaseModelView(Resource):
         process_request_start_time_s = timeit.default_timer()
 
         try:
-            output = model_io.get_model_output(model=current_app.model, X=X)
+            output = model_io.get_model_output(model=g.model, X=X)
         except ValueError as err:
             tb = traceback.format_exc()
             logger.error(
@@ -215,6 +213,7 @@ class MetaDataView(Resource):
     Serve model / server metadata
     """
 
+    @server_utils.model_required
     def get(self):
         """
         Get metadata about this endpoint, also serves as /healthcheck endpoint
@@ -222,7 +221,7 @@ class MetaDataView(Resource):
         model_location_env_var = current_app.config["MODEL_LOCATION_ENV_VAR"]
         return {
             "gordo-server-version": __version__,
-            "metadata": current_app.metadata,
+            "metadata": g.metadata,
             "env": {model_location_env_var: os.environ.get(model_location_env_var)},
         }
 
@@ -237,6 +236,7 @@ class DownloadModel(Resource):
     @api.doc(
         description="Download model, loadable via gordo_components.serializer.loads"
     )
+    @server_utils.model_required
     def get(self):
         """
         Responds with a serialized copy of the current model being served.
@@ -246,7 +246,7 @@ class DownloadModel(Resource):
         bytes
             Results from ``gordo_components.serializer.dumps()``
         """
-        serialized_model = serializer.dumps(current_app.model)
+        serialized_model = serializer.dumps(g.model)
         buff = io.BytesIO(serialized_model)
         return send_file(buff, attachment_filename="model.tar.gz")
 
