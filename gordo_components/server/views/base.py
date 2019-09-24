@@ -22,7 +22,7 @@ from gordo_components.server import model_io
 
 logger = logging.getLogger(__name__)
 
-base_blueprint = Blueprint("base_model_view", __name__, url_prefix="/<gordo_name>")
+base_blueprint = Blueprint("base_model_view", __name__)
 
 api = Api(
     app=base_blueprint,
@@ -251,6 +251,6 @@ class DownloadModel(Resource):
         return send_file(buff, attachment_filename="model.tar.gz")
 
 
-api.add_resource(BaseModelView, "/prediction")
-api.add_resource(MetaDataView, "/metadata", "/healthcheck")
-api.add_resource(DownloadModel, "/download-model")
+api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
+api.add_resource(MetaDataView, "/gordo/v0/<gordo_project>/<gordo_name>/metadata", "/gordo/v0/<gordo_project>/<gordo_name>/healthcheck")
+api.add_resource(DownloadModel, "/gordo/v0/<gordo_project>/<gordo_name>/download-model")

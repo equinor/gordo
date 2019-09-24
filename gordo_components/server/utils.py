@@ -352,7 +352,7 @@ def model_required(f):
     """
 
     @wraps(f)
-    def wrapper(*args: tuple, gordo_name: str, **kwargs: dict):
+    def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
         model, metadata = load_model_n_metadata(
             directory=collection_dir, name=gordo_name
