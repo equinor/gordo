@@ -252,5 +252,9 @@ class DownloadModel(Resource):
 
 
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
-api.add_resource(MetaDataView, "/gordo/v0/<gordo_project>/<gordo_name>/metadata", "/gordo/v0/<gordo_project>/<gordo_name>/healthcheck")
+api.add_resource(
+    MetaDataView,
+    "/gordo/v0/<gordo_project>/<gordo_name>/metadata",
+    "/gordo/v0/<gordo_project>/<gordo_name>/healthcheck",
+)
 api.add_resource(DownloadModel, "/gordo/v0/<gordo_project>/<gordo_name>/download-model")

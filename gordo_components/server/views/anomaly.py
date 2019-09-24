@@ -15,9 +15,7 @@ from gordo_components.server import utils
 
 logger = logging.getLogger(__name__)
 
-anomaly_blueprint = Blueprint(
-    "ioc_anomaly_blueprint", __name__,
-)
+anomaly_blueprint = Blueprint("ioc_anomaly_blueprint", __name__)
 
 api = Api(
     app=anomaly_blueprint,
@@ -164,4 +162,6 @@ class AnomalyView(BaseModelView):
         return make_response(jsonify(context), context.pop("status-code", 200))
 
 
-api.add_resource(AnomalyView, "/gordo/v0/<gordo_project>/<gordo_name>/anomaly/prediction")
+api.add_resource(
+    AnomalyView, "/gordo/v0/<gordo_project>/<gordo_name>/anomaly/prediction"
+)

@@ -66,6 +66,16 @@ def gordo_project():
 
 
 @pytest.fixture(scope="session")
+def api_version():
+    return "v0"
+
+
+@pytest.fixture(scope="session")
+def base_route(api_version, gordo_project, gordo_name):
+    return f"/gordo/{api_version}/{gordo_project}/{gordo_name}"
+
+
+@pytest.fixture(scope="session")
 def trained_model_directory(
     gordo_project: str, gordo_name: str, sensors: List[SensorTag]
 ):

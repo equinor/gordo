@@ -122,9 +122,9 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
         response.headers["Server-Timing"] = f"request_walltime_s;dur={runtime_s}"
         return response
 
-    @app.route('/healthcheck')
+    @app.route("/healthcheck")
     def base_healthcheck():
-        return '', 200
+        return "", 200
 
     return app
 
