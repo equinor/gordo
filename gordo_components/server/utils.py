@@ -322,7 +322,9 @@ def extract_X_y(method):
 
 
 @lru_cache(maxsize=int(os.getenv("SERVER_N_MODELS", 2)))
-def load_model_n_metadata(directory: str, name: str) -> Tuple[BaseEstimator, dict]:
+def load_model_n_metadata(
+    directory: str, name: str, only_metadata: bool = False
+) -> Tuple[BaseEstimator, dict]:
     """
     Load a given model from the directory by name with its metadata
 
@@ -339,9 +341,32 @@ def load_model_n_metadata(directory: str, name: str) -> Tuple[BaseEstimator, dic
     Tuple[BaseEstimator, dict]
     """
     path = os.path.join(directory, name)
-    model = serializer.load(path)
+    if only_metadata:
+        model = None
+    else:
+        model = serializer.load(path)
+
     metadata = serializer.load_metadata(path)
+    current_app.logger.info("LOADED MODEL FROM DISK")
     return model, metadata
+
+
+def metadata_required(f):
+    """
+    Decorate a view which has ``gordo_name`` as a url parameter and will
+    set ``g.metadata`` to that model's metadata
+    """
+
+    @wraps(f)
+    def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
+        model, metadata = load_model_n_metadata(
+            directory=collection_dir, name=gordo_name, only_metadata=True
+        )
+        g.model, g.metadata = model, metadata
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 def model_required(f):

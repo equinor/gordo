@@ -213,7 +213,7 @@ class MetaDataView(Resource):
     Serve model / server metadata
     """
 
-    @server_utils.model_required
+    @server_utils.metadata_required
     def get(self):
         """
         Get metadata about this endpoint, also serves as /healthcheck endpoint
