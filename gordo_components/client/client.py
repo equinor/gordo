@@ -94,7 +94,8 @@ class Client:
             Ignore any targets which are unhealthy. Will raise a ``ValueError``
             if the client encounters any unhealthy endpoints, warnings emitted otherwise
         n_retries: int
-            Number of times the client should attempt to retry a failed prediction request
+            Number of times the client should attempt to retry a failed prediction request. Each time the client
+            retires the time it sleeps before retrying is exponentially calculated.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -396,7 +397,7 @@ class Client:
             else None,
         }
 
-        for i in itertools.count(start=1):
+        for current_attempt in itertools.count(start=1):
             try:
                 try:
                     resp = await gordo_io.post_json(
@@ -419,11 +420,12 @@ class Client:
                 BadRequest,
                 aiohttp.ClientError,
             ) as exc:
-                if i <= self.n_retries:
+                if current_attempt <= self.n_retries:
+                    time_to_sleep = min(2 ** (current_attempt + 2), 300)
                     logger.warning(
-                        f"Failed to get response on attempt {i} out of {self.n_retries} attempts."
+                        f"Failed to get response on attempt {current_attempt} out of {self.n_retries} attempts."
                     )
-                    time.sleep(5)  # Not async on purpose.
+                    time.sleep(time_to_sleep)  # Not async on purpose.
                     continue
                 else:
                     msg = (

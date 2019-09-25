@@ -6,6 +6,8 @@ import json
 import logging
 import typing
 from dateutil.parser import isoparse  # type: ignore
+import asyncio
+import time
 
 import aiohttp
 import pytest
@@ -13,6 +15,7 @@ import pandas as pd
 import numpy as np
 from click.testing import CliRunner
 from sklearn.base import BaseEstimator
+from mock import patch, call
 
 from gordo_components.client import Client, utils as client_utils
 from gordo_components.client.utils import EndpointMetadata
@@ -490,3 +493,32 @@ def test_client_endpoint_filtering(
         assert (
             expected == filtered_endpoints
         ), f"Not equal: {expected} \n----\n {filtered_endpoints}"
+
+
+def test_exponential_sleep_time(watchman_service):
+    endpoint = _endpoint_metadata("t1", False)
+
+    start, end = (
+        isoparse("2016-01-01T00:00:00+00:00"),
+        isoparse("2016-01-01T12:00:00+00:00"),
+    )
+
+    with patch(
+        "gordo_components.client.client.time.sleep", return_value=None
+    ) as time_sleep:
+        client = Client(project=tu.GORDO_PROJECT)
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(
+            client._process_post_prediction_task(
+                X=pd.DataFrame([123]),
+                y=None,
+                chunk=slice(0, 1),
+                endpoint=endpoint,
+                start=start,
+                end=end,
+            )
+        )
+        loop.close()
+
+    expected_calls = [call(8), call(16), call(32), call(64), call(128)]
+    time_sleep.assert_has_calls(expected_calls)
