@@ -180,7 +180,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
                 except Exception as exc:
                     if current_attempt <= self.n_retries:
                         # Sleep at most 5 min
-                        time_to_sleep = min(2 ^ (current_attempt + 2), 300)
+                        time_to_sleep = min(2 ** (current_attempt + 2), 300)
                         logger.warning(
                             f"Failed to forward data to influx on attempt "
                             f"{current_attempt} out of {self.n_retries} attempts. "
