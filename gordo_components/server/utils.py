@@ -6,7 +6,7 @@ import os
 import timeit
 import dateutil
 from datetime import datetime
-from typing import Union, List, Tuple
+from typing import Union, List
 
 import pandas as pd
 from flask import request, g, jsonify, make_response, Response, current_app
