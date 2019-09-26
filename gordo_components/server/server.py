@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 class Config:
     """Server config"""
 
-    MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
     MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
 
 

@@ -321,12 +321,10 @@ def extract_X_y(method):
     return wrapper_method
 
 
-@lru_cache(maxsize=int(os.getenv("SERVER_N_MODELS", 2)))
-def load_model_n_metadata(
-    directory: str, name: str, only_metadata: bool = False
-) -> Tuple[BaseEstimator, dict]:
+@lru_cache(maxsize=int(os.getenv("N_CACHED_MODELS", 2)))
+def load_model(directory: str, name: str) -> BaseEstimator:
     """
-    Load a given model from the directory by name with its metadata
+    Load a given model from the directory by name.
 
     Parameters
     ----------
@@ -338,17 +336,31 @@ def load_model_n_metadata(
 
     Returns
     -------
-    Tuple[BaseEstimator, dict]
+    BaseEstimator
     """
-    path = os.path.join(directory, name)
-    if only_metadata:
-        model = None
-    else:
-        model = serializer.load(path)
+    model = serializer.load(os.path.join(directory, name))
+    return model
 
-    metadata = serializer.load_metadata(path)
-    current_app.logger.info("LOADED MODEL FROM DISK")
-    return model, metadata
+
+@lru_cache(maxsize=20)
+def load_metadata(directory: str, name: str) -> dict:
+    """
+    Load metadata from a directory for a given model by name.
+
+    Parameters
+    ----------
+    directory: str
+        Directory to look for the model's metadata
+    name: str
+        Name of the model to load metadata for, this would be the sub directory
+        within the directory parameter.
+
+    Returns
+    -------
+    dict
+    """
+    metadata = serializer.load_metadata(os.path.join(directory, name))
+    return metadata
 
 
 def metadata_required(f):
@@ -360,10 +372,7 @@ def metadata_required(f):
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
-        model, metadata = load_model_n_metadata(
-            directory=collection_dir, name=gordo_name, only_metadata=True
-        )
-        g.model, g.metadata = model, metadata
+        g.metadata = load_metadata(directory=collection_dir, name=gordo_name)
         return f(*args, **kwargs)
 
     return wrapper
@@ -379,10 +388,8 @@ def model_required(f):
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
-        model, metadata = load_model_n_metadata(
-            directory=collection_dir, name=gordo_name
-        )
-        g.model, g.metadata = model, metadata
+        g.model = load_model(directory=collection_dir, name=gordo_name)
+        g.metadata = load_metadata(directory=collection_dir, name=gordo_name)
         return f(*args, **kwargs)
 
     return wrapper
