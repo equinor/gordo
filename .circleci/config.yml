@@ -4,9 +4,11 @@ version: 2.1
 executors:
   python-executor:
     working_directory: ~/code
+    environment:
+      KERAS_BACKEND: cntk
     machine:
       docker_layer_caching: true
-      image: "circleci/classic:201808-01"
+      image: "ubuntu-1604:201903-01"
 
 commands:
   save-eggs-cache:
@@ -45,6 +47,13 @@ commands:
       - checkout
       - restore-venv-cache
       - restore-eggs-cache
+      - run:
+          name: Install CNTK
+          command: |
+            sudo killall -9 apt-get || true
+            sudo add-apt-repository ppa:deadsnakes/ppa
+            sudo apt-get update
+            sudo apt-get install -y python3.6-dev openmpi-bin
       - run:
           name: Test
           command: |

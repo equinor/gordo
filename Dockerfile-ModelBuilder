@@ -10,7 +10,19 @@ RUN rm -rf /code/dist \
     && python setup.py sdist \
     && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
 
-FROM python:3.6.9-slim-stretch
+FROM ubuntu:16.04
+
+RUN apt-get update && \
+  apt-get install -y software-properties-common && \
+  add-apt-repository ppa:jonathonf/python-3.6
+RUN apt-get update
+
+RUN apt-get install -y build-essential python3.6 python3-pip python3.6-dev
+
+# update pip
+RUN ln -s $(which python3.6) /usr/bin/python
+RUN python -m pip install pip --upgrade
+RUN python -m pip install wheel
 
 # Install requirements separately for improved docker caching
 COPY requirements.txt /code/
@@ -21,6 +33,13 @@ COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
 
 # Install gordo-components, packaged from earlier 'python setup.py sdist'
 RUN pip install ./gordo-components-packed.tar.gz
+
+# Setup CNTK
+RUN apt install openmpi-bin -y
+RUN pip install cntk
+ENV KERAS_BACKEND=cntk
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
 
 ADD build.sh /code/build.sh
 
