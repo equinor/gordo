@@ -35,12 +35,13 @@ import tests.utils as tu
         },
     ],
 )
-def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_post):
+def test_prediction_endpoint_post_ok(
+    base_route, sensors, gordo_ml_server_client, data_to_post
+):
     """
     Test the expected successfull data posts
     """
-    resp = gordo_ml_server_client.post("/prediction", json=data_to_post)
-
+    resp = gordo_ml_server_client.post(f"{base_route}/prediction", json=data_to_post)
     assert resp.status_code == 200
 
     data = server_utils.dataframe_from_dict(resp.json["data"])
@@ -58,11 +59,13 @@ def test_prediction_endpoint_post_ok(sensors, gordo_ml_server_client, data_to_po
     ],
 )
 def test_prediction_endpoint_post_fail(
-    caplog, sensors, gordo_ml_server_client, data_to_post
+    caplog, base_route, sensors, gordo_ml_server_client, data_to_post
 ):
     """
     Test expected failures when posting certain types of data
     """
     with caplog.at_level(logging.CRITICAL):
-        resp = gordo_ml_server_client.post("/prediction", json=data_to_post)
+        resp = gordo_ml_server_client.post(
+            f"{base_route}/prediction", json=data_to_post
+        )
     assert resp.status_code == 400

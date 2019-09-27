@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
-import os
 import logging
 import timeit
 import typing
 from functools import wraps
 
 from flask import Flask, g
-from sklearn.base import BaseEstimator
-
-from gordo_components import serializer
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.server import views
 
@@ -18,7 +14,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Server config"""
 
-    MODEL_LOCATION_ENV_VAR = "MODEL_LOCATION"
+    MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
@@ -97,38 +93,6 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
-def load_model_and_metadata(
-    model_dir_env_var: str
-) -> typing.Tuple[BaseEstimator, dict]:
-    """
-    Loads a model and metadata from the path found in ``model_dir_env_var``
-    environment variable
-
-    Parameters
-    ----------
-    model_dir_env_var: str
-        The name of the environment variable which stores the location of the model
-
-    Returns
-    -------
-    BaseEstimator, dict
-        Tuple where the 0th element is the model, and the 1st element is the metadata
-        associated with the model
-    """
-    logger.debug("Determining model location...")
-    model_location = os.getenv(model_dir_env_var)
-    if model_location is None:
-        raise ValueError(f'Environment variable "{model_dir_env_var}" not set!')
-    if not os.path.isdir(model_location):
-        raise NotADirectoryError(
-            f'The supplied directory: "{model_location}" does not exist!'
-        )
-
-    model = serializer.load(model_location)
-    metadata = serializer.load_metadata(model_location)
-    return model, metadata
-
-
 def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
     """
     Build app and any associated routes
@@ -157,10 +121,9 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
         response.headers["Server-Timing"] = f"request_walltime_s;dur={runtime_s}"
         return response
 
-    with app.app_context():
-        app.model, app.metadata = load_model_and_metadata(
-            app.config["MODEL_LOCATION_ENV_VAR"]
-        )
+    @app.route("/healthcheck")
+    def base_healthcheck():
+        return "", 200
 
     return app
 

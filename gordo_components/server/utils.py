@@ -2,15 +2,18 @@
 
 import logging
 import functools
+import os
 import timeit
 import dateutil
 from datetime import datetime
 from typing import Union, List
 
 import pandas as pd
-
 from flask import request, g, jsonify, make_response, Response, current_app
+from functools import lru_cache, wraps
+from sklearn.base import BaseEstimator
 
+from gordo_components import serializer
 from gordo_components.dataset.datasets import TimeSeriesDataset
 
 
@@ -280,7 +283,7 @@ def extract_X_y(method):
                 data_provider=g.data_provider,
                 from_ts=start - self.frequency.delta,
                 to_ts=end,
-                resolution=current_app.metadata["dataset"]["resolution"],
+                resolution=g.metadata["dataset"]["resolution"],
                 tag_list=self.tags,
                 target_tag_list=self.target_tags or None,
             )
@@ -316,3 +319,77 @@ def extract_X_y(method):
         return method(self, *args, **kwargs)
 
     return wrapper_method
+
+
+@lru_cache(maxsize=int(os.getenv("N_CACHED_MODELS", 2)))
+def load_model(directory: str, name: str) -> BaseEstimator:
+    """
+    Load a given model from the directory by name.
+
+    Parameters
+    ----------
+    directory: str
+        Directory to look for the model
+    name: str
+        Name of the model to load, this would be the sub directory within the
+        directory parameter.
+
+    Returns
+    -------
+    BaseEstimator
+    """
+    model = serializer.load(os.path.join(directory, name))
+    return model
+
+
+@lru_cache(maxsize=20)
+def load_metadata(directory: str, name: str) -> dict:
+    """
+    Load metadata from a directory for a given model by name.
+
+    Parameters
+    ----------
+    directory: str
+        Directory to look for the model's metadata
+    name: str
+        Name of the model to load metadata for, this would be the sub directory
+        within the directory parameter.
+
+    Returns
+    -------
+    dict
+    """
+    metadata = serializer.load_metadata(os.path.join(directory, name))
+    return metadata
+
+
+def metadata_required(f):
+    """
+    Decorate a view which has ``gordo_name`` as a url parameter and will
+    set ``g.metadata`` to that model's metadata
+    """
+
+    @wraps(f)
+    def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
+        g.metadata = load_metadata(directory=collection_dir, name=gordo_name)
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
+def model_required(f):
+    """
+    Decorate a view which has ``gordo_name`` as a url parameter and will
+    set ``g.model`` to be the loaded model and ``g.metadata``
+    to that model's metadata
+    """
+
+    @wraps(f)
+    def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
+        g.model = load_model(directory=collection_dir, name=gordo_name)
+        g.metadata = load_metadata(directory=collection_dir, name=gordo_name)
+        return f(*args, **kwargs)
+
+    return wrapper

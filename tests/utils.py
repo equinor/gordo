@@ -118,7 +118,7 @@ def watchman(
     from gordo_components.dataset import datasets
     from gordo_components.server import server as gordo_ml_server
 
-    with temp_env_vars(MODEL_LOCATION=model_location):
+    with temp_env_vars(MODEL_COLLECTION_DIR=model_location):
         # Create gordo ml servers
         gordo_server_app = gordo_ml_server.build_app(
             data_provider=datasets.RandomDataProvider()
@@ -134,25 +134,17 @@ def watchman(
             """
             headers = {}
 
-            # last_path is the path to the view as flask knows about it
-            # there is a proxy set before endpoints such as /gordo/vo/project-name/target-name/
-            # of which flask does not know about, but is routed to it via ambassador and is
-            # incorporated in the requests within the lib, since we're forwarding the request
-            # directly to the app itself, we need to strip this prefix
-            # Example:
-            # /gordo/v0/project-name/target-name/metadata -> metadata
-            last_path = "/".join(request.path_url.split("/")[5:])
             if request.method == "GET":
                 # we may have json data being passed
                 kwargs = dict()
                 if request.body:
                     kwargs["json"] = json.loads(request.body.decode())
 
-                resp = gordo_server_app.get(f"/{last_path}", **kwargs)
+                resp = gordo_server_app.get(request.path_url, **kwargs)
                 resp = resp.json or resp.data
             elif request.method == "POST":
                 resp = gordo_server_app.post(
-                    f"/{last_path}", json=json.loads(request.body.decode())
+                    request.path_url, json=json.loads(request.body.decode())
                 ).json
             else:
                 raise NotImplementedError(

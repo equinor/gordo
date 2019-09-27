@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import os
 import logging
 import tempfile
 import time
@@ -54,12 +55,43 @@ def tmp_dir():
 
 
 @pytest.fixture(scope="session")
-def trained_model_directory(sensors: List[SensorTag]):
+def gordo_name():
+    # One gordo-target name
+    return tu.GORDO_TARGETS[0]
+
+
+@pytest.fixture(scope="session")
+def gordo_project():
+    return tu.GORDO_PROJECT
+
+
+@pytest.fixture(scope="session")
+def api_version():
+    return "v0"
+
+
+@pytest.fixture(scope="session")
+def base_route(api_version, gordo_project, gordo_name):
+    return f"/gordo/{api_version}/{gordo_project}/{gordo_name}"
+
+
+@pytest.fixture(scope="session")
+def trained_model_directory(
+    gordo_project: str, gordo_name: str, sensors: List[SensorTag]
+):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
     """
-    with tempfile.TemporaryDirectory() as tmp_dir:
+    with tempfile.TemporaryDirectory() as model_dir:
+
+        # This is a model collection directory
+        collection_dir = os.path.join(model_dir, gordo_project)
+
+        # Model specific to the model being trained here
+        model_dir = os.path.join(collection_dir, gordo_name)
+        os.makedirs(model_dir, exist_ok=True)
+
         definition = ruamel.yaml.load(
             """
             gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
@@ -78,7 +110,7 @@ def trained_model_directory(sensors: List[SensorTag]):
         model.fit(X, X)
         serializer.dump(
             model,
-            tmp_dir,
+            model_dir,
             metadata={
                 "dataset": {
                     "tag_list": sensors,
@@ -90,7 +122,7 @@ def trained_model_directory(sensors: List[SensorTag]):
                 "user-defined": {"model-name": "test-model"},
             },
         )
-        yield tmp_dir
+        yield collection_dir
 
 
 @pytest.fixture(
@@ -107,7 +139,7 @@ def trained_model_directory(sensors: List[SensorTag]):
 )
 def gordo_ml_server_client(request, trained_model_directory):
 
-    with tu.temp_env_vars(MODEL_LOCATION=trained_model_directory):
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=trained_model_directory):
 
         app = server.build_app(data_provider=request.param)
         app.testing = True
