@@ -22,6 +22,13 @@ TAG_TO_ASSET = [
     TagPatternToAsset(re.compile(r"^gfa.", re.IGNORECASE), "1110-gfa"),
     TagPatternToAsset(re.compile(r"^ninenine.+::.+", re.IGNORECASE), "ninenine"),
     TagPatternToAsset(re.compile(r"^uon_ef.+::.+", re.IGNORECASE), "uon_ef"),
+    TagPatternToAsset(re.compile(r"^1138.", re.IGNORECASE), "1138-val"),
+    TagPatternToAsset(re.compile(r"^nor.", re.IGNORECASE), "1180-nor"),
+    TagPatternToAsset(re.compile(r"^asga.", re.IGNORECASE), "1190-asga"),
+    TagPatternToAsset(re.compile(r"^1900.", re.IGNORECASE), "1900-jsv"),
+    TagPatternToAsset(re.compile(r"^1901.", re.IGNORECASE), "1901-jsv"),
+    TagPatternToAsset(re.compile(r"^1902.", re.IGNORECASE), "1902-jsv"),
+    TagPatternToAsset(re.compile(r"^1903.", re.IGNORECASE), "1903-jsv"),
 ]
 
 
