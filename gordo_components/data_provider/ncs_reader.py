@@ -16,16 +16,24 @@ logger = logging.getLogger(__name__)
 
 class NcsReader(GordoBaseDataProvider):
     ASSET_TO_PATH = {
-        "1191-asgb": "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
-        "1755-gra": "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
-        "1125-kvb": "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
-        "1775-trob": "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
-        "1776-troc": "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
-        "1130-troa": "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
         "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/​1101-SFB",
+        "1110-gfa": "/raw/corporate/Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA",
+        "1125-kvb": "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
+        "1130-troa": "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
+        "1138-val": "/raw/corporate/PI System Operation Norway/sensordata/1138-VAL",
+        "1163-gdr": "/raw/corporate/PI System Manager Sleipner/sensordata/1163-GDR",
+        "1180-nor": "/raw/corporate/PI System Operation North/sensordata/1180-NOR",
+        "1190-asga": "/raw/corporate/PI System Operation North/sensordata/1190-ASGA",
+        "1191-asgb": "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
         "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",
         "1295-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1295-PERA",
-        "1110-gfa": "/raw/corporate/Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA",
+        "1755-gra": "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
+        "1775-trob": "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
+        "1776-troc": "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
+        "1900-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1900-JSV",
+        "1901-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1901-JSV",
+        "1902-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1902-JSV",
+        "1903-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1903-JSV",
     }
 
     def __init__(
