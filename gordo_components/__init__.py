@@ -9,7 +9,7 @@ except ImportError:
 def _parse_version(version: str) -> Tuple[int, ...]:
     """
     Takes a string which starts with standard major.minor.patch.
-    and returns the split of major minor and path as integers
+    and returns the split of major and minor version as integers
 
     Parameters
     ----------
@@ -18,10 +18,10 @@ def _parse_version(version: str) -> Tuple[int, ...]:
 
     Returns
     -------
-    Tuple[int, int, int]
-        major, minor and patch versions
+    Tuple[int, int]
+        major and minor versions
     """
-    return tuple(int(i) for i in version.split(".")[:3])
+    return tuple(int(i) for i in version.split(".")[:2])
 
 
-MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION = _parse_version(__version__)
+MAJOR_VERSION, MINOR_VERSION = _parse_version(__version__)
