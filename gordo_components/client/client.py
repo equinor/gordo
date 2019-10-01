@@ -118,6 +118,7 @@ class Client:
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
+        self.query_params = f"?format={'pyarrow' if use_pyarrow else 'json'}"
 
         endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.endpoints = self._filter_endpoints(
@@ -398,7 +399,8 @@ class Client:
         """
 
         kwargs: Dict[str, Any] = dict(
-            session=session, url=f"{endpoint.endpoint}{self.prediction_path}"
+            session=session,
+            url=f"{endpoint.endpoint}{self.prediction_path}{self.query_params}",
         )
 
         # We're going to serialize the data as either JSON or MessagePack
@@ -424,7 +426,9 @@ class Client:
                     resp = await gordo_io.post(**kwargs)
                 except HttpUnprocessableEntity:
                     self.prediction_path = "/prediction"
-                    kwargs["url"] = f"{endpoint.endpoint}{self.prediction_path}"
+                    kwargs[
+                        "url"
+                    ] = f"{endpoint.endpoint}{self.prediction_path}{self.query_params}"
                     resp = await gordo_io.post(**kwargs)
             # If it was an IO or TimeoutError, we can retry
             except (
@@ -549,14 +553,14 @@ class Client:
         try:
             try:
                 response = await gordo_io.get(
-                    f"{endpoint.endpoint}{self.prediction_path}",
+                    f"{endpoint.endpoint}{self.prediction_path}{self.query_params}",
                     session=session,
                     json=json,
                 )
             except HttpUnprocessableEntity:
                 self.prediction_path = "/prediction"
                 response = await gordo_io.get(
-                    f"{endpoint.endpoint}{self.prediction_path}",
+                    f"{endpoint.endpoint}{self.prediction_path}{self.query_params}",
                     session=session,
                     json=json,
                 )
@@ -572,7 +576,6 @@ class Client:
             )
         else:
             logger.info(f"Processing {start} -> {end}")
-
             if isinstance(response, dict):
                 predictions = server_utils.dataframe_from_dict(response["data"])
             else:
