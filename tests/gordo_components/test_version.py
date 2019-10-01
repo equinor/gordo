@@ -16,10 +16,10 @@ def test_version():
 @pytest.mark.parametrize(
     "version,expected",
     [
-        ("1.1.1", (1, 1, 1)),
-        ("1.1.1.dev-a1", (1, 1, 1)),
-        ("0.55.25.02", (0, 55, 25)),
-        ("0.0.0", (0, 0, 0)),
+        ("1.1.1", (1, 1)),
+        ("1.1.1.dev-a1", (1, 1)),
+        ("0.55.25.02", (0, 55)),
+        ("0.0.0", (0, 0)),
     ],
 )
 def test_version_parser(version: str, expected: Tuple[int, int, int]):
