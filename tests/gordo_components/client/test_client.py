@@ -509,22 +509,23 @@ def test_exponential_sleep_time(watchman_service):
         isoparse("2016-01-01T12:00:00+00:00"),
     )
 
-    with patch(
-        "gordo_components.client.client.time.sleep", return_value=None
-    ) as time_sleep:
-        client = Client(project=tu.GORDO_PROJECT)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            client._process_post_prediction_task(
-                X=pd.DataFrame([123]),
-                y=None,
-                chunk=slice(0, 1),
-                endpoint=endpoint,
-                start=start,
-                end=end,
+    with caplog.at_level(logging.CRITICAL):
+        with patch(
+            "gordo_components.client.client.time.sleep", return_value=None
+        ) as time_sleep:
+            client = Client(project=tu.GORDO_PROJECT)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(
+                client._process_post_prediction_task(
+                    X=pd.DataFrame([123]),
+                    y=None,
+                    chunk=slice(0, 1),
+                    endpoint=endpoint,
+                    start=start,
+                    end=end,
+                )
             )
-        )
-        loop.close()
+            loop.close()
 
     expected_calls = [call(8), call(16), call(32), call(64), call(128)]
     time_sleep.assert_has_calls(expected_calls)
