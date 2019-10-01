@@ -9,6 +9,8 @@ from datetime import datetime
 from typing import Union, List
 
 import pandas as pd
+import pyarrow as pa
+from werkzeug import FileStorage
 from flask import request, g, jsonify, make_response, Response, current_app
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
@@ -224,20 +226,33 @@ def extract_X_y(method):
 
         # Data provided by the client
         if request.method == "POST":
-            X = request.json.get("X")
-            y = request.json.get("y")
+
+            if request.json is not None:
+                X = request.json.get("X")
+                y = request.json.get("y")
+            else:
+                X = request.files.get("X")
+                y = request.files.get("y")
 
             if X is None:
                 message = dict(message='Cannot predict without "X"')
                 return make_response((jsonify(message), 400))
 
             # Convert X and (maybe) y into dataframes.
-            X = dataframe_from_dict(X)
+            if isinstance(X, FileStorage):
+                X = pa.deserialize_pandas(X.read())
+            else:
+                X = dataframe_from_dict(X)
             X = _verify_dataframe(X, [t.name for t in self.tags])
 
             # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
-            if y is not None:
+            if isinstance(y, FileStorage):
+                y = pa.deserialize_pandas(y.read())
+            elif any(isinstance(y, Class) for Class in (dict, list)):
                 y = dataframe_from_dict(y)
+
+            # Verify y if it's not None
+            if y is not None:
                 y = _verify_dataframe(y, [t.name for t in self.target_tags])
 
             # If either X or y came back as a Response type, there was an error

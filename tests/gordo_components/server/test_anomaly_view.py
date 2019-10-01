@@ -2,6 +2,8 @@
 
 import pytest
 import numpy as np
+import pandas as pd
+import pyarrow as pa
 
 from gordo_components.server import utils as server_utils
 import tests.utils as tu
@@ -21,13 +23,16 @@ import tests.utils as tu
         None,  # No data, use GET
     ],
 )
+@pytest.mark.parametrize("resp_format", ("json", "pyarrow", None))
 def test_anomaly_prediction_endpoint(
-    base_route, influxdb, gordo_ml_server_client, data_to_post, sensors
+    base_route, influxdb, gordo_ml_server_client, data_to_post, sensors, resp_format
 ):
     """
     Anomaly GET and POST responses are the same
     """
     endpoint = f"{base_route}/anomaly/prediction"
+    if resp_format is not None:
+        endpoint += f"?format={resp_format}"
     if data_to_post is None:
         resp = gordo_ml_server_client.get(
             endpoint,
@@ -41,10 +46,11 @@ def test_anomaly_prediction_endpoint(
 
     # From here, the response should be (pretty much) the same format from GET or POST
     assert resp.status_code == 200
-    assert "data" in resp.json
-
-    # Load data into dataframe
-    data = server_utils.dataframe_from_dict(resp.json["data"])
+    if resp_format in (None, "json"):
+        assert "data" in resp.json
+        data = server_utils.dataframe_from_dict(resp.json["data"])
+    else:
+        data = pa.deserialize_pandas(resp.data)
 
     # Only different between POST and GET is POST will return None for
     # start and end dates, because the server can't know what those are

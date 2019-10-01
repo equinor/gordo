@@ -91,6 +91,11 @@ def client(ctx: click.Context, *args, **kwargs):
     type=int,
     default=5,
 )
+@click.option(
+    "--compress/--no-compress",
+    help="Use pyarrow serialization when sending and receiving data from server",
+    default=True,
+)
 @click.pass_context
 def predict(
     ctx: click.Context,
@@ -104,6 +109,7 @@ def predict(
     forward_resampled_sensors: bool,
     ignore_unhealthy_targets: bool,
     n_retries: int,
+    compress: bool,
 ):
     """
     Run some predictions against the target
@@ -114,6 +120,7 @@ def predict(
             "forward_resampled_sensors": forward_resampled_sensors,
             "ignore_unhealthy_targets": ignore_unhealthy_targets,
             "n_retries": n_retries,
+            "use_pyarrow": compress,
         }
     )
 

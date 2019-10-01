@@ -63,8 +63,9 @@ def test_client_download_model(watchman_service):
 
 @pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_data_provider", (False, True))
+@pytest.mark.parametrize("use_pyarrow", (True, False))
 def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
-    influxdb, watchman_service, use_data_provider: bool, batch_size: int
+    influxdb, watchman_service, use_data_provider: bool, batch_size: int, use_pyarrow
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -109,6 +110,7 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
             destination_influx_uri=tu.INFLUXDB_URI
         ),
         batch_size=batch_size,
+        use_pyarrow=use_pyarrow,
     )
 
     # Should have discovered machine-1
@@ -244,6 +246,7 @@ def test_client_cli_download_model(watchman_service):
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
+@pytest.mark.parametrize("use_pyarrow", (True, False))
 def test_client_cli_predict(
     influxdb,
     gordo_name,
@@ -252,6 +255,7 @@ def test_client_cli_predict(
     output_dir,
     data_provider,
     trained_model_directory,
+    use_pyarrow,
 ):
     """
     Test ability for client to get predictions via CLI
@@ -265,6 +269,7 @@ def test_client_cli_predict(
         "--project",
         tu.GORDO_PROJECT,
         "predict",
+        "--compress" if use_pyarrow else "--no-compress",
         "2016-01-01T00:00:00Z",
         "2016-01-01T01:00:00Z",
     ]
@@ -501,7 +506,7 @@ def test_client_endpoint_filtering(
         ), f"Not equal: {expected} \n----\n {filtered_endpoints}"
 
 
-def test_exponential_sleep_time(watchman_service):
+def test_exponential_sleep_time(caplog, watchman_service):
     endpoint = _endpoint_metadata("t1", False)
 
     start, end = (

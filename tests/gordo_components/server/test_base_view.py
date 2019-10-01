@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import io
 import logging
 
 import pytest
 import pandas as pd
+import pyarrow as pa
 import numpy as np
 
 from gordo_components.server import utils as server_utils
@@ -13,38 +15,55 @@ import tests.utils as tu
 @pytest.mark.parametrize(
     "data_to_post",
     [
-        {"X": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist()},
-        {"X": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist()},
-        {
-            "X": pd.DataFrame(
-                np.random.random((10, len(tu.SENSORS_STR_LIST))),
-                columns=tu.SENSORS_STR_LIST,
-            ).to_dict("records")
-        },
-        {
-            "X": pd.DataFrame(
-                np.random.random((10, len(tu.SENSORS_STR_LIST))),
-                columns=tu.SENSORS_STR_LIST,
-            ).to_dict("list")
-        },
-        {
-            "X": pd.DataFrame(
-                np.random.random((10, len(tu.SENSORS_STR_LIST))),
-                columns=tu.SENSORS_STR_LIST,
-            ).to_dict("dict")
-        },
+        np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist(),
+        np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist(),
+        pd.DataFrame(
+            np.random.random((10, len(tu.SENSORS_STR_LIST))),
+            columns=tu.SENSORS_STR_LIST,
+        ).to_dict("records"),
+        pd.DataFrame(
+            np.random.random((10, len(tu.SENSORS_STR_LIST))),
+            columns=tu.SENSORS_STR_LIST,
+        ).to_dict("list"),
+        pd.DataFrame(
+            np.random.random((10, len(tu.SENSORS_STR_LIST))),
+            columns=tu.SENSORS_STR_LIST,
+        ).to_dict("dict"),
     ],
 )
+@pytest.mark.parametrize("resp_format", ("json", "pyarrow", None))
+@pytest.mark.parametrize("send_as_pyarrow", (True, False))
 def test_prediction_endpoint_post_ok(
-    base_route, sensors, gordo_ml_server_client, data_to_post
+    base_route,
+    sensors,
+    gordo_ml_server_client,
+    data_to_post,
+    resp_format,
+    send_as_pyarrow,
 ):
     """
-    Test the expected successfull data posts
+    Test the expected successful data posts, by sending a variety of valid
+    JSON formats of a dataframe, as well as pyarrow serializations.
     """
-    resp = gordo_ml_server_client.post(f"{base_route}/prediction", json=data_to_post)
+    endpoint = f"{base_route}/prediction"
+    if resp_format is not None:
+        endpoint += f"?format={resp_format}"
+
+    if send_as_pyarrow:
+        X = pd.DataFrame.from_dict(data_to_post)
+        kwargs = dict(
+            data={"X": (io.BytesIO(pa.serialize_pandas(X).to_pybytes()), "X")}
+        )
+    else:
+        kwargs = dict(json={"X": data_to_post})
+
+    resp = gordo_ml_server_client.post(endpoint, **kwargs)
     assert resp.status_code == 200
 
-    data = server_utils.dataframe_from_dict(resp.json["data"])
+    if resp_format in (None, "json"):
+        data = server_utils.dataframe_from_dict(resp.json["data"])
+    else:
+        data = pa.deserialize_pandas(resp.data)
 
     # Expected column names
     assert all(key in data for key in ("model-output", "model-input"))

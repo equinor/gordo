@@ -6,6 +6,7 @@ influxdb~=5.2
 jinja2~=2.10
 joblib~=0.13
 Keras~=2.2
+pyarrow~=0.14
 numpy~=1.15
 pandas~=0.24
 numexpr>=2.6.1

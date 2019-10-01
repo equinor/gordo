@@ -8,8 +8,9 @@ import timeit
 import typing
 
 import pandas as pd
+import pyarrow as pa
 
-from flask import Blueprint, current_app, g, send_file, make_response, jsonify
+from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
 from flask_restplus import Resource, fields
 
 from gordo_components import __version__, serializer
@@ -204,8 +205,16 @@ class BaseModelView(Resource):
                 target_tag_list=self.target_tags,
                 index=X.index,
             )
-            context["data"] = server_utils.dataframe_to_dict(data)
-            return make_response((jsonify(context), context.pop("status-code", 200)))
+            if request.args.get("format") == "pyarrow":
+                return send_file(
+                    io.BytesIO(pa.serialize_pandas(data).to_pybytes()),
+                    mimetype="application/octet-stream",
+                )
+            else:
+                context["data"] = server_utils.dataframe_to_dict(data)
+                return make_response(
+                    (jsonify(context), context.pop("status-code", 200))
+                )
 
 
 class MetaDataView(Resource):
