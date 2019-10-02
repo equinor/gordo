@@ -78,15 +78,11 @@ async def post(
 
 async def _handle_response(resp: aiohttp.ClientResponse) -> Union[dict, bytes]:
     if 200 <= resp.status <= 299:
-        if resp.content_type == "application/json":
-            return await resp.json()  # Opt to return JSON
-        else:
-            return await resp.content.read()  # Fall back: return the raw bytes
-
+        is_json = resp.content_type == "application/json"
+        return await (resp.json() if is_json else resp.content.read())
     else:
         content = await resp.content.read()
         msg = f"Failed to get JSON with status code: {resp.status}: {content}"
-
         if resp.status == 422:
             raise HttpUnprocessableEntity()
         elif 400 <= resp.status <= 499:

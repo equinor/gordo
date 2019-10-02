@@ -205,7 +205,7 @@ class BaseModelView(Resource):
                 target_tag_list=self.target_tags,
                 index=X.index,
             )
-            if request.args.get("format") == "pyarrow":
+            if request.args.get("format") == "arrow":
                 return send_file(
                     io.BytesIO(pa.serialize_pandas(data).to_pybytes()),
                     mimetype="application/octet-stream",

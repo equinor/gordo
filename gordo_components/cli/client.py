@@ -93,7 +93,7 @@ def client(ctx: click.Context, *args, **kwargs):
 )
 @click.option(
     "--compress/--no-compress",
-    help="Use pyarrow serialization when sending and receiving data from server",
+    help="Use arrow/parquet serialization when sending and receiving data from server",
     default=True,
 )
 @click.pass_context
@@ -120,7 +120,7 @@ def predict(
             "forward_resampled_sensors": forward_resampled_sensors,
             "ignore_unhealthy_targets": ignore_unhealthy_targets,
             "n_retries": n_retries,
-            "use_pyarrow": compress,
+            "use_arrow": compress,
         }
     )
 

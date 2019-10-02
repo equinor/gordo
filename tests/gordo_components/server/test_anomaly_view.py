@@ -23,7 +23,7 @@ import tests.utils as tu
         None,  # No data, use GET
     ],
 )
-@pytest.mark.parametrize("resp_format", ("json", "pyarrow", None))
+@pytest.mark.parametrize("resp_format", ("json", "arrow", None))
 def test_anomaly_prediction_endpoint(
     base_route, influxdb, gordo_ml_server_client, data_to_post, sensors, resp_format
 ):

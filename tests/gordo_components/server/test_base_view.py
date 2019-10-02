@@ -31,25 +31,25 @@ import tests.utils as tu
         ).to_dict("dict"),
     ],
 )
-@pytest.mark.parametrize("resp_format", ("json", "pyarrow", None))
-@pytest.mark.parametrize("send_as_pyarrow", (True, False))
+@pytest.mark.parametrize("resp_format", ("json", "arrow", None))
+@pytest.mark.parametrize("send_as_arrow", (True, False))
 def test_prediction_endpoint_post_ok(
     base_route,
     sensors,
     gordo_ml_server_client,
     data_to_post,
     resp_format,
-    send_as_pyarrow,
+    send_as_arrow,
 ):
     """
     Test the expected successful data posts, by sending a variety of valid
-    JSON formats of a dataframe, as well as pyarrow serializations.
+    JSON formats of a dataframe, as well as arrow serializations.
     """
     endpoint = f"{base_route}/prediction"
     if resp_format is not None:
         endpoint += f"?format={resp_format}"
 
-    if send_as_pyarrow:
+    if send_as_arrow:
         X = pd.DataFrame.from_dict(data_to_post)
         kwargs = dict(
             data={"X": (io.BytesIO(pa.serialize_pandas(X).to_pybytes()), "X")}

@@ -158,7 +158,7 @@ class AnomalyView(BaseModelView):
             }
             return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
 
-        if request.args.get("format") == "pyarrow":
+        if request.args.get("format") == "arrow":
             return send_file(
                 io.BytesIO(pa.serialize_pandas(anomaly_df).to_pybytes()),
                 mimetype="application/octet-stream",

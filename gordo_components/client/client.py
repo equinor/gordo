@@ -56,7 +56,7 @@ class Client:
         forward_resampled_sensors: bool = False,
         ignore_unhealthy_targets: bool = False,
         n_retries: int = 5,
-        use_pyarrow: bool = False,
+        use_arrow: bool = False,
     ):
         """
 
@@ -99,9 +99,10 @@ class Client:
         n_retries: int
             Number of times the client should attempt to retry a failed prediction request. Each time the client
             retires the time it sleeps before retrying is exponentially calculated.
-        use_pyarrow: bool
-            Pass the data to the server using the msgpack protocol. Default is True
-            and recommended as it's more efficient for larger batch sizes.
+        use_arrow: bool
+            Pass the data to the server using the arrow/parquet protocol. Default is True
+            and recommended as it's more efficient for larger batch sizes. If False JSON
+            is used for sending the data back and forth.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -110,7 +111,7 @@ class Client:
         self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
-        self.use_pyarrow = use_pyarrow
+        self.use_arrow = use_arrow
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -118,7 +119,7 @@ class Client:
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
-        self.query_params = f"?format={'pyarrow' if use_pyarrow else 'json'}"
+        self.query = f"?format={'arrow' if use_arrow else 'json'}"
 
         endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.endpoints = self._filter_endpoints(
@@ -400,11 +401,11 @@ class Client:
 
         kwargs: Dict[str, Any] = dict(
             session=session,
-            url=f"{endpoint.endpoint}{self.prediction_path}{self.query_params}",
+            url=f"{endpoint.endpoint}{self.prediction_path}{self.query}",
         )
 
-        # We're going to serialize the data as either JSON or MessagePack
-        if self.use_pyarrow:
+        # We're going to serialize the data as either JSON or Arrow
+        if self.use_arrow:
             kwargs["files"] = {
                 "X": pa.serialize_pandas(X.iloc[chunk]).to_pybytes(),
                 "y": pa.serialize_pandas(y.iloc[chunk]).to_pybytes()
@@ -428,7 +429,7 @@ class Client:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
-                    ] = f"{endpoint.endpoint}{self.prediction_path}{self.query_params}"
+                    ] = f"{endpoint.endpoint}{self.prediction_path}{self.query}"
                     resp = await gordo_io.post(**kwargs)
             # If it was an IO or TimeoutError, we can retry
             except (
@@ -553,14 +554,14 @@ class Client:
         try:
             try:
                 response = await gordo_io.get(
-                    f"{endpoint.endpoint}{self.prediction_path}{self.query_params}",
+                    f"{endpoint.endpoint}{self.prediction_path}{self.query}",
                     session=session,
                     json=json,
                 )
             except HttpUnprocessableEntity:
                 self.prediction_path = "/prediction"
                 response = await gordo_io.get(
-                    f"{endpoint.endpoint}{self.prediction_path}{self.query_params}",
+                    f"{endpoint.endpoint}{self.prediction_path}{self.query}",
                     session=session,
                     json=json,
                 )
