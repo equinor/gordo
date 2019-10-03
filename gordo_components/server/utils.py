@@ -3,6 +3,7 @@
 import logging
 import functools
 import os
+import io
 import timeit
 import dateutil
 from datetime import datetime
@@ -10,6 +11,7 @@ from typing import Union, List
 
 import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 from werkzeug import FileStorage
 from flask import request, g, jsonify, make_response, Response, current_app
 from functools import lru_cache, wraps
@@ -28,6 +30,47 @@ basic dataframe output, respectively.
 """
 
 logger = logging.getLogger(__name__)
+
+
+def dataframe_into_parquet_bytes(
+    df: pd.DataFrame, compression: str = "snappy"
+) -> bytes:
+    """
+    Convert a dataframe into bytes representing a parquet table.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        DataFrame to be compressed
+    compression: str
+        Compression to use, passed, to  ``pyarrow.parquet.write_table``
+
+    Returns
+    -------
+    bytes
+    """
+    table = pa.Table.from_pandas(df)
+    buf = pa.BufferOutputStream()
+    pq.write_table(table, buf, compression=compression)
+    return buf.getvalue().to_pybytes()
+
+
+def dataframe_from_parquet_bytes(buf: bytes) -> pd.DataFrame:
+    """
+    Convert bytes representing a parquet table into a pandas dataframe.
+
+    Parameters
+    ----------
+    buf: bytes
+        Bytes representing a parquet table. Can be the direct result from
+        `func`::gordo_components.server.utils.dataframe_into_parquet_bytes
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    table = pq.read_table(io.BytesIO(buf))
+    return table.to_pandas()
 
 
 def dataframe_to_dict(df: pd.DataFrame) -> dict:
