@@ -88,7 +88,13 @@ def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
 
 
 def _post_patch(*args, **kwargs):
-    resp = requests.post(*args, **{k: v for k, v in kwargs.items() if k != "session"})
+    kwargs = {k: v for k, v in kwargs.items() if k != "session"}
+
+    # Warning, ugly; aiohttp.Session.post calls request's version of 'files' 'data'
+    if "data" in kwargs:
+        kwargs["files"] = kwargs.pop("data")
+
+    resp = requests.post(*args, **kwargs)
     if resp.headers["Content-Type"] == "application/json":
         return resp.json()
     else:

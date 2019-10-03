@@ -405,7 +405,7 @@ class Client:
 
         # We're going to serialize the data as either JSON or Arrow
         if self.use_parquet:
-            kwargs["files"] = {
+            kwargs["data"] = {
                 "X": server_utils.dataframe_into_parquet_bytes(X.iloc[chunk]),
                 "y": server_utils.dataframe_into_parquet_bytes(y.iloc[chunk])
                 if y is not None
