@@ -7,7 +7,6 @@
 adal==1.2.2
 apipkg==1.5               # via execnet
 appdirs==1.4.3            # via black
-appnope==0.1.0            # via ipython
 asn1crypto==0.24.0        # via cryptography
 asynctest==0.13.0
 atomicwrites==1.3.0       # via pytest
@@ -34,7 +33,7 @@ ipython==7.7.0            # via ipykernel, ipywidgets, jupyter-console
 ipywidgets==7.5.1         # via jupyter
 jedi==0.15.1              # via ipython
 jinja2==2.10.1            # via nbconvert, notebook
-joblib==0.13.2            # via scikit-learn
+joblib==0.14.0            # via scikit-learn
 jsonschema==3.0.2         # via nbformat
 jupyter-client==5.3.1     # via ipykernel, jupyter-console, notebook, qtconsole
 jupyter-console==6.0.0    # via jupyter
