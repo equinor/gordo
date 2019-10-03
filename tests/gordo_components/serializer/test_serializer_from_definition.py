@@ -43,6 +43,16 @@ logger = logging.getLogger(__name__)
                 - sklearn.ensemble.forest.RandomForestRegressor:
                     n_estimators: 20
     """,
+        """
+        sklearn.multioutput.MultiOutputRegressor:
+            estimator: 
+                sklearn.pipeline.Pipeline:
+                    steps:
+                        - sklearn.cluster.FeatureAgglomeration:
+                            n_clusters: 2
+                            pooling_func: numpy.mean
+                        - sklearn.linear_model.LinearRegression
+        """,
     ],
 )
 def test_load_from_definition(definition):
