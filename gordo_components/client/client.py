@@ -9,6 +9,7 @@ import itertools
 import time
 
 import typing
+from typing import Dict, Any
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
@@ -49,11 +50,12 @@ class Client:
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
         prediction_forwarder: typing.Optional[PredictionForwarder] = None,
-        batch_size: int = 1000,
+        batch_size: int = 100000,
         parallelism: int = 10,
         forward_resampled_sensors: bool = False,
         ignore_unhealthy_targets: bool = False,
         n_retries: int = 5,
+        use_parquet: bool = False,
     ):
         """
 
@@ -96,6 +98,10 @@ class Client:
         n_retries: int
             Number of times the client should attempt to retry a failed prediction request. Each time the client
             retires the time it sleeps before retrying is exponentially calculated.
+        use_parquet: bool
+            Pass the data to the server using the parquet protocol. Default is True
+            and recommended as it's more efficient for larger batch sizes. If False JSON
+            is used for sending the data back and forth.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -104,6 +110,7 @@ class Client:
         self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
+        self.use_parquet = use_parquet
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -111,6 +118,7 @@ class Client:
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
+        self.query = f"?format={'parquet' if use_parquet else 'json'}"
 
         endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.endpoints = self._filter_endpoints(
@@ -390,28 +398,38 @@ class Client:
         PredictionResult
         """
 
-        json = {
-            "X": server_utils.dataframe_to_dict(X.iloc[chunk]),
-            "y": server_utils.dataframe_to_dict(y.iloc[chunk])
-            if y is not None
-            else None,
-        }
+        kwargs: Dict[str, Any] = dict(
+            session=session,
+            url=f"{endpoint.endpoint}{self.prediction_path}{self.query}",
+        )
 
+        # We're going to serialize the data as either JSON or Arrow
+        if self.use_parquet:
+            kwargs["files"] = {
+                "X": server_utils.dataframe_into_parquet_bytes(X.iloc[chunk]),
+                "y": server_utils.dataframe_into_parquet_bytes(y.iloc[chunk])
+                if y is not None
+                else None,
+            }
+        else:
+            kwargs["json"] = {
+                "X": server_utils.dataframe_to_dict(X.iloc[chunk]),
+                "y": server_utils.dataframe_to_dict(y.iloc[chunk])
+                if y is not None
+                else None,
+            }
+
+        # Start attempting to get predictions for this batch
         for current_attempt in itertools.count(start=1):
             try:
                 try:
-                    resp = await gordo_io.post_json(
-                        url=f"{endpoint.endpoint}{self.prediction_path}",
-                        session=session,
-                        json=json,
-                    )
+                    resp = await gordo_io.post(**kwargs)
                 except HttpUnprocessableEntity:
                     self.prediction_path = "/prediction"
-                    resp = await gordo_io.post_json(
-                        url=f"{endpoint.endpoint}{self.prediction_path}",
-                        session=session,
-                        json=json,
-                    )
+                    kwargs[
+                        "url"
+                    ] = f"{endpoint.endpoint}{self.prediction_path}{self.query}"
+                    resp = await gordo_io.post(**kwargs)
             # If it was an IO or TimeoutError, we can retry
             except (
                 IOError,
@@ -454,7 +472,7 @@ class Client:
             # Process response and return if no exception
             else:
 
-                predictions = server_utils.dataframe_from_dict(resp["data"])
+                predictions = self.dataframe_from_response(resp)
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
@@ -463,7 +481,6 @@ class Client:
                         endpoint=endpoint,
                         metadata=self.metadata,
                     )
-
                 return PredictionResult(
                     name=endpoint.target_name,
                     predictions=predictions,
@@ -530,15 +547,15 @@ class Client:
 
         try:
             try:
-                response = await gordo_io.fetch_json(
-                    f"{endpoint.endpoint}{self.prediction_path}",
+                response = await gordo_io.get(
+                    f"{endpoint.endpoint}{self.prediction_path}{self.query}",
                     session=session,
                     json=json,
                 )
             except HttpUnprocessableEntity:
                 self.prediction_path = "/prediction"
-                response = await gordo_io.fetch_json(
-                    f"{endpoint.endpoint}{self.prediction_path}",
+                response = await gordo_io.get(
+                    f"{endpoint.endpoint}{self.prediction_path}{self.query}",
                     session=session,
                     json=json,
                 )
@@ -552,17 +569,17 @@ class Client:
             return PredictionResult(
                 name=endpoint.target_name, predictions=None, error_messages=[msg]
             )
+        else:
+            logger.info(f"Processing {start} -> {end}")
+            predictions = self.dataframe_from_response(response)
 
-        logger.info(f"Processing {start} -> {end}")
-        predictions = server_utils.dataframe_from_dict(response["data"])
-
-        if self.prediction_forwarder is not None:
-            await self.prediction_forwarder(
-                predictions=predictions, endpoint=endpoint, metadata=self.metadata
+            if self.prediction_forwarder is not None:
+                await self.prediction_forwarder(
+                    predictions=predictions, endpoint=endpoint, metadata=self.metadata
+                )
+            return PredictionResult(
+                name=endpoint.target_name, predictions=predictions, error_messages=[]
             )
-        return PredictionResult(
-            name=endpoint.target_name, predictions=predictions, error_messages=[]
-        )
 
     async def _accumulate_coroutine_predictions(
         self, endpoint: EndpointMetadata, jobs: typing.List[typing.Coroutine]
@@ -676,6 +693,27 @@ class Client:
         '2019-01-01 10:45:00+00:00'
         """
         return dt - (pd.Timedelta(resolution) * n_intervals)
+
+    @staticmethod
+    def dataframe_from_response(response: typing.Union[dict, bytes]) -> pd.DataFrame:
+        """
+        The response from the server, parsed as either JSON / dict or raw bytes,
+        of which would be expected to be loadable from :func:`server.utils.dataframe_from_parquet_bytes`
+
+        Parameters
+        ----------
+        response: Union[dict, bytes]
+            The parsed response from the ML server.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        if isinstance(response, dict):
+            predictions = server_utils.dataframe_from_dict(response["data"])
+        else:
+            predictions = server_utils.dataframe_from_parquet_bytes(response)
+        return predictions
 
 
 def make_date_ranges(

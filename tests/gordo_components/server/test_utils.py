@@ -9,6 +9,29 @@ from gordo_components.server import utils as server_utils
 
 @pytest.mark.parametrize(
     "df",
+    (
+        pd.DataFrame(np.random.random((10, 10))),
+        pd.DataFrame(
+            np.random.random((10, 10)),
+            index=pd.date_range(start="2016-01-01", end="2016-01-02", periods=10),
+        ),
+        pd.DataFrame(
+            np.random.random((10, 4)),
+            columns=pd.MultiIndex.from_product((("col1", "col2"), ("ft1", "ft2"))),
+        ),
+    ),
+)
+def test_dataframe_parquet_serializers(df):
+    """The (de)serialization functions should be interoperable"""
+    serialized = server_utils.dataframe_into_parquet_bytes(df.copy())
+    df_clone = server_utils.dataframe_from_parquet_bytes(serialized)
+    assert df.columns.tolist() == df_clone.columns.tolist()
+    assert df.index.tolist() == df_clone.index.tolist()
+    assert np.allclose(df.values, df_clone.values)
+
+
+@pytest.mark.parametrize(
+    "df",
     [
         # Multi-column
         pd.DataFrame(

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import io
 import logging
 import timeit
 import typing
 
-from flask import Blueprint, make_response, jsonify, g
+from flask import Blueprint, make_response, jsonify, g, request, send_file
 from flask_restplus import fields
 
 from gordo_components import __version__
@@ -156,10 +157,16 @@ class AnomalyView(BaseModelView):
             }
             return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
 
-        context: typing.Dict[typing.Any, typing.Any] = dict()
-        context["data"] = utils.dataframe_to_dict(anomaly_df)
-        context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
-        return make_response(jsonify(context), context.pop("status-code", 200))
+        if request.args.get("format") == "parquet":
+            return send_file(
+                io.BytesIO(utils.dataframe_into_parquet_bytes(anomaly_df)),
+                mimetype="application/octet-stream",
+            )
+        else:
+            context: typing.Dict[typing.Any, typing.Any] = dict()
+            context["data"] = utils.dataframe_to_dict(anomaly_df)
+            context["time-seconds"] = f"{timeit.default_timer() - start_time:.4f}"
+            return make_response(jsonify(context), context.pop("status-code", 200))
 
 
 api.add_resource(

@@ -3,12 +3,15 @@
 import logging
 import functools
 import os
+import io
 import timeit
 import dateutil
 from datetime import datetime
 from typing import Union, List
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from flask import request, g, jsonify, make_response, Response, current_app
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
@@ -26,6 +29,47 @@ basic dataframe output, respectively.
 """
 
 logger = logging.getLogger(__name__)
+
+
+def dataframe_into_parquet_bytes(
+    df: pd.DataFrame, compression: str = "snappy"
+) -> bytes:
+    """
+    Convert a dataframe into bytes representing a parquet table.
+
+    Parameters
+    ----------
+    df: pd.DataFrame
+        DataFrame to be compressed
+    compression: str
+        Compression to use, passed to  :func:`pyarrow.parquet.write_table`
+
+    Returns
+    -------
+    bytes
+    """
+    table = pa.Table.from_pandas(df)
+    buf = pa.BufferOutputStream()
+    pq.write_table(table, buf, compression=compression)
+    return buf.getvalue().to_pybytes()
+
+
+def dataframe_from_parquet_bytes(buf: bytes) -> pd.DataFrame:
+    """
+    Convert bytes representing a parquet table into a pandas dataframe.
+
+    Parameters
+    ----------
+    buf: bytes
+        Bytes representing a parquet table. Can be the direct result from
+        `func`::gordo_components.server.utils.dataframe_into_parquet_bytes
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    table = pq.read_table(io.BytesIO(buf))
+    return table.to_pandas()
 
 
 def dataframe_to_dict(df: pd.DataFrame) -> dict:
@@ -224,20 +268,27 @@ def extract_X_y(method):
 
         # Data provided by the client
         if request.method == "POST":
-            X = request.json.get("X")
-            y = request.json.get("y")
 
-            if X is None:
+            # Always require an X, be it in JSON or file/parquet format.
+            if ("X" not in (request.json or {})) and ("X" not in request.files):
                 message = dict(message='Cannot predict without "X"')
                 return make_response((jsonify(message), 400))
 
-            # Convert X and (maybe) y into dataframes.
-            X = dataframe_from_dict(X)
+            if request.json is not None:
+                X = dataframe_from_dict(request.json["X"])
+                y = request.json.get("y")
+                if y is not None:
+                    y = dataframe_from_dict(y)
+            else:
+                X = dataframe_from_parquet_bytes(request.files["X"].read())
+                y = request.files.get("y")
+                if y is not None:
+                    y = dataframe_from_parquet_bytes(y.read())
+
             X = _verify_dataframe(X, [t.name for t in self.tags])
 
-            # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
+            # Verify y if it's not None
             if y is not None:
-                y = dataframe_from_dict(y)
                 y = _verify_dataframe(y, [t.name for t in self.target_tags])
 
             # If either X or y came back as a Response type, there was an error

@@ -151,6 +151,9 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             # this is a 'regular' non-stacked column dataframe
             sub_df = predictions[top_lvl_name]
 
+            if isinstance(sub_df, pd.Series):
+                sub_df = pd.DataFrame(sub_df)
+
             # Set the sub df's column names equal to the name of the tags if
             # they match the length of the tag list.
             if len(sub_df.columns) == len(endpoint.tag_list):

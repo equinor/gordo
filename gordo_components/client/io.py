@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Optional
+from typing import Optional, Union
 
 import aiohttp
 from werkzeug.exceptions import BadRequest
@@ -16,7 +16,7 @@ class HttpUnprocessableEntity(BaseException):
     pass
 
 
-async def fetch_json(
+async def get(
     url: str, *args, session: Optional[aiohttp.ClientSession] = None, **kwargs
 ) -> dict:
     """
@@ -35,18 +35,18 @@ async def fetch_json(
         The JSON response from the endpoint
     """
 
-    async def fetch(session):
+    async def _get(session):
         async with session.get(url, *args, **kwargs) as resp:  # type: ignore
-            return await _handle_json(resp)
+            return await _handle_response(resp)
 
     if session is None:  # We have to create a session which will be closed
         async with aiohttp.ClientSession() as session:
-            return await fetch(session)
+            return await _get(session)
     else:
-        return await fetch(session)
+        return await _get(session)
 
 
-async def post_json(
+async def post(
     url: str, *args, session: Optional[aiohttp.ClientSession] = None, **kwargs
 ) -> dict:
     """
@@ -65,24 +65,24 @@ async def post_json(
         The JSON response from the endpoint
     """
 
-    async def post(session):
+    async def _post(session):
         async with session.post(url, *args, **kwargs) as resp:
-            return await _handle_json(resp)
+            return await _handle_response(resp)
 
     if session is None:  # We have to create a session which will be closed
         async with aiohttp.ClientSession() as session:
-            return await post(session)
+            return await _post(session)
     else:
-        return await post(session)
+        return await _post(session)
 
 
-async def _handle_json(resp: aiohttp.ClientResponse) -> dict:
+async def _handle_response(resp: aiohttp.ClientResponse) -> Union[dict, bytes]:
     if 200 <= resp.status <= 299:
-        return await resp.json()
+        is_json = resp.content_type == "application/json"
+        return await (resp.json() if is_json else resp.content.read())
     else:
         content = await resp.content.read()
-        msg = f"Failed to get JSON with status code: {resp.status}: {content}"
-
+        msg = f"Failed to get response with status code: {resp.status}: {content}"
         if resp.status == 422:
             raise HttpUnprocessableEntity()
         elif 400 <= resp.status <= 499:

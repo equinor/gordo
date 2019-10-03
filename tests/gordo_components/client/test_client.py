@@ -7,9 +7,7 @@ import logging
 import typing
 from dateutil.parser import isoparse  # type: ignore
 import asyncio
-import time
 
-import aiohttp
 import pytest
 import pandas as pd
 import numpy as np
@@ -19,7 +17,6 @@ from mock import patch, call
 
 from gordo_components.client import Client, utils as client_utils
 from gordo_components.client.utils import EndpointMetadata
-from gordo_components.client import io as client_io
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.data_provider import providers
 from gordo_components.server import utils as server_utils
@@ -63,8 +60,13 @@ def test_client_download_model(watchman_service):
 
 @pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_data_provider", (False, True))
+@pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
-    influxdb, watchman_service, use_data_provider: bool, batch_size: int
+    influxdb,
+    watchman_service,
+    use_data_provider: bool,
+    batch_size: int,
+    use_parquet: bool,
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -109,6 +111,7 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
             destination_influx_uri=tu.INFLUXDB_URI
         ),
         batch_size=batch_size,
+        use_parquet=use_parquet,
     )
 
     # Should have discovered machine-1
@@ -244,6 +247,7 @@ def test_client_cli_download_model(watchman_service):
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
+@pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_cli_predict(
     influxdb,
     gordo_name,
@@ -252,6 +256,7 @@ def test_client_cli_predict(
     output_dir,
     data_provider,
     trained_model_directory,
+    use_parquet,
 ):
     """
     Test ability for client to get predictions via CLI
@@ -265,6 +270,7 @@ def test_client_cli_predict(
         "--project",
         tu.GORDO_PROJECT,
         "predict",
+        "--parquet" if use_parquet else "--no-parquet",
         "2016-01-01T00:00:00Z",
         "2016-01-01T01:00:00Z",
     ]
@@ -501,7 +507,7 @@ def test_client_endpoint_filtering(
         ), f"Not equal: {expected} \n----\n {filtered_endpoints}"
 
 
-def test_exponential_sleep_time(watchman_service):
+def test_exponential_sleep_time(caplog, watchman_service):
     endpoint = _endpoint_metadata("t1", False)
 
     start, end = (
@@ -509,22 +515,23 @@ def test_exponential_sleep_time(watchman_service):
         isoparse("2016-01-01T12:00:00+00:00"),
     )
 
-    with patch(
-        "gordo_components.client.client.time.sleep", return_value=None
-    ) as time_sleep:
-        client = Client(project=tu.GORDO_PROJECT)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(
-            client._process_post_prediction_task(
-                X=pd.DataFrame([123]),
-                y=None,
-                chunk=slice(0, 1),
-                endpoint=endpoint,
-                start=start,
-                end=end,
+    with caplog.at_level(logging.CRITICAL):
+        with patch(
+            "gordo_components.client.client.time.sleep", return_value=None
+        ) as time_sleep:
+            client = Client(project=tu.GORDO_PROJECT)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(
+                client._process_post_prediction_task(
+                    X=pd.DataFrame([123]),
+                    y=None,
+                    chunk=slice(0, 1),
+                    endpoint=endpoint,
+                    start=start,
+                    end=end,
+                )
             )
-        )
-        loop.close()
+            loop.close()
 
     expected_calls = [call(8), call(16), call(32), call(64), call(128)]
     time_sleep.assert_has_calls(expected_calls)

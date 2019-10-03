@@ -6,7 +6,6 @@ import pytest
 import logging
 import tempfile
 
-import jinja2
 from click.testing import CliRunner
 
 from gordo_components import cli

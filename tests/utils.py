@@ -1,4 +1,5 @@
 import os
+import io
 import json
 import typing
 import re
@@ -15,6 +16,7 @@ import responses
 import requests
 from asynctest import mock as async_mock
 from influxdb import InfluxDBClient
+from flask import Request
 
 from gordo_components.watchman import server as watchman_server
 from gordo_components.dataset.sensor_tag import SensorTag
@@ -85,6 +87,22 @@ def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
         return False
 
 
+def _post_patch(*args, **kwargs):
+    resp = requests.post(*args, **{k: v for k, v in kwargs.items() if k != "session"})
+    if resp.headers["Content-Type"] == "application/json":
+        return resp.json()
+    else:
+        return resp.content
+
+
+def _get_patch(*args, **kwargs):
+    resp = requests.get(*args, **{k: v for k, v in kwargs.items() if k != "session"})
+    if resp.headers["Content-Type"] == "application/json":
+        return resp.json()
+    else:
+        return resp.content
+
+
 @contextmanager
 def watchman(
     host: str,
@@ -132,40 +150,38 @@ def watchman(
             will call the correct path (assuminng only single level paths) on the
             gordo app.
             """
-            headers = {}
+            if request.method in ("GET", "POST"):
 
-            if request.method == "GET":
-                # we may have json data being passed
                 kwargs = dict()
                 if request.body:
-                    kwargs["json"] = json.loads(request.body.decode())
-
-                resp = gordo_server_app.get(request.path_url, **kwargs)
-                resp = resp.json or resp.data
-            elif request.method == "POST":
-                resp = gordo_server_app.post(
-                    request.path_url, json=json.loads(request.body.decode())
-                ).json
-            else:
-                raise NotImplementedError(
-                    f"Request method {request.method} not yet implemented."
+                    flask_request = Request.from_values(
+                        content_length=len(request.body),
+                        input_stream=io.BytesIO(request.body),
+                        content_type=request.headers["Content-Type"],
+                        method=request.method,
+                    )
+                    if flask_request.json:
+                        kwargs["json"] = flask_request.json
+                    else:
+                        kwargs["data"] = {
+                            k: (io.BytesIO(f.read()), f.filename)
+                            for k, f in flask_request.files.items()
+                        }
+                resp = getattr(gordo_server_app, request.method.lower())(
+                    request.path_url, **kwargs
                 )
-            return 200, headers, json.dumps(resp) if not type(resp) == bytes else resp
+                return (
+                    200,
+                    resp.headers,
+                    json.dumps(resp.json) if resp.json is not None else resp.data,
+                )
 
         with responses.RequestsMock(
             assert_all_requests_are_fired=False
         ) as rsps, async_mock.patch(
-            "gordo_components.client.io.fetch_json",
-            # Mock the async call to get, but exclude session kwarg
-            side_effect=lambda *args, **kwargs: requests.get(
-                *args, **{k: v for k, v in kwargs.items() if k != "session"}
-            ).json(),
+            "gordo_components.client.io.get", side_effect=_get_patch
         ), async_mock.patch(
-            "gordo_components.client.io.post_json",
-            # Mock the async call to post, but exclude session kwarg
-            side_effect=lambda *args, **kwargs: requests.post(
-                *args, **{k: v for k, v in kwargs.items() if k != "session"}
-            ).json(),
+            "gordo_components.client.io.post", side_effect=_post_patch
         ):
 
             # Gordo ML Server requests
