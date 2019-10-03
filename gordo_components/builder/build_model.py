@@ -188,7 +188,7 @@ def get_metrics_dict(metrics_list: list, y: pd.DataFrame) -> dict:
 
     Parameters
     ----------
-    metrics: list
+    metrics_list: list
         List of sklearn score functions
     y: pd.DataFrame
         Target data
