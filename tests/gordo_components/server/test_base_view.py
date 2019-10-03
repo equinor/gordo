@@ -5,7 +5,6 @@ import logging
 
 import pytest
 import pandas as pd
-import pyarrow as pa
 import numpy as np
 
 from gordo_components.server import utils as server_utils
@@ -31,28 +30,28 @@ import tests.utils as tu
         ).to_dict("dict"),
     ],
 )
-@pytest.mark.parametrize("resp_format", ("json", "arrow", None))
-@pytest.mark.parametrize("send_as_arrow", (True, False))
+@pytest.mark.parametrize("resp_format", ("json", "parquet", None))
+@pytest.mark.parametrize("send_as_parquet", (True, False))
 def test_prediction_endpoint_post_ok(
     base_route,
     sensors,
     gordo_ml_server_client,
     data_to_post,
     resp_format,
-    send_as_arrow,
+    send_as_parquet,
 ):
     """
     Test the expected successful data posts, by sending a variety of valid
-    JSON formats of a dataframe, as well as arrow serializations.
+    JSON formats of a dataframe, as well as parquet serializations.
     """
     endpoint = f"{base_route}/prediction"
     if resp_format is not None:
         endpoint += f"?format={resp_format}"
 
-    if send_as_arrow:
+    if send_as_parquet:
         X = pd.DataFrame.from_dict(data_to_post)
         kwargs = dict(
-            data={"X": (io.BytesIO(pa.serialize_pandas(X).to_pybytes()), "X")}
+            data={"X": (io.BytesIO(server_utils.dataframe_into_parquet_bytes(X)), "X")}
         )
     else:
         kwargs = dict(json={"X": data_to_post})
@@ -63,7 +62,7 @@ def test_prediction_endpoint_post_ok(
     if resp_format in (None, "json"):
         data = server_utils.dataframe_from_dict(resp.json["data"])
     else:
-        data = pa.deserialize_pandas(resp.data)
+        data = server_utils.dataframe_from_parquet_bytes(resp.data)
 
     # Expected column names
     assert all(key in data for key in ("model-output", "model-input"))

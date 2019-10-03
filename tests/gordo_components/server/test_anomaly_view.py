@@ -2,8 +2,6 @@
 
 import pytest
 import numpy as np
-import pandas as pd
-import pyarrow as pa
 
 from gordo_components.server import utils as server_utils
 import tests.utils as tu
@@ -23,7 +21,7 @@ import tests.utils as tu
         None,  # No data, use GET
     ],
 )
-@pytest.mark.parametrize("resp_format", ("json", "arrow", None))
+@pytest.mark.parametrize("resp_format", ("json", "parquet", None))
 def test_anomaly_prediction_endpoint(
     base_route, influxdb, gordo_ml_server_client, data_to_post, sensors, resp_format
 ):
@@ -50,7 +48,7 @@ def test_anomaly_prediction_endpoint(
         assert "data" in resp.json
         data = server_utils.dataframe_from_dict(resp.json["data"])
     else:
-        data = pa.deserialize_pandas(resp.data)
+        data = server_utils.dataframe_from_parquet_bytes(resp.data)
 
     # Only different between POST and GET is POST will return None for
     # start and end dates, because the server can't know what those are

@@ -7,9 +7,7 @@ import logging
 import typing
 from dateutil.parser import isoparse  # type: ignore
 import asyncio
-import time
 
-import aiohttp
 import pytest
 import pandas as pd
 import numpy as np
@@ -19,7 +17,6 @@ from mock import patch, call
 
 from gordo_components.client import Client, utils as client_utils
 from gordo_components.client.utils import EndpointMetadata
-from gordo_components.client import io as client_io
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.data_provider import providers
 from gordo_components.server import utils as server_utils
@@ -63,9 +60,9 @@ def test_client_download_model(watchman_service):
 
 @pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_data_provider", (False, True))
-@pytest.mark.parametrize("use_arrow", (True, False))
+@pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
-    influxdb, watchman_service, use_data_provider: bool, batch_size: int, use_arrow
+    influxdb, watchman_service, use_data_provider: bool, batch_size: int, use_parquet
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -110,7 +107,7 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
             destination_influx_uri=tu.INFLUXDB_URI
         ),
         batch_size=batch_size,
-        use_arrow=use_arrow,
+        use_parquet=use_parquet,
     )
 
     # Should have discovered machine-1
@@ -246,7 +243,7 @@ def test_client_cli_download_model(watchman_service):
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
-@pytest.mark.parametrize("use_arrow", (True, False))
+@pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_cli_predict(
     influxdb,
     gordo_name,
@@ -255,7 +252,7 @@ def test_client_cli_predict(
     output_dir,
     data_provider,
     trained_model_directory,
-    use_arrow,
+    use_parquet,
 ):
     """
     Test ability for client to get predictions via CLI
@@ -269,7 +266,7 @@ def test_client_cli_predict(
         "--project",
         tu.GORDO_PROJECT,
         "predict",
-        "--compress" if use_arrow else "--no-compress",
+        "--parquet" if use_parquet else "--no-parquet",
         "2016-01-01T00:00:00Z",
         "2016-01-01T01:00:00Z",
     ]

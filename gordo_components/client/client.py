@@ -15,7 +15,6 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
 import aiohttp
 import pandas as pd
-import pyarrow as pa
 from sklearn.base import BaseEstimator
 from werkzeug.exceptions import BadRequest
 
@@ -56,7 +55,7 @@ class Client:
         forward_resampled_sensors: bool = False,
         ignore_unhealthy_targets: bool = False,
         n_retries: int = 5,
-        use_arrow: bool = False,
+        use_parquet: bool = False,
     ):
         """
 
@@ -99,8 +98,8 @@ class Client:
         n_retries: int
             Number of times the client should attempt to retry a failed prediction request. Each time the client
             retires the time it sleeps before retrying is exponentially calculated.
-        use_arrow: bool
-            Pass the data to the server using the arrow/parquet protocol. Default is True
+        use_parquet: bool
+            Pass the data to the server using the parquet protocol. Default is True
             and recommended as it's more efficient for larger batch sizes. If False JSON
             is used for sending the data back and forth.
         """
@@ -111,7 +110,7 @@ class Client:
         self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
-        self.use_arrow = use_arrow
+        self.use_parquet = use_parquet
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -119,7 +118,7 @@ class Client:
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
-        self.query = f"?format={'arrow' if use_arrow else 'json'}"
+        self.query = f"?format={'parquet' if use_parquet else 'json'}"
 
         endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.endpoints = self._filter_endpoints(
@@ -405,10 +404,10 @@ class Client:
         )
 
         # We're going to serialize the data as either JSON or Arrow
-        if self.use_arrow:
+        if self.use_parquet:
             kwargs["files"] = {
-                "X": pa.serialize_pandas(X.iloc[chunk]).to_pybytes(),
-                "y": pa.serialize_pandas(y.iloc[chunk]).to_pybytes()
+                "X": server_utils.dataframe_into_parquet_bytes(X.iloc[chunk]),
+                "y": server_utils.dataframe_into_parquet_bytes(y.iloc[chunk])
                 if y is not None
                 else None,
             }
@@ -476,7 +475,7 @@ class Client:
                 if isinstance(resp, dict):
                     predictions = server_utils.dataframe_from_dict(resp["data"])
                 elif isinstance(resp, bytes):
-                    predictions = pa.deserialize_pandas(resp)
+                    predictions = server_utils.dataframe_from_parquet_bytes(resp)
                 else:
                     raise ValueError(f"Unknown response type: {type(resp)}")
 
@@ -580,7 +579,7 @@ class Client:
             if isinstance(response, dict):
                 predictions = server_utils.dataframe_from_dict(response["data"])
             else:
-                predictions = pa.deserialize_pandas(response)
+                predictions = server_utils.dataframe_from_parquet_bytes(response)
 
             if self.prediction_forwarder is not None:
                 await self.prediction_forwarder(

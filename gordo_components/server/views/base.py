@@ -8,7 +8,6 @@ import timeit
 import typing
 
 import pandas as pd
-import pyarrow as pa
 
 from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
 from flask_restplus import Resource, fields
@@ -205,9 +204,9 @@ class BaseModelView(Resource):
                 target_tag_list=self.target_tags,
                 index=X.index,
             )
-            if request.args.get("format") == "arrow":
+            if request.args.get("format") == "parquet":
                 return send_file(
-                    io.BytesIO(pa.serialize_pandas(data).to_pybytes()),
+                    io.BytesIO(server_utils.dataframe_into_parquet_bytes(data)),
                     mimetype="application/octet-stream",
                 )
             else:

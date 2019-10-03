@@ -283,14 +283,14 @@ def extract_X_y(method):
 
             # Convert X and (maybe) y into dataframes.
             if isinstance(X, FileStorage):
-                X = pa.deserialize_pandas(X.read())
+                X = dataframe_from_parquet_bytes(X.read())
             else:
                 X = dataframe_from_dict(X)
             X = _verify_dataframe(X, [t.name for t in self.tags])
 
             # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
             if isinstance(y, FileStorage):
-                y = pa.deserialize_pandas(y.read())
+                y = dataframe_from_parquet_bytes(y.read())
             elif any(isinstance(y, Class) for Class in (dict, list)):
                 y = dataframe_from_dict(y)
 

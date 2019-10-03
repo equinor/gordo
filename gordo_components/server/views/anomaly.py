@@ -5,7 +5,6 @@ import logging
 import timeit
 import typing
 
-import pyarrow as pa
 from flask import Blueprint, make_response, jsonify, g, request, send_file
 from flask_restplus import fields
 
@@ -158,9 +157,9 @@ class AnomalyView(BaseModelView):
             }
             return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
 
-        if request.args.get("format") == "arrow":
+        if request.args.get("format") == "parquet":
             return send_file(
-                io.BytesIO(pa.serialize_pandas(anomaly_df).to_pybytes()),
+                io.BytesIO(utils.dataframe_into_parquet_bytes(anomaly_df)),
                 mimetype="application/octet-stream",
             )
         else:
