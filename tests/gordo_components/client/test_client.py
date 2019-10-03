@@ -62,7 +62,11 @@ def test_client_download_model(watchman_service):
 @pytest.mark.parametrize("use_data_provider", (False, True))
 @pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
-    influxdb, watchman_service, use_data_provider: bool, batch_size: int, use_parquet
+    influxdb,
+    watchman_service,
+    use_data_provider: bool,
+    batch_size: int,
+    use_parquet: bool,
 ):
     """
     Run the prediction client with different batch-sizes and whether to use

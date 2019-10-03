@@ -472,12 +472,7 @@ class Client:
             # Process response and return if no exception
             else:
 
-                if isinstance(resp, dict):
-                    predictions = server_utils.dataframe_from_dict(resp["data"])
-                elif isinstance(resp, bytes):
-                    predictions = server_utils.dataframe_from_parquet_bytes(resp)
-                else:
-                    raise ValueError(f"Unknown response type: {type(resp)}")
+                predictions = self.dataframe_from_response(resp)
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
@@ -576,10 +571,7 @@ class Client:
             )
         else:
             logger.info(f"Processing {start} -> {end}")
-            if isinstance(response, dict):
-                predictions = server_utils.dataframe_from_dict(response["data"])
-            else:
-                predictions = server_utils.dataframe_from_parquet_bytes(response)
+            predictions = self.dataframe_from_response(response)
 
             if self.prediction_forwarder is not None:
                 await self.prediction_forwarder(
@@ -701,6 +693,27 @@ class Client:
         '2019-01-01 10:45:00+00:00'
         """
         return dt - (pd.Timedelta(resolution) * n_intervals)
+
+    @staticmethod
+    def dataframe_from_response(response: typing.Union[dict, bytes]) -> pd.DataFrame:
+        """
+        The response from the server, parsed as either JSON / dict or raw bytes,
+        of which would be expected to be loadable from :func:`server.utils.dataframe_from_parquet_bytes`
+
+        Parameters
+        ----------
+        response: Union[dict, bytes]
+            The parsed response from the ML server.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        if isinstance(response, dict):
+            predictions = server_utils.dataframe_from_dict(response["data"])
+        else:
+            predictions = server_utils.dataframe_from_parquet_bytes(response)
+        return predictions
 
 
 def make_date_ranges(

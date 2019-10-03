@@ -12,7 +12,6 @@ from typing import Union, List
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from werkzeug import FileStorage
 from flask import request, g, jsonify, make_response, Response, current_app
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
@@ -43,7 +42,7 @@ def dataframe_into_parquet_bytes(
     df: pd.DataFrame
         DataFrame to be compressed
     compression: str
-        Compression to use, passed, to  ``pyarrow.parquet.write_table``
+        Compression to use, passed to  :func:`pyarrow.parquet.write_table`
 
     Returns
     -------
@@ -270,29 +269,23 @@ def extract_X_y(method):
         # Data provided by the client
         if request.method == "POST":
 
-            if request.json is not None:
-                X = request.json.get("X")
-                y = request.json.get("y")
-            else:
-                X = request.files.get("X")
-                y = request.files.get("y")
-
-            if X is None:
+            # Always require an X, be it in JSON or file/parquet format.
+            if ("X" not in (request.json or {})) and ("X" not in request.files):
                 message = dict(message='Cannot predict without "X"')
                 return make_response((jsonify(message), 400))
 
-            # Convert X and (maybe) y into dataframes.
-            if isinstance(X, FileStorage):
-                X = dataframe_from_parquet_bytes(X.read())
+            if request.json is not None:
+                X = dataframe_from_dict(request.json["X"])
+                y = request.json.get("y")
+                if y is not None:
+                    y = dataframe_from_dict(y)
             else:
-                X = dataframe_from_dict(X)
-            X = _verify_dataframe(X, [t.name for t in self.tags])
+                X = dataframe_from_parquet_bytes(request.files["X"].read())
+                y = request.files.get("y")
+                if y is not None:
+                    y = dataframe_from_parquet_bytes(y.read())
 
-            # Y is ok to be None for BaseView, view(s) like Anomaly might require it.
-            if isinstance(y, FileStorage):
-                y = dataframe_from_parquet_bytes(y.read())
-            elif any(isinstance(y, Class) for Class in (dict, list)):
-                y = dataframe_from_dict(y)
+            X = _verify_dataframe(X, [t.name for t in self.tags])
 
             # Verify y if it's not None
             if y is not None:

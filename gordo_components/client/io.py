@@ -82,7 +82,7 @@ async def _handle_response(resp: aiohttp.ClientResponse) -> Union[dict, bytes]:
         return await (resp.json() if is_json else resp.content.read())
     else:
         content = await resp.content.read()
-        msg = f"Failed to get JSON with status code: {resp.status}: {content}"
+        msg = f"Failed to get response with status code: {resp.status}: {content}"
         if resp.status == 422:
             raise HttpUnprocessableEntity()
         elif 400 <= resp.status <= 499:
