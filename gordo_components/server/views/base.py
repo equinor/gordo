@@ -39,13 +39,6 @@ API_MODEL_INPUT_POST = api.model(
 API_MODEL_OUTPUT_POST = api.model(
     "Prediction - Output from POST", {"output": fields.List(fields.List(fields.Float))}
 )
-
-
-# GET type declarations
-API_MODEL_INPUT_GET = api.model(
-    "Prediction - Time range prediction",
-    {"start": fields.DateTime, "end": fields.DateTime},
-)
 _tags = {
     fields.String: fields.Float
 }  # tags of single prediction record {'tag-name': tag-value}
@@ -55,10 +48,6 @@ _single_prediction_record = {
     "tags": fields.Nested(_tags),
     "total_abnormality": fields.Float,
 }
-API_MODEL_OUTPUT_GET = api.model(
-    "Prediction - Output from GET",
-    {"output": fields.List(fields.Nested(_single_prediction_record))},
-)
 
 
 class BaseModelView(Resource):
@@ -96,7 +85,7 @@ class BaseModelView(Resource):
      'time-seconds': '0.1937'}
     """
 
-    methods = ["GET", "POST"]
+    methods = ["POST"]
 
     y: pd.DataFrame = None
     X: pd.DataFrame = None
@@ -118,21 +107,6 @@ class BaseModelView(Resource):
             return normalize_sensor_tags(g.metadata["dataset"]["target_tag_list"])
         else:
             return []
-
-    @api.response(200, "Success", API_MODEL_OUTPUT_POST)
-    @api.doc(
-        params={
-            "start": "An ISO formatted datetime with timezone info string indicating prediction range start",
-            "end": "An ISO formatted datetime with timezone info string indicating prediction range end",
-        }
-    )
-    @server_utils.model_required
-    @server_utils.extract_X_y
-    def get(self):
-        """
-        Process a GET request by fetching data ourselves
-        """
-        return self._process_request()
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)

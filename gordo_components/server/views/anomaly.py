@@ -33,13 +33,6 @@ API_MODEL_INPUT_POST = api.model(
 API_MODEL_OUTPUT_POST = api.model(
     "Prediction - Output from POST", {"output": fields.List(fields.List(fields.Float))}
 )
-
-
-# GET type declarations
-API_MODEL_INPUT_GET = api.model(
-    "Prediction - Time range prediction",
-    {"start": fields.DateTime, "end": fields.DateTime},
-)
 _tags = {
     fields.String: fields.Float
 }  # tags of single prediction record {'tag-name': tag-value}
@@ -49,10 +42,6 @@ _single_prediction_record = {
     "tags": fields.Nested(_tags),
     "total_abnormality": fields.Float,
 }
-API_MODEL_OUTPUT_GET = api.model(
-    "Prediction - Output from GET",
-    {"output": fields.List(fields.Nested(_single_prediction_record))},
-)
 
 
 class AnomalyView(BaseModelView):
@@ -93,6 +82,8 @@ class AnomalyView(BaseModelView):
      'time-seconds': '0.1937'}
     """
 
+    methods = ["POST"]
+
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)
     @api.doc(
@@ -103,19 +94,6 @@ class AnomalyView(BaseModelView):
     @utils.model_required
     @utils.extract_X_y
     def post(self):
-        start_time = timeit.default_timer()
-        return self._create_anomaly_response(start_time)
-
-    @api.response(200, "Success", API_MODEL_OUTPUT_POST)
-    @api.doc(
-        params={
-            "start": "An ISO formatted datetime with timezone info string indicating prediction range start",
-            "end": "An ISO formatted datetime with timezone info string indicating prediction range end",
-        }
-    )
-    @utils.model_required
-    @utils.extract_X_y
-    def get(self):
         start_time = timeit.default_timer()
         return self._create_anomaly_response(start_time)
 
