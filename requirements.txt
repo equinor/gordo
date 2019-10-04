@@ -30,8 +30,7 @@ google-auth==1.6.3        # via kubernetes
 google-pasta==0.1.7       # via tensorflow
 grpcio==1.24.1            # via tensorboard, tensorflow
 h5py==2.10.0
-idna-ssl==1.1.0           # via aiohttp
-idna==2.8                 # via idna-ssl, requests, yarl
+idna==2.8                 # via requests, yarl
 influxdb==5.2.3
 itsdangerous==1.1.0       # via flask
 jinja2==2.10.1
@@ -39,7 +38,7 @@ joblib==0.14.0
 jsonschema==3.0.2         # via flask-restplus
 keras-applications==1.0.8  # via keras, tensorflow
 keras-preprocessing==1.1.0  # via keras, tensorflow
-keras==2.2.5
+keras==2.3.0
 kubernetes==8.0.2
 markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2
@@ -71,8 +70,6 @@ tensorboard==1.14.0       # via tensorflow
 tensorflow-estimator==1.14.0  # via tensorflow
 tensorflow==1.14.0
 termcolor==1.1.0          # via tensorflow
-typing-extensions==3.7.4  # via aiohttp
-typing==3.7.4.1           # via aiodns
 tzlocal==2.0.0            # via apscheduler
 urllib3==1.25.6
 websocket-client==0.56.0  # via kubernetes
