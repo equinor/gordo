@@ -5,7 +5,6 @@ import typing
 from functools import wraps
 
 from flask import Flask, g
-from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.server import views
 
 logger = logging.getLogger(__name__)
@@ -93,7 +92,7 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
-def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
+def build_app():
     """
     Build app and any associated routes
     """
@@ -105,10 +104,6 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
 
     app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)  # type: ignore
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
-
-    @app.before_request
-    def _reg_data_provider():
-        g.data_provider = data_provider
 
     @app.before_request
     def _start_timer():
@@ -128,13 +123,8 @@ def build_app(data_provider: typing.Optional[GordoBaseDataProvider] = None):
     return app
 
 
-def run_server(
-    host: str = "0.0.0.0",
-    port: int = 5555,
-    debug: bool = False,
-    data_provider: typing.Optional[GordoBaseDataProvider] = None,
-):
-    app = build_app(data_provider=data_provider)
+def run_server(host: str = "0.0.0.0", port: int = 5555, debug: bool = False):
+    app = build_app()
     app.run(host, port, debug=debug)
 
 

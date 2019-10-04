@@ -141,7 +141,7 @@ def gordo_ml_server_client(request, trained_model_directory):
 
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=trained_model_directory):
 
-        app = server.build_app(data_provider=request.param)
+        app = server.build_app()
         app.testing = True
 
         yield app.test_client()
