@@ -7,13 +7,11 @@ from typing import Union, Callable, Dict, Any, Optional
 from os import path
 import pickle
 from abc import ABCMeta
-from contextlib import contextmanager
 
 import keras.models
 import keras.backend as K
 from keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from keras.wrappers.scikit_learn import BaseWrapper
-from keras.models import load_model
 import numpy as np
 import pandas as pd
 
@@ -29,33 +27,6 @@ from gordo_components.model.register import register_model_builder
 
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def possible_tf_mgmt(keras_model):
-    """
-    Decorator - When serving a Keras model backed by tensorflow, the object is expected
-    to have ``_tf_graph`` and ``_tf_session`` stored attrs. Which will be used as the
-    default when calling the Keras model
-
-    Notes
-    -----
-    Should only be needed by those developing new Keras models wrapped to behave like
-    Scikit-Learn Esitmators
-
-    Parameters
-    ----------
-    keras_model: KerasBaseEstimator
-        An instance of a `KerasBaseEstimator` which can potentially have a tensorflow
-        backend
-    """
-    logger.info(f"Keras backend: {K.backend()}")
-    if K.backend() == "tensorflow":
-        logger.debug(f"Using keras_model {keras_model} local TF Graph and Session")
-        with keras_model._tf_graph.as_default(), keras_model._tf_session.as_default():
-            yield
-    else:
-        yield
 
 
 class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
@@ -149,8 +120,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         # for LSTM based models
         if len(X.shape) == 3:
             self.kwargs.update({"n_features": X.shape[2]})
-        with possible_tf_mgmt(self):
-            super().fit(X, y, sample_weight=None, **kwargs)
+        super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -169,8 +139,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         results:
             np.ndarray
         """
-        with possible_tf_mgmt(self):
-            return self.model.predict(X, **kwargs)
+        return self.model.predict(X, **kwargs)
 
     def get_params(self, **params):
         """
@@ -194,22 +163,20 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     def __call__(self):
         build_fn = register_model_builder.factories[self.__class__.__name__][self.kind]
-        with possible_tf_mgmt(self):
-            return build_fn(**self.sk_params)
+        return build_fn(**self.sk_params)
 
     def save_to_dir(self, directory: str):
         params = self.get_params()
         with open(path.join(directory, "params.json"), "w") as f:
             json.dump(params, f)
         if hasattr(self, "model") and self.model is not None:
-            with possible_tf_mgmt(self):
-                with open(path.join(directory, "model.json"), "w") as model_json:
-                    json.dump(self.model.to_json(), model_json)
-                self.model.save_weights(path.join(directory, "model.h5"))
-                if hasattr(self.model, "history") and self.model.history is not None:
-                    f_name = path.join(directory, "history.pkl")
-                    with open(f_name, "wb") as history_file:
-                        pickle.dump(self.model.history, history_file)
+            with open(path.join(directory, "model.json"), "w") as model_json:
+                json.dump(self.model.to_json(), model_json)
+            self.model.save_weights(path.join(directory, "model.h5"))
+            if hasattr(self.model, "history") and self.model.history is not None:
+                f_name = path.join(directory, "history.pkl")
+                with open(f_name, "wb") as history_file:
+                    pickle.dump(self.model.history, history_file)
 
     @classmethod
     def load_from_dir(cls, directory: str):
@@ -232,16 +199,15 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         model_weights = path.join(directory, "model.h5")
         model_json = path.join(directory, "model.json")
         if path.isfile(model_weights):
-            with possible_tf_mgmt(obj):
-                K.set_learning_phase(0)
-                with open(model_json) as mjf:
-                    model = keras.models.model_from_json(json.load(mjf))
-                model.load_weights(model_weights)
-                obj.model = model
-                history_file = path.join(directory, "history.pkl")
-                if path.isfile(history_file):
-                    with open(history_file, "rb") as hist_f:
-                        obj.model.history = pickle.load(hist_f)
+            K.set_learning_phase(0)
+            with open(model_json) as mjf:
+                model = keras.models.model_from_json(json.load(mjf))
+            model.load_weights(model_weights)
+            obj.model = model
+            history_file = path.join(directory, "history.pkl")
+            if path.isfile(history_file):
+                with open(history_file, "rb") as hist_f:
+                    obj.model.history = pickle.load(hist_f)
 
         return obj
 
@@ -304,8 +270,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
 
-        with possible_tf_mgmt(self):
-            out = self.model.predict(X)
+        out = self.model.predict(X)
 
         return explained_variance_score(y, out)
 
@@ -442,10 +407,10 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             for k, v in {**self.kwargs, **kwargs}.items()
             if k in self.fit_generator_params
         }
-        with possible_tf_mgmt(self):
-            # shuffle is set to False since we are dealing with time series data and
-            # so training data will not be shuffled before each epoch.
-            self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
+
+        # shuffle is set to False since we are dealing with time series data and
+        # so training data will not be shuffled before each epoch.
+        self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -509,8 +474,7 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
             lookback_window=self.lookback_window,
             lookahead=0,
         )
-        with possible_tf_mgmt(self):
-            return self.model.predict_generator(tsg, **kwargs)
+        return self.model.predict_generator(tsg, **kwargs)
 
     def score(
         self,
@@ -631,10 +595,9 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             if k in self.fit_generator_params
         }
 
-        with possible_tf_mgmt(self):
-            # shuffle is set to False since we are dealing with time series data and
-            # so training data will not be shuffled before each epoch.
-            self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
+        # shuffle is set to False since we are dealing with time series data and
+        # so training data will not be shuffled before each epoch.
+        self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -693,8 +656,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             lookback_window=self.lookback_window,
             lookahead=1,
         )
-        with possible_tf_mgmt(self):
-            return self.model.predict_generator(tsg)
+        return self.model.predict_generator(tsg)
 
     def score(
         self,
