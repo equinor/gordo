@@ -10,10 +10,9 @@ responses~=0.10
 black==19.3b0
 pytest-flakes~=4.0
 adal~=1.2
-jupyter==1.0.0
+jupyter~=1.0.0
 notebook~=6.0
 nbconvert~=5.4
-tornado>=4, <6  # https://github.com/jupyter/notebook/pull/4310#issuecomment-452368841
 pytest-asyncio~=0.10
 asynctest~=0.12
 urllib3>=1.24.2,<2.0
