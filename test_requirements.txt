@@ -90,7 +90,7 @@ six==1.12.0               # via bleach, cryptography, docker, jsonschema, mock, 
 terminado==0.8.2          # via notebook
 testpath==0.4.2           # via nbconvert
 toml==0.10.0              # via black
-tornado==5.1.1
+tornado==6.0.3            # via ipykernel, jupyter-client, notebook, terminado
 traitlets==4.3.3          # via ipykernel, ipython, ipywidgets, jupyter-client, jupyter-core, nbconvert, nbformat, notebook, qtconsole
 typed-ast==1.4.0          # via mypy
 typing-extensions==3.7.4  # via mypy
