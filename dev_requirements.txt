@@ -9,7 +9,7 @@ attrs==19.1.0             # via packaging
 babel==2.7.0              # via sphinx
 certifi==2019.6.16        # via requests
 chardet==3.0.4            # via requests
-colorama==0.4.1           # via sphinx
+click==7.0                # via pip-tools
 commonmark==0.9.0         # via recommonmark
 docutils==0.15.2          # via recommonmark, sphinx
 future==0.17.1            # via commonmark
@@ -19,12 +19,13 @@ jinja2==2.10.1            # via sphinx
 markupsafe==1.1.1         # via jinja2
 packaging==19.1           # via sphinx
 pbr==5.4.2                # via sphinx-click
+pip-tools==4.1.0
 pygments==2.4.2           # via sphinx
 pyparsing==2.4.2          # via packaging
 pytz==2019.2              # via babel
 recommonmark==0.5.0
 requests==2.22.0          # via sphinx
-six==1.12.0               # via packaging, sphinx
+six==1.12.0               # via packaging, pip-tools, sphinx
 snowballstemmer==1.9.0    # via sphinx
 sphinx-click==2.2.0
 sphinx-rtd-theme==0.4.3
@@ -33,4 +34,4 @@ sphinxcontrib-websupport==1.1.2
 urllib3==1.25.3           # via requests
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==41.1.0        # via sphinx
+# setuptools==41.2.0        # via sphinx
