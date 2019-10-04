@@ -650,8 +650,8 @@ class Client:
             n_intervals=endpoint.model_offset + 5,
         )
 
-        dataset = TimeSeriesDataset(  # type: ignore
-            data_provider=self.data_provider,
+        dataset = TimeSeriesDataset(
+            data_provider=self.data_provider,  # type: ignore
             from_ts=start,
             to_ts=end,
             resolution=endpoint.resolution,
