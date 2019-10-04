@@ -19,7 +19,6 @@ tensorflow~=1.12
 Flask~=1.0
 flask-restplus~=0.12
 azure-datalake-store~=0.0
-coverage~=4.5
 kubernetes~=8.0
 cchardet~=2.1
 aiohttp~=3.5
