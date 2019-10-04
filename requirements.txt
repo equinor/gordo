@@ -24,7 +24,7 @@ click==7.0
 cryptography==2.7         # via adal
 flask-restplus==0.13.0
 flask==1.1.1
-gast==0.3.2               # via tensorflow
+gast==0.2.2               # via tensorflow
 google-auth==1.6.3        # via kubernetes
 google-pasta==0.1.7       # via tensorflow
 grpcio==1.24.1            # via tensorboard, tensorflow
@@ -36,9 +36,8 @@ itsdangerous==1.1.0       # via flask
 jinja2==2.10.3
 joblib==0.14.0            # via scikit-learn
 jsonschema==3.0.2         # via flask-restplus
-keras-applications==1.0.8  # via keras, tensorflow
-keras-preprocessing==1.1.0  # via keras, tensorflow
-keras==2.2.5
+keras-applications==1.0.8  # via tensorflow
+keras-preprocessing==1.1.0  # via tensorflow
 kubernetes==8.0.2
 markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2
@@ -46,6 +45,7 @@ multidict==4.5.2          # via aiohttp, yarl
 numexpr==2.7.0
 numpy==1.17.2
 oauthlib==3.1.0           # via requests-oauthlib
+opt-einsum==3.1.0         # via tensorflow
 pandas==0.25.1
 protobuf==3.10.0          # via tensorboard, tensorflow
 pyarrow==0.15.0
@@ -62,12 +62,12 @@ requests-oauthlib==1.2.0  # via kubernetes
 requests==2.22.0
 rsa==4.0                  # via google-auth
 scikit-learn==0.21.3
-scipy==1.3.1              # via keras, scikit-learn
+scipy==1.3.1              # via scikit-learn
 simplejson==3.16.0
-six==1.12.0               # via absl-py, apscheduler, cryptography, flask-restplus, google-auth, grpcio, h5py, influxdb, jsonschema, keras, keras-preprocessing, kubernetes, protobuf, pyarrow, pyrsistent, python-dateutil, tensorboard, tensorflow, websocket-client
-tensorboard==1.14.0       # via tensorflow
-tensorflow-estimator==1.14.0  # via tensorflow
-tensorflow==1.14.0
+six==1.12.0               # via absl-py, apscheduler, cryptography, flask-restplus, google-auth, grpcio, h5py, influxdb, jsonschema, keras-preprocessing, kubernetes, protobuf, pyarrow, pyrsistent, python-dateutil, tensorboard, tensorflow, websocket-client
+tensorboard==2.0.0        # via tensorflow
+tensorflow-estimator==2.0.0  # via tensorflow
+tensorflow==2.0.0
 termcolor==1.1.0          # via tensorflow
 typing-extensions==3.7.4  # via aiohttp
 typing==3.7.4.1           # via aiodns

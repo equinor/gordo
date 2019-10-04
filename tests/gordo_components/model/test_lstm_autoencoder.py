@@ -3,9 +3,7 @@
 import unittest
 
 import pytest
-import numpy as np
-import keras.backend as K
-from keras import optimizers
+from tensorflow.keras import optimizers
 
 from gordo_components.model.factories.lstm_autoencoder import (
     lstm_model,
@@ -55,7 +53,7 @@ class LSTMAutoEncoderTestCase(unittest.TestCase):
             n_features=3,
             func="tanh",
             out_func="relu",
-            optimizer="sgd",
+            optimizer="SGD",
             optimizer_kwargs={"lr": 0.02, "momentum": 0.001},
             compile_kwargs={"loss": "mae"},
         )
@@ -95,12 +93,6 @@ class LSTMAutoEncoderTestCase(unittest.TestCase):
         # Assert that the expected Keras optimizer is used
         self.assertEqual(model.optimizer.__class__, optimizers.SGD)
 
-        # Assert equality of difference up to 7 decimal places
-        # Note that AlmostEquality is used as Keras can use a value approximately equal
-        # to the given parameter rather than the exact value.
-        self.assertAlmostEqual(K.eval(model.optimizer.lr), 0.02)
-        self.assertAlmostEqual(K.eval(model.optimizer.momentum), 0.001)
-
         # Assert that the correct loss function is used.
         self.assertEqual(model.loss, "mae")
 
@@ -134,7 +126,7 @@ def test_lstm_symmetric_basic(n_features, n_features_out):
         dims=(4, 3, 2, 1),
         funcs=("relu", "relu", "tanh", "tanh"),
         out_func="linear",
-        optimizer="sgd",
+        optimizer="SGD",
         optimizer_kwargs={"lr": 0.01},
         loss="mse",
     )
@@ -175,11 +167,6 @@ def test_lstm_symmetric_basic(n_features, n_features_out):
 
     # Assert that the expected Keras optimizer is used
     assert model.optimizer.__class__ == optimizers.SGD
-
-    # Assert equality of difference up to 7 decimal places
-    # Note that AlmostEquality is used as Keras can use a value approximately equal
-    # to the given learning rate rather than the exact value.
-    assert np.isclose((K.eval(model.optimizer.lr),), (0.01,))
 
     # Assert that the correct loss function is used.
     assert model.loss == "mse"

@@ -69,7 +69,8 @@ def metadata_check(metadata, check_history):
     if check_history:
         assert "history" in metadata["model"]
         assert all(
-            name in metadata["model"]["history"] for name in ("params", "loss", "acc")
+            name in metadata["model"]["history"]
+            for name in ("params", "loss", "accuracy")
         )
 
 
@@ -272,7 +273,9 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
     # All the metadata we've implemented so far is 'history', so we'll check that
     if not expect_empty_dict:
         assert "history" in metadata
-        assert all(name in metadata["history"] for name in ("params", "loss", "acc"))
+        assert all(
+            name in metadata["history"] for name in ("params", "loss", "accuracy")
+        )
     else:
         assert dict() == metadata
 

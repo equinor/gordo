@@ -3,6 +3,21 @@
 import math
 from typing import Tuple
 
+import tensorflow.keras.optimizers as tfoptimizers
+
+# For backwards compatibility:
+# keras.optimizers listed them in lowercase, while tf.keras.optimizers has things
+# like 'SGD', 'RMSProp', 'Adam', etc; here we will support both
+class Optimizers:
+    def __init__(self):
+        for name in filter(lambda attr: not attr.startswith("_"), dir(tfoptimizers)):
+            optimizer = getattr(tfoptimizers, name)
+            setattr(self, name.lower(), optimizer)
+            setattr(self, name, optimizer)
+
+
+optimizers = Optimizers()
+
 
 def hourglass_calc_dims(
     compression_factor: float, encoding_layers: int, n_features: int
