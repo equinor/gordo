@@ -68,7 +68,7 @@ pyparsing==2.4.2          # via packaging
 pyrsistent==0.15.4        # via jsonschema
 pytest-asyncio==0.10.0
 pytest-benchmark==3.2.2
-pytest-cov==2.7.1
+pytest-cov==2.8.0
 pytest-flakes==4.0.0
 pytest-forked==1.0.2      # via pytest-xdist
 pytest-mock==1.11.0
