@@ -203,7 +203,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             json.dump(params, f)
         if hasattr(self, "model") and self.model is not None:
             with possible_tf_mgmt(self):
-                self.model.save(path.join(directory, "model.h5"))
+                with open(path.join(directory, "model.json"), "w") as model_json:
+                    json.dump(self.model.to_json(), model_json)
+                self.model.save_weights(path.join(directory, "model.h5"))
                 if hasattr(self.model, "history") and self.model.history is not None:
                     f_name = path.join(directory, "history.pkl")
                     with open(f_name, "wb") as history_file:
@@ -227,11 +229,15 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         with open(path.join(directory, "params.json"), "r") as f:
             params = json.load(f)
         obj = cls(**params)
-        model_file = path.join(directory, "model.h5")
-        if path.isfile(model_file):
+        model_weights = path.join(directory, "model.h5")
+        model_json = path.join(directory, "model.json")
+        if path.isfile(model_weights):
             with possible_tf_mgmt(obj):
                 K.set_learning_phase(0)
-                obj.model = load_model(model_file)
+                with open(model_json) as mjf:
+                    model = keras.models.model_from_json(json.load(mjf))
+                model.load_weights(model_weights)
+                obj.model = model
                 history_file = path.join(directory, "history.pkl")
                 if path.isfile(history_file):
                     with open(history_file, "rb") as hist_f:
