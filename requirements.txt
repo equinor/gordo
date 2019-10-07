@@ -33,7 +33,7 @@ idna-ssl==1.1.0           # via aiohttp
 idna==2.8                 # via idna-ssl, requests, yarl
 influxdb==5.2.3
 itsdangerous==1.1.0       # via flask
-jinja2==2.10.1
+jinja2==2.10.3
 joblib==0.14.0            # via scikit-learn
 jsonschema==3.0.2         # via flask-restplus
 keras-applications==1.0.8  # via keras, tensorflow
