@@ -3,6 +3,7 @@
 from typing import Tuple, Union, Dict, Any
 
 import tensorflow
+from tensorflow import keras
 from tensorflow.keras.optimizers import Optimizer
 from tensorflow.keras.layers import Dense, LSTM
 from tensorflow.keras.models import Sequential as KerasSequential
@@ -11,7 +12,6 @@ from gordo_components.model.register import register_model_builder
 from gordo_components.model.factories.utils import (
     hourglass_calc_dims,
     check_dim_func_len,
-    optimizers,
 )
 
 
@@ -94,7 +94,7 @@ def lstm_model(
 
     # output layer
     if isinstance(optimizer, str):
-        Optim = getattr(optimizers, optimizer)
+        Optim = getattr(keras.optimizers, optimizer)
         optimizer = Optim(**optimizer_kwargs)
 
     model.add(Dense(units=n_features_out, activation=out_func))
