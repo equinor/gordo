@@ -9,6 +9,7 @@ import pickle
 from abc import ABCMeta
 
 import tensorflow.keras.models
+from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
 import numpy as np
@@ -162,9 +163,12 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         with open(path.join(directory, "params.json"), "w") as f:
             json.dump(params, f)
         if hasattr(self, "model") and self.model is not None:
-            with open(path.join(directory, "model.json"), "w") as model_json:
-                json.dump(self.model.to_json(), model_json)
-            self.model.save_weights(path.join(directory, "model.h5"))
+            save_model(
+                self.model,
+                filepath=path.join(directory, "model.h5"),
+                include_optimizer=True,
+                save_format="h5",
+            )
             if (
                 hasattr(self.model, "history")
                 and self.model.history.history is not None
@@ -198,13 +202,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         with open(path.join(directory, "params.json"), "r") as f:
             params = json.load(f)
         obj = cls(**params)
-        model_weights = path.join(directory, "model.h5")
-        model_json = path.join(directory, "model.json")
-        if path.isfile(model_weights):
-            with open(model_json) as mjf:
-                model = tensorflow.keras.models.model_from_json(json.load(mjf))
-            model.load_weights(model_weights)
-            obj.model = model
+        model_path = path.join(directory, "model.h5")
+        if path.exists(model_path):
+            obj.model = load_model(model_path, compile=False)
             history_file = path.join(directory, "history.pkl")
             if path.isfile(history_file):
                 from tensorflow.python.keras.callbacks import History
