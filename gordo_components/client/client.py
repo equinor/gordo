@@ -274,8 +274,7 @@ class Client:
         self, start: datetime, end: datetime
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
-        Start the prediction process. Will perform POST prediction workflow if
-        Client has a data_provider instance, otherwise default to GET based predictions
+        Start the prediction process.
 
         Parameters
         ----------
@@ -290,18 +289,10 @@ class Client:
               1st element is the dataframe of the predictions; complete with a DateTime index.
               2nd element is a list of error messages (if any) for running the predictions
         """
-
-        # Determine which method we'll use to get predictions
-        # If we don't have a data_provider instance, we can't source our own data.
-        if self.data_provider is not None:
-            predict_method = self._predict_via_post
-        else:
-            predict_method = self._predict_via_get
-
         # For every endpoint, start making predictions for the time range
         jobs = asyncio.gather(
             *[
-                predict_method(endpoint=endpoint, start=start, end=end)
+                self._predict(endpoint=endpoint, start=start, end=end)
                 for endpoint in self.endpoints
             ]
         )
@@ -317,7 +308,7 @@ class Client:
             (pr.name, pr.predictions, pr.error_messages) for pr in prediction_results
         ]  # type: ignore
 
-    async def _predict_via_post(
+    async def _predict(
         self, endpoint: EndpointMetadata, start: datetime, end: datetime
     ) -> PredictionResult:
         """
@@ -349,7 +340,7 @@ class Client:
 
             # Chunk over the dataframe by batch_size
             jobs = [
-                self._process_post_prediction_task(
+                self._process_prediction_task(
                     X,
                     y,
                     chunk=slice(i, i + self.batch_size),
@@ -366,7 +357,7 @@ class Client:
             ]
             return await self._accumulate_coroutine_predictions(endpoint, jobs)
 
-    async def _process_post_prediction_task(
+    async def _process_prediction_task(
         self,
         X: pd.DataFrame,
         y: typing.Optional[pd.DataFrame],
@@ -486,100 +477,6 @@ class Client:
                     predictions=predictions,
                     error_messages=[],
                 )
-
-    async def _predict_via_get(
-        self, endpoint: EndpointMetadata, start: datetime, end: datetime
-    ) -> PredictionResult:
-        """
-        Get predictions based on the /prediction GET endpoint of Gordo ML Servers
-
-        Parameters
-        ----------
-        endpoint: EndpointMetadata
-            Named tuple which has 'endpoint' specifying the full url to the base ml server
-        start: datetime
-        end: datetime
-
-        Returns
-        -------
-        dict
-            Prediction response from /prediction GET
-        """
-        start_end_dates = make_date_ranges(start, end, max_interval_days=1, freq="23H")
-
-        async with aiohttp.ClientSession() as session:
-
-            # Create all the jobs which will be done, but don't await them
-            jobs = [
-                self._process_get_prediction_task(endpoint, start, end, session)
-                for start, end in start_end_dates
-            ]
-
-            return await self._accumulate_coroutine_predictions(endpoint, jobs)
-
-    async def _process_get_prediction_task(
-        self,
-        endpoint: EndpointMetadata,
-        start: datetime,
-        end: datetime,
-        session: typing.Optional[aiohttp.ClientSession] = None,
-    ):
-        """
-        Process a single prediction GET request. Will ask /prediction GET endpoint
-        for predictions given start and end dates, and create a dataframe of the
-        returned results and create one PredictionResult for that time span.
-
-        Parameters
-        ----------
-        endpoint: EndpointMetadata
-        start: datetime
-        end: datetime
-
-        Notes
-        -----
-        PredictionResult.predictions may be None if the prediction process fails
-
-        Returns
-        -------
-        PredictionResult
-        """
-        json = {"start": start.isoformat(), "end": end.isoformat()}
-
-        try:
-            try:
-                response = await gordo_io.get(
-                    f"{endpoint.endpoint}{self.prediction_path}{self.query}",
-                    session=session,
-                    json=json,
-                )
-            except HttpUnprocessableEntity:
-                self.prediction_path = "/prediction"
-                response = await gordo_io.get(
-                    f"{endpoint.endpoint}{self.prediction_path}{self.query}",
-                    session=session,
-                    json=json,
-                )
-        except IOError as exc:
-            msg = (
-                f"Failed to get predictions for dates {start} -> {end} "
-                f"for target: {endpoint.target_name} "
-                f"Error: {exc}"
-            )
-            logger.error(msg)
-            return PredictionResult(
-                name=endpoint.target_name, predictions=None, error_messages=[msg]
-            )
-        else:
-            logger.info(f"Processing {start} -> {end}")
-            predictions = self.dataframe_from_response(response)
-
-            if self.prediction_forwarder is not None:
-                await self.prediction_forwarder(
-                    predictions=predictions, endpoint=endpoint, metadata=self.metadata
-                )
-            return PredictionResult(
-                name=endpoint.target_name, predictions=predictions, error_messages=[]
-            )
 
     async def _accumulate_coroutine_predictions(
         self, endpoint: EndpointMetadata, jobs: typing.List[typing.Coroutine]

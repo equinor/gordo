@@ -59,14 +59,9 @@ def test_client_download_model(watchman_service):
 
 
 @pytest.mark.parametrize("batch_size", (10, 100))
-@pytest.mark.parametrize("use_data_provider", (False, True))
 @pytest.mark.parametrize("use_parquet", (True, False))
-def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
-    influxdb,
-    watchman_service,
-    use_data_provider: bool,
-    batch_size: int,
-    use_parquet: bool,
+def test_client_predictions_diff_batch_sizes(
+    influxdb, watchman_service, batch_size: int, use_parquet: bool
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -92,16 +87,12 @@ def test_client_predictions_diff_batch_sizes_and_toggle_data_provider(
     vals = test_client.query(query)
     assert len(vals) == 0
 
-    data_provider = (
-        providers.InfluxDataProvider(
-            measurement=tu.INFLUXDB_MEASUREMENT,
-            value_name="Value",
-            client=client_utils.influx_client_from_uri(
-                uri=tu.INFLUXDB_URI, dataframe_client=True
-            ),
-        )
-        if use_data_provider
-        else None
+    data_provider = providers.InfluxDataProvider(
+        measurement=tu.INFLUXDB_MEASUREMENT,
+        value_name="Value",
+        client=client_utils.influx_client_from_uri(
+            uri=tu.INFLUXDB_URI, dataframe_client=True
+        ),
     )
 
     prediction_client = Client(
@@ -246,7 +237,6 @@ def test_client_cli_download_model(watchman_service):
     [["--influx-uri", tu.INFLUXDB_URI, "--forward-resampled-sensors"], None],
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
-@pytest.mark.parametrize("data_provider", [providers.RandomDataProvider(), None])
 @pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_cli_predict(
     influxdb,
@@ -254,7 +244,6 @@ def test_client_cli_predict(
     watchman_service,
     forwarder_args,
     output_dir,
-    data_provider,
     trained_model_directory,
     use_parquet,
 ):
@@ -295,8 +284,9 @@ def test_client_cli_predict(
         args.extend(["--output-dir", output_dir.name])
 
     # Do we have a data provider, POST else GET requests
-    if data_provider is not None:
-        args.extend(["--data-provider", json.dumps(data_provider.to_dict())])
+    args.extend(
+        ["--data-provider", json.dumps(providers.RandomDataProvider().to_dict())]
+    )
 
     # Run without any error
     out = runner.invoke(cli.gordo, args=args)
@@ -304,7 +294,7 @@ def test_client_cli_predict(
 
     # If we activated forwarder and we had any actual data then there should
     # be resampled values in the influx
-    if forwarder_args and data_provider:
+    if forwarder_args:
         vals = influx_client.query(query)
         assert len(vals) == 1
         assert len(vals["resampled"]) == 48
@@ -522,7 +512,7 @@ def test_exponential_sleep_time(caplog, watchman_service):
             client = Client(project=tu.GORDO_PROJECT)
             loop = asyncio.get_event_loop()
             loop.run_until_complete(
-                client._process_post_prediction_task(
+                client._process_prediction_task(
                     X=pd.DataFrame([123]),
                     y=None,
                     chunk=slice(0, 1),

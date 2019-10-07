@@ -139,14 +139,11 @@ def watchman(
     -------
     None
     """
-    from gordo_components.dataset import datasets
     from gordo_components.server import server as gordo_ml_server
 
     with temp_env_vars(MODEL_COLLECTION_DIR=model_location):
         # Create gordo ml servers
-        gordo_server_app = gordo_ml_server.build_app(
-            data_provider=datasets.RandomDataProvider()
-        )
+        gordo_server_app = gordo_ml_server.build_app()
         gordo_server_app.testing = True
         gordo_server_app = gordo_server_app.test_client()
 

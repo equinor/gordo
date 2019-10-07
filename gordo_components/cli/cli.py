@@ -19,7 +19,6 @@ from gordo_components.builder.build_model import (
     calculate_model_key,
     build_model,
 )
-from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.serializer import (
     load_metadata,
     pipeline_into_definition,
@@ -388,61 +387,8 @@ def get_all_score_strings(metadata):
 @click.command("run-server")
 @click.option("--host", type=str, help="The host to run the server on.")
 @click.option("--port", type=int, help="The port to run the server on.")
-@click.option("--src-influx-host", type=str, envvar="SRC_INFLUXDB_HOST")
-@click.option("--src-influx-port", type=int, envvar="SRC_INFLUXDB_PORT")
-@click.option("--src-influx-username", type=str, envvar="SRC_INFLUXDB_USERNAME")
-@click.option("--src-influx-password", type=str, envvar="SRC_INFLUXDB_PASSWORD")
-@click.option("--src-influx-database", type=str, envvar="SRC_INFLUXDB_DATABASE")
-@click.option("--src-influx-path", type=str, envvar="SRC_INFLUXDB_PATH")
-@click.option("--src-influx-measurement", type=str, envvar="SRC_INFLUXDB_MEASUREMENT")
-@click.option(
-    "--src-influx-value", type=str, envvar="SRC_INFLUXDB_VALUE_NAME", default="value"
-)
-@click.option("--src-influx-api-key", type=str, envvar="SRC_INFLUXDB_API_KEY")
-@click.option(
-    "--src-influx-api-key-header", type=str, envvar="SRC_INFLUXDB_API_KEY_HEADER"
-)
-def run_server_cli(
-    host: str,
-    port: int,
-    src_influx_host: str,
-    src_influx_port: int,
-    src_influx_username: str,
-    src_influx_password: str,
-    src_influx_database: str,
-    src_influx_path: str,
-    src_influx_measurement: str,
-    src_influx_value: str,
-    src_influx_api_key: str,
-    src_influx_api_key_header: str,
-):
-
-    # We have have a hostname, then we make a data provider
-    if src_influx_host:
-        influx_config = {
-            "host": src_influx_host,
-            "port": src_influx_port,
-            "username": src_influx_username,
-            "password": src_influx_password,
-            "database": src_influx_database,
-            "proxies": {"http": "", "https": ""},
-            "ssl": True,
-            "path": src_influx_path,
-            "timeout": 20,
-            "retries": 10,
-        }
-
-        provider = InfluxDataProvider(
-            measurement=src_influx_measurement,
-            value_name=src_influx_value,
-            api_key=src_influx_api_key,
-            api_key_header=src_influx_api_key_header,
-            **influx_config,
-        )
-    else:
-        provider = None  # type: ignore
-
-    server.run_server(host, port, data_provider=provider)
+def run_server_cli(host: str, port: int):
+    server.run_server(host, port)
 
 
 @click.command("run-watchman")

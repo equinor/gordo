@@ -4,7 +4,6 @@ import logging
 import functools
 import os
 import io
-import timeit
 import dateutil
 from datetime import datetime
 from typing import Union, List
@@ -17,7 +16,6 @@ from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
 
 from gordo_components import serializer
-from gordo_components.dataset.datasets import TimeSeriesDataset
 
 
 """
@@ -295,69 +293,6 @@ def extract_X_y(method):
             for data_or_resp in [X, y]:
                 if isinstance(data_or_resp, Response):
                     return data_or_resp
-
-        # Data must be queried from Influx given dates passed in request.
-        elif request.method == "GET":
-
-            params = request.get_json() or request.args
-
-            if not all(k in params for k in ("start", "end")):
-                message = dict(
-                    message="must provide iso8601 formatted dates with timezone-information for parameters 'start' and 'end'"
-                )
-                return make_response((jsonify(message), 400))
-
-            # Extract the dates from parameters
-            try:
-                start = parse_iso_datetime(params["start"])
-                end = parse_iso_datetime(params["end"])
-            except ValueError:
-                logger.error(
-                    f"Failed to parse start and/or end date to ISO: start: "
-                    f"{params['start']} - end: {params['end']}"
-                )
-                message = dict(
-                    message="Could not parse start/end date(s) into ISO datetime. must provide iso8601 formatted dates for both."
-                )
-                return make_response((jsonify(message), 400))
-
-            # Make request time span of one day
-            if (end - start).days:
-                message = dict(
-                    message="Need to request a time span less than 24 hours."
-                )
-                return make_response((jsonify(message), 400))
-
-            logger.debug("Fetching data from data provider")
-            before_data_fetch = timeit.default_timer()
-            dataset = TimeSeriesDataset(
-                data_provider=g.data_provider,
-                from_ts=start - self.frequency.delta,
-                to_ts=end,
-                resolution=g.metadata["dataset"]["resolution"],
-                tag_list=self.tags,
-                target_tag_list=self.target_tags or None,
-            )
-            X, y = dataset.get_data()
-            logger.debug(
-                f"Fetching data from data provider took "
-                f"{timeit.default_timer()-before_data_fetch} seconds"
-            )
-            # Want resampled buckets equal or greater than start, but less than end
-            # b/c if end == 00:00:00 and req = 10 mins, a resampled bucket starting
-            # at 00:00:00 would imply it has data until 00:10:00; which is passed
-            # the requested end datetime
-            X = X[
-                (X.index > start - self.frequency.delta)
-                & (X.index + self.frequency.delta < end)
-            ]
-
-            # TODO: Remove/rework this once we add target_tags assignments in workflow generator for autoencoders.
-            if y is None:
-                y = X.copy()
-            else:
-                y = y.loc[X.index]
-
         else:
             raise NotImplementedError(
                 f"Cannot extract X and y from '{request.method}' request."

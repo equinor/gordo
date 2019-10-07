@@ -33,13 +33,6 @@ API_MODEL_INPUT_POST = api.model(
 API_MODEL_OUTPUT_POST = api.model(
     "Prediction - Output from POST", {"output": fields.List(fields.List(fields.Float))}
 )
-
-
-# GET type declarations
-API_MODEL_INPUT_GET = api.model(
-    "Prediction - Time range prediction",
-    {"start": fields.DateTime, "end": fields.DateTime},
-)
 _tags = {
     fields.String: fields.Float
 }  # tags of single prediction record {'tag-name': tag-value}
@@ -49,19 +42,13 @@ _single_prediction_record = {
     "tags": fields.Nested(_tags),
     "total_abnormality": fields.Float,
 }
-API_MODEL_OUTPUT_GET = api.model(
-    "Prediction - Output from GET",
-    {"output": fields.List(fields.Nested(_single_prediction_record))},
-)
 
 
 class AnomalyView(BaseModelView):
     """
-    Serve model predictions via GET and POST methods
+    Serve model predictions via POST method.
 
-    Will take a ``start`` and ``end`` ISO format datetime string if a GET request
-    or will take the raw input given in a POST request
-    and give back predictions looking something like this
+    Gives back predictions looking something like this
     (depending on anomaly model being served)::
 
         {
@@ -93,6 +80,8 @@ class AnomalyView(BaseModelView):
      'time-seconds': '0.1937'}
     """
 
+    methods = ["POST"]
+
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)
     @api.doc(
@@ -106,24 +95,10 @@ class AnomalyView(BaseModelView):
         start_time = timeit.default_timer()
         return self._create_anomaly_response(start_time)
 
-    @api.response(200, "Success", API_MODEL_OUTPUT_POST)
-    @api.doc(
-        params={
-            "start": "An ISO formatted datetime with timezone info string indicating prediction range start",
-            "end": "An ISO formatted datetime with timezone info string indicating prediction range end",
-        }
-    )
-    @utils.model_required
-    @utils.extract_X_y
-    def get(self):
-        start_time = timeit.default_timer()
-        return self._create_anomaly_response(start_time)
-
     def _create_anomaly_response(self, start_time: float = None):
         """
-        Process a base response from POST or GET endpoints, where it is expected in
-        the anomaly endpoint that the keys "output", "transformed-model-input" and "inverse-transformed-output"
-        are expected to be present in ``.json`` of the Response.
+        Use the current ``X`` and ``y`` to create an anomaly specific response
+        using the trained ML model's ``.anomaly()`` method.
 
         Parameters
         ----------
@@ -140,8 +115,6 @@ class AnomalyView(BaseModelView):
             start_time = timeit.default_timer()
 
         # To use this endpoint, we need a 'y' to calculate the errors.
-        # It has either come from client providing it in POST or from
-        # Influx during 'GET' part of `..common.extract_X_y` decorator
         if g.y is None:
             message = {
                 "message": "Cannot perform anomaly without 'y' to compare against."

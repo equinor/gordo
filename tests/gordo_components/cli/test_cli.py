@@ -6,6 +6,7 @@ import pytest
 import logging
 import tempfile
 
+import mock
 from click.testing import CliRunner
 
 from gordo_components import cli
@@ -330,3 +331,23 @@ def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
             metadata_json = json.loads(f.read())
             assert metadata_json["model"]["cross-validation"]["cv-duration-sec"] is None
             assert metadata_json["model"]["cross-validation"]["scores"] == {}
+
+
+@pytest.mark.parametrize("host", (None, "127.0.0.0"))
+@pytest.mark.parametrize("port", (None, 1234))
+def test_start_server_cli(host, port):
+    runner = CliRunner()
+    with mock.patch(
+        "gordo_components.server.server.run_server", mock.MagicMock(return_value=None)
+    ) as m:
+        args = ["run-server"]
+
+        # Add any optional params
+        if host is not None:
+            args.extend(["--host", host])
+        if port is not None:
+            args.extend(["--port", str(port)])
+        result = runner.invoke(cli.gordo, args)
+
+        assert result.exit_code == 0
+        m.assert_called_once_with(host, port)
