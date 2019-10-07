@@ -2,12 +2,12 @@
 
 from typing import Tuple, Dict, Any, Union
 
-from keras.optimizers import Optimizer
-from keras import regularizers
-from keras.layers import Dense
-import keras
+from tensorflow.keras.optimizers import Optimizer
+from tensorflow.keras import regularizers
+from tensorflow.keras.layers import Dense
+from tensorflow import keras
 
-from keras.models import Sequential as KerasSequential
+from tensorflow.keras.models import Sequential as KerasSequential
 from gordo_components.model.register import register_model_builder
 from gordo_components.model.factories.utils import (
     hourglass_calc_dims,
@@ -24,7 +24,7 @@ def feedforward_model(
     decoding_dim: Tuple[int, ...] = (64, 128, 256),
     decoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     out_func: str = "linear",
-    optimizer: Union[str, Optimizer] = "adam",
+    optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
@@ -49,7 +49,7 @@ def feedforward_model(
     out_func: str
         Activation function for the output layer
     optimizer: Union[str, Optimizer]
-        If str then the name of the optimizer must be provided (e.x. "adam").
+        If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimize_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
@@ -113,7 +113,7 @@ def feedforward_symmetric(
     n_features_out: int = None,
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
-    optimizer: Union[str, Optimizer] = "adam",
+    optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
@@ -133,7 +133,7 @@ def feedforward_symmetric(
     funcs: List[str]
         Activation functions for the internal layers
     optimizer: Union[str, Optimizer]
-        If str then the name of the optimizer must be provided (e.x. "adam").
+        If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
@@ -172,7 +172,7 @@ def feedforward_hourglass(
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
     func: str = "tanh",
-    optimizer: Union[str, Optimizer] = "adam",
+    optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
@@ -199,7 +199,7 @@ def feedforward_hourglass(
     func: str
         Activation function for the internal layers
     optimizer: Union[str, Optimizer]
-        If str then the name of the optimizer must be provided (e.x. "adam").
+        If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are

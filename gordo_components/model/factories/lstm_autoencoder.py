@@ -2,10 +2,11 @@
 
 from typing import Tuple, Union, Dict, Any
 
-import keras.optimizers
-from keras.optimizers import Optimizer
-from keras.layers import Dense, LSTM
-from keras.models import Sequential as KerasSequential
+import tensorflow
+from tensorflow import keras
+from tensorflow.keras.optimizers import Optimizer
+from tensorflow.keras.layers import Dense, LSTM
+from tensorflow.keras.models import Sequential as KerasSequential
 
 from gordo_components.model.register import register_model_builder
 from gordo_components.model.factories.utils import (
@@ -25,11 +26,11 @@ def lstm_model(
     decoding_dim: Tuple[int, ...] = (64, 128, 256),
     decoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     out_func: str = "linear",
-    optimizer: Union[str, Optimizer] = "adam",
+    optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
-) -> keras.models.Sequential:
+) -> tensorflow.keras.models.Sequential:
     """
     Builds a customized Keras LSTM neural network auto-encoder based on a config dict.
 
@@ -55,7 +56,7 @@ def lstm_model(
     out_func: str
         Activation function for the output Dense layer.
     optimizer: Union[str, Optimizer]
-        If str then the name of the optimizer must be provided (e.x. "adam").
+        If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimize_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
@@ -114,11 +115,11 @@ def lstm_symmetric(
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     out_func: str = "linear",
-    optimizer: Union[str, Optimizer] = "adam",
+    optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
-) -> keras.models.Sequential:
+) -> tensorflow.keras.models.Sequential:
     """
     Builds a symmetrical lstm model
 
@@ -141,7 +142,7 @@ def lstm_symmetric(
     out_func: str
         Activation function for the output Dense layer.
     optimizer: Union[str, Optimizer]
-        If str then the name of the optimizer must be provided (e.x. "adam").
+        If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
@@ -187,11 +188,11 @@ def lstm_hourglass(
     compression_factor: float = 0.5,
     func: str = "tanh",
     out_func: str = "linear",
-    optimizer: Union[str, Optimizer] = "adam",
+    optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
-) -> keras.models.Sequential:
+) -> tensorflow.keras.models.Sequential:
 
     """
 
@@ -219,7 +220,7 @@ def lstm_hourglass(
     out_func: str
         Activation function for the output Dense layer.
     optimizer: Union[str, Optimizer]
-        If str then the name of the optimizer must be provided (e.x. "adam").
+        If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
