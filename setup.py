@@ -28,7 +28,7 @@ setup(
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=requirements("test_requirements.txt"),
-    url="https://github.com/Statoil/gordo-flow",
+    url="https://github.com/equinor/gordo-components",
     use_scm_version={
         "write_to": "gordo_components/_version.py",
         "relative_to": __file__,
