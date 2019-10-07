@@ -274,8 +274,7 @@ class Client:
         self, start: datetime, end: datetime
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
-        Start the prediction process. Will perform POST prediction workflow if
-        Client has a data_provider instance, otherwise default to GET based predictions
+        Start the prediction process.
 
         Parameters
         ----------
