@@ -56,7 +56,7 @@ pycparser==2.19           # via cffi
 pyjwt==1.7.1              # via adal
 pyrsistent==0.15.4        # via jsonschema
 python-dateutil==2.8.0
-pytz==2019.2              # via apscheduler, flask-restplus, influxdb, pandas, tzlocal
+pytz==2019.3              # via apscheduler, flask-restplus, influxdb, pandas, tzlocal
 pyyaml==5.1.2
 requests-oauthlib==1.2.0  # via kubernetes
 requests==2.22.0
