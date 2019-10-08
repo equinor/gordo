@@ -18,7 +18,7 @@ from typing import Tuple, Union, Dict, Any, IO  # pragma: no flakes
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.base import TransformerMixin, BaseEstimator  # noqa
 
-from gordo_components.model.models import GordoBase
+from gordo_components.model.base import GordoBase
 
 logger = logging.getLogger(__name__)
 
