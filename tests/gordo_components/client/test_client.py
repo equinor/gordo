@@ -7,6 +7,7 @@ import logging
 import typing
 from dateutil.parser import isoparse  # type: ignore
 import asyncio
+import mock
 
 import pytest
 import pandas as pd
@@ -56,6 +57,36 @@ def test_client_download_model(watchman_service):
     with pytest.raises(ValueError):
         client = Client(project=tu.GORDO_PROJECT, target="non-existent-target")
         client.download_model()
+
+
+def test_client_load_metadata_once(watchman_service):
+    """
+    When creating multiple clients, it should only collect the metadata/endpoints
+    one time and share that variable across new instances.
+    """
+
+    # Using Client.call_metadata_once() will create a class attribute `endpoints`
+    # so that all following instantiations of `Client` will not make calls to watchman
+    with mock.patch(
+        "gordo_components.client.client.Client._cache_endpoints",
+        side_effect=Client._cache_endpoints,
+    ) as m:
+        with Client.cached_endpoints_client() as EfficientClient:
+            clients = [
+                EfficientClient(project=tu.GORDO_PROJECT, target=tu.GORDO_SINGLE_TARGET)
+                for i in range(10)
+            ]
+            assert m.call_count == 1
+            assert all(hasattr(client, "endpoints") for client in clients)
+
+        # Now it should not be called, because we will not set `endpoints` as
+        # an attribute of the class but per instance of the class
+        clients = [
+            Client(project=tu.GORDO_PROJECT, target=tu.GORDO_SINGLE_TARGET)
+            for i in range(10)
+        ]
+        assert m.call_count == 1  # Call count to _set_endpoints should remain the same
+        assert all(hasattr(client, "endpoints") for client in clients)
 
 
 @pytest.mark.parametrize("batch_size", (10, 100))
