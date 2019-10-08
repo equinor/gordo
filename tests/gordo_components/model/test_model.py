@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
 
-from gordo_components.model import get_model
+from tests.utils import get_model
 from gordo_components.model.models import (
     KerasLSTMAutoEncoder,
     KerasLSTMForecast,

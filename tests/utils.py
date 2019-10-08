@@ -18,6 +18,7 @@ from asynctest import mock as async_mock
 from influxdb import InfluxDBClient
 from flask import Request
 
+from gordo_components.model import models
 from gordo_components.watchman import server as watchman_server
 from gordo_components.dataset.sensor_tag import SensorTag
 from gordo_components.dataset.sensor_tag import to_list_of_strings
@@ -370,3 +371,13 @@ class InfluxDB:
                 for point, date in zip(points, dates)
             ]
             influx_client.write_points(data)
+
+
+def get_model(config):
+    type = config.get("type", "")
+    Model = getattr(models, type, None)
+    if Model is None:
+        raise ValueError(
+            f'Type of model: "{type}" either not provided or not supported'
+        )
+    return Model(**config)
