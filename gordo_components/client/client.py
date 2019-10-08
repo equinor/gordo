@@ -90,7 +90,7 @@ class Client:
         parallelism: int
             The maximum number of async tasks to run at a given time when
             running predictions
-       forward_resampled_sensors : bool
+        forward_resampled_sensors: bool
             If true then forward resampled sensor values to the prediction_forwarder
         ignore_unhealthy_targets: bool
             Ignore any targets which are unhealthy. Will raise a ``ValueError``
@@ -102,6 +102,7 @@ class Client:
             Pass the data to the server using the parquet protocol. Default is True
             and recommended as it's more efficient for larger batch sizes. If False JSON
             is used for sending the data back and forth.
+
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
