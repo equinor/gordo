@@ -1,3 +1,4 @@
+pip>=19.2.3
 pip-tools~=4.0
 sphinx-rtd-theme~=0.4
 sphinxcontrib-websupport~=1.1
