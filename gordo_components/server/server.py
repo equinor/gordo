@@ -125,7 +125,7 @@ def build_app():
 
 def run_server(host: str = "0.0.0.0", port: int = 5555, debug: bool = False):
     app = build_app()
-    app.run(host, port, debug=debug)
+    app.run(host, port, debug=debug, threaded=False)
 
 
 if __name__ == "__main__":
