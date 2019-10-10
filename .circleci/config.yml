@@ -5,7 +5,7 @@ executors:
   python-executor:
     working_directory: ~/code
     machine:
-      docker_layer_caching: true
+      docker_layer_caching: false
       image: "circleci/classic:201808-01"
 
 commands:
@@ -77,7 +77,7 @@ jobs:
   # Make the docker images this project uses.
   make-images:
     machine:
-      docker_layer_caching: true
+      docker_layer_caching: false
     steps:
       - checkout
       - run:
@@ -87,7 +87,7 @@ jobs:
   # Push images, only when on master and/or tagged commits.
   push-images:
     machine:
-      docker_layer_caching: true
+      docker_layer_caching: false
     environment:
       GORDO_PROD_MODE: true
       DOCKER_REGISTRY: docker.io
