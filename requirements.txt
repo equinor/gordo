@@ -5,7 +5,7 @@
 #    pip-compile --output-file=requirements.txt requirements.in
 #
 absl-py==0.8.0            # via tensorboard, tensorflow
-adal==1.2.2               # via azure-datalake-store, kubernetes
+adal==1.2.2               # via azure-datalake-store
 aiodns==2.0.0
 aiohttp==3.6.2
 aniso8601==8.0.0          # via flask-restplus
@@ -37,7 +37,7 @@ joblib==0.14.0            # via scikit-learn
 jsonschema==3.0.2         # via flask-restplus
 keras-applications==1.0.8  # via tensorflow
 keras-preprocessing==1.1.0  # via tensorflow
-kubernetes==8.0.2
+kubernetes==10.0.1
 markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2
 multidict==4.5.2          # via aiohttp, yarl
