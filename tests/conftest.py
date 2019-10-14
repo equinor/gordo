@@ -229,3 +229,11 @@ def watchman_service(
         model_location=trained_model_directory,
     ):
         yield
+
+
+@pytest.fixture(scope="session")
+def repo_dir():
+    """
+    Return the repository directory for gordo infrastructure
+    """
+    return os.path.join(os.path.dirname(__file__), "..")
