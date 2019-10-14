@@ -1,0 +1,51 @@
+# Installs workflow-generator, kubectl and argo. Runs workflow-generator on the machine-config
+# stored in the environment variable MACHINE_CONFIG, or if that is empty, the file
+# /code/config.yml, which is then the callers responsibility to mount in.
+
+FROM python:3.6.9 as builder
+
+ARG HTTPS_PROXY
+ARG KUBECTL_VERSION="v1.12.1"
+ARG ARGO_VERSION="v2.2.1"
+
+#donwload & install kubectl
+RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
+  chmod +x /usr/local/bin/kubectl
+
+#download & install argo
+RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64 &&\
+  chmod +x /usr/local/bin/argo
+
+# Copy source code
+COPY . /code
+# Copy .git to deduce version number
+COPY .git /code/
+
+WORKDIR /code
+RUN rm -rf /code/dist \
+    && python setup.py sdist \
+    && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-infrastructure-packed.tar.gz
+
+FROM python:3.6.9-slim-stretch
+
+# Install requirements separately for improved docker caching
+COPY requirements.txt /code/
+RUN pip install -r /code/requirements.txt
+
+COPY ./run_workflow_and_argo.sh /code/run_workflow_and_argo.sh
+
+COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --from=builder /usr/local/bin/argo /usr/local/bin/argo
+RUN apt-get update && apt-get install -y \
+    curl \
+    jq \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY resources /code/resources
+
+# Install the current distribution of gordo-infrastructure
+COPY --from=builder /code/dist/gordo-infrastructure-packed.tar.gz .
+RUN pip install ./gordo-infrastructure-packed.tar.gz
+
+
+CMD ["bash", "/code/run_workflow_and_argo.sh"]

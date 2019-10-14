@@ -46,31 +46,34 @@ else
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin $DOCKER_REGISTRY || exit 1
 fi
 
-export git_sha=$(git rev-parse HEAD | cut -c 1-8)
+export tmp_tag=$(date +%Y-%m-%d)
 
 if [[ -z "${DOCKER_IMAGE}" ]]; then
     if [[ -z "${DOCKER_FILE}" ]]; then
         echo "DOCKER_IMAGE or DOCKER_FILE must be provided, exiting"
         exit 1
     fi
-    docker build -t $git_sha  -f $DOCKER_FILE .
-    export DOCKER_IMAGE=$git_sha
+    docker build -t $tmp_tag  -f $DOCKER_FILE .
+    export DOCKER_IMAGE=$tmp_tag
 fi
 
-if [[ -z "${GORDO_PROD_MODE}" ]]; then
-    export suffix="-dev"
-else
-    export suffix=""
+# Ensure we're getting the latest version, including any dirty state of the repo
+# replacing any '+' development identifier with an underscore for docker compatibility
+export version=$(docker run --rm $DOCKER_IMAGE gordo-components --version | tr + _)
 
+
+if [[ -z "${GORDO_PROD_MODE}" ]]; then
+    echo "Skipping pushing of 'latest' image"
+else
     # if we're in prod mode, we'll push the latest image.
     docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:latest
     docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:latest
 fi
 
-docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$git_sha$suffix
-docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$git_sha$suffix
+docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$version
+docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$version
 
 git tag --points-at HEAD | while read -r tag ; do
-    docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$tag$suffix
-    docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$tag$suffix
+    docker tag $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$tag
+    docker push $DOCKER_REGISTRY/$DOCKER_REPO/$DOCKER_NAME:$tag
 done

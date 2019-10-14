@@ -1,0 +1,8 @@
+machines:
+  - name: machine-1
+    dataset:
+      tags:
+        - Tag 1
+        - Tag 2
+      train_start_date: 2016-11-07T08:10:31+00:00
+      train_end_date: 2017-11-07T10:10:01

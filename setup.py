@@ -34,4 +34,10 @@ setup(
         "relative_to": __file__,
     },
     zip_safe=True,
+    package_data={
+        "": [
+            "python/gordo_components/workflow/workflow_generator/resources/argo-workflow.yml.template"
+        ]
+    },
+    include_package_data=True,
 )

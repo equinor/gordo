@@ -25,7 +25,8 @@ from gordo_components.serializer import (
     pipeline_from_definition,
 )
 from gordo_components.server import server
-from gordo_components import watchman
+from gordo_components import watchman, __version__
+from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
 from gordo_components.cli.custom_types import key_value_par, DataProviderParam
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
@@ -69,6 +70,7 @@ logging.getLogger("azure.datalake").setLevel(azure_log_level)
 
 
 @click.group("gordo-components")
+@click.version_option(version=__version__, message=__version__)
 def gordo():
     """
     The main entry point for the CLI interface
@@ -457,6 +459,7 @@ def run_watchman_cli(
     )
 
 
+gordo.add_command(workflow_cli)
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
 gordo.add_command(run_watchman_cli)

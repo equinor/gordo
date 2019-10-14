@@ -236,6 +236,12 @@ jobs:
       - run-test:
           for: watchman
 
+  test-workflow:
+    executor: python-executor
+    steps:
+      - run-test:
+          for: workflow
+
   test-formatting:
     executor: python-executor
     steps:
@@ -291,6 +297,9 @@ workflows:
       - test-watchman:
           requires:
             - install
+      - test-workflow:
+          requires:
+            - install
       - test-formatting:
           requires:
             - install
@@ -315,6 +324,7 @@ workflows:
             - test-server
             - test-util
             - test-watchman
+            - test-workflow
             - test-formatting
             - test-allelse
           filters:
