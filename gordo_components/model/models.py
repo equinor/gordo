@@ -3,10 +3,12 @@
 import abc
 import logging
 import json
+import io
+import pickle
 
+from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
 from os import path
-import pickle
 from abc import ABCMeta
 
 import tensorflow.keras.models
@@ -328,9 +330,6 @@ class KerasRawModelRegressor(KerasAutoEncoder):
         self.build_fn = lambda: self.keras_from_spec(self.kind)  # type: ignore
 
     def __repr__(self):
-        import io
-        from pprint import pprint
-
         stream = io.StringIO()
         pprint(self.kind, stream=stream)
         stream.seek(0)
@@ -339,6 +338,13 @@ class KerasRawModelRegressor(KerasAutoEncoder):
 
     @staticmethod
     def keras_from_spec(spec: dict):
+        _expected_keys = ("spec", "compile")
+        if not all(k in spec for k in _expected_keys):
+            raise ValueError(
+                f"Expected spec to have keys: {_expected_keys}, but found {spec.keys()}"
+            )
+        logger.debug(f"Building model from spec: {spec}")
+
         model = serializer.pipeline_from_definition(spec["spec"])
         model.compile(**spec["compile"])
         return model
