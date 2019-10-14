@@ -69,7 +69,7 @@ def _build_branch(
     leafs of the branch, if constructor_class is not none. Otherwise just the
     built leafs are returned.
     """
-    steps = [_build_step(step) for i, step in enumerate(definition)]
+    steps = [_build_step(step) for step in definition]
     return steps if constructor_class is None else constructor_class(steps)
 
 
