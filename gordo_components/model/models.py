@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import abc
 import logging
 import json
 
@@ -349,166 +350,11 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         }
         super().__init__(**kwargs)
 
+    @abc.abstractproperty
+    def lookahead(self) -> int:
+        """Steps ahead in y the model should target"""
+        ...
 
-class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
-    def _validate_and_fix_size_of_X(self, X):
-        if X.ndim == 1:
-            logger.info(
-                f"Reshaping X from an array to an matrix of shape {(len(X), 1)}"
-            )
-            X = X.reshape(len(X), 1)
-
-        if self.lookback_window > X.shape[0]:
-            raise ValueError(
-                "For KerasLSTMAutoEncoder lookback_window must be <= size of X"
-            )
-        return X
-
-    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> "KerasLSTMAutoEncoder":
-        """
-        This fits a many-to-one LSTM architecture using Keras fit_generator method.
-
-        Parameters
-        ----------
-        X: np.ndarray
-           2D numpy array of dimension n_samples x n_features. Input data to train.
-        y: np.ndarray
-           2D numpy array to representing the target.
-        kwargs: dict
-            Any additional args to be passed to Keras fit_generator method.
-
-        Returns
-        -------
-        class:
-            KerasLSTMAutoEncoder
-
-        """
-
-        X = X.values if isinstance(X, pd.DataFrame) else X
-        y = y.values if isinstance(y, pd.DataFrame) else y
-
-        X = self._validate_and_fix_size_of_X(X)
-
-        # We call super.fit on a single sample (notice the batch_size=1) to initiate the
-        # model using the scikit-learn wrapper.
-        lookahead = 0
-        tsg = create_keras_timeseriesgenerator(
-            X=X[: lookahead + self.lookback_window],  # We only need a bit of the data
-            y=y[: lookahead + self.lookback_window],
-            batch_size=1,
-            lookback_window=self.lookback_window,
-            lookahead=lookahead,
-        )
-        _x, _y = tsg[0]
-        super().fit(X=_x, y=_y, epochs=1, verbose=0)
-
-        tsg = create_keras_timeseriesgenerator(
-            X=X,
-            y=y,
-            batch_size=self.batch_size,
-            lookback_window=self.lookback_window,
-            lookahead=0,
-        )
-        gen_kwargs = {
-            k: v
-            for k, v in {**self.kwargs, **kwargs}.items()
-            if k in self.fit_generator_params
-        }
-
-        # shuffle is set to False since we are dealing with time series data and
-        # so training data will not be shuffled before each epoch.
-        self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
-        return self
-
-    def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
-        """
-
-        Parameters
-        ----------
-         X: np.ndarray
-            Data to autoencode. 2D numpy array of dimension n_samples x n_features where
-            n_samples must be >= lookback_window.
-
-
-        Returns
-        -------
-        results: np.ndarray
-            2D numpy array of dimension `(n_samples - (lookback_window - 1)) x
-            2*n_features`.  The first half of the array ( results[:,:n_features])
-            corresponds to X offset by the lookback_window (i.e., X[lookback_window -
-            1:, :]) whereas the second half corresponds to the autoencoded values of
-            X[ lookback_window - 1:,:].
-
-
-        Example
-        -------
-        >>> import numpy as np
-        >>> from gordo_components.model.factories.lstm_autoencoder import lstm_model
-        >>> from gordo_components.model.models import KerasLSTMAutoEncoder
-        >>> #Define train/test data
-        >>> X_train = np.array([[1, 1], [2, 3], [0.5, 0.6], [0.3, 1], [0.6, 0.7]])
-        >>> X_test = np.array([[2, 3], [1, 1], [0.1, 1], [0.5, 2]])
-        >>> #Initiate model, fit and transform
-        >>> lstm_ae = KerasLSTMAutoEncoder(kind="lstm_model",
-        ...                                lookback_window=2,
-        ...                                verbose=0)
-        >>> model_fit = lstm_ae.fit(X_train, y=X_train.copy())
-        >>> model_transform = lstm_ae.predict(X_test)
-        >>> model_transform.shape
-        (3, 2)
-        """
-
-        X = X.values if isinstance(X, pd.DataFrame) else X
-
-        X = self._validate_and_fix_size_of_X(X)
-        # predict batch_size does not need to correspond to
-        # training batch_size
-        tsg = create_keras_timeseriesgenerator(
-            X=X,
-            y=X,
-            batch_size=10000,
-            lookback_window=self.lookback_window,
-            lookahead=0,
-        )
-        return self.model.predict_generator(tsg, **kwargs)
-
-    def score(
-        self,
-        X: Union[np.ndarray, pd.DataFrame],
-        y: Union[np.ndarray, pd.DataFrame],
-        sample_weight: Optional[np.ndarray] = None,
-    ) -> float:
-        """
-        Returns the explained variance score between auto encoder's input vs output
-        (note: for LSTM X is offset by lookback_window - 1).
-
-        Parameters
-        ----------
-        X: Union[np.ndarray, pd.DataFrame]
-            Input data to the model.
-        y: Union[np.ndarray, pd.DataFrame]
-            Target
-        sample_weight: Optional[np.ndarray]
-            Sample weights
-
-        Returns
-        -------
-        score: float
-            Returns the explained variance score.
-        """
-        if not hasattr(self, "model"):
-            raise NotFittedError(
-                f"This {self.__class__.__name__} has not been fitted yet."
-            )
-
-        out = self.predict(X)
-
-        # Limit X samples to match the offset causes by LSTM lookback window
-        # ie, if look back window is 5, 'out' will be 5 rows less than X by now
-        return explained_variance_score(y[-len(out) :], out)
-
-
-class KerasLSTMForecast(KerasLSTMBaseEstimator):
     def get_metadata(self):
         """
         Add number of forecast steps to metadata
@@ -518,9 +364,8 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         metadata: dict
             Metadata dictionary, including forecast steps.
         """
-        forecast_steps = {"forecast_steps": 1}
         metadata = super().get_metadata()
-        metadata.update(forecast_steps)
+        metadata.update({"forecast_steps": self.lookahead})
         return metadata
 
     def _validate_and_fix_size_of_X(self, X):
@@ -564,13 +409,14 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
-        lookahead = 1
         tsg = create_keras_timeseriesgenerator(
-            X=X[: lookahead + self.lookback_window],  # We only need a bit of the data
-            y=y[: lookahead + self.lookback_window],
+            X=X[
+                : self.lookahead + self.lookback_window
+            ],  # We only need a bit of the data
+            y=y[: self.lookahead + self.lookback_window],
             batch_size=1,
             lookback_window=self.lookback_window,
-            lookahead=lookahead,
+            lookahead=self.lookahead,
         )
 
         primer_x, primer_y = tsg[0]
@@ -582,7 +428,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             y=y,
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
-            lookahead=1,
+            lookahead=self.lookahead,
         )
 
         gen_kwargs = {
@@ -639,7 +485,7 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
             y=X,
             batch_size=10000,
             lookback_window=self.lookback_window,
-            lookahead=1,
+            lookahead=self.lookahead,
         )
         return self.model.predict_generator(tsg)
 
@@ -677,6 +523,18 @@ class KerasLSTMForecast(KerasLSTMBaseEstimator):
         # Limit X samples to match the offset causes by LSTM lookback window
         # ie, if look back window is 5, 'out' will be 5 rows less than X by now
         return explained_variance_score(y[-len(out) :], out)
+
+
+class KerasLSTMForecast(KerasLSTMBaseEstimator):
+    @property
+    def lookahead(self) -> int:
+        return 1
+
+
+class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
+    @property
+    def lookahead(self) -> int:
+        return 0
 
 
 def create_keras_timeseriesgenerator(
