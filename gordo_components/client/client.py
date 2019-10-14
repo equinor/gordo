@@ -6,7 +6,7 @@ import copy
 import requests
 import logging
 import itertools
-import time
+from time import sleep
 
 import typing
 from typing import Dict, Any
@@ -434,7 +434,7 @@ class Client:
                     logger.warning(
                         f"Failed to get response on attempt {current_attempt} out of {self.n_retries} attempts."
                     )
-                    time.sleep(time_to_sleep)  # Not async on purpose.
+                    sleep(time_to_sleep)  # Not async on purpose.
                     continue
                 else:
                     msg = (
