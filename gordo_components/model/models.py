@@ -3,10 +3,12 @@
 import abc
 import logging
 import json
+import io
+import pickle
 
+from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
 from os import path
-import pickle
 from abc import ABCMeta
 
 import tensorflow.keras.models
@@ -19,6 +21,8 @@ import pandas as pd
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
+
+from gordo_components import serializer
 from gordo_components.model.base import GordoBase
 
 # This is required to run `register_model_builder` against registered factories
@@ -114,6 +118,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         # for LSTM based models
         if len(X.shape) == 3:
             self.kwargs.update({"n_features": X.shape[2]})
+        kwargs.setdefault("verbose", 0)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
@@ -281,6 +286,68 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         out = self.model.predict(X)
 
         return explained_variance_score(y, out)
+
+
+class KerasRawModelRegressor(KerasAutoEncoder):
+    """
+    Create a scikit-learn like model with an underlying tensorflow.keras model
+    from a raw config.
+
+    Examples
+    --------
+    >>> import yaml
+    >>> import numpy as np
+    >>> config_str = '''
+    ...   # Arguments to the .compile() method
+    ...   compile:
+    ...     loss: mse
+    ...     optimizer: adam
+    ...
+    ...   # The architecture of the model itself.
+    ...   spec:
+    ...     tensorflow.keras.models.Sequential:
+    ...       layers:
+    ...         - tensorflow.keras.layers.Dense:
+    ...             units: 4
+    ...         - tensorflow.keras.layers.Dense:
+    ...             units: 1
+    ... '''
+    >>> config = yaml.safe_load(config_str)
+    >>> model = KerasRawModelRegressor(kind=config)
+    >>>
+    >>> X, y = np.random.random((10, 4)), np.random.random((10, 1))
+    >>> model.fit(X, y)
+    KerasRawModelRegressor(kind: {'compile': {'loss': 'mse', 'optimizer': 'adam'},
+     'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'units': 4}},
+                                                                {'tensorflow.keras.layers.Dense': {'units': 1}}]}}}
+    )
+    >>> out = model.predict(X)
+    """
+
+    def __init__(self, kind: dict, **kwargs):
+        self.kind = kind  # type: ignore
+        self.kwargs = kwargs
+        self.build_fn = lambda: self.keras_from_spec(self.kind)  # type: ignore
+
+    def __repr__(self):
+        stream = io.StringIO()
+        pprint(self.kind, stream=stream)
+        stream.seek(0)
+        result = f"{self.__class__.__name__}(kind: {stream.read()})"
+        return result
+
+    @staticmethod
+    def keras_from_spec(spec: dict):
+        _expected_keys = ("spec", "compile")
+        if not all(k in spec for k in _expected_keys):
+            raise ValueError(
+                f"Expected spec to have keys: {_expected_keys}, but found {spec.keys()}"
+            )
+        logger.debug(f"Building model from spec: {spec}")
+
+        model = serializer.pipeline_from_definition(spec["spec"])
+        model.compile(**spec["compile"])
+        return model
 
 
 class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):

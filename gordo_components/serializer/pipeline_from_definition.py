@@ -7,6 +7,7 @@ import typing  # noqa
 from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
+from tensorflow.keras.models import Sequential
 
 
 logger = logging.getLogger(__name__)
@@ -64,9 +65,21 @@ def _build_branch(
     constructor_class=Union[Pipeline, None],
 ):
     """
-    Builds a branch of the tree and optionall constructs the class with the given
+    Builds a branch of the tree and optionally constructs the class with the given
     leafs of the branch, if constructor_class is not none. Otherwise just the
     built leafs are returned.
+    """
+    steps = [_build_step(step) for step in definition]
+    return steps if constructor_class is None else constructor_class(steps)
+
+
+def _build_scikit_branch(
+    definition: Iterable[Union[str, Dict[Any, Any]]],
+    constructor_class=Union[Pipeline, None],
+):
+    """
+    Exactly like :func:`~_build_branch` except it's expected this is going to
+    be a list of tuples, where the 0th element is the name of the step.
     """
     steps = [(f"step_{i}", _build_step(step)) for i, step in enumerate(definition)]
     return steps if constructor_class is None else constructor_class(steps)
@@ -80,21 +93,21 @@ def _build_step(
 
     Parameters
     ----------
-        step: dict/str - A dict, with a single key and associated dict
-                         where the associated dict are parameters for the
-                         given step.
+    step: dict/str - A dict, with a single key and associated dict
+                     where the associated dict are parameters for the
+                     given step.
 
-                         Example: {'sklearn.preprocessing.PCA':
-                                        {'n_components': 4}
-                                  }
-                            Gives:  PCA(n_components=4)
+                     Example: {'sklearn.preprocessing.PCA':
+                                    {'n_components': 4}
+                              }
+                        Gives:  PCA(n_components=4)
 
-                        Alternatively, 'step' can be a single string, in
-                        which case the step will be initiated w/ default
-                        params.
+                    Alternatively, 'step' can be a single string, in
+                    which case the step will be initiated w/ default
+                    params.
 
-                        Example: 'sklearn.preprocessing.PCA'
-                            Gives: PCA()
+                    Example: 'sklearn.preprocessing.PCA'
+                        Gives: PCA()
     Returns
     -------
         Scikit-Learn Transformer or BaseEstimator
@@ -126,31 +139,33 @@ def _build_step(
                     if callable(possible_func):
                         params[param] = possible_func
 
-        StepClass = pydoc.locate(
+        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
             import_str
-        )  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
+        )
 
         if StepClass is None:
             raise ImportError(f'Could not locate path: "{import_str}"')
 
         # FeatureUnion or another Pipeline transformer
-        if any(StepClass == obj for obj in [FeatureUnion, Pipeline]):
+        if any(StepClass == obj for obj in [FeatureUnion, Pipeline, Sequential]):
 
             # Need to ensure the parameters to be supplied are valid FeatureUnion
             # & Pipeline both take a list of transformers, but with different
-            # kwarg, here we pull out the list to keep _build_branch generic
+            # kwarg, here we pull out the list to keep _build_scikit_branch generic
             if "transformer_list" in params:
-                params["transformer_list"] = _build_branch(
+                params["transformer_list"] = _build_scikit_branch(
                     params["transformer_list"], None
                 )
             elif "steps" in params:
-                params["steps"] = _build_branch(params["steps"], None)
+                params["steps"] = _build_scikit_branch(params["steps"], None)
 
             # If params is an iterable, is has to be the first argument
             # to the StepClass (FeatureUnion / Pipeline); a list of transformers
             elif any(isinstance(params, obj) for obj in (tuple, list)):
-                steps = _build_branch(params, None)
+                steps = _build_scikit_branch(params, None)
                 return StepClass(steps)
+            elif isinstance(params, dict) and "layers" in params:
+                params["layers"] = _build_branch(params["layers"], None)
             else:
                 raise ValueError(
                     f"Got {StepClass} but the supplied parameters"
@@ -241,13 +256,9 @@ def _load_param_classes(params: dict):
             and isinstance(value[list(value.keys())[0]], dict)
         ):
             Model = pydoc.locate(list(value.keys())[0])
-            if (
-                Model is not None
-                and isinstance(Model, type)
-                and issubclass(Model, BaseEstimator)
-            ):
+            if Model is not None and isinstance(Model, type):
 
-                if issubclass(Model, Pipeline):
+                if issubclass(Model, Pipeline) or issubclass(Model, Sequential):
                     # Model is a Pipeline, so 'value' is the definition of that Pipeline
                     # Can can just re-use the entry to building a pipeline.
                     params[key] = pipeline_from_definition(value)
