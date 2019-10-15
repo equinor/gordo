@@ -1,8 +1,16 @@
 # -*- coding: utf-8 -*-
+"""
+This module contains code for generating the Gordo server Flask application.
+
+Running this module will run the application using Flask's development webserver.
+Gunicorn can be used to run the application as `gevent` async workers by using the
+:func:`~gordo_components.server.server.run_server` function.
+"""
 import logging
 import timeit
 import typing
 from functools import wraps
+import subprocess
 
 from flask import Flask, g
 from gordo_components.server import views
@@ -123,10 +131,63 @@ def build_app():
     return app
 
 
-def run_server(host: str = "0.0.0.0", port: int = 5555, debug: bool = False):
-    app = build_app()
-    app.run(host, port, debug=debug, threaded=False)
+def run_cmd(cmd):
+    """
+    Run a shell command and handle CalledProcessError and OSError types
 
+    Note
+    ----
+    This function is abstracted from :func:`~gordo_components.server.server.run_server`
+    in order to test the calling of commands that would allow the subprocess call to
+    break, depending on how it is parameterized. For example, calling this without
+    sending `stderr` to stdout will cause a segmentation fault when calling an
+    executable that does not exist.
+    """
+    subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+
+def run_server(
+    host: str, port: int, workers: int, worker_connections: int, log_level: str
+):
+    """
+    Run application with Gunicorn server using Gevent Async workers
+
+    Parameters
+    ----------
+    host: str
+        The host to run the server on.
+    port: int
+        The port to run the server on.
+    workers: int
+        The number of worker processes for handling requests.
+    worker_connections: int
+        The maximum number of simultaneous clients per worker process.
+    log_level: str
+        The log level for the `gunicorn` webserver. Valid log level names can be found
+        in the [gunicorn documentation](http://docs.gunicorn.org/en/stable/settings.html#loglevel).
+    """
+
+    cmd = [
+        "gunicorn",
+        "--bind",
+        f"{host}:{port}",
+        "--log-level",
+        log_level,
+        "--worker-class",
+        "gevent",
+        "--worker-tmp-dir",
+        "/dev/shm",
+        "--workers",
+        str(workers),
+        "--worker-connections",
+        str(worker_connections),
+        "gordo_components.server.server:app",
+    ]
+    run_cmd(cmd)
+
+
+app = build_app()
 
 if __name__ == "__main__":
-    run_server()
+    # Run development webserver
+    app.run("0.0.0.0", 5555, debug=True, threaded=False)

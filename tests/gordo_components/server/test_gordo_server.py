@@ -3,10 +3,10 @@
 import logging
 
 import pytest
-import numpy as np
+import subprocess
 
+from gordo_components.server.server import run_cmd
 from gordo_components import serializer
-from tests import utils as tu
 
 
 logger = logging.getLogger(__name__)
@@ -64,3 +64,19 @@ def test_download_model(base_route, gordo_ml_server_client):
 
     # Models MUST have either predict or transform
     assert hasattr(model, "predict") or hasattr(model, "transform")
+
+
+def test_run_cmd(monkeypatch):
+    """
+    Test that execution error catchings work as expected
+    """
+
+    # Call command that raises FileNotFoundError, a subclass of OSError
+    cmd = ["gumikorn", "gordo_components.server.server:app"]
+    with pytest.raises(OSError):
+        run_cmd(cmd)
+
+    # Call command that raises a CalledProcessError
+    cmd = ["ping", "--bad-option"]
+    with pytest.raises(subprocess.CalledProcessError):
+        run_cmd(cmd)
