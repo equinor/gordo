@@ -2,6 +2,7 @@ apscheduler~=3.6
 Click~=7.0
 cachetools~=3.1
 dictdiffer
+gunicorn~=19.9.0
 h5py~=2.8
 influxdb~=5.2
 jinja2~=2.10
@@ -26,3 +27,4 @@ aiohttp~=3.6
 aiodns~=2.0
 urllib3>=1.24.2,<2.0
 simplejson~=3.16
+gevent~=1.4.0

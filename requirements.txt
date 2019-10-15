@@ -26,9 +26,12 @@ dictdiffer==0.8.0
 flask-restplus==0.13.0
 flask==1.1.1
 gast==0.2.2               # via tensorflow
+gevent==1.4.0
 google-auth==1.6.3        # via kubernetes
 google-pasta==0.1.7       # via tensorflow
+greenlet==0.4.15          # via gevent
 grpcio==1.24.1            # via tensorboard, tensorflow
+gunicorn==19.9.0
 h5py==2.10.0
 idna==2.8                 # via requests, yarl
 influxdb==5.2.3
