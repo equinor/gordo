@@ -85,6 +85,7 @@ jobs:
           command: make images
 
   # Push images, only when on master and/or tagged commits.
+  # TODO: After we switch gordo-deploy to gordo-components, push that as well
   push-images:
     machine:
       docker_layer_caching: false
@@ -96,7 +97,11 @@ jobs:
       - checkout
       - run:
           name: Push Images
-          command: make images push-prod-images
+          command: |
+            make push-server
+            make push-client
+            make push-builder
+            make push-watchman
 
   # Publish to PyPi, only on tagged commits.
   publish-to-pypi:
