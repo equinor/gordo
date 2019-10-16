@@ -1,5 +1,7 @@
 import ast
 import logging
+import pandas as pd
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,44 @@ class _DfNameInserter(ast.NodeTransformer):
         )
 
 
-def pandas_filter_rows(df, filter_str: str):
+def apply_buffer(mask: pd.Series, buffer_size: int = 0):
+    """
+    Take a mask (boolean series) where True indicates keeping a value, and False
+    represents removing the value. This will 'expand' those indexes marked as `False`
+    to the symmetrical bounds of ``buffer_size``
+
+    Parameters
+    ----------
+    mask: pandas.core.Series
+        Boolean pandas series
+    buffer_size: int
+        Size to buffer around ``False`` values
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> series = pd.Series([True, True, False, True, True])
+    >>> apply_buffer(series, buffer_size=1)
+    >>> series
+    0     True
+    1    False
+    2    False
+    3    False
+    4     True
+    dtype: bool
+
+    Returns
+    -------
+    None
+    """
+    idxs, *_rows = np.where(mask == False)
+    for idx in idxs:
+        mask.values[
+            range(max((0, idx - buffer_size)), min((len(mask), idx + buffer_size + 1)))
+        ] = False
+
+
+def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     """
 
     Parameters
@@ -106,6 +145,7 @@ def pandas_filter_rows(df, filter_str: str):
     parsed_filter = _DfNameInserter(df_name="df").visit(parsed_filter)
     # The eval requires the dataframe to be called 'df'
     pandas_filter = eval(compile(parsed_filter, filename=__name__, mode="eval"))
+    apply_buffer(pandas_filter, buffer_size=buffer_size)
     return df[pandas_filter]
 
 

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from gordo_components.dataset.filter_rows import pandas_filter_rows
+from gordo_components.dataset.filter_rows import pandas_filter_rows, apply_buffer
 
 
 def test_filter_rows_basic():
@@ -26,3 +26,36 @@ def test_filter_rows_catches_illegal():
         pandas_filter_rows(df, "lambda x:x")
     with pytest.raises(ValueError):
         pandas_filter_rows(df, "__import__('os').system('clear')"), ValueError
+
+
+@pytest.mark.parametrize(
+    "buffer_size,series,expected",
+    [
+        (
+            1,
+            pd.Series([1, 1, 1, 1, 0, 1, 1, 1, 1]),
+            pd.Series([1, 1, 1, 0, 0, 0, 1, 1, 1]),
+        ),
+        (
+            2,
+            pd.Series([1, 1, 1, 1, 0, 1, 1, 1, 1]),
+            pd.Series([1, 1, 0, 0, 0, 0, 0, 1, 1]),
+        ),
+        (
+            1,
+            pd.Series([0, 1, 1, 1, 1, 1, 1, 1, 0]),
+            pd.Series([0, 0, 1, 1, 1, 1, 1, 0, 0]),
+        ),
+        (
+            2,
+            pd.Series([0, 0, 1, 0, 1, 1, 1, 1, 1]),
+            pd.Series([0, 0, 0, 0, 0, 0, 1, 1, 1]),
+        ),
+    ],
+)
+def test_filter_rows_buffer(buffer_size, series, expected):
+    series = series.astype(bool)
+    expected = expected.astype(bool)
+
+    apply_buffer(series, buffer_size=buffer_size)
+    assert np.alltrue(np.equal(series, expected))
