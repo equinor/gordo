@@ -650,6 +650,45 @@ spec:
             name: http-gordo
             targetPort: http-api
 
+  - name: gordo-server-istio
+    retryStrategy:
+      limit: 5
+    inputs:
+      parameters:
+      - name: host-name
+    resource:
+      action: apply
+      manifest: |
+        ---
+        apiVersion: networking.istio.io/v1alpha3
+        kind: VirtualService
+        metadata:
+          name: "{{'{{inputs.parameters.host-name}}'}}"
+          annotations:
+          labels:
+            app: "{{'{{inputs.parameters.host-name}}'}}"
+            app.kubernetes.io/name: model-server
+            app.kubernetes.io/component: VirtualService
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+          {% if owner_references is defined %}
+          ownerReferences: {{owner_references}}
+          {% endif %}
+        spec:
+          hosts:
+          - "*"
+          gateways:
+          - istio-system/istio-gateway
+          http:
+          - match:
+            - uri:
+                regex: "/gordo/v0/{{project_name}}/.+"
+            route:
+            - destination:
+                host: "{{'{{inputs.parameters.host-name}}'}}"
+
   # SVC to notify watchman that a model has been built and can be served by the ML Server
   # This should only be temporary, as it's not _really_ a service, but used to notify Watchman
   # that the model is built and should be able to be contacted via the main server.
@@ -779,7 +818,10 @@ spec:
         template: gordo-server-svc
         arguments:
           parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
-
+      - name: gordo-server-istio
+        template: gordo-server-istio
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
 
   - name: gordo-client-para-limited # Runs gordo client, but with limited parallelization
     inputs:
@@ -945,6 +987,47 @@ spec:
             targetPort: http-api
 
 
+
+  - name: gordo-watchman-istio
+    retryStrategy:
+      limit: 5
+    resource:
+      action: apply
+      manifest: |
+        ---
+        apiVersion: networking.istio.io/v1alpha3
+        kind: VirtualService
+        metadata:
+          name: "gordo-watchman-{{project_name}}"
+          annotations:
+          labels:
+            app: "gordo-watchman-{{project_name}}"
+            app.kubernetes.io/name: watchman
+            app.kubernetes.io/component: VirtualService
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-version: "{{project_version}}"
+          {% if owner_references is defined %}
+          ownerReferences: {{owner_references}}
+          {% endif %}
+        spec:
+          hosts:
+          - "*"
+          gateways:
+          - istio-system/istio-gateway
+          http:
+          - match:
+            - uri:
+                regex: "/gordo/v0/{{project_name}}/$"
+            rewrite:
+              uri: "/"
+            route:
+            - destination:
+                host: "gordo-watchman-{{project_name}}"
+
+
+
   - name: gordo-watchman-deployment
     retryStrategy:
       limit: 5
@@ -1018,6 +1101,8 @@ spec:
         template: gordo-watchman-deployment
     - - name: gordo-watchman-svc
         template: gordo-watchman-svc
+    - - name: gordo-watchman-istio
+        template: gordo-watchman-istio
 
   - name: influx-cleanup
     activeDeadlineSeconds: 300
