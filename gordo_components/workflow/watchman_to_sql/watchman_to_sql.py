@@ -1,9 +1,8 @@
 from typing import List, Dict, Optional
 
-import click
 import requests
 import logging
-import sys
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -199,50 +198,3 @@ def _extract_machines_from_watchman_response(
                 logger.info(f"Found non-healthy endpoint {ep}, ignoring")
                 machines.append(None)
     return machines
-
-
-@click.command()
-@click.option("--watchman-address", help="Address of watchman", required=True, type=str)
-@click.option("--sql-host", help="Host of the sql server", required=True, type=str)
-@click.option(
-    "--sql-port", help="Port of the sql server", required=False, type=int, default=5432
-)
-@click.option(
-    "--sql-database",
-    help="Username of the sql server",
-    required=False,
-    type=str,
-    default="postgres",
-)
-@click.option(
-    "--sql-username",
-    help="Username of the sql server",
-    required=False,
-    type=str,
-    default="postgres",
-)
-@click.option(
-    "--sql-password",
-    help="Port of the sql server",
-    required=False,
-    type=str,
-    default=None,
-)
-def watchman_to_sql_cli(
-    watchman_address, sql_host, sql_port, sql_database, sql_username, sql_password
-):
-    """
-    Program to fetch metadata from watchman and push the metadata to a postgres sql
-    database. Pushes to the table `machine`.
-
-    """
-    if watchman_to_sql(
-        watchman_address, sql_host, sql_port, sql_database, sql_username, sql_password
-    ):
-        sys.exit(0)
-    else:
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    watchman_to_sql_cli()
