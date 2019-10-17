@@ -50,9 +50,19 @@ push-client: client
 	export DOCKER_IMAGE=$(CLIENT_IMG_NAME);\
 	bash ./docker_push.sh
 
-# Publish images to the currently logged in docker repo
-push-dev-images: export DOCKER_REGISTRY:=auroradevacr.azurecr.io
-push-dev-images: push-builder push-server push-watchman push-client push-workflow-generator
+# Publish development images
+push-dev-images:
+
+	# Push everything to auroradevacr.azurecr.io/gordo-components
+	export DOCKER_REGISTRY=auroradevacr.azurecr.io;\
+	export DOCKER_REPO=gordo-components;\
+	$(MAKE) push-builder push-server push-watchman push-client push-workflow-generator
+
+	# Also push workflow-generator to auroradevacr.azurecr.io/gordo-infrastructure
+	# as gordo-controller still expects it to be located there.
+	export DOCKER_REGISTRY=auroradevacr.azurecr.io;\
+	export DOCKER_REPO=gordo-infrastructure;\
+	$(MAKE) push-workflow-generator
 
 push-prod-images: export GORDO_PROD_MODE:="true"
 push-prod-images: push-builder push-server push-watchman push-client push-workflow-generator

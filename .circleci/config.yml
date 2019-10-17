@@ -85,7 +85,6 @@ jobs:
           command: make images
 
   # Push images, only when on master and/or tagged commits.
-  # TODO: After we switch gordo-deploy to gordo-components, push that as well
   push-images:
     machine:
       docker_layer_caching: false
