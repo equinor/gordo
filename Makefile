@@ -11,7 +11,6 @@ workflow-generator:
 
 # Publish image to the currently logged in docker repo
 push-workflow-generator: workflow-generator
-	export DOCKER_REPO="gordo-infrastructure";\
 	export DOCKER_NAME=$(WORKFLOW_GENERATOR_IMG_NAME);\
 	export DOCKER_IMAGE=$(WORKFLOW_GENERATOR_IMG_NAME);\
 	./docker_push.sh
@@ -32,25 +31,21 @@ client:
 	docker build . -f Dockerfile-Client -t $(CLIENT_IMG_NAME)
 
 push-server: model-server
-	export DOCKER_REPO="gordo-components";\
 	export DOCKER_NAME=$(MODEL_SERVER_IMG_NAME);\
 	export DOCKER_IMAGE=$(MODEL_SERVER_IMG_NAME);\
 	bash ./docker_push.sh
 
 push-builder: model-builder
-	export DOCKER_REPO="gordo-components";\
 	export DOCKER_NAME=$(MODEL_BUILDER_IMG_NAME);\
 	export DOCKER_IMAGE=$(MODEL_BUILDER_IMG_NAME);\
 	bash ./docker_push.sh
 
 push-watchman: watchman
-	export DOCKER_REPO="gordo-components";\
 	export DOCKER_NAME=$(WATCHMAN_IMG_NAME);\
 	export DOCKER_IMAGE=$(WATCHMAN_IMG_NAME);\
 	bash ./docker_push.sh
 
 push-client: client
-	export DOCKER_REPO="gordo-components";\
 	export DOCKER_NAME=$(CLIENT_IMG_NAME);\
 	export DOCKER_IMAGE=$(CLIENT_IMG_NAME);\
 	bash ./docker_push.sh

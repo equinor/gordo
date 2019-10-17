@@ -24,10 +24,18 @@ script:
 
 deploy:
   - provider: script
-    script: make images push-prod-images
+    script: |
+      make images push-prod-images
+
+      # TODO: Remove this once we fully move gordo-deploy to gordo-components in controller
+      DOCKER_REPO=gordo-infrastructure GORDO_PROD_MODE=true make push-workflow-generator
     on:
       branch: master
   - provider: script
-    script: make images push-prod-images
+    script: |
+      make images push-prod-images
+
+      # TODO: Remove this once we fully move gordo-deploy to gordo-components in controller
+      DOCKER_REPO=gordo-infrastructure GORDO_PROD_MODE=true make push-workflow-generator
     on:
       tags: true

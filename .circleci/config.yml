@@ -102,6 +102,7 @@ jobs:
             make push-client
             make push-builder
             make push-watchman
+            make push-workflow-generator
 
   # Publish to PyPi, only on tagged commits.
   publish-to-pypi:
