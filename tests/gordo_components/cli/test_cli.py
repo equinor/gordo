@@ -6,8 +6,9 @@ import pytest
 import logging
 import tempfile
 
-import mock
 from click.testing import CliRunner
+from unittest import mock
+
 
 from gordo_components import cli
 from gordo_components.cli.cli import expand_model, DEFAULT_MODEL_CONFIG
@@ -275,8 +276,8 @@ def test_build_cv_mode_cross_val_cache(
     tmp_dir: tempfile.TemporaryDirectory,
 ):
     """
-    Checks that cv_scores uses cache if runned after a full build. Loads the same model, and can 
-    print the cv_scores from them. 
+    Checks that cv_scores uses cache if ran after a full build. Loads the same model, and can
+    print the cv_scores from them.
     """
 
     runner = CliRunner()
@@ -333,24 +334,40 @@ def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
             assert metadata_json["model"]["cross-validation"]["scores"] == {}
 
 
-@pytest.mark.parametrize("host", (None, "127.0.0.0"))
-@pytest.mark.parametrize("port", (None, 1234))
-def test_start_server_cli(host, port):
+@pytest.mark.parametrize(
+    "arg,value,exception_expected",
+    [
+        # Valid values
+        ("--host", "0.0.0.0", False),
+        ("--host", "127.0.0.0", False),
+        ("--port", 5555, False),
+        ("--workers", 1, False),
+        ("--log-level", "info", False),
+        ("--log-level", "debug", False),
+        # Invalid values
+        ("--host", "0.0.0", True),
+        ("--port", 0, True),
+        ("--port", 70000, True),
+        ("--workers", -1, True),
+        ("--log-level", "badlevel", True),
+    ],
+)
+def test_gunicorn_execution_hosts(monkeypatch, arg, value, exception_expected):
+    """
+    Test the validation of input parameters to the `run_server` function via the gordo cli
+    """
+
     runner = CliRunner()
     with mock.patch(
-        "gordo_components.server.server.run_server", mock.MagicMock(return_value=None)
+        "gordo_components.server.server.run_server",
+        mock.MagicMock(return_value=None, autospec=True),
     ) as m:
-        args = ["run-server"]
+        result = runner.invoke(cli.gordo, ["run-server", arg, value])
 
-        # Add any optional params
-        if host is not None:
-            args.extend(["--host", host])
-        if port is not None:
-            args.extend(["--port", str(port)])
-        result = runner.invoke(cli.gordo, args)
-
-        assert result.exit_code == 0
-        m.assert_called_once_with(host, port)
+        assert (
+            (result.exit_code != 0) if exception_expected else (result.exit_code == 0)
+        )
+        assert m.called_once_with(value)
 
 
 def test_watchman_to_sql_cli():

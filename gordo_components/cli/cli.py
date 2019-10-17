@@ -5,9 +5,7 @@ CLI interfaces
 """
 
 import logging
-import warnings
-import traceback
-import os
+from gunicorn.glogging import Logger
 
 import jinja2
 import yaml
@@ -28,45 +26,12 @@ from gordo_components.server import server
 from gordo_components import watchman, __version__
 from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
-from gordo_components.cli.custom_types import key_value_par, DataProviderParam
+from gordo_components.cli.custom_types import key_value_par, DataProviderParam, HostIP
 from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 import dateutil.parser
 
-try:
-    # FIXME(https://github.com/abseil/abseil-py/issues/99)
-    # FIXME(https://github.com/abseil/abseil-py/issues/102)
-    # Unfortunately, many libraries that include absl (including Tensorflow)
-    # will get bitten by double-logging due to absl's incorrect use of
-    # the python logging library:
-    #   2019-07-19 23:47:38,829 my_logger   779 : test
-    #   I0719 23:47:38.829330 139904865122112 foo.py:63] test
-    #   2019-07-19 23:47:38,829 my_logger   779 : test
-    #   I0719 23:47:38.829469 139904865122112 foo.py:63] test
-    # The code below fixes this double-logging.  FMI see:
-    #   https://github.com/tensorflow/tensorflow/issues/26691#issuecomment-500369493
-
-    import absl.logging
-
-    logging.root.removeHandler(absl.logging._absl_handler)
-    absl.logging._warn_preinit_stderr = False
-
-except Exception:
-    warnings.warn(f"Failed to fix absl logging bug {traceback.format_exc()}")
-    pass
-
-
-# Set log level, defaulting to DEBUG
-log_level = os.getenv("LOG_LEVEL", "DEBUG").upper()
-azure_log_level = os.getenv("AZURE_DATALAKE_LOG_LEVEL", "INFO").upper()
-
-logging.basicConfig(
-    level=getattr(logging, log_level),
-    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
-)
-
 logger = logging.getLogger(__name__)
-logging.getLogger("azure.datalake").setLevel(azure_log_level)
 
 
 @click.group("gordo-components")
@@ -387,10 +352,51 @@ def get_all_score_strings(metadata):
 
 
 @click.command("run-server")
-@click.option("--host", type=str, help="The host to run the server on.")
-@click.option("--port", type=int, help="The port to run the server on.")
-def run_server_cli(host: str, port: int):
-    server.run_server(host, port)
+@click.option(
+    "--host",
+    type=HostIP(),
+    help="The host to run the server on.",
+    default="0.0.0.0",
+    envvar="GORDO_SERVER_HOST",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=click.IntRange(1, 65535),
+    help="The port to run the server on.",
+    default=5555,
+    envvar="GORDO_SERVER_PORT",
+    show_default=True,
+)
+@click.option(
+    "--workers",
+    type=click.IntRange(1, 4),
+    help="The number of worker processes for handling requests.",
+    default=2,
+    envvar="GORDO_SERVER_WORKERS",
+    show_default=True,
+)
+@click.option(
+    "--worker-connections",
+    type=click.IntRange(1, 4000),
+    help="The maximum number of simultaneous clients per worker process.",
+    default=50,
+    envvar="GORDO_SERVER_WORKER_CONNECTIONS",
+    show_default=True,
+)
+@click.option(
+    "--log-level",
+    type=click.Choice(Logger.LOG_LEVELS.keys()),
+    help="The log level for the server.",
+    default="debug",
+    envvar="GORDO_SERVER_LOG_LEVEL",
+    show_default=True,
+)
+def run_server_cli(host, port, workers, worker_connections, log_level):
+    """
+    Run the gordo server app with Gunicorn
+    """
+    server.run_server(host, port, workers, worker_connections, log_level.lower())
 
 
 @click.command("run-watchman")
