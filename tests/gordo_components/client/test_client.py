@@ -507,7 +507,7 @@ def test_exponential_sleep_time(caplog, watchman_service):
 
     with caplog.at_level(logging.CRITICAL):
         with patch(
-            "gordo_components.client.client.time.sleep", return_value=None
+            "gordo_components.client.client.sleep", return_value=None
         ) as time_sleep:
             client = Client(project=tu.GORDO_PROJECT)
             loop = asyncio.get_event_loop()
@@ -523,5 +523,5 @@ def test_exponential_sleep_time(caplog, watchman_service):
             )
             loop.close()
 
-    expected_calls = [call(8), call(16), call(32), call(64), call(128)]
-    time_sleep.assert_has_calls(expected_calls)
+            expected_calls = [call(8), call(16), call(32), call(64), call(128)]
+            time_sleep.assert_has_calls(expected_calls)
