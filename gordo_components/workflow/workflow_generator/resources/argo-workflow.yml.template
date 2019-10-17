@@ -504,7 +504,7 @@ spec:
       command: [bash]
       source: |
         echo "Feeding sql with metadata for project {{project_name}} using source ur http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
-        && watchman-to-sql --watchman-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME"
+        && gordo-components workflow watchman-to-sql --watchman-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME"
       env:
         - name: PROJECT_NAME
           value: "{{project_name}}"

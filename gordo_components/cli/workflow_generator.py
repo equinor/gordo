@@ -2,12 +2,14 @@ import logging
 import time
 import pkg_resources
 import json
+import sys
 
 from typing import Dict, Any
 
 import click
 
 from gordo_components import __version__
+from gordo_components.workflow.watchman_to_sql.watchman_to_sql import watchman_to_sql
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo_components.workflow.workflow_generator import workflow_generator as wg
 
@@ -227,8 +229,51 @@ def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
             print(tag)
 
 
+@click.command("watchman-to-sql")
+@click.option("--watchman-address", help="Address of watchman", required=True, type=str)
+@click.option("--sql-host", help="Host of the sql server", required=True, type=str)
+@click.option(
+    "--sql-port", help="Port of the sql server", required=False, type=int, default=5432
+)
+@click.option(
+    "--sql-database",
+    help="Username of the sql server",
+    required=False,
+    type=str,
+    default="postgres",
+)
+@click.option(
+    "--sql-username",
+    help="Username of the sql server",
+    required=False,
+    type=str,
+    default="postgres",
+)
+@click.option(
+    "--sql-password",
+    help="Port of the sql server",
+    required=False,
+    type=str,
+    default=None,
+)
+def watchman_to_sql_cli(
+    watchman_address, sql_host, sql_port, sql_database, sql_username, sql_password
+):
+    """
+    Program to fetch metadata from watchman and push the metadata to a postgres sql
+    database. Pushes to the table `machine`.
+    """
+    if watchman_to_sql(
+        watchman_address, sql_host, sql_port, sql_database, sql_username, sql_password
+    ):
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
+
 workflow_cli.add_command(workflow_generator_cli)
 workflow_cli.add_command(unique_tag_list_cli)
+workflow_cli.add_command(watchman_to_sql_cli)
 
 if __name__ == "__main__":
     workflow_cli()

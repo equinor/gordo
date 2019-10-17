@@ -351,3 +351,10 @@ def test_start_server_cli(host, port):
 
         assert result.exit_code == 0
         m.assert_called_once_with(host, port)
+
+
+def test_watchman_to_sql_cli():
+    runner = CliRunner()
+    args = ["workflow", "watchman-to-sql", "--help"]
+    result = runner.invoke(cli.gordo, args)
+    assert result.exit_code == 0
