@@ -43,7 +43,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
       command: [bash]
       source: |
         echo "Ensuring that no other versions of workflows for this project is running at the same time"
@@ -199,7 +199,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
       command: [bash]
       source: |
         echo "Creating feeder database for influx for project {{project_name}}" \
@@ -322,7 +322,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
       command: [bash]
       source: |
         echo "Creating grafana influxdb and postgres datasources for project {{project_name}}" \
@@ -500,7 +500,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
       command: [bash]
       source: |
         echo "Feeding sql with metadata for project {{project_name}} using source ur http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
@@ -537,7 +537,7 @@ spec:
       - name: data-provider
       - name: evaluation-config
     container:
-      image: auroradevacr.azurecr.io/gordo-components/gordo-model-builder:{{gordo_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       env:
       - name: OUTPUT_DIR
         value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.model-name}}'}}"
@@ -728,7 +728,7 @@ spec:
                 app: "{{'{{inputs.parameters.host-name}}'}}"
             spec:
               containers:
-                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-model-server:{{gordo_version}}"
+                 - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"
                    imagePullPolicy: "IfNotPresent"
                    name: "gordoserver-{{ project_name }}"
                    volumeMounts:
@@ -866,7 +866,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{gordo_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-version=$GORDO_PROJECT_VERSION"
@@ -924,7 +924,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
-      image: auroradevacr.azurecr.io/gordo-components/gordo-model-builder:{{gordo_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       command: [bash]
       source: |
         echo "Starting client prediction for machine $GORDO_CLIENT_TARGET" \
@@ -1040,7 +1040,7 @@ spec:
                 app: "gordo-watchman-{{project_name}}"
             spec:
               containers:
-                 - image: "auroradevacr.azurecr.io/gordo-components/gordo-watchman:{{gordo_version}}"
+                 - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-watchman:{{gordo_version}}"
                    imagePullPolicy: "IfNotPresent"
                    name: "gordo-watchman-{{project_name}}"
                    ports:
@@ -1083,7 +1083,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{gordo_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Deleting influx, grafana and PVC for {{project_name}} different than {{project_version}}" \
@@ -1104,7 +1104,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{gordo_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Deleting postgres PVC for {{project_name}} different than {{project_version}}" \
@@ -1122,7 +1122,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: auroradevacr.azurecr.io/gordo-infrastructure/gordo-deploy:{{gordo_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Deleting gordo deployments and services for project {{project_name}} different than {{project_version}}" \
