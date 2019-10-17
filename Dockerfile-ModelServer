@@ -22,4 +22,4 @@ COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
 # Install gordo-components, packaged from earlier 'python setup.py sdist'
 RUN pip install ./gordo-components-packed.tar.gz
 
-CMD ["gordo-components", "run-server", "--host", "0.0.0.0", "--port", "5555"]
+CMD ["gordo-components", "run-server"]
