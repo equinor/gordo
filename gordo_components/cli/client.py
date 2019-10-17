@@ -28,7 +28,7 @@ from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 @click.option("--port", help="Port the server is running on", default=443)
 @click.option("--scheme", help="tcp/http/https", default="https")
 @click.option("--gordo-version", help="Version of gordo", default="v0")
-@click.option("--batch-size", help="How many samples to send", default=1000)
+@click.option("--batch-size", help="How many samples to send", default=100000)
 @click.option("--parallelism", help="Maximum asynchronous jobs to run", default=10)
 @click.option(
     "--metadata",
