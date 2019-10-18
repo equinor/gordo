@@ -99,6 +99,18 @@ def workflow_cli():
     default=None,
     help="Max number of ML Servers to use, defaults to N machines * 10",
 )
+@click.option(
+    "--docker-repository",
+    type=str,
+    default="gordo-components",
+    help="The docker repo to use for pulling component images from",
+)
+@click.option(
+    "--docker-registry",
+    type=str,
+    default="auroradevacr.azurecr.io",  # TODO: Change to docker.io after migrating
+    help="The docker registry to use for pulling component images from",
+)
 def workflow_generator_cli(**kwargs: dict):
     """
     Machine Configuration to Argo Workflow
@@ -114,8 +126,10 @@ def workflow_generator_cli(**kwargs: dict):
     context["project_version"] = kwargs["project_version"]
     context["namespace"] = kwargs["namespace"]
     context["ambassador_namespace"] = kwargs["ambassador_namespace"]
-    # Create normalized config
+    context["docker_repository"] = kwargs["docker_repository"]
+    context["docker_registry"] = kwargs["docker_registry"]
 
+    # Create normalized config
     config = NormalizedConfig(yaml_content, project_name=kwargs["project_name"])
 
     context["machines"] = config.machines
