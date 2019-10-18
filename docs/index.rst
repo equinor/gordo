@@ -33,6 +33,7 @@ and deployed as a REST API on Kubernetes.
     ./components/watchman.rst
     ./components/server/server.rst
     ./components/cli.rst
+    ./components/client.rst
 
 
 
