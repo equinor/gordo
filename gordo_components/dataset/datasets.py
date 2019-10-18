@@ -27,6 +27,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         resolution: str = "10T",
         row_filter: str = "",
         aggregation_methods: Union[str, List[str], Callable] = "mean",
+        row_filter_buffer_size: int = 0,
         **_kwargs,
     ):
         """
@@ -66,6 +67,10 @@ class TimeSeriesDataset(GordoBaseDataset):
             and the aggregation method as the second level.
             See :py:func::`pandas.core.resample.Resampler#aggregate` for more
             information on possible aggregation methods.
+        row_filter_buffer_size: int
+            Whatever elements are selected for removal based on the ``row_filter``, will also
+            have this amount of elements removed fore and aft.
+            Default is zero 0
         _kwargs
         """
         self.from_ts = from_ts
@@ -78,6 +83,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.data_provider = data_provider
         self.row_filter = row_filter
         self.aggregation_methods = aggregation_methods
+        self.row_filter_buffer_size = row_filter_buffer_size
 
         if not self.from_ts.tzinfo or not self.to_ts.tzinfo:
             raise ValueError(
@@ -100,7 +106,9 @@ class TimeSeriesDataset(GordoBaseDataset):
             aggregation_methods=self.aggregation_methods,
         )
         if self.row_filter:
-            data = pandas_filter_rows(data, self.row_filter)
+            data = pandas_filter_rows(
+                data, self.row_filter, buffer_size=self.row_filter_buffer_size
+            )
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
@@ -118,6 +126,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             "train_end_date": self.to_ts,
             "resolution": self.resolution,
             "filter": self.row_filter,
+            "row_filter_buffer_size": self.row_filter_buffer_size,
         }
         return metadata
 
