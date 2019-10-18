@@ -94,7 +94,8 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
       Column names can be quoted in single/double quotations or back ticks.
       Example of legal filters are " `Tag A` > 5 " , " ('Tag B' > 1) | ('Tag C' > 4)"
       '("Tag D" < 5) '
-
+    buffer_size: int
+      Area fore and aft of the application of ``fitler_str`` to also mark for removal.
 
     Returns
     -------

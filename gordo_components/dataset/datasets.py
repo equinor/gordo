@@ -67,6 +67,10 @@ class TimeSeriesDataset(GordoBaseDataset):
             and the aggregation method as the second level.
             See :py:func::`pandas.core.resample.Resampler#aggregate` for more
             information on possible aggregation methods.
+        row_filter_buffer_size: int
+            Whatever elements are selected for removal based on the ``row_filter``, will also
+            have this amount of elements removed fore and aft.
+            Default is zero 0
         _kwargs
         """
         self.from_ts = from_ts
