@@ -1,6 +1,9 @@
 
 version: 2.1
 
+orbs:
+  kube-orb: circleci/kubernetes@0.4.0
+
 executors:
   python-executor:
     working_directory: ~/code
@@ -99,6 +102,47 @@ jobs:
       - run:
           name: Make Images
           command: make images
+
+
+  integration-test:
+    environment:
+      CHANGE_MINIKUBE_NONE_USER=true
+    machine:
+      image: "circleci/classic:201808-01"
+    steps:
+      - checkout
+      - kube-orb/install
+      - run:
+          command: >
+            curl -Lo minikube
+            https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+            \
+              && chmod +x minikube
+            sudo cp minikube /usr/local/bin && rm minikube
+
+            sudo -E minikube start --vm-driver=none --cpus 4 --memory 7168
+          name: Start minikube
+
+      # Install argo
+      - run:
+          command: |
+            wget https://github.com/argoproj/argo/releases/download/v2.4.2/argo-linux-amd64 -O argo
+            chmod +x argo
+      - run: kubectl create namespace argo
+      - run: kubectl apply -n argo -f https://raw.githubusercontent.com/argoproj/argo/v2.4.2/manifests/install.yaml
+
+      # Setup kubeflow namespace with Gordo install
+      - run: kubectl create namespace kubeflow
+      - run: kubectl apply -n kubeflow -f https://raw.githubusercontent.com/equinor/gordo-controller/master/gordo-crd.yaml
+      - run: kubectl get gordos -n kubeflow
+      - run: kubectl apply -k k8s/minikube -n kubeflow
+
+      # Install ambassador
+      - run: kubectl create namespace ambassador
+      - run: kubectl apply -n ambassador -f https://getambassador.io/yaml/ambassador/ambassador-rbac.yaml
+
+      # Start and wait for a workflow as the main test
+      - run: ./argo submit examples/example-config.yaml -n kubeflow --wait --watch
 
   # Push images, only when on master and/or tagged commits.
   push-images:
@@ -255,6 +299,7 @@ workflows:
   # Run all tests, ensure images and docs can be built
   test:
     jobs:
+      - integration-test
       - make-docs
       - install
       - test-builder-server-formatting-serializer-watchman-dataset:

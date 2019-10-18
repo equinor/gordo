@@ -1,0 +1,12 @@
+commonLabels:
+  stage: production
+resources:
+  - gordo-controller-config-map.yaml
+  - data-lake-spoof-secret.yaml
+  - influx-spoof-secret.yaml
+  - managed-premium-storage-class.yaml
+  - default-storage-class.yaml
+bases:
+  - ../base
+patches:
+  - ./gordo-controller-deployment-patch.yaml

@@ -1,0 +1,78 @@
+
+apiVersion: equinor.com/v1
+kind: Gordo
+metadata:
+  name: test-project
+spec:
+  deploy-version: 0.36.0
+  config:
+    machines:
+
+      - dataset:
+          tags:
+            - TAG1
+            - TAG2
+            - TAG3
+            - TAG4
+          target_tag_list:
+            - TAG5
+            - TAG6
+            - TAG7
+          train_end_date: '2019-03-01T00:00:00+00:20'
+          train_start_date: '2019-01-01T00:00:00+00:00'
+          type: RandomDataset
+        metadata:
+          information: 'Use row filtering and dropping the column inside the pipeline'
+        model:
+          gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+            base_estimator:
+              sklearn.compose.TransformedTargetRegressor:
+                transformer: sklearn.preprocessing.data.MinMaxScaler
+                regressor:
+                  sklearn.pipeline.Pipeline:
+                    steps:
+                      - sklearn.compose.ColumnTransformer:
+                          transformers:
+                            - - dropper            # Name of this transformer
+                              - drop               # Action to perform
+                              - TRA-35TT8567.PV    # Column to apply this action to.
+                          remainder: passthrough   # What do do with the rest
+                      - sklearn.preprocessing.data.MinMaxScaler
+                      - gordo_components.model.models.KerasAutoEncoder:
+                          kind: feedforward_hourglass
+        name: rowfilter-drop-column-ff
+
+
+    globals:
+      runtime:
+        influx:
+          enable: false
+        client: # Client and builder runtime settings must be in the globals sections.
+          resources:
+            requests:
+              memory: 100
+              cpu: 1000
+            limits:
+              memory: 200
+        builder:
+          resources:
+            requests:
+              memory: 100
+              cpu: 500
+            limits:
+              memory: 400
+        server:
+          resources:
+            requests:
+              memory: 100
+              cpu: 500
+            limits:
+              memory: 400
+      model:
+        gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+          base_estimator:
+            sklearn.pipeline.Pipeline:
+              steps:
+                - sklearn.preprocessing.data.MinMaxScaler
+                - gordo_components.model.models.KerasAutoEncoder:
+                    kind: feedforward_hourglass

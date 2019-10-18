@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gordo-controller
+  name: gordo-controller
+spec:
+  selector:
+    matchLabels:
+      app: gordo-controller
+  template:
+    metadata:
+      labels:
+        app: gordo-controller
+    spec:
+      containers:
+      - image: docker.io/equinor/gordo-controller:0.1.3
+        imagePullPolicy: Always
+        name: gordo-controller
+        resources:
+          limits:
+            cpu: 500m
+            memory: 200Mi
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        envFrom:
+          - configMapRef:
+              name: gordo-controller-config-map

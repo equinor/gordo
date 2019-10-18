@@ -1,0 +1,10 @@
+commonLabels:
+  app: gordo-infrastructure
+resources:
+  - gordo-crd.yaml
+  - gordo-controller-deployment.yaml
+  - gordo-pvc.yaml
+  - gordo-service-account.yaml
+  - gordo-workflows-role.yaml
+  - gordo-cluster-role-binding.yaml
+  - gordo-workflow-role-binding.yaml
