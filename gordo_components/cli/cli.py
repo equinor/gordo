@@ -26,10 +26,8 @@ from gordo_components.server import server
 from gordo_components import watchman, __version__
 from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
-from gordo_components.cli.custom_types import key_value_par, DataProviderParam, HostIP
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags
+from gordo_components.cli.custom_types import key_value_par, HostIP
 
-import dateutil.parser
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +58,6 @@ DEFAULT_MODEL_CONFIG = (
     envvar="DATA_CONFIG",
     default='{"type": "TimeSeriesDataset"}',
     type=yaml.safe_load,
-)
-@click.option(
-    "--data-provider",
-    type=DataProviderParam(),
-    envvar="DATA_PROVIDER",
-    default='{"type": "DataLakeProvider"}',
-    help="DataProvider dict encoded as json. Must contain a 'type' key with the name of"
-    " a DataProvider as value.",
 )
 @click.option("--metadata", envvar="METADATA", default="{}", type=yaml.safe_load)
 @click.option(
@@ -106,7 +96,6 @@ def build(
     output_dir,
     model_config,
     data_config,
-    data_provider,
     metadata,
     model_register_dir,
     print_cv_scores,
@@ -131,14 +120,6 @@ def build(
     data_config: dict
         kwargs to be used in intializing the dataset. Should also
         contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
-    data_provider: str
-        A quoted data provider configuration in  JSON/YAML format.
-        Should also contain key 'type' which references the data provider to use.
-
-        Example::
-
-          '{"type": "DataLakeProvider", "storename" : "example_store"}'
-
     metadata: dict
         Any additional metadata to save under the key 'user-defined'
     model_register_dir: path
@@ -162,27 +143,6 @@ def build(
 
                     {"cv_mode": "cross_val_only"}
     """
-
-    data_config["tag_list"] = data_config.pop("tags")
-
-    data_config["from_ts"] = dateutil.parser.isoparse(
-        data_config.pop("train_start_date")
-    )
-
-    data_config["to_ts"] = dateutil.parser.isoparse(data_config.pop("train_end_date"))
-
-    # Set default data provider for data config
-    data_config["data_provider"] = data_provider
-    asset = data_config.get("asset", None)
-    tag_list = normalize_sensor_tags(data_config["tag_list"], asset)
-
-    data_config["tag_list"] = tag_list
-
-    # Normalize target tag list if present
-    if "target_tag_list" in data_config:
-        target_tag_list = normalize_sensor_tags(data_config["target_tag_list"], asset)
-        data_config["target_tag_list"] = target_tag_list
-
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Raw model config: {model_config}")
     logger.info(f"Data config: {data_config}")
