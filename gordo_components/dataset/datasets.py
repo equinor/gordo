@@ -28,6 +28,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         row_filter: str = "",
         aggregation_methods: Union[str, List[str], Callable] = "mean",
         row_filter_buffer_size: int = 0,
+        shift: int = 0,
         **_kwargs,
     ):
         """
@@ -72,7 +73,19 @@ class TimeSeriesDataset(GordoBaseDataset):
             Whatever elements are selected for removal based on the ``row_filter``, will also
             have this amount of elements removed fore and aft.
             Default is zero 0
+        shift: int
+            Amount to offset the target column(s).
         _kwargs
+
+        Notes
+        -----
+        In relation to the ``shift`` parameter:
+            Return the offset the ``y`` such that the Nth index of ``y`` relates to the
+            datetime in index ``N - shift`` index of ``X``.
+            Used if you want to train a model to predict future time step values.
+            ie. If the ``resolution`` is 10 minutes and a provided ``shift`` is 1, then
+            the target value(s) for any sample of ``X`` would have the target value(s)
+            10 minutes into the future.
         """
         self.from_ts = from_ts
         self.to_ts = to_ts
@@ -85,6 +98,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.row_filter = row_filter
         self.aggregation_methods = aggregation_methods
         self.row_filter_buffer_size = row_filter_buffer_size
+        self.shift = shift
 
         if not self.from_ts.tzinfo or not self.to_ts.tzinfo:
             raise ValueError(
@@ -123,7 +137,21 @@ class TimeSeriesDataset(GordoBaseDataset):
         X = data[x_tag_names]
         y = data[y_tag_names] if self.target_tag_list else None
 
-        return X, y
+        # Apply any shift
+        if self.shift > 0:
+            return X[: -self.shift], y[self.shift :] if y is not None else None
+        elif self.shift < 0:
+            return X[self.shift :], y[: -self.shift] if y is not None else None
+        else:
+            return X, y
+
+    @property
+    def shift(self) -> int:
+        return self._shift
+
+    @shift.setter
+    def shift(self, value: int):
+        self._shift = int(value)
 
     def get_metadata(self):
         metadata = {
@@ -134,6 +162,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             "resolution": self.resolution,
             "filter": self.row_filter,
             "row_filter_buffer_size": self.row_filter_buffer_size,
+            "shift": self.shift,
         }
         return metadata
 

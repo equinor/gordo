@@ -260,7 +260,13 @@ def test_time_series_no_resolution():
 def test_timeseries_target_tags(tag_list, target_tag_list):
     start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
     end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
-    tsd = TimeSeriesDataset(MockDataSource(), start, end, tag_list, target_tag_list)
+    tsd = TimeSeriesDataset(
+        data_provider=MockDataSource(),
+        from_ts=start,
+        to_ts=end,
+        tag_list=tag_list,
+        target_tag_list=target_tag_list,
+    )
     X, y = tsd.get_data()
 
     # If we have targets, y and X should be equal length and axis=1 == N in target tag list
@@ -301,3 +307,50 @@ class MockDataSource(GordoBaseDataProvider):
                 index=days, data=list(range(i, len(days) + i)), name=name
             )
             yield series
+
+
+@pytest.mark.parametrize("shift", (-1, 0, 1, 5.0, 11))
+def test_shifted_timeseries_dataset(shift: int):
+    """
+    Verify TimeSeriesDataset merely outputs a y which is shifted
+    when compared to functionality of TimeSeriesDataset without `shift` param set
+    """
+
+    start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+    end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+    tag_list = [
+        SensorTag("Tag 1", None),
+        SensorTag("Tag 2", None),
+        SensorTag("Tag 3", None),
+    ]
+    target_tag_list = [SensorTag("Tag 1", None), SensorTag("Tag 2", None)]
+
+    kwargs = dict(
+        data_provider=MockDataSource(),
+        from_ts=start,
+        to_ts=end,
+        tag_list=tag_list,
+        target_tag_list=target_tag_list,
+    )
+
+    # ShiftedTimeSeriesDataset should do this internally as well
+    shift = int(shift)
+    shifted = TimeSeriesDataset(shift=shift, **kwargs)  # type: ignore
+    stdtime = TimeSeriesDataset(**kwargs)  # type: ignore
+
+    X_shifted, y_shifted = shifted.get_data()
+    X_std, y_std = stdtime.get_data()
+
+    # Compare dates
+    if shift == 0:
+        expected_X = X_std
+        expected_y = y_std
+    else:
+        expected_X = X_std[:-shift] if shift > 0 else X_std[shift:]
+        expected_y = y_std[shift:] if shift > 0 else y_std[:-shift]  # type: ignore
+    assert X_shifted.index.tolist() == expected_X.index.tolist()
+    assert y_shifted.index.tolist() == expected_y.index.tolist()  # type: ignore
+
+    # Compare values
+    assert np.allclose(X_shifted.values, expected_X.values)
+    assert np.allclose(y_shifted.values, expected_y.values)  # type: ignore
