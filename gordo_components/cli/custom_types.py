@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import ipaddress
 import os
 import typing
 
@@ -47,6 +48,21 @@ class IsoFormatDateTime(click.ParamType):
             return parser.isoparse(value)
         except ValueError:
             self.fail(f"Failed to parse date '{value}' as ISO formatted date'")
+
+
+class HostIP(click.ParamType):
+    """
+    Validate input is a valid IP address
+    """
+
+    name = "host"
+
+    def convert(self, value, param, ctx):
+        try:
+            ipaddress.ip_address(value)
+            return value
+        except ValueError as e:
+            self.fail(e)
 
 
 def key_value_par(val) -> typing.Tuple[str, str]:
