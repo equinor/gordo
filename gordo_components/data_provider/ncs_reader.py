@@ -43,6 +43,7 @@ class NcsReader(GordoBaseDataProvider):
         client: core.AzureDLFileSystem,
         threads: Optional[int] = 1,
         remove_status_codes: Optional[list] = [0],
+        dl_base_path: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -56,19 +57,26 @@ class NcsReader(GordoBaseDataProvider):
         remove_status_codes: Optional[list]
             Removes data with Status code(s) in the list. By default it removes data
             with Status code 0.
+        dl_base_path: Optional[str]
+            Base bath used to override the asset to path dictionary. Useful for demos
+            and other non-production settings.
 
         """
         super().__init__(**kwargs)
         self.client = client
         self.threads = threads
         self.remove_status_codes = remove_status_codes
+        self.dl_base_path = dl_base_path
         logger.info(f"Starting NCS reader with {self.threads} threads")
 
     def can_handle_tag(self, tag: SensorTag):
         """
         Implements GordoBaseDataProvider, see base class for documentation
         """
-        return NcsReader.base_path_from_asset(tag.asset) is not None
+        return (
+            self.dl_base_path is not None
+            or NcsReader.base_path_from_asset(tag.asset) is not None
+        )
 
     def load_series(
         self,
@@ -96,6 +104,7 @@ class NcsReader(GordoBaseDataProvider):
                     years=years,
                     dry_run=dry_run,
                     remove_status_codes=self.remove_status_codes,
+                    dl_base_path=self.dl_base_path,
                 ),
                 tag_list,
             )
@@ -114,6 +123,7 @@ class NcsReader(GordoBaseDataProvider):
         years: range,
         dry_run: Optional[bool] = False,
         remove_status_codes: Optional[list] = [0],
+        dl_base_path: Optional[str] = None,
     ) -> pd.Series:
         """
         Download tag files for the given years into dataframes,
@@ -127,18 +137,23 @@ class NcsReader(GordoBaseDataProvider):
             the tag to download data for
         years: range
             range object providing years to include
-        dry_run: bool
+        dry_run: Optional[bool]
             if True, don't download data, just check info, log, and return
-        remove_status_codes: list
+        remove_status_codes: Optional[list]
             Removes data with Status code(s) in the list. By default it removes data
             with Status code 0.
+        dl_base_path: Optional[str]
+            Base bath used to override the asset to path dictionary. Useful for demos
+            and other non-production settings.
 
         Returns
         -------
         pd.Series:
             Series with all years for one tag.
         """
-        tag_base_path = NcsReader.base_path_from_asset(tag.asset)
+        tag_base_path = (
+            dl_base_path if dl_base_path else NcsReader.base_path_from_asset(tag.asset)
+        )
 
         if not tag_base_path:
             raise ValueError(f"Unable to find base path from tag {tag} ")

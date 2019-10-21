@@ -52,6 +52,35 @@ def test_can_handle_tag_unknow_prefix_raise(ncs_reader):
         ncs_reader.can_handle_tag(normalize_sensor_tags(["XYZ-123"])[0])
 
 
+def test_can_handle_tag_non_supported_asset_with_base_path(ncs_reader):
+    tag = SensorTag("WEIRD-123", "UNKNOWN-ASSET")
+    assert not ncs_reader.can_handle_tag(tag)
+
+    ncs_reader_with_base = NcsReader(
+        AzureDLFileSystemMock(), dl_base_path="/this/is/a/base/path"
+    )
+    assert ncs_reader_with_base.can_handle_tag(tag)
+
+
+def test_load_series_need_base_path(ncs_reader, dates):
+    tag = SensorTag("WEIRD-123", "BASE-PATH-ASSET")
+    with pytest.raises(ValueError):
+        for _ in ncs_reader.load_series(dates[0], dates[1], [tag]):
+            pass
+
+    path_to_weird_base_path_asset = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        "data",
+        "datalake",
+        "base_path_asset",
+    )
+    ncs_reader_with_base = NcsReader(
+        AzureDLFileSystemMock(), dl_base_path=path_to_weird_base_path_asset
+    )
+    for tag_series in ncs_reader_with_base.load_series(dates[0], dates[1], [tag]):
+        assert len(tag_series) == 20
+
+
 @pytest.mark.parametrize(
     "bad_tag_lists", [["TRC-123"], [{"name": "TRC-123", "asset": None}]]
 )
