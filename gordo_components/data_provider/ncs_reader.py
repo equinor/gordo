@@ -26,6 +26,7 @@ class NcsReader(GordoBaseDataProvider):
         "1190-asga": "/raw/corporate/PI System Operation North/sensordata/1190-ASGA",
         "1191-asgb": "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
         "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",
+        "1230-vis": "/raw/corporate/Aspen MS - IP21 Visund/sensordata/1230-VIS",
         "1295-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1295-PERA",
         "1755-gra": "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
         "1775-trob": "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
