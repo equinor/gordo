@@ -109,8 +109,8 @@ class TimeSeriesDataset(GordoBaseDataset):
             Asset for which the tags are associated with.
         _kwargs
         """
-        self.from_ts = from_ts if isinstance(from_ts, datetime) else isoparse(from_ts)
-        self.to_ts = to_ts if isinstance(to_ts, datetime) else isoparse(to_ts)
+        self.from_ts = self._validate_dt(from_ts)
+        self.to_ts = self._validate_dt(to_ts)
         self.tag_list = normalize_sensor_tags(tag_list, asset)
         self.target_tag_list = (
             normalize_sensor_tags(target_tag_list, asset) if target_tag_list else []
@@ -131,6 +131,15 @@ class TimeSeriesDataset(GordoBaseDataset):
                 f"Timestamps ({self.from_ts}, {self.to_ts}) need to include timezone "
                 f"information"
             )
+
+    @staticmethod
+    def _validate_dt(dt: Union[str, datetime]) -> datetime:
+        dt = dt if isinstance(dt, datetime) else isoparse(dt)
+        if dt.tzinfo is None:
+            raise ValueError(
+                "Must provide an ISO formatted datetime string with timezone information"
+            )
+        return dt
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
