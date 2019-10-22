@@ -143,7 +143,7 @@ jobs:
 
       # Start and wait for a workflow as the main test
       - run: kubectl apply -f examples/example-config.yaml -n kubeflow
-      - run: sleep(15)
+      - run: sleep 15
       - run: kubectl logs deployment/gordo-controller -n kubeflow
       - run: ./argo list -n kubeflow
       - run: ./argo watch -n kubeflow $(argo list --output name)
