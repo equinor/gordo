@@ -149,7 +149,7 @@ jobs:
       - run: kubectl wait --for=condition=complete $(kubectl get jobs -n kubeflow --output name | head -n 1) --timeout=240s -n kubeflow
       - run: kubectl logs deployment/gordo-controller -n kubeflow
       - run: ./argo list -n kubeflow
-      - run: ./argo watch -n kubeflow $(argo list --output name | head -n 1)
+      - run: ./argo wait -n kubeflow $(./argo list --output name | head -n 1)
 
   # Push images, only when on master and/or tagged commits.
   push-images:
