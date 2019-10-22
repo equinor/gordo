@@ -146,7 +146,7 @@ jobs:
       - run: kubectl apply -f examples/example-config.yaml -n kubeflow
       - run: sleep 15
       - run: kubectl get jobs -n kubeflow
-      - run: kubectl wait --for=condition=complete $(kubectl get jobs -n kubeflow --output name | head -n 1) --timeout=120s -n kubeflow
+      - run: kubectl wait --for=condition=complete $(kubectl get jobs -n kubeflow --output name | head -n 1) --timeout=240s -n kubeflow
       - run: kubectl logs deployment/gordo-controller -n kubeflow
       - run: ./argo list -n kubeflow
       - run: ./argo watch -n kubeflow $(argo list --output name | head -n 1)
