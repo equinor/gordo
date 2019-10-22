@@ -3,6 +3,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Iterable, List, Optional
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
@@ -145,7 +146,10 @@ class NcsReader(GordoBaseDataProvider):
         logger.info(f"Downloading tag: {tag} for years: {years}")
 
         for year in years:
-            file_path = tag_base_path + f"/{tag.name}/{tag.name}_{year}.csv"
+            tag_name_encoded = quote(tag.name, safe=" ")
+            file_path = (
+                f"{tag_base_path}/{tag_name_encoded}/{tag_name_encoded}_{year}.csv"
+            )
             logger.info(f"Parsing file {file_path}")
 
             info = adls_file_system_client.info(file_path)
