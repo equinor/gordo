@@ -54,7 +54,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         resolution: Optional[str]
             The bucket size for grouping all incoming time data (e.g. "10T").
             Available strings come from https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
-            **Note**: If this parameter is None, then _no_ aggregation/resampling is applied to the data.
+            **Note**: If this parameter is ``None`` or ``False``, then _no_ aggregation/resampling is applied to the data.
         row_filter: str
             Filter on the rows. Only rows satisfying the filter will be in the dataset.
             See :func:`gordo_components.dataset.filter_rows.pandas_filter_rows` for
@@ -101,9 +101,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         )
 
         # Resample if we have a resolution set, otherwise simply join the series.
-        if self.resolution is None:
-            data = pd.concat(series_iter, axis=1, join="inner")
-        else:
+        if self.resolution:
             data = self.join_timeseries(
                 series_iter,
                 self.from_ts,
@@ -111,6 +109,9 @@ class TimeSeriesDataset(GordoBaseDataset):
                 self.resolution,
                 aggregation_methods=self.aggregation_methods,
             )
+        else:
+            data = pd.concat(series_iter, axis=1, join="inner")
+
         if self.row_filter:
             data = pandas_filter_rows(
                 data, self.row_filter, buffer_size=self.row_filter_buffer_size
