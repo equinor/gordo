@@ -668,9 +668,9 @@ spec:
         apiVersion: v1
         kind: Service
         metadata:
-          name: "model-stache-{{'{{inputs.parameters.host-name}}'}}"
+          name: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
           labels:
-            app: "model-stache-{{'{{inputs.parameters.host-name}}'}}"
+            app: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
             app.kubernetes.io/name: model-server
             app.kubernetes.io/component: service
             app.kubernetes.io/part-of: gordo
