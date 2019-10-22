@@ -142,7 +142,11 @@ jobs:
       - run: kubectl apply -n ambassador -f https://getambassador.io/yaml/ambassador/ambassador-rbac.yaml
 
       # Start and wait for a workflow as the main test
-      - run: ./argo submit examples/example-config.yaml -n kubeflow --wait --watch
+      - run: kubectl apply -f examples/example-config.yaml -n kubeflow
+      - run: sleep(15)
+      - run: kubectl logs deployment/gordo-controller -n kubeflow
+      - run: ./argo list -n kubeflow
+      - run: ./argo watch -n kubeflow $(argo list --output name)
 
   # Push images, only when on master and/or tagged commits.
   push-images:
