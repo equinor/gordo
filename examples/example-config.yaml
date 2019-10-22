@@ -4,7 +4,7 @@ kind: Gordo
 metadata:
   name: test-project
 spec:
-  deploy-version: 0.36.0
+  deploy-version: latest
   config:
     machines:
 
