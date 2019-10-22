@@ -668,7 +668,7 @@ spec:
         apiVersion: v1
         kind: Service
         metadata:
-          name: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
+          name: "gordo-ntf-{{project_name}}-{{'{{inputs.parameters.model-name}}'}}"
           labels:
             app: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
             app.kubernetes.io/name: model-server
@@ -683,7 +683,7 @@ spec:
           {% endif %}
         spec:
           selector:
-            app: "model-stache-{{'{{inputs.parameters.host-name}}'}}"
+            app: "{{'{{inputs.parameters.host-name}}'}}"
           ports:
           - port: 80
             name: http-gordo
