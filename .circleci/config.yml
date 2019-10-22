@@ -136,6 +136,7 @@ jobs:
       - run: kubectl apply -n kubeflow -f https://raw.githubusercontent.com/equinor/gordo-controller/master/gordo-crd.yaml
       - run: kubectl get gordos -n kubeflow
       - run: kubectl apply -k k8s/minikube -n kubeflow
+      - run: kubectl wait --for=condition=available --timeout=120s deployment/gordo-controller -n kubeflow
 
       # Install ambassador
       - run: kubectl create namespace ambassador
