@@ -43,7 +43,7 @@ markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2
 multidict==4.5.2          # via aiohttp, yarl
 numexpr==2.7.0
-numpy==1.17.2
+numpy==1.17.3
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
 pandas==0.25.1
