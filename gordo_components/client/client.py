@@ -8,8 +8,7 @@ import logging
 import itertools
 import typing
 from time import sleep
-
-from contextlib import contextmanager
+from threading import Lock
 from typing import Dict, Any
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
@@ -39,6 +38,8 @@ class Client:
 
     Enables some basic communication with a deployed Gordo project
     """
+
+    _mutex = Lock()
 
     def __init__(
         self,
@@ -128,33 +129,15 @@ class Client:
             ignore_unhealthy_targets=ignore_unhealthy_targets,
         )
 
-    @classmethod
-    @contextmanager
-    def cached_endpoints_client(cls):
-        """
-        Context manager for client, returns a modified version of :class:`Client`
-        which will only collect metadata from Watchman once. All subsequent instantiations
-        of this modified Client will use the previously loaded metadata/endpoints.
+    @property
+    def endpoints(self) -> typing.List[EndpointMetadata]:
+        with self._mutex:
+            return self._endpoints
 
-        Examples
-        --------
-        >>>
-        >>> with Client.cached_endpoints_client() as CachedClient:  # doctest: +SKIP
-        ...     # Only the first instance will make a call to fetch metadata
-        ...     # subsequent instances will use the cached metadata in this block
-        ...     clients = [CachedClient(...) for i in range(100)]
-        """
-        setattr(cls, "__endpoints", None)
-        yield cls
-        delattr(cls, "__endpoints")
-
-    @classmethod
-    def _cache_endpoints(cls, endpoints: typing.List[EndpointMetadata]):
-        """
-        Caches the endpoints for future possible instances of the Client
-        """
-        logger.debug(f"Setting {len(endpoints)} '__endpoints' for {cls.__name__}")
-        setattr(cls, "__endpoints", endpoints)
+    @endpoints.setter
+    def endpoints(self, endpoints: typing.List[EndpointMetadata]):
+        with self._mutex:
+            self._endpoints = endpoints
 
     @staticmethod
     def _filter_endpoints(
@@ -227,51 +210,36 @@ class Client:
         if not resp.ok:
             raise IOError(f"Failed to get endpoints: {resp.content}")
 
-        # Check if we're in a modified Client, and have previously cached the endpoints
-        if hasattr(self, "__endpoints") and getattr(self, "__endpoints") is not None:
-            endpoints = getattr(self, "__endpoints")
-
-        # Otherwise get the endpoints from watchman.
-        else:
-            endpoints = [
-                EndpointMetadata(
-                    target_name=data["endpoint-metadata"]["metadata"]["name"],
-                    healthy=data["healthy"],
-                    endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                    tag_list=normalize_sensor_tags(
-                        data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
-                    ),
-                    target_tag_list=normalize_sensor_tags(
-                        data["endpoint-metadata"]["metadata"]["dataset"][
-                            "target_tag_list"
-                        ]
-                    ),
-                    resolution=data["endpoint-metadata"]["metadata"]["dataset"][
-                        "resolution"
-                    ],
-                    model_offset=data["endpoint-metadata"]["metadata"]["model"].get(
-                        "model-offset", 0
-                    ),
-                )
-                if data["healthy"]
-                else EndpointMetadata(
-                    target_name=None,
-                    healthy=data["healthy"],
-                    endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                    tag_list=None,
-                    target_tag_list=None,
-                    resolution=None,
-                    model_offset=None,
-                )
-                for data in resp.json()["endpoints"]
-            ]
-
-            # If we're in a modified Client version, we will cache these endpoints
-            # into the class itself.
-            if hasattr(self, "__endpoints"):
-                self._cache_endpoints(endpoints)
-
-        return endpoints
+        return [
+            EndpointMetadata(
+                target_name=data["endpoint-metadata"]["metadata"]["name"],
+                healthy=data["healthy"],
+                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
+                tag_list=normalize_sensor_tags(
+                    data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
+                ),
+                target_tag_list=normalize_sensor_tags(
+                    data["endpoint-metadata"]["metadata"]["dataset"]["target_tag_list"]
+                ),
+                resolution=data["endpoint-metadata"]["metadata"]["dataset"][
+                    "resolution"
+                ],
+                model_offset=data["endpoint-metadata"]["metadata"]["model"].get(
+                    "model-offset", 0
+                ),
+            )
+            if data["healthy"]
+            else EndpointMetadata(
+                target_name=None,
+                healthy=data["healthy"],
+                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
+                tag_list=None,
+                target_tag_list=None,
+                resolution=None,
+                model_offset=None,
+            )
+            for data in resp.json()["endpoints"]
+        ]
 
     def download_model(self) -> typing.Dict[str, BaseEstimator]:
         """
