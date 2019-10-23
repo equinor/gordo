@@ -1177,6 +1177,8 @@ spec:
             parameters:
               - name: host-name
                 value: "ml-server-{{ project_name }}"
+          dependencies:
+            - ensure-single-workflow
         {% for machine in machines %}
         {% if machine.runtime["influx"]["enable"] %}
         - name: gordo-client-{{machine.name}}
