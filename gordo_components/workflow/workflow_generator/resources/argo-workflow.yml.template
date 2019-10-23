@@ -1149,6 +1149,7 @@ spec:
 
           dependencies:
             - watchman
+            - ml-server
         {% endfor %}
         - name: postgres-cleanup
           template: postgres-cleanup
