@@ -682,12 +682,8 @@ spec:
           ownerReferences: {{owner_references}}
           {% endif %}
         spec:
-          selector:
-            app: "{{'{{inputs.parameters.host-name}}'}}"
-          ports:
-          - port: 80
-            name: http-gordo
-            targetPort: http-api
+          clusterIP: None
+
 
   - name: gordo-server-deployment
     retryStrategy:
