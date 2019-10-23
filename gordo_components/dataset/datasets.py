@@ -24,7 +24,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         to_ts: datetime,
         tag_list: List[Union[str, Dict, SensorTag]],
         target_tag_list: Optional[List[Union[str, Dict, SensorTag]]] = None,
-        resolution: str = "10T",
+        resolution: Optional[str] = "10T",
         row_filter: str = "",
         aggregation_methods: Union[str, List[str], Callable] = "mean",
         row_filter_buffer_size: int = 0,
@@ -51,9 +51,10 @@ class TimeSeriesDataset(GordoBaseDataset):
             List of tags to set as the dataset y. These will be treated the same as
             tag_list when fetching and pre-processing (resampling) but will be split
             into the y return from ``.get_data()``
-        resolution: str
+        resolution: Optional[str]
             The bucket size for grouping all incoming time data (e.g. "10T").
             Available strings come from https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
+            **Note**: If this parameter is ``None`` or ``False``, then _no_ aggregation/resampling is applied to the data.
         row_filter: str
             Filter on the rows. Only rows satisfying the filter will be in the dataset.
             See :func:`gordo_components.dataset.filter_rows.pandas_filter_rows` for
@@ -98,13 +99,19 @@ class TimeSeriesDataset(GordoBaseDataset):
             to_ts=self.to_ts,
             tag_list=list(set(self.tag_list + self.target_tag_list)),
         )
-        data: pd.DataFrame = self.join_timeseries(
-            series_iter,
-            self.from_ts,
-            self.to_ts,
-            self.resolution,
-            aggregation_methods=self.aggregation_methods,
-        )
+
+        # Resample if we have a resolution set, otherwise simply join the series.
+        if self.resolution:
+            data = self.join_timeseries(
+                series_iter,
+                self.from_ts,
+                self.to_ts,
+                self.resolution,
+                aggregation_methods=self.aggregation_methods,
+            )
+        else:
+            data = pd.concat(series_iter, axis=1, join="inner")
+
         if self.row_filter:
             data = pandas_filter_rows(
                 data, self.row_filter, buffer_size=self.row_filter_buffer_size

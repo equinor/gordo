@@ -13,7 +13,6 @@ from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.dataset.datasets import RandomDataset, TimeSeriesDataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.dataset.sensor_tag import SensorTag
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 
 class DatasetTestCase(unittest.TestCase):
@@ -164,51 +163,43 @@ class TimeSeriesDatasetTest(unittest.TestCase):
 
     def test_row_filter(self):
         """Tests that row_filter filters away rows"""
-
-        tag_list = [
-            SensorTag("Tag 1", None),
-            SensorTag("Tag 2", None),
-            SensorTag("Tag 3", None),
-        ]
-        start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
-        end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
-        X, _ = TimeSeriesDataset(
-            MockDataSource(), start, end, tag_list=tag_list
-        ).get_data()
-
+        kwargs = dict(
+            data_provider=MockDataSource(),
+            tag_list=[
+                SensorTag("Tag 1", None),
+                SensorTag("Tag 2", None),
+                SensorTag("Tag 3", None),
+            ],
+            from_ts=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+            to_ts=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        )
+        X, _ = TimeSeriesDataset(**kwargs).get_data()
         self.assertEqual(577, len(X))
 
-        X, _ = TimeSeriesDataset(
-            MockDataSource(), start, end, tag_list=tag_list, row_filter="'Tag 1' < 5000"
-        ).get_data()
-
+        X, _ = TimeSeriesDataset(row_filter="'Tag 1' < 5000", **kwargs).get_data()
         self.assertEqual(8, len(X))
 
         X, _ = TimeSeriesDataset(
-            MockDataSource(),
-            start,
-            end,
-            tag_list=tag_list,
-            row_filter="'Tag 1' / 'Tag 3' < 0.999",
+            row_filter="'Tag 1' / 'Tag 3' < 0.999", **kwargs
         ).get_data()
-
         self.assertEqual(3, len(X))
 
     def test_aggregation_methods(self):
         """Tests that it works to set aggregation method(s)"""
 
-        tag_list = [
-            SensorTag("Tag 1", None),
-            SensorTag("Tag 2", None),
-            SensorTag("Tag 3", None),
-        ]
-        start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
-        end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+        kwargs = dict(
+            data_provider=MockDataSource(),
+            tag_list=[
+                SensorTag("Tag 1", None),
+                SensorTag("Tag 2", None),
+                SensorTag("Tag 3", None),
+            ],
+            from_ts=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+            to_ts=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        )
 
         # Default aggregation gives no extra columns
-        X, _ = TimeSeriesDataset(
-            MockDataSource(), start, end, tag_list=tag_list
-        ).get_data()
+        X, _ = TimeSeriesDataset(**kwargs).get_data()
 
         self.assertEqual((577, 3), X.shape)
         # The default single aggregation method gives the tag-names as columns
@@ -217,11 +208,7 @@ class TimeSeriesDatasetTest(unittest.TestCase):
         # Using two aggregation methods give a multi-level column with tag-names
         # on top and aggregation_method as second level
         X, _ = TimeSeriesDataset(
-            MockDataSource(),
-            start,
-            end,
-            tag_list=tag_list,
-            aggregation_methods=["mean", "max"],
+            aggregation_methods=["mean", "max"], **kwargs
         ).get_data()
 
         self.assertEqual((577, 6), X.shape)
@@ -236,6 +223,22 @@ class TimeSeriesDatasetTest(unittest.TestCase):
                 ("Tag 3", "max"),
             ],
         )
+
+
+def test_time_series_no_resolution():
+    kwargs = dict(
+        data_provider=MockDataSource(),
+        tag_list=[
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ],
+        from_ts=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        to_ts=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+    )
+    no_resolution, _ = TimeSeriesDataset(resolution=None, **kwargs).get_data()
+    wi_resolution, _ = TimeSeriesDataset(resolution="10T", **kwargs).get_data()
+    assert len(no_resolution) > len(wi_resolution)
 
 
 @pytest.mark.parametrize(
