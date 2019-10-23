@@ -9,7 +9,7 @@ else
     echo "$MACHINE_CONFIG" > /tmp/config.yml
 fi
 
-gordo-components workflow generate --docker-registry docker.io --docker-repository equinor --machine-config /tmp/config.yml --output-file /tmp/generated-config.yml
+gordo-components workflow generate --machine-config /tmp/config.yml --output-file /tmp/generated-config.yml
 argo lint /tmp/generated-config.yml
 if [ "$ARGO_SUBMIT" = true ] ; then
     argo submit /tmp/generated-config.yml

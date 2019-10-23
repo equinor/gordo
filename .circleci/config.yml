@@ -105,12 +105,14 @@ jobs:
 
 
   integration-test:
+    executor: python-executor
     environment:
       CHANGE_MINIKUBE_NONE_USER=true
     machine:
       image: "circleci/classic:201808-01"
     steps:
       - checkout
+      - restore-venv-cache
       - kube-orb/install
       - run:
           command: >
@@ -133,23 +135,32 @@ jobs:
 
       # Setup kubeflow namespace with Gordo install
       - run: kubectl create namespace kubeflow
-      - run: kubectl apply -n kubeflow -f https://raw.githubusercontent.com/equinor/gordo-controller/master/gordo-crd.yaml
-      - run: kubectl get gordos -n kubeflow
-      - run: kubectl apply -k k8s/minikube -n kubeflow
-      - run: kubectl wait --for=condition=available --timeout=120s deployment/gordo-controller -n kubeflow
+      - run: kubectl config set-context $(kubectl config current-context) --namespace kubeflow
+      - run: kubectl apply -f https://raw.githubusercontent.com/equinor/gordo-controller/master/gordo-crd.yaml
+      - run: kubectl get gordos
+      - run: kubectl apply -k k8s/minikube
+      - run: kubectl wait --for=condition=available --timeout=120s deployment/gordo-controller
 
       # Install ambassador
       - run: kubectl create namespace ambassador
       - run: kubectl apply -n ambassador -f https://getambassador.io/yaml/ambassador/ambassador-rbac.yaml
 
       # Start and wait for a workflow as the main test
-      - run: kubectl apply -f examples/example-config.yaml -n kubeflow
-      - run: sleep 15
-      - run: kubectl get jobs -n kubeflow
-      - run: kubectl wait --for=condition=complete $(kubectl get jobs -n kubeflow --output name | head -n 1) --timeout=240s -n kubeflow
-      - run: kubectl logs deployment/gordo-controller -n kubeflow
-      - run: ./argo list -n kubeflow
-      - run: ./argo wait -n kubeflow $(./argo list -n kubeflow --output name | head -n 1)
+      # Until we can pass docker-registry and docker-repo to the gordo-deploy image via the controller
+      # we can't directly kubectl apply the config, but generate the workflow and submit that.
+      #- run: kubectl apply -f examples/example-config.yaml -n kubeflow
+      #- run: sleep 15
+      #- run: kubectl get jobs
+      #- run: kubectl wait --for=condition=complete $(kubectl get jobs --output name | head -n 1) --timeout=240s
+      - run: kubectl logs deployment/gordo-controller
+      - run:
+          command: |
+            source ~/code/venv/bin/activate
+            pip install .
+            gordo-components workflow generate --docker-registry docker.io --docker-repository equinor --project-name test-proj --machine-config examples/example-config.yaml --output-file ./workflow.yaml
+            ./argo submit ./workflow.yaml
+      - run: ./argo list
+      - run: ./argo wait $(./argo list --output name | head -n 1)
 
   # Push images, only when on master and/or tagged commits.
   push-images:
