@@ -125,13 +125,13 @@ class Client:
 
         # Thread safe single access and updating of endpoints.
         with self._mutex:
-            if len(self.endpoints) == 0:
-                endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-            self.endpoints = self._filter_endpoints(
-                endpoints=endpoints,
-                target=target,
-                ignore_unhealthy_targets=ignore_unhealthy_targets,
-            )
+            if not self.endpoints:
+                self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+                self.endpoints = self._filter_endpoints(
+                    endpoints=self.endpoints,
+                    target=target,
+                    ignore_unhealthy_targets=ignore_unhealthy_targets,
+                )
 
     @staticmethod
     def _filter_endpoints(
