@@ -9,7 +9,7 @@ import itertools
 import typing
 from time import sleep
 from threading import Lock
-from typing import Dict, Any
+from typing import Dict, Any, List
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
@@ -40,6 +40,7 @@ class Client:
     """
 
     _mutex = Lock()
+    endpoints: List[EndpointMetadata] = []
 
     def __init__(
         self,
@@ -122,22 +123,15 @@ class Client:
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
 
-        endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-        self.endpoints = self._filter_endpoints(
-            endpoints=endpoints,
-            target=target,
-            ignore_unhealthy_targets=ignore_unhealthy_targets,
-        )
-
-    @property
-    def endpoints(self) -> typing.List[EndpointMetadata]:
+        # Thread safe single access and updating of endpoints.
         with self._mutex:
-            return self._endpoints
-
-    @endpoints.setter
-    def endpoints(self, endpoints: typing.List[EndpointMetadata]):
-        with self._mutex:
-            self._endpoints = endpoints
+            if len(self.endpoints) == 0:
+                endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+            self.endpoints = self._filter_endpoints(
+                endpoints=endpoints,
+                target=target,
+                ignore_unhealthy_targets=ignore_unhealthy_targets,
+            )
 
     @staticmethod
     def _filter_endpoints(
