@@ -482,7 +482,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'endpoint-metadata'->'metadata'->'model'->'cross-validation'->'scores'->'explained-variance') where name='$Machine'",
+            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'endpoint-metadata'->'metadata'->'model'->'cross-validation'->'scores'->'explained-variance-score') where name='$Machine'",
             "refId": "A",
             "select": [
               [
