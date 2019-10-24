@@ -5,6 +5,7 @@ import functools
 import os
 import io
 import dateutil
+import timeit
 from datetime import datetime
 from typing import Union, List
 
@@ -263,7 +264,7 @@ def extract_X_y(method):
 
     @functools.wraps(method)
     def wrapper_method(self, *args, **kwargs):
-
+        start_time = timeit.default_timer()
         # Data provided by the client
         if request.method == "POST":
 
@@ -301,6 +302,12 @@ def extract_X_y(method):
         # Assign X and y to the request's global context
         g.X, g.y = X, y
 
+        try:
+            logger.debug(f"Size of X: {X.size}, size of y: {y.size}")
+        except AttributeError:
+            logger.debug(f"Size of X: {X.size}, y is None")
+        logger.debug(f"Time to parse X and y: {timeit.default_timer() - start_time}s")
+
         # And run the original method.
         return method(self, *args, **kwargs)
 
@@ -324,7 +331,9 @@ def load_model(directory: str, name: str) -> BaseEstimator:
     -------
     BaseEstimator
     """
+    start_time = timeit.default_timer()
     model = serializer.load(os.path.join(directory, name))
+    logger.debug(f"Time to load model: {timeit.default_timer() - start_time}s")
     return model
 
 
