@@ -6,10 +6,10 @@ import copy
 import requests
 import logging
 import itertools
-from time import sleep
-
 import typing
-from typing import Dict, Any
+from time import sleep
+from threading import Lock
+from typing import Dict, Any, List
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
@@ -38,6 +38,9 @@ class Client:
 
     Enables some basic communication with a deployed Gordo project
     """
+
+    _mutex = Lock()
+    endpoints: List[EndpointMetadata] = []
 
     def __init__(
         self,
@@ -108,7 +111,6 @@ class Client:
         self.base_url = f"{scheme}://{host}:{port}"
         self.watchman_endpoint = f"{self.base_url}/gordo/{gordo_version}/{project}/"
         self.metadata = metadata if metadata is not None else dict()
-        self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
         self.use_parquet = use_parquet
@@ -121,12 +123,15 @@ class Client:
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
 
-        endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-        self.endpoints = self._filter_endpoints(
-            endpoints=endpoints,
-            target=target,
-            ignore_unhealthy_targets=ignore_unhealthy_targets,
-        )
+        # Thread safe single access and updating of endpoints.
+        with self._mutex:
+            if not self.endpoints:
+                self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+                self.endpoints = self._filter_endpoints(
+                    endpoints=self.endpoints,
+                    target=target,
+                    ignore_unhealthy_targets=ignore_unhealthy_targets,
+                )
 
     @staticmethod
     def _filter_endpoints(
