@@ -56,6 +56,7 @@ class Client:
         ignore_unhealthy_targets: bool = False,
         n_retries: int = 5,
         use_parquet: bool = False,
+        session: typing.Optional[requests.Session] = None,
     ):
         """
 
@@ -102,12 +103,17 @@ class Client:
             Pass the data to the server using the parquet protocol. Default is True
             and recommended as it's more efficient for larger batch sizes. If False JSON
             is used for sending the data back and forth.
-
+        session: Optional[requests.Session]
+            If present, this requests session will be used for all HTTP calls.
+            This allows the caller to specify whatever session management she wants, including
+            any authentication regime or special headers etc.
+            If not set, a standard session will be created.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
         self.watchman_endpoint = f"{self.base_url}/gordo/{gordo_version}/{project}/"
         self.metadata = metadata if metadata is not None else dict()
+        self.session = session or requests.Session()
         self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
@@ -195,7 +201,7 @@ class Client:
         """
         Get a list of endpoints by querying Watchman
         """
-        resp = requests.get(endpoint)
+        resp = self.session.get(endpoint)
         if not resp.ok:
             raise IOError(f"Failed to get endpoints: {resp.content}")
 
@@ -241,7 +247,7 @@ class Client:
         """
         models = dict()
         for endpoint in self.endpoints:
-            resp = requests.get(f"{endpoint.endpoint}/download-model")
+            resp = self.session.get(f"{endpoint.endpoint}/download-model")
             if resp.ok:
                 models[endpoint.target_name] = serializer.loads(resp.content)
             else:
@@ -264,7 +270,7 @@ class Client:
         """
         metadata = dict()
         for endpoint in self.endpoints:
-            resp = requests.get(f"{endpoint.endpoint}/metadata")
+            resp = self.session.get(f"{endpoint.endpoint}/metadata")
             if resp.ok:
                 metadata[endpoint.target_name] = resp.json()
             else:
