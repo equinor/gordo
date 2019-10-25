@@ -10,8 +10,7 @@ from gordo_components.client.utils import EndpointMetadata, influx_client_from_u
 import tests.utils as tu
 
 
-@pytest.mark.asyncio
-async def test_influx_forwarder(influxdb):
+def test_influx_forwarder(influxdb):
     """
     Test that the forwarder creates correct points from a
     multi-indexed series
@@ -45,7 +44,7 @@ async def test_influx_forwarder(influxdb):
 
     # Create the forwarder and forward the 'predictions' to influx.
     forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=tu.INFLUXDB_URI)
-    await forwarder.forward_predictions(predictions=df, endpoint=endpoint)
+    forwarder.forward_predictions(predictions=df, endpoint=endpoint)
 
     # Client to manually verify the points written
     client = influx_client_from_uri(tu.INFLUXDB_URI, dataframe_client=True)

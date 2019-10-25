@@ -50,7 +50,7 @@ def write_key(registry_dir: Union[os.PathLike, str], key: str, val: AnyStr):
         # exists_ok=True
         os.makedirs(registry_dir, exist_ok=True)
     with key_file_path.open(mode="w") as f:
-        f.write(val)
+        f.write(val)  # type: ignore
 
 
 def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnyStr]:
@@ -85,7 +85,7 @@ def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnySt
         logger.debug(f"Read value {output_val} from registry")
     else:
         logger.info(f"Did not find registry key {key} at path {key_file_path}")
-    return output_val
+    return output_val  # type: ignore
 
 
 def delete_value(registry_dir: Union[os.PathLike, str], key: str) -> bool:

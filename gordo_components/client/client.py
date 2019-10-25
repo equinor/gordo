@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import sys  # noqa
-import asyncio
 import copy
 import requests
 import logging
@@ -9,19 +8,18 @@ import itertools
 import typing
 from time import sleep
 from threading import Lock
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Callable
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+from concurrent.futures import ThreadPoolExecutor
 
-import aiohttp
+
 import pandas as pd
 from sklearn.base import BaseEstimator
 from werkzeug.exceptions import BadRequest
 
 from gordo_components import serializer
-from gordo_components.client import io as gordo_io
+from gordo_components.client.io import _handle_response
 from gordo_components.client.io import HttpUnprocessableEntity
-from gordo_components.client.forwarders import PredictionForwarder
 from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
@@ -52,13 +50,16 @@ class Client:
         gordo_version: str = "v0",
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
-        prediction_forwarder: typing.Optional[PredictionForwarder] = None,
+        prediction_forwarder: typing.Optional[
+            Callable[[pd.DataFrame, EndpointMetadata, dict, pd.DataFrame], None]
+        ] = None,
         batch_size: int = 100000,
         parallelism: int = 10,
         forward_resampled_sensors: bool = False,
         ignore_unhealthy_targets: bool = False,
         n_retries: int = 5,
         use_parquet: bool = False,
+        session: requests.Session = requests.Session(),
     ):
         """
 
@@ -83,15 +84,15 @@ class Client:
         data_provider: Optional[GordoBaseDataProvider]
             The data provider to use for the dataset. If not set, the client
             will fall back to using the GET /prediction endpoint
-        prediction_forwarder: Optional[Callable[[pd.DataFrame, EndpointMetadata, dict, pd.DataFrame], typing.Awaitable[None]]]
-            Async callable which will take a dataframe of predictions,
+        prediction_forwarder: Optional[Callable[[pd.DataFrame, EndpointMetadata, dict, pd.DataFrame], None]]
+            callable which will take a dataframe of predictions,
             ``EndpointMetadata``, the metadata, and the dataframe of resampled sensor
             values and forward them somewhere.
         batch_size: int
             How many samples to send to the server, only applicable when data
             provider is supplied.
         parallelism: int
-            The maximum number of async tasks to run at a given time when
+            The maximum number of tasks to run at a given time when
             running predictions
         forward_resampled_sensors: bool
             If true then forward resampled sensor values to the prediction_forwarder
@@ -105,7 +106,8 @@ class Client:
             Pass the data to the server using the parquet protocol. Default is True
             and recommended as it's more efficient for larger batch sizes. If False JSON
             is used for sending the data back and forth.
-
+        session: requests.Session
+            The http session object to use for making requests.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -114,6 +116,7 @@ class Client:
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
         self.use_parquet = use_parquet
+        self.session = session
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -200,9 +203,9 @@ class Client:
         """
         Get a list of endpoints by querying Watchman
         """
-        resp = requests.get(endpoint)
+        resp = self.session.get(endpoint)
         if not resp.ok:
-            raise IOError(f"Failed to get endpoints: {resp.content}")
+            raise IOError(f"Failed to get endpoints: {repr(resp.content)}")
 
         return [
             EndpointMetadata(
@@ -246,21 +249,16 @@ class Client:
         """
         models = dict()
         for endpoint in self.endpoints:
-            resp = requests.get(f"{endpoint.endpoint}/download-model")
+            resp = self.session.get(f"{endpoint.endpoint}/download-model")
             if resp.ok:
                 models[endpoint.target_name] = serializer.loads(resp.content)
             else:
-                raise IOError(f"Failed to download model: '{resp.content}'")
+                raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
 
     def get_metadata(self) -> typing.Dict[str, dict]:
         """
         Get the metadata for each target
-
-        Parameters
-        ----------
-        target: str
-            Name of the machine/target to get metadata from
 
         Returns
         -------
@@ -269,11 +267,11 @@ class Client:
         """
         metadata = dict()
         for endpoint in self.endpoints:
-            resp = requests.get(f"{endpoint.endpoint}/metadata")
+            resp = self.session.get(f"{endpoint.endpoint}/metadata")
             if resp.ok:
                 metadata[endpoint.target_name] = resp.json()
             else:
-                raise IOError(f"Failed to get metadata: '{resp.content}'")
+                raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
         return metadata
 
     def predict(
@@ -296,25 +294,13 @@ class Client:
               2nd element is a list of error messages (if any) for running the predictions
         """
         # For every endpoint, start making predictions for the time range
-        jobs = asyncio.gather(
-            *[
-                self._predict(endpoint=endpoint, start=start, end=end)
-                for endpoint in self.endpoints
-            ]
-        )
+        with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
+            jobs = executor.map(
+                lambda ep: self.predict_single_endpoint(ep, start, end), self.endpoints
+            )
+            return [(j.name, j.predictions, j.error_messages) for j in jobs]
 
-        # Create new event loop and process getting predictions
-        loop = asyncio.get_event_loop()
-        prediction_results: typing.List[PredictionResult] = loop.run_until_complete(
-            jobs
-        )
-
-        # List of tuples where each represents a single target of name, dataframe of predictions
-        return [
-            (pr.name, pr.predictions, pr.error_messages) for pr in prediction_results
-        ]  # type: ignore
-
-    async def _predict(
+    def predict_single_endpoint(
         self, endpoint: EndpointMetadata, start: datetime, end: datetime
     ) -> PredictionResult:
         """
@@ -334,19 +320,18 @@ class Client:
         """
 
         # Fetch all of the raw data
-        X, y = await self._raw_data(endpoint, start, end)
+        X, y = self._raw_data(endpoint, start, end)
 
         # Forward sensor data
         if self.prediction_forwarder is not None and self.forward_resampled_sensors:
-            await self.prediction_forwarder(resampled_sensor_data=X)
+            self.prediction_forwarder(resampled_sensor_data=X)  # type: ignore
 
-        async with aiohttp.ClientSession() as session:
+        max_indx = len(X.index) - 1  # Maximum allowable index values
 
-            max_indx = len(X.index) - 1  # Maximum allowable index values
-
-            # Chunk over the dataframe by batch_size
-            jobs = [
-                self._process_prediction_task(
+        # Start making batch predictions
+        with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
+            jobs = executor.map(
+                lambda i: self._send_prediction_request(
                     X,
                     y,
                     chunk=slice(i, i + self.batch_size),
@@ -357,13 +342,30 @@ class Client:
                         if i + self.batch_size <= max_indx
                         else max_indx
                     ],
-                    session=session,
-                )
-                for i in range(0, X.shape[0], self.batch_size)
-            ]
-            return await self._accumulate_coroutine_predictions(endpoint, jobs)
+                ),
+                range(0, X.shape[0], self.batch_size),
+            )
 
-    async def _process_prediction_task(
+            # Accumulate the batched predictions
+            prediction_dfs = list()
+            error_messages: List[str] = list()
+            for prediction_result in jobs:
+                if prediction_result.predictions is not None:
+                    prediction_dfs.append(prediction_result.predictions)
+                error_messages.extend(prediction_result.error_messages)
+
+            predictions = (
+                pd.concat(prediction_dfs).sort_index()
+                if prediction_dfs
+                else pd.DataFrame()
+            )
+        return PredictionResult(
+            name=endpoint.target_name,
+            predictions=predictions,
+            error_messages=error_messages,
+        )
+
+    def _send_prediction_request(
         self,
         X: pd.DataFrame,
         y: typing.Optional[pd.DataFrame],
@@ -371,7 +373,6 @@ class Client:
         endpoint: EndpointMetadata,
         start: datetime,
         end: datetime,
-        session: typing.Optional[aiohttp.ClientSession] = None,
     ):
         """
         Post a slice of data to the endpoint
@@ -396,13 +397,12 @@ class Client:
         """
 
         kwargs: Dict[str, Any] = dict(
-            session=session,
-            url=f"{endpoint.endpoint}{self.prediction_path}{self.query}",
+            url=f"{endpoint.endpoint}{self.prediction_path}{self.query}"
         )
 
         # We're going to serialize the data as either JSON or Arrow
         if self.use_parquet:
-            kwargs["data"] = {
+            kwargs["files"] = {
                 "X": server_utils.dataframe_into_parquet_bytes(X.iloc[chunk]),
                 "y": server_utils.dataframe_into_parquet_bytes(y.iloc[chunk])
                 if y is not None
@@ -420,27 +420,27 @@ class Client:
         for current_attempt in itertools.count(start=1):
             try:
                 try:
-                    resp = await gordo_io.post(**kwargs)
+                    resp = _handle_response(self.session.post(**kwargs))
                 except HttpUnprocessableEntity:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
                     ] = f"{endpoint.endpoint}{self.prediction_path}{self.query}"
-                    resp = await gordo_io.post(**kwargs)
+                    resp = _handle_response(self.session.post(**kwargs))
             # If it was an IO or TimeoutError, we can retry
             except (
                 IOError,
                 TimeoutError,
-                FutureTimeoutError,
                 BadRequest,
-                aiohttp.ClientError,
+                requests.ConnectionError,
+                requests.HTTPError,
             ) as exc:
                 if current_attempt <= self.n_retries:
                     time_to_sleep = min(2 ** (current_attempt + 2), 300)
                     logger.warning(
                         f"Failed to get response on attempt {current_attempt} out of {self.n_retries} attempts."
                     )
-                    sleep(time_to_sleep)  # Not async on purpose.
+                    sleep(time_to_sleep)
                     continue
                 else:
                     msg = (
@@ -473,7 +473,7 @@ class Client:
 
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
-                    await self.prediction_forwarder(
+                    self.prediction_forwarder(  # type: ignore
                         predictions=predictions,
                         endpoint=endpoint,
                         metadata=self.metadata,
@@ -484,47 +484,7 @@ class Client:
                     error_messages=[],
                 )
 
-    async def _accumulate_coroutine_predictions(
-        self, endpoint: EndpointMetadata, jobs: typing.List[typing.Coroutine]
-    ) -> PredictionResult:
-        """
-        Take a list of un-awaited async prediction coroutines and return
-        a single PredictionResult
-
-        Parameters
-        ----------
-        endpoint: Endpoint
-        jobs: List[Coroutine]
-            An awaitable coroutine which will return a single PredictionResult
-            from a single prediction task
-
-        Returns
-        -------
-        PredictionResult
-            The accumulated PredictionResult for an endpoint
-        """
-        prediction_dfs = list()
-        error_messages = []  # type: typing.List[str]
-        for i in range(0, len(jobs), self.parallelism):
-
-            for prediction_result in await asyncio.gather(
-                *jobs[i : i + self.parallelism]
-            ):
-                if prediction_result.predictions is not None:
-                    prediction_dfs.append(prediction_result.predictions)
-                error_messages.extend(prediction_result.error_messages)
-
-        predictions = (
-            pd.concat(prediction_dfs).sort_index() if prediction_dfs else pd.DataFrame()
-        )
-
-        return PredictionResult(
-            name=endpoint.target_name,
-            predictions=predictions,
-            error_messages=error_messages,
-        )
-
-    async def _raw_data(
+    def _raw_data(
         self, endpoint: EndpointMetadata, start: datetime, end: datetime
     ) -> pd.DataFrame:
         """
@@ -552,7 +512,6 @@ class Client:
             resolution=endpoint.resolution,
             n_intervals=endpoint.model_offset + 5,
         )
-
         dataset = TimeSeriesDataset(
             data_provider=self.data_provider,  # type: ignore
             from_ts=start,
@@ -561,10 +520,7 @@ class Client:
             tag_list=endpoint.tag_list,
             target_tag_list=endpoint.target_tag_list,
         )
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(dataset.get_data)
-            return await asyncio.wrap_future(future)
+        return dataset.get_data()
 
     @staticmethod
     def _adjust_for_offset(dt: datetime, resolution: str, n_intervals: int = 100):

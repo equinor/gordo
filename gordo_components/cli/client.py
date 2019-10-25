@@ -127,7 +127,7 @@ def predict(
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
 
     if influx_uri is not None:
-        client.prediction_forwarder = ForwardPredictionsIntoInflux(
+        client.prediction_forwarder = ForwardPredictionsIntoInflux(  # type: ignore
             destination_influx_uri=influx_uri,
             destination_influx_api_key=influx_api_key,
             destination_influx_recreate=influx_recreate_db,

@@ -1,25 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import asyncio
 import itertools
 import logging
 import time
 import typing
 from typing import Optional
-from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
-from typing_extensions import Protocol
 
 from gordo_components.client.utils import influx_client_from_uri, EndpointMetadata
 
 
 """
-Module contains objects which can be made into async generators which take
+Module contains objects which can be made into generators which take
 and EndpointMetadata and metadata (dict) when instantiated and are sent
 prediction dataframes as the prediction client runs::
 
-    async def my_forwarder(
+    def my_forwarder(
         predictions: pd.DataFrame = None,
         endpoint: EndpointMetadata = None,
         metadata: dict = dict(),
@@ -36,19 +33,7 @@ keyvalue pairs
 logger = logging.getLogger(__name__)
 
 
-class PredictionForwarder(Protocol):
-    def __call__(
-        self,
-        *,
-        predictions: pd.DataFrame = None,
-        endpoint: EndpointMetadata = None,
-        metadata: dict = dict(),
-        resampled_sensor_data: pd.DataFrame = None,
-    ) -> typing.Awaitable[None]:
-        ...
-
-
-class ForwardPredictionsIntoInflux(PredictionForwarder):
+class ForwardPredictionsIntoInflux:
     """
     To be used as a 'forwarder' for the prediction client
 
@@ -90,7 +75,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             else None
         )
 
-    async def __call__(
+    def __call__(
         self,
         *,
         predictions: pd.DataFrame = None,
@@ -107,13 +92,11 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
                 raise ValueError(
                     "Argument `endpoint`must be provided if `predictions` is provided"
                 )
-            await self.forward_predictions(
-                predictions, endpoint=endpoint, metadata=metadata
-            )
+            self.forward_predictions(predictions, endpoint=endpoint, metadata=metadata)
         if resampled_sensor_data is not None:
-            await self.send_sensor_data(resampled_sensor_data)
+            self.send_sensor_data(resampled_sensor_data)
 
-    async def forward_predictions(
+    def forward_predictions(
         self,
         predictions: pd.DataFrame,
         endpoint: EndpointMetadata,
@@ -159,56 +142,48 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             if len(sub_df.columns) == len(endpoint.tag_list):
                 sub_df.columns = [tag.name for tag in endpoint.tag_list]
 
-            await self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
+            self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
 
-    async def _write_to_influx_with_retries(self, df, tags, measurement):
-        """Async write data to influx with retries and exponential backof. Will sleep
+    def _write_to_influx_with_retries(self, df, tags, measurement):
+        """
+        Write data to influx with retries and exponential backof. Will sleep
         exponentially longer between each retry, starting at 8 seconds, capped at 5 min.
         """
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            logger.info(
-                f"Writing {len(df)} points to Influx for measurement: {measurement}"
-            )
-            for current_attempt in itertools.count(start=1):
-                try:
-                    future = executor.submit(
-                        self.dataframe_client.write_points,
-                        dataframe=df,
-                        measurement=measurement,
-                        tags=tags,
-                        batch_size=10000,
+        logger.info(
+            f"Writing {len(df)} points to Influx for measurement: {measurement}"
+        )
+        for current_attempt in itertools.count(start=1):
+            try:
+                self.dataframe_client.write_points(
+                    dataframe=df, measurement=measurement, tags=tags, batch_size=10000
+                )
+            except Exception as exc:
+                if current_attempt <= self.n_retries:
+                    # Sleep at most 5 min
+                    time_to_sleep = min(2 ** (current_attempt + 2), 300)
+                    logger.warning(
+                        f"Failed to forward data to influx on attempt "
+                        f"{current_attempt} out of {self.n_retries}.\n"
+                        f"Error: {exc}.\n"
+                        f"Sleeping {time_to_sleep} seconds and trying again."
                     )
-                    await asyncio.wrap_future(future)
-                except Exception as exc:
-                    if current_attempt <= self.n_retries:
-                        # Sleep at most 5 min
-                        time_to_sleep = min(2 ** (current_attempt + 2), 300)
-                        logger.warning(
-                            f"Failed to forward data to influx on attempt "
-                            f"{current_attempt} out of {self.n_retries} attempts. "
-                            f"Error: {exc}."
-                            f"Sleeping {time_to_sleep} seconds and trying again"
-                        )
-                        time.sleep(time_to_sleep)  # Not async on purpose.
-                        continue
-                    else:
-                        msg = f"Failed to forward data to influx. Error: {exc}"
-                        logger.error(msg)
+                    time.sleep(time_to_sleep)
+                    continue
                 else:
-                    break
+                    msg = f"Failed to forward data to influx. Error: {exc}"
+                    logger.error(msg)
+            else:
+                break
 
-    async def send_sensor_data(self, sensors: pd.DataFrame):
+    def send_sensor_data(self, sensors: pd.DataFrame):
         """
-        Async write sensor-data to influx
+        Write sensor-data to influx
         """
         # Write the per-sensor points to influx
         logger.info(f"Writing {len(sensors)} sensor points to Influx")
 
         for tag_name, tag_data in _explode_df(sensors).items():
-            await self._write_to_influx_with_retries(
-                tag_data, {"tag": tag_name}, "resampled"
-            )
+            self._write_to_influx_with_retries(tag_data, {"tag": tag_name}, "resampled")
             logger.debug(f"Wrote resampled tag data for {tag_name} to Influx")
         logger.debug("Done writing resampled sensor values to influx")
 
