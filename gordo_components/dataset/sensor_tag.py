@@ -92,7 +92,7 @@ def normalize_sensor_tags(
             List of SensorTags
 
     """
-    logging.info(
+    logger.info(
         f"Normalizing list of sensors in some format into SensorTags: {sensors}"
     )
     return [
