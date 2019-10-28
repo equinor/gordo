@@ -44,11 +44,11 @@ def workflow_cli():
     envvar=f"{PREFIX}_OWNER_REFERENCES",
 )
 @click.option(
-    "--version",
+    "--gordo-version",
     type=str,
     default=wg._docker_friendly_version(__version__),
     help="Version of gordo to use, if different than this one",
-    envvar=f"{PREFIX}_VERSION",
+    envvar=f"{PREFIX}_GORDO_VERSION",
 )
 @click.option(
     "--project-name",
@@ -116,28 +116,22 @@ def workflow_cli():
     help="The docker registry to use for pulling component images from",
     envvar=f"{PREFIX}_DOCKER_REGISTRY",
 )
-def workflow_generator_cli(**kwargs: dict):
+def workflow_generator_cli(**ctx: dict):
     """
     Machine Configuration to Argo Workflow
     """
-    context: Dict[Any, Any] = dict()
 
-    yaml_content = wg.get_dict_from_yaml(kwargs["machine_config"])
+    context: Dict[Any, Any] = ctx.copy()
 
-    # Context directly from args.
-    context["gordo_version"] = kwargs["version"]
-    context["project_name"] = kwargs["project_name"]
-    context["project_version"] = kwargs["project_version"]
-    context["namespace"] = kwargs["namespace"]
-    context["ambassador_namespace"] = kwargs["ambassador_namespace"]
-    context["docker_repository"] = kwargs["docker_repository"]
-    context["docker_registry"] = kwargs["docker_registry"]
+    yaml_content = wg.get_dict_from_yaml(context["machine_config"])
 
     # Create normalized config
-    config = NormalizedConfig(yaml_content, project_name=kwargs["project_name"])
+    config = NormalizedConfig(yaml_content, project_name=context["project_name"])
 
     context["machines"] = config.machines
-    context["max_server_replicas"] = kwargs["n_servers"] or len(config.machines) * 10
+    context["max_server_replicas"] = (
+        context.pop("n_servers") or len(config.machines) * 10
+    )
 
     # We know these exist since we set them in the default globals
     builder_resources = config.globals["runtime"]["builder"]["resources"]
@@ -187,11 +181,14 @@ def workflow_generator_cli(**kwargs: dict):
     # Context requiring pre-processing
     context["target_names"] = [machine.name for machine in config.machines]
 
-    if kwargs["owner_references"]:
-        context["owner_references"] = json.dumps(kwargs["owner_references"])
+    # Json dump owner_references, if not None, otherwise pop it out of the context
+    if context["owner_references"]:
+        context["owner_references"] = json.dumps(context["owner_references"])
+    else:
+        context.pop("owner_references")
 
-    if kwargs["workflow_template"]:
-        template = wg.load_workflow_template(kwargs["workflow_template"])
+    if context["workflow_template"]:
+        template = wg.load_workflow_template(context["workflow_template"])
     else:
         workflow_template = pkg_resources.resource_filename(
             "gordo_components.workflow.workflow_generator.resources",
@@ -200,17 +197,17 @@ def workflow_generator_cli(**kwargs: dict):
         template = wg.load_workflow_template(workflow_template)
 
     # Clear output file
-    if kwargs["output_file"]:
-        open(kwargs["output_file"], "w").close()  # type: ignore
-    for i in range(0, len(config.machines), kwargs["split_workflows"]):  # type: ignore
+    if context["output_file"]:
+        open(context["output_file"], "w").close()  # type: ignore
+    for i in range(0, len(config.machines), context["split_workflows"]):  # type: ignore
         logger.info(
-            f"Generating workflow for machines {i} to {i + kwargs['split_workflows']}"
+            f"Generating workflow for machines {i} to {i + context['split_workflows']}"
         )
-        context["machines"] = config.machines[i : i + kwargs["split_workflows"]]
+        context["machines"] = config.machines[i : i + context["split_workflows"]]
 
-        if kwargs["output_file"]:
+        if context["output_file"]:
             s = template.stream(**context)
-            with open(kwargs["output_file"], "a") as f:  # type: ignore
+            with open(context["output_file"], "a") as f:  # type: ignore
                 if i != 0:
                     f.write("\n---\n")
                 s.dump(f)
