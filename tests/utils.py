@@ -7,6 +7,7 @@ import time
 import logging
 from contextlib import contextmanager
 from typing import List
+from threading import Lock
 
 import docker
 import numpy as np
@@ -14,7 +15,6 @@ import pandas as pd
 
 import responses
 import requests
-from asynctest import mock as async_mock
 from influxdb import InfluxDBClient
 from flask import Request
 
@@ -46,6 +46,7 @@ GORDO_HOST = "localhost"
 GORDO_PROJECT = "gordo-test"
 GORDO_TARGETS = ["machine-1"]
 GORDO_SINGLE_TARGET = GORDO_TARGETS[0]
+TEST_SERVER_MUTEXT = Lock()
 
 
 def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
@@ -86,28 +87,6 @@ def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
     else:
         logger.warning("Found that influx never started")
         return False
-
-
-def _post_patch(*args, **kwargs):
-    kwargs = {k: v for k, v in kwargs.items() if k != "session"}
-
-    # Warning, ugly; aiohttp.Session.post calls request's version of 'files' 'data'
-    if "data" in kwargs:
-        kwargs["files"] = kwargs.pop("data")
-
-    resp = requests.post(*args, **kwargs)
-    if resp.headers["Content-Type"] == "application/json":
-        return resp.json()
-    else:
-        return resp.content
-
-
-def _get_patch(*args, **kwargs):
-    resp = requests.get(*args, **{k: v for k, v in kwargs.items() if k != "session"})
-    if resp.headers["Content-Type"] == "application/json":
-        return resp.json()
-    else:
-        return resp.content
 
 
 @contextmanager
@@ -171,22 +150,18 @@ def watchman(
                             k: (io.BytesIO(f.read()), f.filename)
                             for k, f in flask_request.files.items()
                         }
-                resp = getattr(gordo_server_app, request.method.lower())(
-                    request.path_url, **kwargs
-                )
+
+                with TEST_SERVER_MUTEXT:
+                    resp = getattr(gordo_server_app, request.method.lower())(
+                        request.path_url, **kwargs
+                    )
                 return (
                     200,
                     resp.headers,
                     json.dumps(resp.json) if resp.json is not None else resp.data,
                 )
 
-        with responses.RequestsMock(
-            assert_all_requests_are_fired=False
-        ) as rsps, async_mock.patch(
-            "gordo_components.client.io.get", side_effect=_get_patch
-        ), async_mock.patch(
-            "gordo_components.client.io.post", side_effect=_post_patch
-        ):
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
 
             # Gordo ML Server requests
             rsps.add_callback(

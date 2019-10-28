@@ -6,9 +6,9 @@ import json
 import logging
 import typing
 from dateutil.parser import isoparse  # type: ignore
-import asyncio
 
 import pytest
+import requests
 import pandas as pd
 import numpy as np
 from click.testing import CliRunner
@@ -17,6 +17,11 @@ from mock import patch, call
 
 from gordo_components.client import Client, utils as client_utils
 from gordo_components.client.utils import EndpointMetadata
+from gordo_components.client.io import (
+    _handle_response,
+    HttpUnprocessableEntity,
+    BadRequest,
+)
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.data_provider import providers
 from gordo_components.server import utils as server_utils
@@ -98,11 +103,12 @@ def test_client_predictions_diff_batch_sizes(
     prediction_client = Client(
         project=tu.GORDO_PROJECT,
         data_provider=data_provider,
-        prediction_forwarder=ForwardPredictionsIntoInflux(
+        prediction_forwarder=ForwardPredictionsIntoInflux(  # type: ignore
             destination_influx_uri=tu.INFLUXDB_URI
         ),
         batch_size=batch_size,
         use_parquet=use_parquet,
+        parallelism=10,
     )
 
     # Should have discovered machine-1
@@ -510,18 +516,35 @@ def test_exponential_sleep_time(caplog, watchman_service):
             "gordo_components.client.client.sleep", return_value=None
         ) as time_sleep:
             client = Client(project=tu.GORDO_PROJECT)
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(
-                client._process_prediction_task(
-                    X=pd.DataFrame([123]),
-                    y=None,
-                    chunk=slice(0, 1),
-                    endpoint=endpoint,
-                    start=start,
-                    end=end,
-                )
+
+            client._send_prediction_request(
+                X=pd.DataFrame([123]),
+                y=None,
+                chunk=slice(0, 1),
+                endpoint=endpoint,
+                start=start,
+                end=end,
             )
-            loop.close()
 
             expected_calls = [call(8), call(16), call(32), call(64), call(128)]
             time_sleep.assert_has_calls(expected_calls)
+
+
+def test__handle_response_errors():
+    """
+    Test expected error raising from gordo_components.client.io._handle_response
+    """
+    resp = requests.Response()
+    resp.status_code = 422
+    with pytest.raises(HttpUnprocessableEntity):
+        _handle_response(resp)
+
+    resp = requests.Response()
+    resp.status_code = 403
+    with pytest.raises(BadRequest):
+        _handle_response(resp)
+
+    resp = requests.Response()
+    resp.status_code = 502
+    with pytest.raises(IOError):
+        _handle_response(resp)
