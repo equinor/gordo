@@ -83,6 +83,7 @@ def workflow_cli():
     type=str,
     default="ambassador",
     help="Namespace we should expect to find the Ambassador service in.",
+    envvar=f"{PREFIX}_AMBASSADOR_NAMESPACE",
 )
 @click.option(
     "--split-workflows",
@@ -92,24 +93,28 @@ def workflow_cli():
     "workflows, where each workflow contains at most this nr of models. The "
     "workflows are outputted sequentially with '---' in between, which allows "
     "kubectl to apply them all at once.",
+    envvar=f"{PREFIX}_SPLIT_WORKFLOWS",
 )
 @click.option(
     "--n-servers",
     type=int,
     default=None,
     help="Max number of ML Servers to use, defaults to N machines * 10",
+    envvar=f"{PREFIX}_N_SERVERS",
 )
 @click.option(
     "--docker-repository",
     type=str,
     default="gordo-components",
     help="The docker repo to use for pulling component images from",
+    envvar=f"{PREFIX}_DOCKER_REPOSITORY",
 )
 @click.option(
     "--docker-registry",
     type=str,
     default="auroradevacr.azurecr.io",  # TODO: Change to docker.io after migrating
     help="The docker registry to use for pulling component images from",
+    envvar=f"{PREFIX}_DOCKER_REGISTRY",
 )
 def workflow_generator_cli(**kwargs: dict):
     """
