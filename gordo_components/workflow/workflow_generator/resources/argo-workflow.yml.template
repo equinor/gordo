@@ -1220,6 +1220,14 @@ spec:
           template: gordo-watchman
           dependencies:
             - ensure-single-workflow
+        - name: ml-server
+          template: ml-server
+          arguments:
+            parameters:
+              - name: host-name
+                value: "ml-server-{{ project_name }}"
+          dependencies:
+            - ensure-single-workflow
         {% for machine in machines %}
         - name: model-builder-{{ machine.name }}
           template: build-single-machine
@@ -1231,7 +1239,6 @@ spec:
                          {name: data-provider, value: "{{ machine.data_provider.to_dict() }}"},
                          {name: evaluation-config, value: "{{ machine.evaluation}}"},
             ]
-
           dependencies:
             - watchman
             - ml-server
@@ -1257,14 +1264,6 @@ spec:
           template: gordo-grafana
           dependencies:
             - influx-cleanup
-        - name: ml-server
-          template: ml-server
-          arguments:
-            parameters:
-              - name: host-name
-                value: "ml-server-{{ project_name }}"
-          dependencies:
-            - ensure-single-workflow
         {% for machine in machines %}
         {% if machine.runtime["influx"]["enable"] %}
         - name: gordo-client-{{machine.name}}
