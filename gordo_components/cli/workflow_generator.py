@@ -44,11 +44,11 @@ def workflow_cli():
     envvar=f"{PREFIX}_OWNER_REFERENCES",
 )
 @click.option(
-    "--cleanup-version",
+    "--version",
     type=str,
     default=wg._docker_friendly_version(__version__),
-    help="Version of cleanup image (gordo-deploy)",
-    envvar=f"{PREFIX}_CLEANUP_VERSION",
+    help="Version of gordo to use, if different than this one",
+    envvar=f"{PREFIX}_VERSION",
 )
 @click.option(
     "--project-name",
@@ -120,8 +120,7 @@ def workflow_generator_cli(**kwargs: dict):
     yaml_content = wg.get_dict_from_yaml(kwargs["machine_config"])
 
     # Context directly from args.
-    context["gordo_version"] = wg._docker_friendly_version(__version__)
-    context["cleanup_version"] = kwargs["cleanup_version"]
+    context["gordo_version"] = kwargs["version"]
     context["project_name"] = kwargs["project_name"]
     context["project_version"] = kwargs["project_version"]
     context["namespace"] = kwargs["namespace"]
