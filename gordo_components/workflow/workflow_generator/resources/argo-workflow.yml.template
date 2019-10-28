@@ -43,7 +43,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Ensuring that no other versions of workflows for this project is running at the same time"
@@ -199,7 +199,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Creating feeder database for influx for project {{project_name}}" \
@@ -322,7 +322,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Creating grafana influxdb and postgres datasources for project {{project_name}}" \
@@ -500,7 +500,7 @@ spec:
     retryStrategy:
       limit: 5
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{cleanup_version}}
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Feeding sql with metadata for project {{project_name}} using source ur http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
