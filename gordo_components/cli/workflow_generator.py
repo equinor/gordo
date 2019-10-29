@@ -31,6 +31,7 @@ def workflow_cli():
     type=str,
     help="Machine configuration file",
     envvar=f"{PREFIX}_MACHINE_CONFIG",
+    required=True,
 )
 @click.option("--workflow-template", type=str, help="Template to expand")
 @click.option(
@@ -56,6 +57,7 @@ def workflow_cli():
     help="Name of the project which own the workflow.",
     allow_from_autoenv=True,
     envvar=f"{PREFIX}_PROJECT_NAME",
+    required=True,
 )
 @click.option(
     "--project-version",
