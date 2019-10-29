@@ -170,6 +170,40 @@ def test_basic_generation(path_to_config_files):
     assert len(machines) == 2
 
 
+def test_generation_to_file(tmp_dir, path_to_config_files):
+    """
+    Test that the workflow generator can output to a file, and it matches
+    what would have been output to stdout.
+    """
+    project_name = "my-sweet-project"
+    config_filename = "config-test-with-models.yml"
+    expanded_template = _generate_test_workflow_str(
+        path_to_config_files, config_filename, project_name=project_name
+    )
+
+    # Execute CLI by passing a file to write to.
+    config_file = os.path.join(path_to_config_files, config_filename)
+    outfile = os.path.join(tmp_dir.name, "out.yml")
+    args = [
+        "workflow",
+        "generate",
+        "--machine-config",
+        config_file,
+        "--project-name",
+        project_name,
+        "--output-file",
+        outfile,
+    ]
+    runner = CliRunner()
+    result = runner.invoke(cli.gordo, args)
+    assert result.exit_code == 0
+
+    # Open the file and ensure they are the same
+    with open(outfile, "r") as f:
+        outfile_contents = f.read()
+    assert outfile_contents.rstrip() == expanded_template.rstrip()
+
+
 def test_overrides_builder_datasource(path_to_config_files):
     expanded_template = _generate_test_workflow_yaml(
         path_to_config_files, "config-test-datasource.yml"
