@@ -137,7 +137,7 @@ def get_machines_from_watchman(watchman_address: str) -> List[Optional[Machine]]
 
 
 def _extract_machines_from_watchman_response(
-    watchman_response: Dict
+    watchman_response: Dict,
 ) -> List[Optional[Machine]]:
     """
     Extracts the list of machines from the watchman json response, with None indicating
