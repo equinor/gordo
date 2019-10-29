@@ -2,8 +2,8 @@
 
 import unittest
 import logging
-import ruamel.yaml
-import io
+import yaml
+import json
 import pydoc
 
 from sklearn.pipeline import Pipeline, FeatureUnion
@@ -123,32 +123,31 @@ class PipelineToConfigTestCase(unittest.TestCase):
 
     def test_pipeline_into_definition(self):
 
-        expected_definition = (
-            """
+        expected_definition = """
             sklearn.pipeline.Pipeline:
-              memory:
+                memory: null
                 steps:
                     - sklearn.decomposition.pca.PCA:
                         copy: true
                         iterated_power: auto
                         n_components: 2
-                        random_state:
+                        random_state: null
                         svd_solver: auto
                         tol: 0.0
                         whiten: false
                     - sklearn.pipeline.FeatureUnion:
-                        n_jobs:
+                        n_jobs: null
                         transformer_list:
                         - sklearn.decomposition.pca.PCA:
                             copy: true
                             iterated_power: auto
                             n_components: 3
-                            random_state:
+                            random_state: null
                             svd_solver: auto
                             tol: 0.0
                             whiten: false
                         - sklearn.pipeline.Pipeline:
-                            memory:
+                            memory: null
                             steps:
                             - sklearn.preprocessing.data.MinMaxScaler:
                                 copy: true
@@ -159,33 +158,28 @@ class PipelineToConfigTestCase(unittest.TestCase):
                                 algorithm: randomized
                                 n_components: 2
                                 n_iter: 5
-                                random_state:
+                                random_state: null
                                 tol: 0.0
                             verbose: false
-                        transformer_weights:
+                        transformer_weights: null
                         verbose: false
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_hourglass
                 verbose: false
-            """.rstrip()
-            .strip()
-            .replace(" ", "")
-        )
+            """
+
+        expected_definition = yaml.safe_load(expected_definition)
 
         for pipe in self.variations_of_same_pipeline:
 
-            definition = pipeline_into_definition(pipe)
+            definition = pipeline_into_definition(
+                pipeline_from_definition(pipeline_into_definition(pipe))
+            )
 
-            # Using ruamel over PyYaml, better output option support
-            stream = io.StringIO()
-            ruamel.yaml.dump(definition, stream, Dumper=ruamel.yaml.RoundTripDumper)
-            stream.seek(0)
-
-            current_output = stream.read().rstrip().strip().replace(" ", "")
             self.assertEqual(
-                current_output,
-                expected_definition,
-                msg=f"Failed output:\n{current_output}\nExpected:----------------\n{expected_definition}",
+                json.dumps(definition),
+                json.dumps(expected_definition),
+                msg=f"Failed output:\n{definition}\nExpected:----------------\n{expected_definition}",
             )
 
     def test_into_from(self):
@@ -296,7 +290,7 @@ class PipelineToConfigTestCase(unittest.TestCase):
                         memory:
                         verbose: false
                     """
-                definition = ruamel.yaml.load(definition, Loader=ruamel.yaml.Loader)
+                definition = yaml.safe_load(definition)
                 pipe = pipeline_from_definition(definition)
                 pipeline_into_definition(pipe)
 
