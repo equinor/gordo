@@ -10,7 +10,7 @@ from typing import List
 import docker
 import pytest
 import requests
-import ruamel.yaml
+import yaml
 import numpy as np
 
 from gordo_components import serializer
@@ -92,7 +92,7 @@ def trained_model_directory(
         model_dir = os.path.join(collection_dir, gordo_name)
         os.makedirs(model_dir, exist_ok=True)
 
-        definition = ruamel.yaml.load(
+        definition = yaml.safe_load(
             """
             gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
                 base_estimator:
@@ -102,8 +102,7 @@ def trained_model_directory(
                             - gordo_components.model.models.KerasAutoEncoder:
                                 kind: feedforward_hourglass
                         memory:
-            """,
-            Loader=ruamel.yaml.Loader,
+            """
         )
         model = serializer.pipeline_from_definition(definition)
         X = np.random.random(size=len(sensors) * 10).reshape(10, len(sensors))

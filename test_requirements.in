@@ -1,7 +1,6 @@
 docker~=4.0
 pytest~=5.2
 pytest-xdist~=1.26  # Parallelises the test-runs
-ruamel.yaml~=0.15
 pytest-mock~=1.11
 pytest-mypy~=0.3
 pytest-timeout~=1.3
