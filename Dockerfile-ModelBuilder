@@ -1,4 +1,4 @@
-FROM python:3.6.9 as builder
+FROM python:3.7.5 as builder
 
 # Copy source code
 COPY . /code
@@ -17,7 +17,7 @@ RUN cat /code/requirements.txt | grep tensorflow== > /code/prereq.txt \
     && cat /code/requirements.txt | grep catboost== >> /code/prereq.txt
 
 
-FROM python:3.6.9-slim-stretch
+FROM python:3.7.5-slim-stretch
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
