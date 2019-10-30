@@ -12,7 +12,7 @@ from typing import Union, Optional, Dict, Any, Tuple
 import pandas as pd
 import numpy as np
 
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import (
     explained_variance_score,
     make_scorer,
@@ -68,6 +68,14 @@ def build_model(
                 Example::
 
                     {"cv_mode": "cross_val_only"}
+            - scoring_scaler: Optional[str]
+                Optionally a string which gives the path to a scaler, which will be
+                applied on `Y` and `Y-hat` before scoring. It will not be used for
+                training or any other part of the model-building, only for the scoring.
+                This is usefull if one has multi-dimensional output, where the different
+                dimensions have different scale, and one wants to use a scorer which is
+                sensitive to this (e.g. MSE).
+                If None then no scaling will take place.
 
 
     Returns
@@ -109,7 +117,9 @@ def build_model(
         scores: Dict[str, Any] = dict()
         if hasattr(model, "predict"):
 
-            metrics_dict = get_metrics_dict(metrics_list, y)
+            metrics_dict = get_metrics_dict(
+                metrics_list, y, scaler=evaluation_config.get("scoring_scaler", None)
+            )
 
             cv = cross_validate(
                 model,
@@ -176,7 +186,11 @@ def build_model(
     return model, metadata
 
 
-def get_metrics_dict(metrics_list: list, y: pd.DataFrame) -> dict:
+def get_metrics_dict(
+    metrics_list: list,
+    y: pd.DataFrame,
+    scaler: Optional[Union[TransformerMixin, str]] = None,
+) -> dict:
 
     """
     Given a list of metrics that accept a true_y and pred_y as inputs this returns
@@ -198,8 +212,13 @@ def get_metrics_dict(metrics_list: list, y: pd.DataFrame) -> dict:
     -------
         dict
     """
+    if type(scaler) == str:
+        scaler = serializer.pipeline_from_definition(scaler)
+    if scaler:
+        logger.debug("Fitting scaler for scoring purpose")
+        scaler.fit(y)
 
-    def _score_factory(metric=r2_score, index=0):
+    def _score_factory(metric_func=r2_score, col_index=0):
         def _score_per_tag(y_true, y_pred):
             # This function extracts the score for each given target_tag to
             # use as scoring argument in sklearn cross_validate, as the scoring
@@ -209,7 +228,7 @@ def get_metrics_dict(metrics_list: list, y: pd.DataFrame) -> dict:
             if hasattr(y_pred, "values"):
                 y_pred = y_pred.values
 
-            return metric(y_true[:, index], y_pred[:, index])
+            return metric_func(y_true[:, col_index], y_pred[:, col_index])
 
         return _score_per_tag
 
@@ -221,12 +240,17 @@ def get_metrics_dict(metrics_list: list, y: pd.DataFrame) -> dict:
                 {
                     metric_str
                     + f'-{col.replace(" ", "-")}': make_scorer(
-                        metric_wrapper(_score_factory(metric=metric, index=index))
+                        metric_wrapper(
+                            _score_factory(metric_func=metric, col_index=index),
+                            scaler=scaler,
+                        )
                     )
                 }
             )
 
-        metrics_dict.update({metric_str: make_scorer(metric_wrapper(metric))})
+        metrics_dict.update(
+            {metric_str: make_scorer(metric_wrapper(metric), scaler=scaler)}
+        )
     return metrics_dict
 
 
