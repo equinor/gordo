@@ -94,7 +94,7 @@ DEFAULT_MODEL_CONFIG = (
     "--evaluation-config",
     envvar="EVALUATION_CONFIG",
     default='{"cv_mode": "full_build", '
-            '"scoring_scaler": "sklearn.preprocessing.RobustScaler"}',
+    '"scoring_scaler": "sklearn.preprocessing.RobustScaler"}',
     type=yaml.safe_load,
 )
 def build(
