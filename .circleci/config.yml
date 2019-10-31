@@ -197,15 +197,13 @@ jobs:
       - save-venv-cache
 
   # Specific collections of python tests
-  test-builder-cli-server-formatting-serializer-watchman-dataset:
+  test-builder-server-formatting-serializer-watchman-dataset:
     executor: python-executor
     steps:
       - test-batch:
           tests:
             - test:
                 for: builder
-            - test:
-                for: cli
             - test:
                 for: server
             - test:
@@ -229,13 +227,15 @@ jobs:
                 for: dataprovider
             - test:
                 for: util
-  test-workflow:
+  test-workflow-cli:
     executor: python-executor
     steps:
       - test-batch:
           tests:
             - test:
                 for: workflow
+            - test:
+                for: cli
   test-model:
     executor: python-executor
     steps:
@@ -257,13 +257,13 @@ workflows:
     jobs:
       - make-docs
       - install
-      - test-builder-cli-server-formatting-serializer-watchman-dataset:
+      - test-builder-server-formatting-serializer-watchman-dataset:
           requires:
             - install
       - test-client-allelse-dataprovider-util:
           requires:
             - install
-      - test-workflow:
+      - test-workflow-cli:
           requires:
             - install
       - test-model:
@@ -277,10 +277,10 @@ workflows:
               only: /.*/
       - upload-coverage-reports:
           requires:
-            - test-builder-cli-server-formatting-serializer-watchman-dataset
+            - test-builder-server-formatting-serializer-watchman-dataset
             - test-client-allelse-dataprovider-util
+            - test-workflow-cli
             - test-model
-            - test-workflow
           filters:
             branches:
               only: /.*/
