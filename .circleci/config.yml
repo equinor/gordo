@@ -35,26 +35,42 @@ commands:
       - restore_cache:
           keys:
             - v1-cache-{{ checksum "requirements.txt" }}-{{ checksum "test_requirements.txt" }}
-  run-test:
-    description: "Run a group of tests, ie 'formatting'."
+
+  # Run a single setup.py test<target>, and save the coverage report
+  test:
     parameters:
       for:
+        description: "Name of test"
         type: string
         default: all
+    steps:
+      - run: python setup.py test<< parameters.for >>
+      - run:
+          name: Move coverage report to workspace
+          command: |
+            mkdir -p /tmp/coverage-reports
+            mv ./coverage.xml /tmp/coverage-reports/<< parameters.for >>-coverage.xml
+
+  # Run a collection of 'test' commands
+  test-batch:
+    parameters:
+      tests:
+        description: "Run a group of tests, using the 'test' command"
+        type: steps
+        default:
+          - test:
+              for: all
     steps:
       - checkout
       - restore-venv-cache
       - restore-eggs-cache
-      - run:
-          name: Test
-          command: |
-            source ~/code/venv/bin/activate
-            python setup.py test<< parameters.for >>
-      - run:
-          name: Move coverage report to workspace
-          command: |
-            mkdir /tmp/coverage-reports
-            mv ./coverage.xml /tmp/coverage-reports/<< parameters.for >>-coverage.xml
+      - run: |
+          echo "source ~/code/venv/bin/activate" >> $BASH_ENV
+          source ~/code/venv/bin/activate
+      - run: |
+          which python
+          python --version
+      - steps: << parameters.tests >>
       - persist_to_workspace:
           root: /tmp/coverage-reports
           paths:
@@ -181,83 +197,52 @@ jobs:
       - save-venv-cache
 
   # Specific collections of python tests
-  test-builder:
+  test-builder-cli-server-formatting-serializer-watchman-dataset:
     executor: python-executor
     steps:
-      - run-test:
-          for: builder
-
-  test-cli:
+      - test-batch:
+          tests:
+            - test:
+                for: builder
+            - test:
+                for: cli
+            - test:
+                for: server
+            - test:
+                for: formatting
+            - test:
+                for: serializer
+            - test:
+                for: watchman
+            - test:
+                for: dataset
+  test-client-allelse-dataprovider-util:
     executor: python-executor
     steps:
-      - run-test:
-          for: cli
-
-  test-client:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: client
-
-  test-data-provider:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: dataprovider
-
-  test-dataset:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: dataset
-
-  test-model:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: model
-
-  test-serializer:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: serializer
-
-  test-server:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: server
-
-  test-util:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: util
-
-  test-watchman:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: watchman
-
+      - test-batch:
+          tests:
+            - test:
+                for: client
+            - test:
+                for: allelse
+            - test:
+                for: dataprovider
+            - test:
+                for: util
   test-workflow:
     executor: python-executor
     steps:
-      - run-test:
-          for: workflow
-
-  test-formatting:
+      - test-batch:
+          tests:
+            - test:
+                for: workflow
+  test-model:
     executor: python-executor
     steps:
-      - run-test:
-          for: formatting
-
-  test-allelse:
-    executor: python-executor
-    steps:
-      - run-test:
-          for: allelse
+      - test-batch:
+          tests:
+            - test:
+                for: model
 
   upload-coverage-reports:
     executor: python-executor
@@ -272,43 +257,16 @@ workflows:
     jobs:
       - make-docs
       - install
-      - test-builder:
+      - test-builder-cli-server-formatting-serializer-watchman-dataset:
           requires:
             - install
-      - test-cli:
-          requires:
-            - install
-      - test-client:
-          requires:
-            - install
-      - test-data-provider:
-          requires:
-            - install
-      - test-dataset:
-          requires:
-            - install
-      - test-model:
-          requires:
-            - install
-      - test-serializer:
-          requires:
-            - install
-      - test-server:
-          requires:
-            - install
-      - test-util:
-          requires:
-            - install
-      - test-watchman:
+      - test-client-allelse-dataprovider-util:
           requires:
             - install
       - test-workflow:
           requires:
             - install
-      - test-formatting:
-          requires:
-            - install
-      - test-allelse:
+      - test-model:
           requires:
             - install
       - make-images:
@@ -319,19 +277,10 @@ workflows:
               only: /.*/
       - upload-coverage-reports:
           requires:
-            - test-builder
-            - test-cli
-            - test-client
-            - test-data-provider
-            - test-dataset
+            - test-builder-cli-server-formatting-serializer-watchman-dataset
+            - test-client-allelse-dataprovider-util
             - test-model
-            - test-serializer
-            - test-server
-            - test-util
-            - test-watchman
             - test-workflow
-            - test-formatting
-            - test-allelse
           filters:
             branches:
               only: /.*/
