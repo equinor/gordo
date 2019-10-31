@@ -1,0 +1,16 @@
+
+# -*- coding: utf-8 -*-
+
+from locust import TaskSet, task
+
+
+class Tasks(TaskSet):
+    """
+    Generated locust TaskSet where methods/tasks are generated for each
+    gordo model listed in the project's config file.
+    """
+{% for task in tasks %}
+    @task
+    def {{ task.name }}(self):
+        self.client.post("{{ task.path }}", json={{ task.json }})
+{% endfor %}
