@@ -38,7 +38,10 @@ def build_model(
     model_config: dict,
     data_config: Union[GordoBaseDataset, dict],
     metadata: dict,
-    evaluation_config: dict = {"cv_mode": "full_build"},
+    evaluation_config: dict = {
+        "cv_mode": "full_build",
+        "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+    },
 ) -> Tuple[Union[BaseEstimator, None], dict]:
     """
     Build a model and serialize to a directory for later serving.
@@ -212,8 +215,9 @@ def get_metrics_dict(
     -------
         dict
     """
-    if type(scaler) == str:
+    if isinstance(scaler, str):
         scaler = serializer.pipeline_from_definition(scaler)
+
     if scaler:
         logger.debug("Fitting scaler for scoring purpose")
         scaler.fit(y)
@@ -249,7 +253,7 @@ def get_metrics_dict(
             )
 
         metrics_dict.update(
-            {metric_str: make_scorer(metric_wrapper(metric), scaler=scaler)}
+            {metric_str: make_scorer(metric_wrapper(metric, scaler=scaler))}
         )
     return metrics_dict
 
