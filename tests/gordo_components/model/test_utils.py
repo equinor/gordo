@@ -7,6 +7,12 @@ import pandas as pd
 from gordo_components.model import utils as model_utils
 
 
+def test_metrics_wrapper():
+    #TODO: make
+    pass
+
+
+
 @pytest.mark.parametrize(
     "dates", [pd.date_range("2016-01-01", "2016-01-02", periods=10), None]
 )
