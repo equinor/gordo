@@ -175,23 +175,27 @@ jobs:
       - run:
           name: Set Python Version
           command: |
+            [ -d "/home/circleci/code/venv" ]
             pyenv versions
             pyenv global 3.6.5
             pyenv versions
       - run:
           name: Virtual Environment
           command: |
+            [ -d "/home/circleci/code/venv" ]
             python -m venv ~/code/venv
             echo "source ~/code/venv/bin/activate" >> $BASH_ENV
       - run: pip install --upgrade pip
       - run:
           name: Install Requirements
           command: |
+            [ -d "/home/circleci/code/venv" ]
             echo $(which python)
             pip install -r requirements.txt
       - run:
           name: Test Requirements
           command: |
+            [ -d "/home/circleci/code/venv" ]
             echo $(which python)
             pip install -r test_requirements.txt
       - save-venv-cache
