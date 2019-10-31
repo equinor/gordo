@@ -209,6 +209,10 @@ def get_metrics_dict(
         List of sklearn score functions
     y: pd.DataFrame
         Target data
+    scaler : Optional[Union[TransformerMixin, str]]
+        Scaler which will be fitted on y, and used to transform the data before
+        scoring. Useful when the metrics are sensitive to the amplitude of the data, and
+        you have multiple targets.
 
 
     Returns

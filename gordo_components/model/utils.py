@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 def metric_wrapper(metric, scaler: Optional[TransformerMixin] = None):
     """
     Ensures that a given metric works properly when the model itself returns
-    a y which is shorter than the target y.
+    a y which is shorter than the target y, and allows scaling the data
+    before applying the metrics.
+
 
     Parameters
     ----------
