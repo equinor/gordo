@@ -24,6 +24,8 @@ def metric_wrapper(metric, scaler: Optional[TransformerMixin] = None):
 
     Parameters
     ----------
+    metric
+        Metric which must accept y_true and y_pred of the same length
     scaler :  Optional[TransformerMixin]
         Transformer which will be applied on y and y_pred before the metrics is
         calculated. Must have method `transform`, so for most scalers it must already
