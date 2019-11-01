@@ -196,12 +196,12 @@ def get_metrics_dict(
 ) -> dict:
 
     """
-    Given a list of metrics that accept a true_y and pred_y as inputs this returns
-    a dictionary with keys in the form '{score}-{tag_name}' for each given target tag
+    Given a list of metrics that accept a true_y and pred_y as inputs this returns a
+    dictionary with keys in the form '{score}-{tag_name}' for each given target tag
     and '{score}' for the average score across all target tags and folds,
-    and values being the callable make_scorer(metric_wrapper(score)).
-    Note: score in {score}-{tag_name} is a sklearn's score function name with '_' replaced by '-' and tag_name
-    corresponds to given target tag name with ' ' replaced by '-'.
+    and values being the callable make_scorer(metric_wrapper(score)). Note: score in
+    {score}-{tag_name} is a sklearn's score function name with '_' replaced by '-'
+    and tag_name corresponds to given target tag name with ' ' replaced by '-'.
 
     Parameters
     ----------
