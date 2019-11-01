@@ -14,6 +14,6 @@ spec:
         app: gordo-controller
     spec:
       containers:
-      - image: docker.io/equinor/gordo-controller:0.1.1
+      - image: docker.io/equinor/gordo-controller:0.1.8
         imagePullPolicy: Always
         name: gordo-controller

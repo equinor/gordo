@@ -136,10 +136,9 @@ jobs:
       # Setup kubeflow namespace with Gordo install
       - run: kubectl create namespace kubeflow
       - run: kubectl config set-context $(kubectl config current-context) --namespace kubeflow
-      - run: kubectl apply -f https://raw.githubusercontent.com/equinor/gordo-controller/master/gordo-crd.yaml
-      - run: kubectl get gordos
       - run: kubectl apply -k k8s/minikube
-      - run: kubectl wait --for=condition=available --timeout=120s deployment/gordo-controller
+      - run: kubectl get gordos
+      - run: kubectl wait --for=condition=available --timeout=360s deployment/gordo-controller
 
       # Install ambassador
       - run: kubectl create namespace ambassador
@@ -148,10 +147,10 @@ jobs:
       # Start and wait for a workflow as the main test
       # Until we can pass docker-registry and docker-repo to the gordo-deploy image via the controller
       # we can't directly kubectl apply the config, but generate the workflow and submit that.
-      #- run: kubectl apply -f examples/example-config.yaml -n kubeflow
-      #- run: sleep 15
-      #- run: kubectl get jobs
-      #- run: kubectl wait --for=condition=complete $(kubectl get jobs --output name | head -n 1) --timeout=240s
+      - run: kubectl apply -f examples/example-config.yaml -n kubeflow
+      - run: sleep 15
+      - run: kubectl get jobs
+      - run: kubectl wait --for=condition=complete $(kubectl get jobs --output name | head -n 1) --timeout=360s
       - run: kubectl logs deployment/gordo-controller
       - run:
           command: |

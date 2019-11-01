@@ -4,10 +4,13 @@ kind: Gordo
 metadata:
   name: test-project
 spec:
-  deploy-version: latest
+  deploy-version: 0.38.0
+  deploy-environment:
+    DEPLOY_IMAGE: docker.io/equinor/gordo-deploy
+    WORKFLOW_GENERATOR_DOCKER_REGISTRY: docker.io
+    WORKFLOW_GENERATOR_DOCKER_REPOSITORY: equinor
   config:
     machines:
-
       - dataset:
           tags:
             - TAG1
