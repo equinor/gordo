@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import math
 import os
 import dateutil.parser
 import yaml
@@ -9,6 +10,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 import numpy as np
+import pandas as pd
 
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
@@ -19,6 +21,7 @@ from gordo_components.builder.build_model import (
     provide_saved_model,
     _get_metadata,
     _determine_offset,
+    get_metrics_dict,
 )
 from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
@@ -72,6 +75,28 @@ def metadata_check(metadata, check_history):
             name in metadata["model"]["history"]
             for name in ("params", "loss", "accuracy")
         )
+
+
+@pytest.mark.parametrize("scaler", [None, "sklearn.preprocessing.MinMaxScaler"])
+def test_get_metrics_dict_scaler(scaler, mock_model):
+    metrics_list = [sklearn.metrics.mean_squared_error]
+    # make the features in y be in different scales
+    y = pd.DataFrame(
+        np.array([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]]) * [1, 100],
+        columns=["Tag 1", "Tag 2"],
+    )
+    metrics_dict = get_metrics_dict(metrics_list, y, scaler=scaler)
+    metric_func = metrics_dict["mean-squared-error"]
+
+    mock_model.predict = lambda _y: _y * [0.8, 1]
+    mse_feature_one_wrong = metric_func(mock_model, y, y)
+    mock_model.predict = lambda _y: _y * [1, 0.8]
+    mse_feature_two_wrong = metric_func(mock_model, y, y)
+
+    if scaler:
+        assert math.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
+    else:
+        assert not math.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
 
 
 @pytest.mark.parametrize(
