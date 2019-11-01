@@ -2,17 +2,14 @@
 
 import abc
 import logging
-import json
 import io
 import pickle
-
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
-from os import path
 from abc import ABCMeta
 
+import h5py
 import tensorflow.keras.models
-from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
 import numpy as np
@@ -82,6 +79,46 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         """
         Parameters used for scikit learn kwargs"""
         return self.kwargs
+
+    def __getstate__(self):
+
+        context = dict()
+
+        if hasattr(self, "model") and self.model is not None:
+            buf = io.BytesIO()
+            with h5py.File(buf) as h5:
+                tensorflow.keras.models.save_model(self.model, h5, overwrite=True)
+                context["model"] = buf.getvalue()
+            if hasattr(self.model, "history"):
+                context["history"] = pickle.dumps(
+                    (
+                        self.model.history.history,
+                        self.model.history.params,
+                        self.model.history.epoch,
+                    )
+                )
+        __dict__ = self.__dict__.copy()
+        if "model" in __dict__:
+            del __dict__["model"]
+        context["__dict__"] = pickle.dumps(__dict__)
+        return context
+
+    def __setstate__(self, state):
+
+        self.__dict__ = pickle.loads(state["__dict__"])
+
+        if "model" in state:
+            buf = io.BytesIO(state["model"])
+            with h5py.File(buf) as h5:
+                self.model = tensorflow.keras.models.load_model(h5)
+            if "history" in state:
+                from tensorflow.python.keras.callbacks import History
+                history, params, epoch = pickle.loads(state["history"])
+                self.model.history = History()
+                self.model.history.history = history
+                self.model.history.params = params
+                self.model.history.epoch = epoch
+        return self
 
     def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
         """
@@ -163,66 +200,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
     def __call__(self):
         build_fn = register_model_builder.factories[self.__class__.__name__][self.kind]
         return build_fn(**self.sk_params)
-
-    def save_to_dir(self, directory: str):
-        params = self.get_params()
-        with open(path.join(directory, "params.json"), "w") as f:
-            json.dump(params, f)
-        if hasattr(self, "model") and self.model is not None:
-            save_model(
-                self.model,
-                filepath=path.join(directory, "model.h5"),
-                include_optimizer=True,
-                save_format="h5",
-            )
-            if (
-                hasattr(self.model, "history")
-                and self.model.history.history is not None
-            ):
-                f_name = path.join(directory, "history.pkl")
-                with open(f_name, "wb") as history_file:
-                    pickle.dump(
-                        (
-                            self.model.history.history,
-                            self.model.history.params,
-                            self.model.history.epoch,
-                        ),
-                        history_file,
-                    )
-
-    @classmethod
-    def load_from_dir(cls, directory: str):
-        """
-        Load an instance of this class from a directory, such that it was dumped to
-        using :func:`gordo_components.model.models.KerasBaseEstimator.save_to_dir`
-
-        Parameters
-        ----------
-        directory: str
-            The directory to save this model to, must have write access
-
-        Returns
-        -------
-        None
-        """
-        with open(path.join(directory, "params.json"), "r") as f:
-            params = json.load(f)
-        obj = cls(**params)
-        model_path = path.join(directory, "model.h5")
-        if path.exists(model_path):
-            obj.model = load_model(model_path, compile=False)
-            history_file = path.join(directory, "history.pkl")
-            if path.isfile(history_file):
-                from tensorflow.python.keras.callbacks import History
-
-                obj.model.history = History()
-                with open(history_file, "rb") as hist_f:
-                    history, params, epoch = pickle.load(hist_f)
-                obj.model.history.history = history
-                obj.model.history.params = params
-                obj.model.history.epoch = epoch
-
-        return obj
 
     def get_metadata(self):
         """
