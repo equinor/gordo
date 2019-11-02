@@ -78,7 +78,8 @@ def metadata_check(metadata, check_history):
 
 
 @pytest.mark.parametrize("scaler", [None, "sklearn.preprocessing.MinMaxScaler"])
-def test_get_metrics_dict_scaler(scaler, mock_model):
+def test_get_metrics_dict_scaler(scaler, mock):
+    mock_model = mock
     metrics_list = [sklearn.metrics.mean_squared_error]
     # make the features in y be in different scales
     y = pd.DataFrame(
