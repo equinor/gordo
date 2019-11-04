@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class NcsReader(GordoBaseDataProvider):
     ASSET_TO_PATH = {
-        "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/​1101-SFB",
+        "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/1101-SFB",
         "1110-gfa": "/raw/corporate/Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA",
         "1125-kvb": "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
         "1130-troa": "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
