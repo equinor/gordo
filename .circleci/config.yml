@@ -150,12 +150,6 @@ jobs:
       - run: kubectl get jobs
       - run: kubectl wait --for=condition=complete $(kubectl get jobs --output name | head -n 1) --timeout=360s
       - run: kubectl logs deployment/gordo-controller
-      - run:
-          command: |
-            source ~/code/venv/bin/activate
-            pip install .
-            gordo-components workflow generate --version latest --docker-registry docker.io --docker-repository equinor --project-name test-proj --machine-config examples/example-config.yaml --output-file ./workflow.yaml
-            ./argo submit ./workflow.yaml
       - run: ./argo list
       - run: ./argo wait $(./argo list --output name | head -n 1)
 
@@ -315,52 +309,52 @@ workflows:
   test:
     jobs:
       - integration-test
-      - make-docs
-      - install
-      - test-builder-server-formatting-serializer-watchman-dataset:
-          requires:
-            - install
-      - test-client-allelse-dataprovider-util:
-          requires:
-            - install
-      - test-workflow-cli:
-          requires:
-            - install
-      - test-model:
-          requires:
-            - install
-      - make-images:
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
-      - upload-coverage-reports:
-          requires:
-            - test-builder-server-formatting-serializer-watchman-dataset
-            - test-client-allelse-dataprovider-util
-            - test-workflow-cli
-            - test-model
-          filters:
-            branches:
-              only: /.*/
-            tags:
-              only: /.*/
-      - push-images:
-          requires:
-            - make-images
-            - upload-coverage-reports
-          filters:
-            branches:
-              only:
-                - master
-            tags:
-              only: /.*/
-      - publish-to-pypi:
-          requires:
-            - push-images
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
+#      - make-docs
+#      - install
+#      - test-builder-server-formatting-serializer-watchman-dataset:
+#          requires:
+#            - install
+#      - test-client-allelse-dataprovider-util:
+#          requires:
+#            - install
+#      - test-workflow-cli:
+#          requires:
+#            - install
+#      - test-model:
+#          requires:
+#            - install
+#      - make-images:
+#          filters:
+#            branches:
+#              only: /.*/
+#            tags:
+#              only: /.*/
+#      - upload-coverage-reports:
+#          requires:
+#            - test-builder-server-formatting-serializer-watchman-dataset
+#            - test-client-allelse-dataprovider-util
+#            - test-workflow-cli
+#            - test-model
+#          filters:
+#            branches:
+#              only: /.*/
+#            tags:
+#              only: /.*/
+#      - push-images:
+#          requires:
+#            - make-images
+#            - upload-coverage-reports
+#          filters:
+#            branches:
+#              only:
+#                - master
+#            tags:
+#              only: /.*/
+#      - publish-to-pypi:
+#          requires:
+#            - push-images
+#          filters:
+#            branches:
+#              ignore: /.*/
+#            tags:
+#              only: /.*/
