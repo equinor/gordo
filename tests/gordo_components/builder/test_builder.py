@@ -114,12 +114,8 @@ def test_output_dir(tmp_dir):
     _save_model_for_workflow(model=model, metadata=metadata, output_dir=output_dir)
 
     # Assert the model was saved at the location
-    # using gordo_components.serializer should create some subdir(s)
-    # which start with 'n_step'
-    dirs = [d for d in os.listdir(output_dir) if d.startswith("n_step")]
-    assert (
-        len(dirs) >= 1
-    ), "Expected saving of model to create at least one subdir, but got {len(dirs)}"
+    # Should be model file, and the metadata
+    assert len(os.listdir(output_dir)) == 2
 
 
 @pytest.mark.parametrize(
@@ -404,7 +400,7 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir.name, "model")
 
-    model_location = provide_saved_model(
+    provide_saved_model(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
@@ -413,12 +409,8 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     )
 
     # Assert the model was saved at the location
-    # using gordo_components.serializer should create some subdir(s)
-    # which start with 'n_step'
-    dirs = [d for d in os.listdir(model_location) if d.startswith("n_step")]
-    assert (
-        len(dirs) >= 1
-    ), "Expected saving of model to create at least one subdir, but got {len(dirs)}"
+    # Should be model file, and the metadata
+    assert len(os.listdir(output_dir)) == 2
 
 
 def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):

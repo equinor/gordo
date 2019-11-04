@@ -18,16 +18,6 @@ class GordoBase(abc.ABC):
         """Return a dict containing all parameters used to initialized object"""
         ...
 
-    @abc.abstractclassmethod
-    def load_from_dir(cls, directory: str):
-        """Load this model from a directory"""
-        ...
-
-    @abc.abstractmethod
-    def save_to_dir(self, directory: str):
-        """Save this model to a directory"""
-        ...
-
     @abc.abstractmethod
     def score(
         self,

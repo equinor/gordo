@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import unittest
-import tempfile
+import pickle
 import logging
 import pydoc
 
@@ -128,36 +127,32 @@ def test_save_load(model, kind):
     xTest = np.random.random(size=6).reshape(3, 2)
     xHat = model_out.predict(xTest)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        model_out.save_to_dir(tmp)
-        model_out_clone = pydoc.locate(
-            f"gordo_components.model.models.{model}"
-        ).load_from_dir(tmp)
+    model_out_clone = pickle.loads(pickle.dumps(model_out))
 
-        # Assert parameters are the same.
-        assert model_out_clone.get_params() == model_out_clone.get_params()
+    # Assert parameters are the same.
+    assert model_out_clone.get_params() == model_out_clone.get_params()
 
-        # Assert it maintained the state by ensuring predictions are the same
-        assert np.allclose(xHat.flatten(), model_out_clone.predict(xTest).flatten())
+    # Assert it maintained the state by ensuring predictions are the same
+    assert np.allclose(xHat.flatten(), model_out_clone.predict(xTest).flatten())
 
-        assert "history" in model_out.get_metadata()
-        assert (
-            model_out.get_metadata() == model_out_clone.get_metadata()
-        ), "Metadata from model is not same after saving and loading"
+    assert "history" in model_out.get_metadata()
+    assert (
+        model_out.get_metadata() == model_out_clone.get_metadata()
+    ), "Metadata from model is not same after saving and loading"
 
-        # Assert that epochs list, history dict and params dict in
-        # the History object are the same
-        assert (
-            model_out.model.history.epoch == model_out_clone.model.history.epoch
-        ), "Epoch lists differ between original and loaded model history"
+    # Assert that epochs list, history dict and params dict in
+    # the History object are the same
+    assert (
+        model_out.model.history.epoch == model_out_clone.model.history.epoch
+    ), "Epoch lists differ between original and loaded model history"
 
-        assert (
-            model_out.model.history.history == model_out_clone.model.history.history
-        ), "History dictionary with losses and accuracies differ between original and loaded model history"
+    assert (
+        model_out.model.history.history == model_out_clone.model.history.history
+    ), "History dictionary with losses and accuracies differ between original and loaded model history"
 
-        assert (
-            model_out.model.history.params == model_out_clone.model.history.params
-        ), "Params dictionaries differ between original and loaded model history"
+    assert (
+        model_out.model.history.params == model_out_clone.model.history.params
+    ), "Params dictionaries differ between original and loaded model history"
 
 
 def test_lookback_window_ae_valueerror_during_fit():
