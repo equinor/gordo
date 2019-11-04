@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import math
 import os
 import dateutil.parser
 import yaml
@@ -95,9 +94,9 @@ def test_get_metrics_dict_scaler(scaler, mock):
     mse_feature_two_wrong = metric_func(mock_model, y, y)
 
     if scaler:
-        assert math.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
+        assert np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
     else:
-        assert not math.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
+        assert not np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
 
 
 @pytest.mark.parametrize(

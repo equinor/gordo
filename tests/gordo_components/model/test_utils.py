@@ -3,7 +3,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-import math
 
 from gordo_components.model import utils as model_utils
 from sklearn.preprocessing import MinMaxScaler
@@ -20,7 +19,7 @@ def test_metrics_wrapper():
     mse_feature_one_wrong = metric_func_noscaler(y, y * [0.8, 1])
     mse_feature_two_wrong = metric_func_noscaler(y, y * [1, 0.8])
 
-    assert not math.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
+    assert not np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
 
     # With a scaler provided it is not relevant which of the two series gets an 80%
     # error
@@ -30,7 +29,7 @@ def test_metrics_wrapper():
     mse_feature_one_wrong = metric_func_scaler(y, y * [0.8, 1])
     mse_feature_two_wrong = metric_func_scaler(y, y * [1, 0.8])
 
-    assert math.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
+    assert np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
 
 
 @pytest.mark.parametrize(
