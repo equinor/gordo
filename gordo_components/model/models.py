@@ -107,7 +107,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             with h5py.File(buf, compression="lzf") as h5:
                 state["model"] = tensorflow.keras.models.load_model(h5, compile=False)
             if "history" in state:
-                state["model"].__dict__["history"] = state["history"]
+                state["model"].__dict__["history"] = state.pop("history")
         self.__dict__ = state
         return self
 
