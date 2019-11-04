@@ -82,44 +82,32 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     def __getstate__(self):
 
-        context = dict()
+        context = self.__dict__.copy()
 
         if hasattr(self, "model") and self.model is not None:
             buf = io.BytesIO()
             with h5py.File(buf, compression="lzf") as h5:
                 tensorflow.keras.models.save_model(self.model, h5, overwrite=True)
                 buf.seek(0)
-                context["model"] = buf.read()
+                context["model"] = buf
             if hasattr(self.model, "history"):
-                context["history"] = pickle.dumps(
-                    (
-                        self.model.history.history,
-                        self.model.history.params,
-                        self.model.history.epoch,
-                    )
-                )
-        __dict__ = self.__dict__.copy()
-        if "model" in __dict__:
-            del __dict__["model"]
-        context["__dict__"] = pickle.dumps(__dict__)
+                from tensorflow.python.keras.callbacks import History
+
+                history = History()
+                history.history = self.model.history.history
+                history.params = self.model.history.params
+                history.epoch = self.model.history.epoch
+                context["history"] = history
         return context
 
     def __setstate__(self, state):
-
-        self.__dict__ = pickle.loads(state["__dict__"])
-
         if "model" in state:
-            buf = io.BytesIO(state["model"])
+            buf = state["model"]
             with h5py.File(buf, compression="lzf") as h5:
-                self.model = tensorflow.keras.models.load_model(h5)
+                state["model"] = tensorflow.keras.models.load_model(h5)
             if "history" in state:
-                from tensorflow.python.keras.callbacks import History
-
-                history, params, epoch = pickle.loads(state["history"])
-                self.model.history = History()
-                self.model.history.history = history
-                self.model.history.params = params
-                self.model.history.epoch = epoch
+                state["model"].__dict__["history"] = state["history"]
+        self.__dict__ = state
         return self
 
     def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
