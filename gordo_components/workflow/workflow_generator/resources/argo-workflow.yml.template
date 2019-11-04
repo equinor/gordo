@@ -210,6 +210,7 @@ spec:
           cpu: 10m
         limits:
           memory: 1G
+          cpu: 200m
 
 
   - name: gordo-influx
@@ -339,6 +340,7 @@ spec:
           cpu: 10m
         limits:
           memory: 1G
+          cpu: 200m
 
 
   - name: gordo-grafana
@@ -453,7 +455,7 @@ spec:
                     cpu: 50m
                   limits:
                     memory: 500Mi
-                    cpu: 500m
+                    cpu: 200m
                 env:
                   - name: POSTGRES_USER
                     value: postgres
@@ -522,6 +524,7 @@ spec:
           cpu: 10m
         limits:
           memory: 1G
+          cpu: 200m
 
 
 
@@ -1130,6 +1133,7 @@ spec:
           cpu: 10m
         limits:
           memory: 1G
+          cpu: 200m
 
   - name: postgres-cleanup
     activeDeadlineSeconds: 300
@@ -1149,6 +1153,7 @@ spec:
           cpu: 10m
         limits:
           memory: 1G
+          cpu: 200m
 
   - name: cleanup
     retryStrategy:
@@ -1167,6 +1172,7 @@ spec:
           cpu: 10m
         limits:
           memory: 1G
+          cpu: 200m
 
 
   - name: sql-and-cleanup
