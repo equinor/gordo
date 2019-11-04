@@ -38,7 +38,7 @@ def argo_docker_image(docker_client, repo_dir):
     """
     Build the argo dockerfile
     """
-    file = os.path.join(repo_dir, "Dockerfile-Argo")
+    file = os.path.join(repo_dir, "Dockerfile-GordoDeploy")
 
     logger.info("Building Argo docker image...")
     img, _ = docker_client.images.build(

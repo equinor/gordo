@@ -7,7 +7,7 @@ WORKFLOW_GENERATOR_IMG_NAME := gordo-deploy
 
 # Create the image capable of rendering argo workflow generator
 workflow-generator:
-	docker build . -f Dockerfile-Argo -t $(WORKFLOW_GENERATOR_IMG_NAME);\
+	docker build . -f Dockerfile-GordoDeploy -t $(WORKFLOW_GENERATOR_IMG_NAME);\
 
 # Publish image to the currently logged in docker repo
 push-workflow-generator: workflow-generator
