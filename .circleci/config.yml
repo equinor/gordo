@@ -145,8 +145,6 @@ jobs:
       - run: kubectl apply -n ambassador -f https://getambassador.io/yaml/ambassador/ambassador-rbac.yaml
 
       # Start and wait for a workflow as the main test
-      # Until we can pass docker-registry and docker-repo to the gordo-deploy image via the controller
-      # we can't directly kubectl apply the config, but generate the workflow and submit that.
       - run: kubectl apply -f examples/example-config.yaml -n kubeflow
       - run: sleep 15
       - run: kubectl get jobs
