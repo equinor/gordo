@@ -255,7 +255,7 @@ def test_runtime_overrides_builder(path_to_config_files):
     # request
     assert model_builder_resource["limits"]["memory"] == "121M"
     # requests.cpu is all default
-    assert model_builder_resource["requests"]["cpu"] == "500m"
+    assert model_builder_resource["requests"]["cpu"] == "1001m"
 
 
 def test_runtime_overrides_client_para(path_to_config_files):
