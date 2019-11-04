@@ -86,7 +86,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         if hasattr(self, "model") and self.model is not None:
             buf = io.BytesIO()
-            with h5py.File(buf) as h5:
+            with h5py.File(buf, compression="lzf") as h5:
                 tensorflow.keras.models.save_model(self.model, h5, overwrite=True)
                 context["model"] = buf.getvalue()
             if hasattr(self.model, "history"):
@@ -109,10 +109,11 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         if "model" in state:
             buf = io.BytesIO(state["model"])
-            with h5py.File(buf) as h5:
+            with h5py.File(buf, compression="lzf") as h5:
                 self.model = tensorflow.keras.models.load_model(h5)
             if "history" in state:
                 from tensorflow.python.keras.callbacks import History
+
                 history, params, epoch = pickle.loads(state["history"])
                 self.model.history = History()
                 self.model.history.history = history
