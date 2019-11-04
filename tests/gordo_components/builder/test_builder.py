@@ -400,7 +400,7 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir.name, "model")
 
-    model_location = provide_saved_model(
+    provide_saved_model(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
