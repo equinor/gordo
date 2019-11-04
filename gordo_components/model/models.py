@@ -88,7 +88,8 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             buf = io.BytesIO()
             with h5py.File(buf, compression="lzf") as h5:
                 tensorflow.keras.models.save_model(self.model, h5, overwrite=True)
-                context["model"] = buf.getvalue()
+                buf.seek(0)
+                context["model"] = buf.read()
             if hasattr(self.model, "history"):
                 context["history"] = pickle.dumps(
                     (
