@@ -45,7 +45,11 @@ class NormalizedConfig:
                 "max_instances": 30,
             },
             "influx": {"enable": True},
-        }
+        },
+        "evaluation": {
+            "cv_mode": "full_build",
+            "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+        },
     }
 
     """
