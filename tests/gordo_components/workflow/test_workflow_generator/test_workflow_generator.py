@@ -111,7 +111,7 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
 @pytest.mark.parametrize(
     "fp_config", ("/code/examples/config_legacy.yaml", "/code/examples/config_crd.yaml")
 )
-@pytest.mark.slowtest
+@pytest.mark.dockertest
 def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
     """
     Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
