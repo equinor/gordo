@@ -68,9 +68,6 @@ def build_model(
                 * cross_val_only: Only perform cross validation
                 * build_only: Skip cross validation and only build the model
                 * full_build: Cross validation and full build of the model, default value
-                Example::
-
-                    {"cv_mode": "cross_val_only"}
             - scoring_scaler: Optional[str]
                 Optionally a string which gives the path to a scaler, which will be
                 applied on `Y` and `Y-hat` before scoring. It will not be used for
@@ -79,6 +76,12 @@ def build_model(
                 dimensions have different scale, and one wants to use a scorer which is
                 sensitive to this (e.g. MSE).
                 If None then no scaling will take place.
+
+                Example::
+
+                    {"cv_mode": "cross_val_only",
+                    "scoring_scaler": "sklearn.preprocessing.RobustScaler"}
+
 
 
     Returns

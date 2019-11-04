@@ -93,8 +93,12 @@ DEFAULT_MODEL_CONFIG = (
 @click.option(
     "--evaluation-config",
     envvar="EVALUATION_CONFIG",
-    default='{"cv_mode": "full_build", '
-    '"scoring_scaler": "sklearn.preprocessing.RobustScaler"}',
+    default=yaml.safe_dump(
+        {
+            "cv_mode": "full_build",
+            "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+        }
+    ),
     type=yaml.safe_load,
 )
 def build(
