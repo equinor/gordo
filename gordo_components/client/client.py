@@ -256,23 +256,31 @@ class Client:
                 raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
 
-    def get_metadata(self) -> typing.Dict[str, dict]:
+    def get_metadata(self, force_refresh: bool = False) -> typing.Dict[str, dict]:
         """
         Get the metadata for each target
+
+        Parameters
+        ----------
+        force_refresh : bool
+            Even if the previous request was cached, make a new request for metadata.
 
         Returns
         -------
         Dict[str, dict]
             Mapping of target names to their metadata
         """
-        metadata = dict()
-        for endpoint in self.endpoints:
-            resp = self.session.get(f"{endpoint.endpoint}/metadata")
-            if resp.ok:
-                metadata[endpoint.target_name] = resp.json()
-            else:
-                raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
-        return metadata
+        if hasattr(self, "_metadata") and not force_refresh:
+            return self._metadata.copy()
+        else:
+            self._metadata = dict()
+            for endpoint in self.endpoints:
+                resp = self.session.get(f"{endpoint.endpoint}/metadata")
+                if resp.ok:
+                    self._metadata[endpoint.target_name] = resp.json()
+                else:
+                    raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
+            return self.get_metadata()
 
     def predict(
         self, start: datetime, end: datetime
