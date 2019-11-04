@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 import yaml
 from gordo_components.workflow.config_elements.dataset import Dataset
 from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo_components.workflow.workflow_generator.workflow_generator import (
     _timestamp_constructor,
 )
@@ -73,16 +74,7 @@ class DatasetConfigElementTestCase(unittest.TestCase):
 
 
 class MachineConfigElementTestCase(unittest.TestCase):
-    default_globals = {
-        "runtime": {
-            "server": {
-                "resources": {
-                    "requests": {"memory": 1, "cpu": 2},
-                    "limits": {"memory": 3, "cpu": 4},
-                }
-            }
-        }
-    }
+    default_globals = NormalizedConfig.DEFAULT_RUNTIME_GLOBALS
 
     def test_from_config(self):
         """
@@ -151,7 +143,10 @@ class MachineConfigElementTestCase(unittest.TestCase):
                         2018, 1, 2, 9, 0, 30, tzinfo=timezone.utc
                     ).isoformat(),
                 },
-                "evaluation": {"cv_mode": "full_build"},
+                "evaluation": {
+                    "cv_mode": "full_build",
+                    "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+                },
                 "metadata": {
                     "global-metadata": {},
                     "machine-metadata": {"id": "special-id"},
@@ -171,10 +166,24 @@ class MachineConfigElementTestCase(unittest.TestCase):
                 "runtime": {
                     "server": {
                         "resources": {
-                            "requests": {"memory": 1, "cpu": 2},
-                            "limits": {"memory": 3, "cpu": 4},
+                            "requests": {"memory": 3000, "cpu": 1000},
+                            "limits": {"memory": 6000, "cpu": 2000},
                         }
-                    }
+                    },
+                    "builder": {
+                        "resources": {
+                            "requests": {"memory": 1000, "cpu": 500},
+                            "limits": {"memory": 3000, "cpu": 32000},
+                        }
+                    },
+                    "client": {
+                        "resources": {
+                            "requests": {"memory": 3500, "cpu": 100},
+                            "limits": {"memory": 4000, "cpu": 2000},
+                        },
+                        "max_instances": 30,
+                    },
+                    "influx": {"enable": True},
                 },
             },
         )
