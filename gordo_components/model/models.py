@@ -81,7 +81,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     def __getstate__(self):
 
-        context = self.__dict__.copy()
+        state = self.__dict__.copy()
 
         if hasattr(self, "model") and self.model is not None:
             buf = io.BytesIO()
@@ -90,7 +90,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                     self.model, h5, overwrite=True, save_format="h5"
                 )
                 buf.seek(0)
-                context["model"] = buf
+                state["model"] = buf
             if hasattr(self.model, "history"):
                 from tensorflow.python.keras.callbacks import History
 
@@ -98,8 +98,8 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 history.history = self.model.history.history
                 history.params = self.model.history.params
                 history.epoch = self.model.history.epoch
-                context["history"] = history
-        return context
+                state["history"] = history
+        return state
 
     def __setstate__(self, state):
         if "model" in state:
