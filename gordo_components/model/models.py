@@ -86,7 +86,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if hasattr(self, "model") and self.model is not None:
             buf = io.BytesIO()
             with h5py.File(buf, compression="lzf") as h5:
-                tensorflow.keras.models.save_model(self.model, h5, overwrite=True)
+                tensorflow.keras.models.save_model(
+                    self.model, h5, overwrite=True, save_format="h5"
+                )
                 buf.seek(0)
                 context["model"] = buf
             if hasattr(self.model, "history"):
@@ -103,7 +105,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if "model" in state:
             buf = state["model"]
             with h5py.File(buf, compression="lzf") as h5:
-                state["model"] = tensorflow.keras.models.load_model(h5)
+                state["model"] = tensorflow.keras.models.load_model(h5, compile=False)
             if "history" in state:
                 state["model"].__dict__["history"] = state["history"]
         self.__dict__ = state
