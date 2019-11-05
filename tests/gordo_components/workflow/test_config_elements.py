@@ -106,6 +106,8 @@ class MachineConfigElementTestCase(unittest.TestCase):
                   - sklearn.preprocessing.data.MinMaxScaler
                   - gordo_components.model.models.KerasAutoEncoder:
                       kind: feedforward_hourglass
+            evaluation:
+                scoring_scaler: Null
             metadata:
               id: special-id
         """
@@ -155,7 +157,7 @@ class MachineConfigElementTestCase(unittest.TestCase):
                 },
                 "evaluation": {
                     "cv_mode": "full_build",
-                    "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+                    "scoring_scaler": None,
                 },
                 "metadata": {
                     "global-metadata": {},
