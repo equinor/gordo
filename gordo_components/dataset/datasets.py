@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from typing import Tuple, List, Dict, Union, Optional, Iterable, Callable
+from typing import Tuple, List, Dict, Union, Optional, Iterable, Callable, Sequence
 from datetime import datetime
 
 import pandas as pd
@@ -22,8 +22,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         data_provider: GordoBaseDataProvider,
         from_ts: datetime,
         to_ts: datetime,
-        tag_list: List[Union[str, Dict, SensorTag]],
-        target_tag_list: Optional[List[Union[str, Dict, SensorTag]]] = None,
+        tag_list: Sequence[Union[str, Dict, SensorTag]],
+        target_tag_list: Optional[Sequence[Union[str, Dict, SensorTag]]] = None,
         resolution: Optional[str] = "10T",
         row_filter: str = "",
         aggregation_methods: Union[str, List[str], Callable] = "mean",
@@ -44,10 +44,10 @@ class TimeSeriesDataset(GordoBaseDataset):
             Earliest possible point in the dataset (inclusive)
         to_ts: datetime
             Earliest possible point in the dataset (exclusive)
-        tag_list: List[Union[str, Dict, sensor_tag.SensorTag]]
+        tag_list: Sequence[Union[str, Dict, sensor_tag.SensorTag]]
             List of tags to include in the dataset. The elements can be strings,
             dictionaries or SensorTag namedtuples.
-        target_tag_list: Optional[List[Union[str, Dict, sensor_tag.SensorTag]]]
+        target_tag_list: Sequence[List[Union[str, Dict, sensor_tag.SensorTag]]]
             List of tags to set as the dataset y. These will be treated the same as
             tag_list when fetching and pre-processing (resampling) but will be split
             into the y return from ``.get_data()``
@@ -76,9 +76,9 @@ class TimeSeriesDataset(GordoBaseDataset):
         """
         self.from_ts = from_ts
         self.to_ts = to_ts
-        self.tag_list = normalize_sensor_tags(tag_list)
+        self.tag_list = normalize_sensor_tags(list(tag_list))
         self.target_tag_list = (
-            normalize_sensor_tags(target_tag_list) if target_tag_list else []
+            normalize_sensor_tags(list(target_tag_list)) if target_tag_list else []
         )
         self.resolution = resolution
         self.data_provider = data_provider

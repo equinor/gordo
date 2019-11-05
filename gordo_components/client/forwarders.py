@@ -118,7 +118,7 @@ class ForwardPredictionsIntoInflux:
         None
         """
         # Setup tags; metadata (if any) and other key value pairs.
-        tags = {"machine": f"{endpoint.target_name}"}
+        tags = {"machine": f"{endpoint.endpoint_metadata.metadata.name}"}
         tags.update(metadata)
 
         # The measurements to be posted to Influx
@@ -139,8 +139,13 @@ class ForwardPredictionsIntoInflux:
 
             # Set the sub df's column names equal to the name of the tags if
             # they match the length of the tag list.
-            if len(sub_df.columns) == len(endpoint.tag_list):
-                sub_df.columns = [tag.name for tag in endpoint.tag_list]
+            if len(sub_df.columns) == len(
+                endpoint.endpoint_metadata.metadata.dataset.tag_list
+            ):
+                sub_df.columns = [
+                    tag.name
+                    for tag in endpoint.endpoint_metadata.metadata.dataset.tag_list
+                ]
 
             self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
 

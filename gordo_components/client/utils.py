@@ -1,16 +1,87 @@
 # -*- coding: utf-8 -*-
 
+import io
+import pprint
 from typing import Tuple, Union, Optional, Dict
 from collections import namedtuple
 
 from influxdb import DataFrameClient, InfluxDBClient
 
 
-# Representation of data gathered from Watchman for a given endpoint
-EndpointMetadata = namedtuple(
-    "EndpointMetadata",
-    "target_name healthy endpoint tag_list target_tag_list resolution model_offset",
-)
+class EndpointMetadata:
+    def __init__(self, data: dict):
+        """
+        Represents a traverseable dict which has come from ML server's metadata
+
+        Examples
+        --------
+        >>> data = {
+        ...     "key1": 1,
+        ...     "key2": [1, 2, 3],
+        ...     "key3": {"subkey3": "value"},
+        ...     "key4": {"contains-hyphen": True}
+        ... }
+        >>> epm = EndpointMetadata(data)
+        >>> assert epm.key1 == 1
+        >>> assert len(epm.key2) == 3
+        >>> assert epm.key3.subkey3 == "value"
+        >>> assert epm.key4.contains_hyphen == True
+        >>> print(epm)
+        EndpointMetadata(data={'key1': 1,
+         'key2': [1, 2, 3],
+         'key3': {'subkey3': 'value'},
+         'key4': {'contains-hyphen': True}}
+        )
+        >>> # Access the raw data under a key by calling it.
+        >>> epm.key4()
+        {'contains-hyphen': True}
+        """
+        self.__data = data
+
+    def __getattr__(self, key):
+
+        # If this item is has an underscore, to keep it valid python identifier,
+        # we'll look for the hyphenated version in the data.
+        if key.replace("_", "-") in self.__data:
+            item = self.__data[key.replace("_", "-")]
+        elif key in self.__data:
+            item = self.__data[key]
+
+        # Attempting to access a key which doesn't exist should act like .get(), return None
+        else:
+            return None
+
+        # Depending on the type, determines if we return a new instance of this class
+        if not any(isinstance(item, Obj) for Obj in (list, dict)):
+            return item
+        else:
+            return EndpointMetadata(item)
+
+    def __call__(self):
+        """
+        Calling on the instance should just return the raw data
+        """
+        return self.__data
+
+    def __eq__(self, other):
+        return self.__data == other.__data
+
+    def __len__(self):
+        return len(self.__data)
+
+    def __getitem__(self, key):
+        item = self.__data[key]
+        if not any(isinstance(item, Obj) for Obj in (list, dict)):
+            return item
+        else:
+            return EndpointMetadata(item)
+
+    def __repr__(self):
+        buff = io.StringIO()
+        pprint.pprint(self.__data, stream=buff)
+        buff.seek(0)
+        return f"EndpointMetadata(data={buff.read()})"
+
 
 # Prediction result representation, name=str, predictions=dataframe, error_messages=List[str]
 PredictionResult = namedtuple("PredictionResult", "name predictions error_messages")

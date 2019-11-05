@@ -179,7 +179,9 @@ class Client:
 
         # Filter down to single endpoint if requested
         if target:
-            endpoints = [ep for ep in endpoints if ep.target_name == target]
+            endpoints = [
+                ep for ep in endpoints if ep.endpoint_metadata.metadata.name == target
+            ]
 
             # And check for single result and that it's healthy
             if len(endpoints) != 1:
@@ -206,37 +208,7 @@ class Client:
         resp = self.session.get(endpoint)
         if not resp.ok:
             raise IOError(f"Failed to get endpoints: {repr(resp.content)}")
-
-        return [
-            EndpointMetadata(
-                target_name=data["endpoint-metadata"]["metadata"]["name"],
-                healthy=data["healthy"],
-                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                tag_list=normalize_sensor_tags(
-                    data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
-                ),
-                target_tag_list=normalize_sensor_tags(
-                    data["endpoint-metadata"]["metadata"]["dataset"]["target_tag_list"]
-                ),
-                resolution=data["endpoint-metadata"]["metadata"]["dataset"][
-                    "resolution"
-                ],
-                model_offset=data["endpoint-metadata"]["metadata"]["model"].get(
-                    "model-offset", 0
-                ),
-            )
-            if data["healthy"]
-            else EndpointMetadata(
-                target_name=None,
-                healthy=data["healthy"],
-                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                tag_list=None,
-                target_tag_list=None,
-                resolution=None,
-                model_offset=None,
-            )
-            for data in resp.json()["endpoints"]
-        ]
+        return [EndpointMetadata(data) for data in resp.json()["endpoints"]]
 
     def download_model(self) -> typing.Dict[str, BaseEstimator]:
         """
@@ -249,9 +221,13 @@ class Client:
         """
         models = dict()
         for endpoint in self.endpoints:
-            resp = self.session.get(f"{endpoint.endpoint}/download-model")
+            resp = self.session.get(
+                f"{self.base_url + endpoint.endpoint}/download-model"
+            )
             if resp.ok:
-                models[endpoint.target_name] = serializer.loads(resp.content)
+                models[endpoint.endpoint_metadata.metadata.name] = serializer.loads(
+                    resp.content
+                )
             else:
                 raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
@@ -273,11 +249,13 @@ class Client:
         if hasattr(self, "_metadata") and not force_refresh:
             return self._metadata.copy()
         else:
-            self._metadata = dict()
+            self._metadata: Dict[str, dict] = dict()
             for endpoint in self.endpoints:
-                resp = self.session.get(f"{endpoint.endpoint}/metadata")
+                resp = self.session.get(f"{self.base_url + endpoint.endpoint}/metadata")
                 if resp.ok:
-                    self._metadata[endpoint.target_name] = resp.json()
+                    self._metadata[
+                        endpoint.endpoint_metadata.metadata.name
+                    ] = resp.json()
                 else:
                     raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
             return self.get_metadata()
@@ -368,7 +346,7 @@ class Client:
                 else pd.DataFrame()
             )
         return PredictionResult(
-            name=endpoint.target_name,
+            name=endpoint.endpoint_metadata.metadata.name,
             predictions=predictions,
             error_messages=error_messages,
         )
@@ -405,7 +383,7 @@ class Client:
         """
 
         kwargs: Dict[str, Any] = dict(
-            url=f"{endpoint.endpoint}{self.prediction_path}{self.query}"
+            url=f"{self.base_url + endpoint.endpoint}{self.prediction_path}{self.query}"
         )
 
         # We're going to serialize the data as either JSON or Arrow
@@ -433,7 +411,7 @@ class Client:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
-                    ] = f"{endpoint.endpoint}{self.prediction_path}{self.query}"
+                    ] = f"{self.base_url + endpoint.endpoint}{self.prediction_path}{self.query}"
                     resp = _handle_response(self.session.post(**kwargs))
             # If it was an IO or TimeoutError, we can retry
             except (
@@ -453,12 +431,12 @@ class Client:
                 else:
                     msg = (
                         f"Failed to get predictions for dates {start} -> {end} "
-                        f"for target: '{endpoint.target_name}' Error: {exc}"
+                        f"for target: '{endpoint.endpoint_metadata.metadata.name}' Error: {exc}"
                     )
                     logger.error(msg)
 
                     return PredictionResult(
-                        name=endpoint.target_name,
+                        name=endpoint.endpoint_metadata.metadata.name,
                         predictions=None,
                         error_messages=[msg],
                     )
@@ -467,11 +445,13 @@ class Client:
             except BadRequest as exc:
                 msg = (
                     f"Failed with BadRequest error for dates {start} -> {end} "
-                    f"for target: '{endpoint.target_name}' Error: {exc}"
+                    f"for target: '{endpoint.endpoint_metadata.metadata.name}' Error: {exc}"
                 )
                 logger.error(msg)
                 return PredictionResult(
-                    name=endpoint.target_name, predictions=None, error_messages=[msg]
+                    name=endpoint.endpoint_metadata.metadata.name,
+                    predictions=None,
+                    error_messages=[msg],
                 )
 
             # Process response and return if no exception
@@ -487,7 +467,7 @@ class Client:
                         metadata=self.metadata,
                     )
                 return PredictionResult(
-                    name=endpoint.target_name,
+                    name=endpoint.endpoint_metadata.metadata.name,
                     predictions=predictions,
                     error_messages=[],
                 )
@@ -517,16 +497,20 @@ class Client:
         # just to give us some buffer zone.
         start = self._adjust_for_offset(
             dt=start,
-            resolution=endpoint.resolution,
-            n_intervals=endpoint.model_offset + 5,
+            resolution=endpoint.endpoint_metadata.metadata.dataset.resolution,
+            n_intervals=endpoint.endpoint_metadata.metadata.model.model_offset or 0 + 5,
         )
         dataset = TimeSeriesDataset(
             data_provider=self.data_provider,  # type: ignore
             from_ts=start,
             to_ts=end,
-            resolution=endpoint.resolution,
-            tag_list=endpoint.tag_list,
-            target_tag_list=endpoint.target_tag_list,
+            resolution=endpoint.endpoint_metadata.metadata.dataset.resolution,
+            tag_list=normalize_sensor_tags(
+                endpoint.endpoint_metadata.metadata.dataset.tag_list()
+            ),
+            target_tag_list=normalize_sensor_tags(
+                endpoint.endpoint_metadata.metadata.dataset.target_tag_list()
+            ),
         )
         return dataset.get_data()
 
