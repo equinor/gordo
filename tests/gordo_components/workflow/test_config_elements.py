@@ -155,10 +155,7 @@ class MachineConfigElementTestCase(unittest.TestCase):
                         2018, 1, 2, 9, 0, 30, tzinfo=timezone.utc
                     ).isoformat(),
                 },
-                "evaluation": {
-                    "cv_mode": "full_build",
-                    "scoring_scaler": None,
-                },
+                "evaluation": {"cv_mode": "full_build", "scoring_scaler": None,},
                 "metadata": {
                     "global-metadata": {},
                     "machine-metadata": {"id": "special-id"},
