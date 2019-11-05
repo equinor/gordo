@@ -125,16 +125,19 @@ class Client:
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
+        self.target = target
+        self.ignore_unhealthy_targets = ignore_unhealthy_targets
+        self.endpoints = self.get_endpoints()
 
+    def get_endpoints(self) -> List[EndpointMetadata]:
         # Thread safe single access and updating of endpoints.
         with self._mutex:
-            if not self.endpoints:
-                self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-                self.endpoints = self._filter_endpoints(
-                    endpoints=self.endpoints,
-                    target=target,
-                    ignore_unhealthy_targets=ignore_unhealthy_targets,
-                )
+            endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+            return self._filter_endpoints(
+                endpoints=endpoints,
+                target=self.target,
+                ignore_unhealthy_targets=self.ignore_unhealthy_targets,
+            )
 
     @staticmethod
     def _filter_endpoints(
@@ -261,7 +264,7 @@ class Client:
             return self.get_metadata()
 
     def predict(
-        self, start: datetime, end: datetime
+        self, start: datetime, end: datetime, refresh_endpoints: bool = False
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
         Start the prediction process.
@@ -270,6 +273,9 @@ class Client:
         ----------
         start: datetime
         end: datetime
+        refresh_endpoints : bool
+            Before running predictions, refresh the current endpoints. Default
+            ``False`` and will use the endpoints obtained during initialization.
 
         Returns
         -------
@@ -279,6 +285,9 @@ class Client:
               1st element is the dataframe of the predictions; complete with a DateTime index.
               2nd element is a list of error messages (if any) for running the predictions
         """
+        if refresh_endpoints:
+            self.endpoints = self.get_endpoints()
+
         # For every endpoint, start making predictions for the time range
         with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
             jobs = executor.map(
