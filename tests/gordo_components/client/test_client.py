@@ -244,7 +244,7 @@ def test_client_cli_download_model(watchman_service):
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("use_parquet", (True, False))
-@pytest.mark.parametrize("session_attrs", ((), ("headers={}",)))
+@pytest.mark.parametrize("session_config", ({}, {"headers": {}}))
 def test_client_cli_predict(
     influxdb,
     gordo_name,
@@ -253,7 +253,7 @@ def test_client_cli_predict(
     output_dir,
     trained_model_directory,
     use_parquet,
-    session_attrs,
+    session_config,
 ):
     """
     Test ability for client to get predictions via CLI
@@ -261,9 +261,8 @@ def test_client_cli_predict(
     runner = CliRunner()
 
     args = ["client", "--metadata", "key,value", "--project", tu.GORDO_PROJECT]
-    if session_attrs:
-        for session_attr in session_attrs:
-            args.extend(["--session-attr", session_attr])
+    if session_config:
+        args.extend(["--session-config", json.dumps(session_config)])
 
     args.extend(
         [

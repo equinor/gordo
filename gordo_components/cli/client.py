@@ -8,6 +8,7 @@ from datetime import datetime
 from pprint import pprint
 
 import click
+import yaml
 import pandas as pd  # noqa
 from requests import Session
 
@@ -18,7 +19,6 @@ from gordo_components.cli.custom_types import (
     IsoFormatDateTime,
     DataProviderParam,
     key_value_par,
-    key_value_lit_eval,
 )
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 
@@ -41,12 +41,11 @@ from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
     "to be separated by a comma. ie: --metadata key,val --metadata some key,some value",
 )
 @click.option(
-    "--session-attr",
-    type=key_value_lit_eval,
-    multiple=True,
-    default=(),
-    help="Key values to set on the requests.Session object. Useful when needing to supply"
-    "authentication parameters such as header keys. ie. --session-attrs headers={'API-KEY': 'foo-bar'}",
+    "--session-config",
+    type=yaml.safe_load,
+    default="{}",
+    help="Config json/yaml to set on the requests.Session object. Useful when needing to supply"
+    "authentication parameters such as header keys. ie. --session-config {'headers': {'API-KEY': 'foo-bar'}}",
 )
 @click.pass_context
 def client(ctx: click.Context, *args, **kwargs):
@@ -55,10 +54,9 @@ def client(ctx: click.Context, *args, **kwargs):
     """
     # Setup the session with any attributes set by the user
     session = Session()
-    for key, value in kwargs.pop("session_attr", ()):
+    for key, value in kwargs.pop("session_config", {}).items():
         setattr(session, key, value)
     kwargs["session"] = session
-
     ctx.obj = {"args": args, "kwargs": kwargs}
 
 

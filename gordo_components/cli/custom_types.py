@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import ast
 import ipaddress
 import os
 import typing
@@ -71,12 +70,3 @@ def key_value_par(val) -> typing.Tuple[str, str]:
     Helpder for CLI input of 'key,val'
     """
     return val.split(",")
-
-
-def key_value_lit_eval(val) -> typing.Tuple[str, str]:
-    """
-    Helpder for CLI input of key value pair where the value should be
-    literal evaluated.
-    """
-    key, value = val.split("=")
-    return key, ast.literal_eval(value)
