@@ -7,7 +7,7 @@
 absl-py==0.8.1            # via tensorboard, tensorflow
 adal==1.2.2               # via azure-datalake-store
 aniso8601==8.0.0          # via flask-restplus
-apscheduler==3.6.1
+apscheduler==3.6.3
 astor==0.8.0              # via tensorflow
 attrs==19.3.0             # via jsonschema
 azure-datalake-store==0.0.48
