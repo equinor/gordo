@@ -74,7 +74,17 @@ class DatasetConfigElementTestCase(unittest.TestCase):
 
 
 class MachineConfigElementTestCase(unittest.TestCase):
-    default_globals = NormalizedConfig.DEFAULT_RUNTIME_GLOBALS
+    default_globals = dict(NormalizedConfig.DEFAULT_RUNTIME_GLOBALS)
+    # set something different here so we dont have to change the test every time we
+    # change the default runtime parameters
+    default_globals["runtime"] = {
+        "server": {
+            "resources": {
+                "requests": {"memory": 1, "cpu": 2},
+                "limits": {"memory": 3, "cpu": 4},
+            }
+        }
+    }
 
     def test_from_config(self):
         """
@@ -166,24 +176,10 @@ class MachineConfigElementTestCase(unittest.TestCase):
                 "runtime": {
                     "server": {
                         "resources": {
-                            "requests": {"memory": 3000, "cpu": 1000},
-                            "limits": {"memory": 6000, "cpu": 2000},
+                            "requests": {"memory": 1, "cpu": 2},
+                            "limits": {"memory": 3, "cpu": 4},
                         }
-                    },
-                    "builder": {
-                        "resources": {
-                            "requests": {"memory": 1000, "cpu": 500},
-                            "limits": {"memory": 3000, "cpu": 32000},
-                        }
-                    },
-                    "client": {
-                        "resources": {
-                            "requests": {"memory": 3500, "cpu": 100},
-                            "limits": {"memory": 4000, "cpu": 2000},
-                        },
-                        "max_instances": 30,
-                    },
-                    "influx": {"enable": True},
+                    }
                 },
             },
         )
