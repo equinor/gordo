@@ -76,8 +76,8 @@ class Machine(ConfigElement):
         dataset = Dataset.from_config(
             config.get("dataset") or config_globals.get("dataset")
         )
-        evaluation = config.get("evaluation") or config_globals.get(
-            "evaluation", {"cv_mode": "full_build"}
+        evaluation = patch_dict(
+            config_globals.get("evaluation", dict()), config.get("evaluation", dict())
         )
 
         data_provider = DataProvider.from_config(

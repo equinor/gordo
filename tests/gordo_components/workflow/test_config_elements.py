@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 import yaml
 from gordo_components.workflow.config_elements.dataset import Dataset
 from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo_components.workflow.workflow_generator.workflow_generator import (
     _timestamp_constructor,
 )
@@ -73,13 +74,14 @@ class DatasetConfigElementTestCase(unittest.TestCase):
 
 
 class MachineConfigElementTestCase(unittest.TestCase):
-    default_globals = {
-        "runtime": {
-            "server": {
-                "resources": {
-                    "requests": {"memory": 1, "cpu": 2},
-                    "limits": {"memory": 3, "cpu": 4},
-                }
+    default_globals = dict(NormalizedConfig.DEFAULT_RUNTIME_GLOBALS)
+    # set something different here so we dont have to change the test every time we
+    # change the default runtime parameters
+    default_globals["runtime"] = {
+        "server": {
+            "resources": {
+                "requests": {"memory": 1, "cpu": 2},
+                "limits": {"memory": 3, "cpu": 4},
             }
         }
     }
@@ -104,6 +106,8 @@ class MachineConfigElementTestCase(unittest.TestCase):
                   - sklearn.preprocessing.data.MinMaxScaler
                   - gordo_components.model.models.KerasAutoEncoder:
                       kind: feedforward_hourglass
+            evaluation:
+                scoring_scaler: Null
             metadata:
               id: special-id
         """
@@ -151,7 +155,7 @@ class MachineConfigElementTestCase(unittest.TestCase):
                         2018, 1, 2, 9, 0, 30, tzinfo=timezone.utc
                     ).isoformat(),
                 },
-                "evaluation": {"cv_mode": "full_build"},
+                "evaluation": {"cv_mode": "full_build", "scoring_scaler": None,},
                 "metadata": {
                     "global-metadata": {},
                     "machine-metadata": {"id": "special-id"},

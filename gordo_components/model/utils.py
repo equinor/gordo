@@ -2,23 +2,45 @@
 
 import typing
 import functools
+import logging
 from typing import Optional, Union, List
 from datetime import timedelta, datetime
 
 import numpy as np
 import pandas as pd
+from sklearn.base import TransformerMixin
 
 from gordo_components.dataset.sensor_tag import SensorTag
 
+logger = logging.getLogger(__name__)
 
-def metric_wrapper(metric):
+
+def metric_wrapper(metric, scaler: Optional[TransformerMixin] = None):
     """
     Ensures that a given metric works properly when the model itself returns
-    a y which is shorter than the target y.
+    a y which is shorter than the target y, and allows scaling the data
+    before applying the metrics.
+
+
+    Parameters
+    ----------
+    metric
+        Metric which must accept y_true and y_pred of the same length
+    scaler :  Optional[TransformerMixin]
+        Transformer which will be applied on y and y_pred before the metrics is
+        calculated. Must have method `transform`, so for most scalers it must already
+        be fitted on `y`.
     """
 
     @functools.wraps(metric)
     def _wrapper(y_true, y_pred, *args, **kwargs):
+        if scaler:
+            logger.debug(
+                "Transformer provided to metrics wrapper, scaling y and y_pred before "
+                "passing to metrics"
+            )
+            y_true = scaler.transform(y_true)
+            y_pred = scaler.transform(y_pred)
         return metric(y_true[-len(y_pred) :], y_pred, *args, **kwargs)
 
     return _wrapper

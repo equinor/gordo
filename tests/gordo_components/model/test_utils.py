@@ -5,6 +5,31 @@ import numpy as np
 import pandas as pd
 
 from gordo_components.model import utils as model_utils
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+
+
+def test_metrics_wrapper():
+    # make the features in y be in different scales
+    y = np.array([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]]) * [1, 100]
+
+    # With no scaler provided it is relevant which of the two series gets an 80% error
+    metric_func_noscaler = model_utils.metric_wrapper(mean_squared_error)
+
+    mse_feature_one_wrong = metric_func_noscaler(y, y * [0.8, 1])
+    mse_feature_two_wrong = metric_func_noscaler(y, y * [1, 0.8])
+
+    assert not np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
+
+    # With a scaler provided it is not relevant which of the two series gets an 80%
+    # error
+    scaler = MinMaxScaler().fit(y)
+    metric_func_scaler = model_utils.metric_wrapper(mean_squared_error, scaler=scaler)
+
+    mse_feature_one_wrong = metric_func_scaler(y, y * [0.8, 1])
+    mse_feature_two_wrong = metric_func_scaler(y, y * [1, 0.8])
+
+    assert np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
 
 
 @pytest.mark.parametrize(
