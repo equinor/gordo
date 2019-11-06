@@ -53,10 +53,13 @@ def client(ctx: click.Context, *args, **kwargs):
     Entry sub-command for client related activities
     """
     # Setup the session with any attributes set by the user
-    session = Session()
-    for key, value in kwargs.pop("session_config", {}).items():
-        setattr(session, key, value)
-    kwargs["session"] = session
+    session_config = kwargs.pop("session_config", None)
+    if session_config:
+        session = Session()
+        for key, value in session_config.items():
+            setattr(session, key, value)
+        kwargs["session"] = session
+
     ctx.obj = {"args": args, "kwargs": kwargs}
 
 
