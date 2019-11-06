@@ -244,15 +244,15 @@ class Client:
         Dict[str, dict]
             Mapping of target names to their metadata
         """
-        if hasattr(self, "_metadata") and not force_refresh:
-            return self._metadata.copy()
+        if hasattr(self, "metadata_") and not force_refresh:
+            return self.metadata_.copy()
 
         if force_refresh:
             self.endpoints = self.get_endpoints()  # Forced refresh if
-        self._metadata: Dict[str, dict] = {
+        self.metadata_: Dict[str, dict] = {
             ep.name: ep.raw_metadata() for ep in self.endpoints
         }
-        return self._metadata.copy()
+        return self.metadata_.copy()
 
     def predict(
         self, start: datetime, end: datetime, refresh_endpoints: bool = False
