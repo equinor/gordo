@@ -246,15 +246,13 @@ class Client:
         """
         if hasattr(self, "_metadata") and not force_refresh:
             return self._metadata.copy()
-        else:
-            self._metadata: Dict[str, dict] = dict()
-            for endpoint in self.endpoints:
-                resp = self.session.get(f"{self.base_url + endpoint.endpoint}/metadata")
-                if resp.ok:
-                    self._metadata[endpoint.name] = resp.json()
-                else:
-                    raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
-            return self.get_metadata()
+
+        if force_refresh:
+            self.endpoints = self.get_endpoints()  # Forced refresh if
+        self._metadata: Dict[str, dict] = {
+            ep.name: ep.raw_metadata() for ep in self.endpoints
+        }
+        return self._metadata.copy()
 
     def predict(
         self, start: datetime, end: datetime, refresh_endpoints: bool = False

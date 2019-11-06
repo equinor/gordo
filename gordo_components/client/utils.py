@@ -18,6 +18,12 @@ class EndpointMetadata:
         """
         self.__data = data
 
+    def raw_metadata(self):
+        """
+        Access the raw metadata
+        """
+        return self.__data.copy()
+
     @property
     def name(self):
         """Name of this endpoint"""

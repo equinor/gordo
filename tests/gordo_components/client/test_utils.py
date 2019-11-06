@@ -27,3 +27,4 @@ def test_endpoint_metadata():
     assert epm.resolution == "10T"
     assert epm.model_offset == 1
     assert epm.healthy is True
+    assert epm.raw_metadata() == data
