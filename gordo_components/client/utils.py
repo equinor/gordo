@@ -2,79 +2,78 @@
 
 import io
 import pprint
-from typing import Tuple, Union, Optional, Dict
+from typing import Tuple, Union, Optional, Dict, List
 from collections import namedtuple
 
 from influxdb import DataFrameClient, InfluxDBClient
+
+from gordo_components.dataset.sensor_tag import normalize_sensor_tags, SensorTag
 
 
 class EndpointMetadata:
     def __init__(self, data: dict):
         """
-        Represents a traverseable dict which has come from ML server's metadata
-
-        Examples
-        --------
-        >>> data = {
-        ...     "key1": 1,
-        ...     "key2": [1, 2, 3],
-        ...     "key3": {"subkey3": "value"},
-        ...     "key4": {"contains-hyphen": True}
-        ... }
-        >>> epm = EndpointMetadata(data)
-        >>> assert epm.key1 == 1
-        >>> assert len(epm.key2) == 3
-        >>> assert epm.key3.subkey3 == "value"
-        >>> assert epm.key4.contains_hyphen == True
-        >>> print(epm)
-        EndpointMetadata(data={'key1': 1,
-         'key2': [1, 2, 3],
-         'key3': {'subkey3': 'value'},
-         'key4': {'contains-hyphen': True}}
-        )
-        >>> # Access the raw data under a key by calling it.
-        >>> epm.key4()
-        {'contains-hyphen': True}
+        Keeps easy access to common endpoint data attributes, the raw data
+        being accessible via ``EndpointMetadata.data()``
         """
         self.__data = data
 
-    def __getattr__(self, key):
+    @property
+    def name(self):
+        """Name of this endpoint"""
+        return self.__data["endpoint-metadata"]["metadata"]["name"]
 
-        # If this item is has an underscore, to keep it valid python identifier,
-        # we'll look for the hyphenated version in the data.
-        if key.replace("_", "-") in self.__data:
-            item = self.__data[key.replace("_", "-")]
-        elif key in self.__data:
-            item = self.__data[key]
-
-        # Attempting to access a key which doesn't exist should act like .get(), return None
-        else:
-            return None
-
-        # Depending on the type, determines if we return a new instance of this class
-        if not any(isinstance(item, Obj) for Obj in (list, dict)):
-            return item
-        else:
-            return EndpointMetadata(item)
-
-    def __call__(self):
+    @property
+    def endpoint(self):
         """
-        Calling on the instance should just return the raw data
+        The path to the endpoint, *not* including the base url
+        ie. /gordo/v0/project-name/target-name
         """
-        return self.__data
+        return self.__data["endpoint"]
+
+    @property
+    def tag_list(self) -> List[SensorTag]:
+        """
+        List of the input tags for the model
+        """
+        return normalize_sensor_tags(
+            self.__data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
+        )
+
+    @property
+    def target_tag_list(self) -> List[SensorTag]:
+        """
+        List of the target tags for the model
+        """
+        return normalize_sensor_tags(
+            self.__data["endpoint-metadata"]["metadata"]["dataset"]["target_tag_list"]
+        )
+
+    @property
+    def resolution(self):
+        """
+        Resolution used in aggregation of the data
+        """
+        return self.__data["endpoint-metadata"]["metadata"]["dataset"]["resolution"]
+
+    @property
+    def model_offset(self):
+        """
+        Any model offset to be expected when getting predictions.
+        """
+        return self.__data["endpoint-metadata"]["metadata"]["model"].get(
+            "model-offset", 0
+        )
+
+    @property
+    def healthy(self):
+        """
+        Whether this endpoint is considered available to accept requests.
+        """
+        return self.__data["healthy"]
 
     def __eq__(self, other):
         return self.__data == other.__data
-
-    def __len__(self):
-        return len(self.__data)
-
-    def __getitem__(self, key):
-        item = self.__data[key]
-        if not any(isinstance(item, Obj) for Obj in (list, dict)):
-            return item
-        else:
-            return EndpointMetadata(item)
 
     def __repr__(self):
         buff = io.StringIO()

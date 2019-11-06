@@ -23,7 +23,6 @@ from gordo_components.client.io import HttpUnprocessableEntity
 from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 from gordo_components.server import utils as server_utils
 
 
@@ -182,9 +181,7 @@ class Client:
 
         # Filter down to single endpoint if requested
         if target:
-            endpoints = [
-                ep for ep in endpoints if ep.endpoint_metadata.metadata.name == target
-            ]
+            endpoints = [ep for ep in endpoints if ep.name == target]
 
             # And check for single result and that it's healthy
             if len(endpoints) != 1:
@@ -228,9 +225,7 @@ class Client:
                 f"{self.base_url + endpoint.endpoint}/download-model"
             )
             if resp.ok:
-                models[endpoint.endpoint_metadata.metadata.name] = serializer.loads(
-                    resp.content
-                )
+                models[endpoint.name] = serializer.loads(resp.content)
             else:
                 raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
@@ -256,9 +251,7 @@ class Client:
             for endpoint in self.endpoints:
                 resp = self.session.get(f"{self.base_url + endpoint.endpoint}/metadata")
                 if resp.ok:
-                    self._metadata[
-                        endpoint.endpoint_metadata.metadata.name
-                    ] = resp.json()
+                    self._metadata[endpoint.name] = resp.json()
                 else:
                     raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
             return self.get_metadata()
@@ -355,9 +348,7 @@ class Client:
                 else pd.DataFrame()
             )
         return PredictionResult(
-            name=endpoint.endpoint_metadata.metadata.name,
-            predictions=predictions,
-            error_messages=error_messages,
+            name=endpoint.name, predictions=predictions, error_messages=error_messages
         )
 
     def _send_prediction_request(
@@ -440,27 +431,23 @@ class Client:
                 else:
                     msg = (
                         f"Failed to get predictions for dates {start} -> {end} "
-                        f"for target: '{endpoint.endpoint_metadata.metadata.name}' Error: {exc}"
+                        f"for target: '{endpoint.name}' Error: {exc}"
                     )
                     logger.error(msg)
 
                     return PredictionResult(
-                        name=endpoint.endpoint_metadata.metadata.name,
-                        predictions=None,
-                        error_messages=[msg],
+                        name=endpoint.name, predictions=None, error_messages=[msg]
                     )
 
             # No point in retrying a BadRequest
             except BadRequest as exc:
                 msg = (
                     f"Failed with BadRequest error for dates {start} -> {end} "
-                    f"for target: '{endpoint.endpoint_metadata.metadata.name}' Error: {exc}"
+                    f"for target: '{endpoint.name}' Error: {exc}"
                 )
                 logger.error(msg)
                 return PredictionResult(
-                    name=endpoint.endpoint_metadata.metadata.name,
-                    predictions=None,
-                    error_messages=[msg],
+                    name=endpoint.name, predictions=None, error_messages=[msg]
                 )
 
             # Process response and return if no exception
@@ -476,9 +463,7 @@ class Client:
                         metadata=self.metadata,
                     )
                 return PredictionResult(
-                    name=endpoint.endpoint_metadata.metadata.name,
-                    predictions=predictions,
-                    error_messages=[],
+                    name=endpoint.name, predictions=predictions, error_messages=[]
                 )
 
     def _raw_data(
@@ -506,20 +491,16 @@ class Client:
         # just to give us some buffer zone.
         start = self._adjust_for_offset(
             dt=start,
-            resolution=endpoint.endpoint_metadata.metadata.dataset.resolution,
-            n_intervals=endpoint.endpoint_metadata.metadata.model.model_offset or 0 + 5,
+            resolution=endpoint.resolution,
+            n_intervals=endpoint.model_offset + 5,
         )
         dataset = TimeSeriesDataset(
             data_provider=self.data_provider,  # type: ignore
             from_ts=start,
             to_ts=end,
-            resolution=endpoint.endpoint_metadata.metadata.dataset.resolution,
-            tag_list=normalize_sensor_tags(
-                endpoint.endpoint_metadata.metadata.dataset.tag_list()
-            ),
-            target_tag_list=normalize_sensor_tags(
-                endpoint.endpoint_metadata.metadata.dataset.target_tag_list()
-            ),
+            resolution=endpoint.resolution,
+            tag_list=endpoint.tag_list,
+            target_tag_list=endpoint.target_tag_list,
         )
         return dataset.get_data()
 
