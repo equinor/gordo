@@ -111,9 +111,11 @@ class TimeSeriesDataset(GordoBaseDataset):
         """
         self.from_ts = self._validate_dt(from_ts)
         self.to_ts = self._validate_dt(to_ts)
-        self.tag_list = normalize_sensor_tags(tag_list, asset)
+        self.tag_list = normalize_sensor_tags(list(tag_list), asset)
         self.target_tag_list = (
-            normalize_sensor_tags(target_tag_list, asset) if target_tag_list else []
+            normalize_sensor_tags(list(target_tag_list), asset)
+            if target_tag_list
+            else []
         )
         self.resolution = resolution
         self.data_provider = (
