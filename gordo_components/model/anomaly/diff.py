@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
-import json
-
 import numpy as np
 import pandas as pd
 
@@ -12,7 +9,6 @@ from datetime import timedelta
 from sklearn.preprocessing import RobustScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from gordo_components import serializer
 from gordo_components.model.base import GordoBase
 from gordo_components.model import utils as model_utils
 from gordo_components.model.models import KerasAutoEncoder
@@ -72,27 +68,6 @@ class DiffBasedAnomalyDetector(BaseEstimator, GordoBase):
         sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         return self.base_estimator.score(X, y)
-
-    def save_to_dir(self, directory: str):
-        serializer.dump(self.base_estimator, os.path.join(directory, "base_estimator"))
-        serializer.dump(self.scaler, os.path.join(directory, "scaler"))
-        with open(os.path.join(directory, "params.json"), "w") as f:
-            params = {
-                k: v
-                for k, v in self.get_params().items()
-                if k not in ("base_estimator", "scaler")
-            }
-            json.dump(params, f)
-
-    @classmethod
-    def load_from_dir(cls, directory: str):
-        with open(os.path.join(directory, "params.json"), "r") as f:
-            params = json.load(f)
-        params["base_estimator"] = serializer.load(
-            os.path.join(directory, "base_estimator")
-        )
-        params["scaler"] = serializer.load(os.path.join(directory, "scaler"))
-        return cls(**params)
 
     def get_params(self, deep=True):
         return {"base_estimator": self.base_estimator, "scaler": self.scaler}
