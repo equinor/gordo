@@ -351,9 +351,9 @@ def test_client_cli_predict_non_zero_exit(
         out = runner.invoke(cli.gordo, args=args)
 
     if should_fail:
-        assert out.exit_code != 0, f"{out.output}"
+        assert out.exit_code != 0, f"{out.output or out.exception}"
     else:
-        assert out.exit_code == 0, f"{out.output}"
+        assert out.exit_code == 0, f"{out.output or out.exception}"
 
 
 @pytest.mark.parametrize(
@@ -385,13 +385,11 @@ def _endpoint_metadata(name: str, healthy: bool) -> EndpointMetadata:
     Helper to build a basic EndpointMetadata with only name and healthy fields set
     """
     return EndpointMetadata(
-        target_name=name,
-        healthy=healthy,
-        endpoint=None,
-        tag_list=None,
-        target_tag_list=None,
-        resolution=None,
-        model_offset=None,
+        data={
+            "endpoint-metadata": {"metadata": {"name": name}},
+            "healthy": healthy,
+            "endpoint": "/gordo/v0/test-project",
+        }
     )
 
 

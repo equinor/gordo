@@ -16,13 +16,21 @@ def test_influx_forwarder(influxdb):
     multi-indexed series
     """
     endpoint = EndpointMetadata(
-        "some-target-name",
-        healthy=True,
-        endpoint="/some-endpoint",
-        tag_list=tu.SENSORTAG_LIST,
-        target_tag_list=tu.SENSORTAG_LIST,
-        resolution="10T",
-        model_offset=0,
+        data={
+            "endpoint-metadata": {
+                "metadata": {
+                    "name": "some-target-name",
+                    "dataset": {
+                        "tag_list": tu.SENSORTAG_LIST,
+                        "target_tag_list": tu.SENSORTAG_LIST,
+                        "resolution": "10T",
+                    },
+                    "model": {"model-offset": 0},
+                }
+            },
+            "endpoint": "/some-endpoint",
+            "healthy": True,
+        }
     )
 
     # Feature outs which match length of tags

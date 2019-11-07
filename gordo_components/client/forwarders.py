@@ -118,7 +118,7 @@ class ForwardPredictionsIntoInflux:
         None
         """
         # Setup tags; metadata (if any) and other key value pairs.
-        tags = {"machine": f"{endpoint.target_name}"}
+        tags = {"machine": f"{endpoint.name}"}
         tags.update(metadata)
 
         # The measurements to be posted to Influx

@@ -23,7 +23,6 @@ from gordo_components.client.io import HttpUnprocessableEntity
 from gordo_components.client.utils import EndpointMetadata, PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 from gordo_components.server import utils as server_utils
 
 
@@ -125,16 +124,19 @@ class Client:
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
+        self.target = target
+        self.ignore_unhealthy_targets = ignore_unhealthy_targets
+        self.endpoints = self.get_endpoints()
 
+    def get_endpoints(self) -> List[EndpointMetadata]:
         # Thread safe single access and updating of endpoints.
         with self._mutex:
-            if not self.endpoints:
-                self.endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-                self.endpoints = self._filter_endpoints(
-                    endpoints=self.endpoints,
-                    target=target,
-                    ignore_unhealthy_targets=ignore_unhealthy_targets,
-                )
+            endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
+            return self._filter_endpoints(
+                endpoints=endpoints,
+                target=self.target,
+                ignore_unhealthy_targets=self.ignore_unhealthy_targets,
+            )
 
     @staticmethod
     def _filter_endpoints(
@@ -179,7 +181,7 @@ class Client:
 
         # Filter down to single endpoint if requested
         if target:
-            endpoints = [ep for ep in endpoints if ep.target_name == target]
+            endpoints = [ep for ep in endpoints if ep.name == target]
 
             # And check for single result and that it's healthy
             if len(endpoints) != 1:
@@ -206,37 +208,7 @@ class Client:
         resp = self.session.get(endpoint)
         if not resp.ok:
             raise IOError(f"Failed to get endpoints: {repr(resp.content)}")
-
-        return [
-            EndpointMetadata(
-                target_name=data["endpoint-metadata"]["metadata"]["name"],
-                healthy=data["healthy"],
-                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                tag_list=normalize_sensor_tags(
-                    data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
-                ),
-                target_tag_list=normalize_sensor_tags(
-                    data["endpoint-metadata"]["metadata"]["dataset"]["target_tag_list"]
-                ),
-                resolution=data["endpoint-metadata"]["metadata"]["dataset"][
-                    "resolution"
-                ],
-                model_offset=data["endpoint-metadata"]["metadata"]["model"].get(
-                    "model-offset", 0
-                ),
-            )
-            if data["healthy"]
-            else EndpointMetadata(
-                target_name=None,
-                healthy=data["healthy"],
-                endpoint=f'{self.base_url}{data["endpoint"].rstrip("/")}',
-                tag_list=None,
-                target_tag_list=None,
-                resolution=None,
-                model_offset=None,
-            )
-            for data in resp.json()["endpoints"]
-        ]
+        return [EndpointMetadata(data) for data in resp.json()["endpoints"]]
 
     def download_model(self) -> typing.Dict[str, BaseEstimator]:
         """
@@ -249,33 +221,41 @@ class Client:
         """
         models = dict()
         for endpoint in self.endpoints:
-            resp = self.session.get(f"{endpoint.endpoint}/download-model")
+            resp = self.session.get(
+                f"{self.base_url + endpoint.endpoint}/download-model"
+            )
             if resp.ok:
-                models[endpoint.target_name] = serializer.loads(resp.content)
+                models[endpoint.name] = serializer.loads(resp.content)
             else:
                 raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
 
-    def get_metadata(self) -> typing.Dict[str, dict]:
+    def get_metadata(self, force_refresh: bool = False) -> typing.Dict[str, dict]:
         """
         Get the metadata for each target
+
+        Parameters
+        ----------
+        force_refresh : bool
+            Even if the previous request was cached, make a new request for metadata.
 
         Returns
         -------
         Dict[str, dict]
             Mapping of target names to their metadata
         """
-        metadata = dict()
-        for endpoint in self.endpoints:
-            resp = self.session.get(f"{endpoint.endpoint}/metadata")
-            if resp.ok:
-                metadata[endpoint.target_name] = resp.json()
-            else:
-                raise IOError(f"Failed to get metadata: '{repr(resp.content)}'")
-        return metadata
+        if hasattr(self, "metadata_") and not force_refresh:
+            return self.metadata_.copy()
+
+        if force_refresh:
+            self.endpoints = self.get_endpoints()  # Forced refresh if
+        self.metadata_: Dict[str, dict] = {
+            ep.name: ep.raw_metadata() for ep in self.endpoints
+        }
+        return self.metadata_.copy()
 
     def predict(
-        self, start: datetime, end: datetime
+        self, start: datetime, end: datetime, refresh_endpoints: bool = False
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
         Start the prediction process.
@@ -284,6 +264,9 @@ class Client:
         ----------
         start: datetime
         end: datetime
+        refresh_endpoints : bool
+            Before running predictions, refresh the current endpoints. Default
+            ``False`` and will use the endpoints obtained during initialization.
 
         Returns
         -------
@@ -293,6 +276,9 @@ class Client:
               1st element is the dataframe of the predictions; complete with a DateTime index.
               2nd element is a list of error messages (if any) for running the predictions
         """
+        if refresh_endpoints:
+            self.endpoints = self.get_endpoints()
+
         # For every endpoint, start making predictions for the time range
         with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
             jobs = executor.map(
@@ -360,9 +346,7 @@ class Client:
                 else pd.DataFrame()
             )
         return PredictionResult(
-            name=endpoint.target_name,
-            predictions=predictions,
-            error_messages=error_messages,
+            name=endpoint.name, predictions=predictions, error_messages=error_messages
         )
 
     def _send_prediction_request(
@@ -397,7 +381,7 @@ class Client:
         """
 
         kwargs: Dict[str, Any] = dict(
-            url=f"{endpoint.endpoint}{self.prediction_path}{self.query}"
+            url=f"{self.base_url + endpoint.endpoint}{self.prediction_path}{self.query}"
         )
 
         # We're going to serialize the data as either JSON or Arrow
@@ -425,7 +409,7 @@ class Client:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
-                    ] = f"{endpoint.endpoint}{self.prediction_path}{self.query}"
+                    ] = f"{self.base_url + endpoint.endpoint}{self.prediction_path}{self.query}"
                     resp = _handle_response(self.session.post(**kwargs))
             # If it was an IO or TimeoutError, we can retry
             except (
@@ -445,25 +429,23 @@ class Client:
                 else:
                     msg = (
                         f"Failed to get predictions for dates {start} -> {end} "
-                        f"for target: '{endpoint.target_name}' Error: {exc}"
+                        f"for target: '{endpoint.name}' Error: {exc}"
                     )
                     logger.error(msg)
 
                     return PredictionResult(
-                        name=endpoint.target_name,
-                        predictions=None,
-                        error_messages=[msg],
+                        name=endpoint.name, predictions=None, error_messages=[msg]
                     )
 
             # No point in retrying a BadRequest
             except BadRequest as exc:
                 msg = (
                     f"Failed with BadRequest error for dates {start} -> {end} "
-                    f"for target: '{endpoint.target_name}' Error: {exc}"
+                    f"for target: '{endpoint.name}' Error: {exc}"
                 )
                 logger.error(msg)
                 return PredictionResult(
-                    name=endpoint.target_name, predictions=None, error_messages=[msg]
+                    name=endpoint.name, predictions=None, error_messages=[msg]
                 )
 
             # Process response and return if no exception
@@ -479,9 +461,7 @@ class Client:
                         metadata=self.metadata,
                     )
                 return PredictionResult(
-                    name=endpoint.target_name,
-                    predictions=predictions,
-                    error_messages=[],
+                    name=endpoint.name, predictions=predictions, error_messages=[]
                 )
 
     def _raw_data(
