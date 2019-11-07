@@ -260,7 +260,13 @@ def test_time_series_no_resolution():
 def test_timeseries_target_tags(tag_list, target_tag_list):
     start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
     end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
-    tsd = TimeSeriesDataset(MockDataSource(), start, end, tag_list, target_tag_list)
+    tsd = TimeSeriesDataset(
+        start,
+        end,
+        tag_list=tag_list,
+        target_tag_list=target_tag_list,
+        data_provider=MockDataSource(),
+    )
     X, y = tsd.get_data()
 
     # If we have targets, y and X should be equal length and axis=1 == N in target tag list
@@ -301,3 +307,20 @@ class MockDataSource(GordoBaseDataProvider):
                 index=days, data=list(range(i, len(days) + i)), name=name
             )
             yield series
+
+
+def test_timeseries_dataset_compat():
+    """
+    There are accepted keywords in the config file when using type: TimeSeriesDataset
+    which don't actually match the kwargs of the dataset's __init__; for compatibility
+    :func:`gordo_components.dataset.datasets.compat` should adjust for these differences.
+    """
+    dataset = TimeSeriesDataset(
+        data_provider=MockDataSource(),
+        train_start_date="2017-12-25 06:00:00Z",
+        train_end_date="2017-12-29 06:00:00Z",
+        tags=[SensorTag("Tag 1", None)],
+    )
+    assert dataset.from_ts == dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+    assert dataset.to_ts == dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+    assert dataset.tag_list == [SensorTag("Tag 1", None)]

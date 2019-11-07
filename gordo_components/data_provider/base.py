@@ -119,3 +119,12 @@ class GordoBaseDataProvider(object):
         params = self._params
         params["type"] = self.__class__.__name__
         return params
+
+    @classmethod
+    def from_dict(cls, config: dict) -> "GordoBaseDataProvider":
+        from gordo_components.data_provider import providers
+
+        Provider = getattr(providers, config["type"])
+        if Provider is None:
+            raise TypeError(f"No data provider of type '{config['type']}'")
+        return Provider(**config)
