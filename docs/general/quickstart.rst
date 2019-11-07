@@ -11,53 +11,61 @@ A typical config file might look like this:
 
 .. code-block:: yaml
 
-    machines:
+    apiVersion: equinor.com/v1
+    kind: Gordo
+    metadata:
+      name: test-project
+    spec:
+      deploy-version: 0.39.0
+      config:
 
-      # This machine specifies all keys, and will train a model on one month
-      # worth of data, as shown in its train_start/end_date dataset keys.
-      - name: some-name-here
-        dataset:
-          train_start_date: 2018-01-01T00:00:00Z
-          train_end_date: 2018-02-01T00:00:00Z
-          resolution: 2T  # Resample timeseries at 2min intervals (pandas freq strings)
-          tags:
-            - tag-1
-            - tag-2
-        model:
-          sklearn.pipeline.Pipeline:
-            steps:
-              - sklearn.preprocessing.data.MinMaxScaler
-              - gordo_components.model.models.KerasAutoEncoder:
-                  kind: feedforward_hourglass
-        metadata:
-          key1: some-value
+        machines:
 
-      # This machine does NOT specify all keys, it is missing 'model' but will
-      # have the 'model' under 'globals' inserted as its default.
-      # And will train a model on one month as well.
-      - name: some-name-here
-        dataset:
-          train_start_date: 2018-01-01T00:00:00Z
-          train_end_date: 2018-02-01T00:00:00Z
-          resolution: 2T  # Resample timeseries at 2min intervals (pandas freq strings)
-          tags:
-            - tag-1
-            - tag-2
-        metadata:
-          key1: some-different-value-if-you-want
-          nested-keys-allowed:
-            - correct: true
+          # This machine specifies all keys, and will train a model on one month
+          # worth of data, as shown in its train_start/end_date dataset keys.
+          - name: some-name-here
+            dataset:
+              train_start_date: 2018-01-01T00:00:00Z
+              train_end_date: 2018-02-01T00:00:00Z
+              resolution: 2T  # Resample timeseries at 2min intervals (pandas freq strings)
+              tags:
+                - tag-1
+                - tag-2
+            model:
+              sklearn.pipeline.Pipeline:
+                steps:
+                  - sklearn.preprocessing.data.MinMaxScaler
+                  - gordo_components.model.models.KerasAutoEncoder:
+                      kind: feedforward_hourglass
+            metadata:
+              key1: some-value
 
-    globals:
-      model:
-        sklearn.pipeline.Pipeline:
-          steps:
-            - sklearn.preprocessing.data.MinMaxScaler
-            - gordo_components.model.models.KerasAutoEncoder:
-                kind: feedforward_model
+          # This machine does NOT specify all keys, it is missing 'model' but will
+          # have the 'model' under 'globals' inserted as its default.
+          # And will train a model on one month as well.
+          - name: some-name-here
+            dataset:
+              train_start_date: 2018-01-01T00:00:00Z
+              train_end_date: 2018-02-01T00:00:00Z
+              resolution: 2T  # Resample timeseries at 2min intervals (pandas freq strings)
+              tags:
+                - tag-1
+                - tag-2
+            metadata:
+              key1: some-different-value-if-you-want
+              nested-keys-allowed:
+                - correct: true
 
-      metadata:
-        what-does-this-do: "This metadata will get mapped to every machine's metadata!"
+        globals:
+          model:
+            sklearn.pipeline.Pipeline:
+              steps:
+                - sklearn.preprocessing.data.MinMaxScaler
+                - gordo_components.model.models.KerasAutoEncoder:
+                    kind: feedforward_model
+
+          metadata:
+            what-does-this-do: "This metadata will get mapped to every machine's metadata!"
 
 
 One can experiment locally with Gordo through the Jupyter Notebooks provided in
