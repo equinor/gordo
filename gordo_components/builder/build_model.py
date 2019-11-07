@@ -8,20 +8,14 @@ import os
 import time
 import random
 from pathlib import Path
-from typing import Union, Optional, Dict, Any, Tuple
+from typing import Union, Optional, Dict, Any, Tuple, List, Callable
 
 import pandas as pd
 import numpy as np
 import tensorflow as tf
 
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.metrics import (
-    explained_variance_score,
-    make_scorer,
-    r2_score,
-    mean_squared_error,
-    mean_absolute_error,
-)
+from sklearn import metrics
 from sklearn.model_selection import cross_validate, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 
@@ -120,12 +114,10 @@ def build_model(
     cv_duration_sec = None
 
     if evaluation_config["cv_mode"].lower() in ("cross_val_only", "full_build"):
-        metrics_list = [
-            explained_variance_score,
-            r2_score,
-            mean_squared_error,
-            mean_absolute_error,
-        ]
+
+        # Build up a metrics list.
+        metrics_list = metrics_from_list(evaluation_config.get("metrics"))
+
         # Cross validate
         logger.debug("Starting cross validation")
         start = time.time()
@@ -238,7 +230,7 @@ def get_metrics_dict(
         logger.debug("Fitting scaler for scoring purpose")
         scaler.fit(y)
 
-    def _score_factory(metric_func=r2_score, col_index=0):
+    def _score_factory(metric_func=metrics.r2_score, col_index=0):
         def _score_per_tag(y_true, y_pred):
             # This function extracts the score for each given target_tag to
             # use as scoring argument in sklearn cross_validate, as the scoring
@@ -259,7 +251,7 @@ def get_metrics_dict(
             metrics_dict.update(
                 {
                     metric_str
-                    + f'-{col.replace(" ", "-")}': make_scorer(
+                    + f'-{col.replace(" ", "-")}': metrics.make_scorer(
                         metric_wrapper(
                             _score_factory(metric_func=metric, col_index=index),
                             scaler=scaler,
@@ -269,7 +261,7 @@ def get_metrics_dict(
             )
 
         metrics_dict.update(
-            {metric_str: make_scorer(metric_wrapper(metric, scaler=scaler))}
+            {metric_str: metrics.make_scorer(metric_wrapper(metric, scaler=scaler))}
         )
     return metrics_dict
 
@@ -593,3 +585,34 @@ def provide_saved_model(
         logger.info(f"Writing model-location to model registry")
         disk_registry.write_key(model_register_dir, cache_key, model_location)
     return model_location
+
+
+def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]:
+    """
+    Given a list of metric names, return the callables from
+    sklearn.metrics module.
+
+    Parameters
+    ----------
+    metrics: Optional[List[str]]
+        List of function names which should be in ``sklearn.metrics`` module
+        Defaults to:
+        explained_variance_score, r2_score, mean_squared_error, mean_absolute_error]
+
+    Returns
+    -------
+    List[Callable]
+        A list of the functions loaded from ``sklearn.metrics`` module
+
+    Raises
+    ------
+    AttributeError
+        If the metric name is not found in `sklearn.metrics`
+    """
+    metric_list = metric_list or [
+        "explained_variance_score",
+        "r2_score",
+        "mean_squared_error",
+        "mean_absolute_error",
+    ]
+    return [getattr(metrics, metric) for metric in metric_list]
