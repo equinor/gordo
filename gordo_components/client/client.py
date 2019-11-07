@@ -8,7 +8,7 @@ import itertools
 import typing
 from time import sleep
 from threading import Lock
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
@@ -255,7 +255,11 @@ class Client:
         return self.metadata_.copy()
 
     def predict(
-        self, start: datetime, end: datetime, refresh_endpoints: bool = False
+        self,
+        start: datetime,
+        end: datetime,
+        refresh_endpoints: bool = False,
+        endpoint_names: Optional[List[str]] = None,
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
         Start the prediction process.
@@ -267,6 +271,8 @@ class Client:
         refresh_endpoints : bool
             Before running predictions, refresh the current endpoints. Default
             ``False`` and will use the endpoints obtained during initialization.
+        endpoint_names: Optional[List[str]]
+            Optionally only target certain endpoints, referring to them by name.
 
         Returns
         -------
@@ -279,10 +285,16 @@ class Client:
         if refresh_endpoints:
             self.endpoints = self.get_endpoints()
 
+        # Select endpoints if the endpoint_names were provided.
+        if endpoint_names:
+            endpoints = [ep for ep in self.endpoints if ep.name in endpoint_names]
+        else:
+            endpoints = self.endpoints
+
         # For every endpoint, start making predictions for the time range
         with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
             jobs = executor.map(
-                lambda ep: self.predict_single_endpoint(ep, start, end), self.endpoints
+                lambda ep: self.predict_single_endpoint(ep, start, end), endpoints
             )
             return [(j.name, j.predictions, j.error_messages) for j in jobs]
 
