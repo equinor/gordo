@@ -8,6 +8,8 @@ import pandas as pd
 import dateutil.parser
 import logging
 
+from gordo_components.serializer import pipeline_from_definition
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,15 +78,14 @@ class ValidDatasetKwargs(BaseDescriptor):
 class ValidModel(BaseDescriptor):
     """
     Descriptor for attributes requiring type Union[dict, str]
-
-    TODO: Once we have access to gordo_components we can validate the provided model itself is valid
     """
 
     def __set__(self, instance, value):
-        if not isinstance(value, dict) and not isinstance(value, str):
-            raise ValueError(
-                f"Must provide a valid model config, either model path or mapping config"
-            )
+        try:
+            pipeline_from_definition(value)
+        except Exception as e:
+            raise ValueError(f"Pipeline from definition failed: {e}")
+
         instance.__dict__[self.name] = value
 
 

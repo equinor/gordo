@@ -26,8 +26,12 @@ class DescriptorsTestCase(unittest.TestCase):
         myclass = MyClass()
 
         # All ok
-        myclass.value = {"KerasModel": {"kind": "symetric"}}
-        myclass.value = "KerasModel"
+        myclass.value = {
+            "gordo_components.model.models.KerasAutoEncoder": {
+                "kind": "feedforward_hourglass"
+            }
+        }
+        myclass.value = "sklearn.ensemble.forest.RandomForestRegressor"
 
         # Not ok
         with self.assertRaises(ValueError):
