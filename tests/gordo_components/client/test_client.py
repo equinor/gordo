@@ -244,6 +244,7 @@ def test_client_cli_download_model(watchman_service):
 )
 @pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
 @pytest.mark.parametrize("use_parquet", (True, False))
+@pytest.mark.parametrize("session_config", ({}, {"headers": {}}))
 def test_client_cli_predict(
     influxdb,
     gordo_name,
@@ -252,23 +253,25 @@ def test_client_cli_predict(
     output_dir,
     trained_model_directory,
     use_parquet,
+    session_config,
 ):
     """
     Test ability for client to get predictions via CLI
     """
     runner = CliRunner()
 
-    args = [
-        "client",
-        "--metadata",
-        "key,value",
-        "--project",
-        tu.GORDO_PROJECT,
-        "predict",
-        "--parquet" if use_parquet else "--no-parquet",
-        "2016-01-01T00:00:00Z",
-        "2016-01-01T01:00:00Z",
-    ]
+    args = ["client", "--metadata", "key,value", "--project", tu.GORDO_PROJECT]
+    if session_config:
+        args.extend(["--session-config", json.dumps(session_config)])
+
+    args.extend(
+        [
+            "predict",
+            "--parquet" if use_parquet else "--no-parquet",
+            "2016-01-01T00:00:00Z",
+            "2016-01-01T01:00:00Z",
+        ]
+    )
 
     influx_client = client_utils.influx_client_from_uri(
         uri=tu.INFLUXDB_URI, dataframe_client=True
