@@ -12,9 +12,10 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from gordo_components.model.base import GordoBase
 from gordo_components.model import utils as model_utils
 from gordo_components.model.models import KerasAutoEncoder
+from gordo_components.model.anomaly.base import AnomalyDetectorBase
 
 
-class DiffBasedAnomalyDetector(BaseEstimator, GordoBase):
+class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     def __init__(
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
