@@ -13,6 +13,7 @@ from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from gordo_components import serializer
 from gordo_components.model import utils as model_utils
 from gordo_components.model.anomaly import DiffBasedAnomalyDetector
+from gordo_components.model.anomaly.base import AnomalyDetectorBase
 
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
@@ -38,6 +39,9 @@ def test_diff_detector(scaler, index, lookback):
     base_estimator.predict = base_estimator.transform
 
     model = DiffBasedAnomalyDetector(base_estimator=base_estimator, scaler=scaler)
+
+    assert isinstance(model, AnomalyDetectorBase)
+
     assert model.get_params() == dict(base_estimator=base_estimator, scaler=scaler)
 
     model.fit(X, y)
