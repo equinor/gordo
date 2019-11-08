@@ -673,6 +673,5 @@ def test_setting_seed(seed, model_config):
     # Equality depends on the seed being set.
     if seed:
         assert df1.equals(df2)
-        assert np.random.seed
     else:
         assert not df1.equals(df2)
