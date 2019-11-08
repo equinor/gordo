@@ -23,7 +23,7 @@ def _calculate_influx_resources(nr_of_machines):
 
 class NormalizedConfig:
 
-    DEFAULT_RUNTIME_GLOBALS = {
+    DEFAULT_CONFIG_GLOBALS = {
         "runtime": {
             "server": {
                 "resources": {
@@ -49,6 +49,12 @@ class NormalizedConfig:
         "evaluation": {
             "cv_mode": "full_build",
             "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+            "metrics": [
+                "explained_variance_score",
+                "r2_score",
+                "mean_squared_error",
+                "mean_absolute_error",
+            ],
         },
     }
 
@@ -60,7 +66,7 @@ class NormalizedConfig:
     globals: dict
 
     def __init__(self, config: dict, project_name: str):
-        default_globals = self.DEFAULT_RUNTIME_GLOBALS
+        default_globals = self.DEFAULT_CONFIG_GLOBALS
         default_globals["runtime"]["influx"][  # type: ignore
             "resources"
         ] = _calculate_influx_resources(  # type: ignore

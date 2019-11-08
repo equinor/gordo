@@ -25,6 +25,7 @@ from gordo_components.dataset.dataset import _get_dataset
 from gordo_components.dataset.base import GordoBaseDataset
 from gordo_components.model.base import GordoBase
 from gordo_components.model.utils import metric_wrapper
+from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 
 logger = logging.getLogger(__name__)
 
@@ -609,10 +610,7 @@ def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]
     AttributeError
         If the metric name is not found in `sklearn.metrics`
     """
-    metric_list = metric_list or [
-        "explained_variance_score",
-        "r2_score",
-        "mean_squared_error",
-        "mean_absolute_error",
-    ]
+    metric_list = (
+        metric_list or NormalizedConfig.DEFAULT_CONFIG_GLOBALS["evaluation"]["metrics"]
+    )
     return [getattr(metrics, metric) for metric in metric_list]
