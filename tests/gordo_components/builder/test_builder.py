@@ -624,3 +624,54 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
         assert model is not None
     else:
         assert model is None
+
+
+@pytest.mark.parametrize("seed", (None, 1234))
+@pytest.mark.parametrize(
+    "model_config",
+    (
+        {
+            "sklearn.multioutput.MultiOutputRegressor": {
+                "estimator": "sklearn.ensemble.forest.RandomForestRegressor"
+            }
+        },
+        {
+            "gordo_components.model.models.KerasAutoEncoder": {
+                "kind": "feedforward_hourglass"
+            }
+        },
+    ),
+)
+def test_setting_seed(seed, model_config):
+    """
+    Test that we can set the seed and get same results.
+    """
+
+    data_config = get_random_data()
+    evaluation_config = {"cv_mode": "full_build", "seed": seed}
+
+    # Training two instances, without a seed should result in different scores,
+    # while doing it with a seed should result in the same scores.
+    _model, metadata1 = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        evaluation_config=evaluation_config,
+    )
+    _model, metadata2 = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        evaluation_config=evaluation_config,
+    )
+
+    df1 = pd.DataFrame.from_dict(metadata1["model"]["cross-validation"]["scores"])
+    df2 = pd.DataFrame.from_dict(metadata2["model"]["cross-validation"]["scores"])
+
+    # Equality depends on the seed being set.
+    if seed:
+        assert df1.equals(df2)
+    else:
+        assert not df1.equals(df2)
