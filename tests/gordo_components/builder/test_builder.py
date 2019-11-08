@@ -627,17 +627,26 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
 
 
 @pytest.mark.parametrize("seed", (None, 1234))
-def test_setting_seed(seed):
+@pytest.mark.parametrize(
+    "model_config",
+    (
+        {
+            "sklearn.multioutput.MultiOutputRegressor": {
+                "estimator": "sklearn.ensemble.forest.RandomForestRegressor"
+            }
+        },
+        {
+            "gordo_components.model.models.KerasAutoEncoder": {
+                "kind": "feedforward_hourglass"
+            }
+        },
+    ),
+)
+def test_setting_seed(seed, model_config):
     """
     Test that we can set the seed and get same results.
     """
 
-    # Choosing a random type model to add to the randomness of a trained model
-    model_config = {
-        "sklearn.multioutput.MultiOutputRegressor": {
-            "estimator": "sklearn.ensemble.forest.RandomForestRegressor"
-        }
-    }
     data_config = get_random_data()
     evaluation_config = {"cv_mode": "full_build", "seed": seed}
 
@@ -664,5 +673,6 @@ def test_setting_seed(seed):
     # Equality depends on the seed being set.
     if seed:
         assert df1.equals(df2)
+        assert np.random.seed
     else:
         assert not df1.equals(df2)
