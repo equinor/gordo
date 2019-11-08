@@ -4,7 +4,7 @@ import dateutil.parser
 import yaml
 from sklearn.base import BaseEstimator
 
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from tempfile import TemporaryDirectory
 
 import pytest
@@ -13,6 +13,7 @@ import pandas as pd
 
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
+from sklearn import metrics
 
 import gordo_components
 from gordo_components.builder.build_model import (
@@ -21,6 +22,7 @@ from gordo_components.builder.build_model import (
     _get_metadata,
     _determine_offset,
     get_metrics_dict,
+    metrics_from_list,
 )
 from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
@@ -624,6 +626,58 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
         assert model is not None
     else:
         assert model is None
+
+
+@pytest.mark.parametrize(
+    "metrics_", (["r2_score"], None, ["r2_score", "explained_variance_score"])
+)
+def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
+    model_config = {
+        "sklearn.multioutput.MultiOutputRegressor": {
+            "estimator": "sklearn.linear_model.LinearRegression"
+        }
+    }
+    data_config = get_random_data()
+
+    evaluation_config: Dict[str, Any] = {"cv_mode": "full_build"}
+    if metrics_:
+        evaluation_config.update({"metrics": metrics_})
+
+    _model, metadata = build_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        metadata={},
+        evaluation_config=evaluation_config,
+    )
+
+    expected_metrics = metrics_ or [
+        "explained_variance_score",
+        "r2_score",
+        "mean_squared_error",
+        "mean_absolute_error",
+    ]
+
+    assert all(
+        metric.replace("_", "-") in metadata["model"]["cross-validation"]["scores"]
+        for metric in expected_metrics
+    )
+
+
+def test_metrics_from_list():
+    """
+    Check getting functions from a list of metric names
+    """
+    default = metrics_from_list()
+    assert default == [
+        metrics.explained_variance_score,
+        metrics.r2_score,
+        metrics.mean_squared_error,
+        metrics.mean_absolute_error,
+    ]
+
+    specifics = metrics_from_list(["adjusted_mutual_info_score", "r2_score"])
+    assert specifics == [metrics.adjusted_mutual_info_score, metrics.r2_score]
 
 
 @pytest.mark.parametrize("seed", (None, 1234))

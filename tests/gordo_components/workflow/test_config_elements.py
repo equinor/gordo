@@ -74,7 +74,7 @@ class DatasetConfigElementTestCase(unittest.TestCase):
 
 
 class MachineConfigElementTestCase(unittest.TestCase):
-    default_globals = dict(NormalizedConfig.DEFAULT_RUNTIME_GLOBALS)
+    default_globals = dict(NormalizedConfig.DEFAULT_CONFIG_GLOBALS)
     # set something different here so we dont have to change the test every time we
     # change the default runtime parameters
     default_globals["runtime"] = {
@@ -155,7 +155,16 @@ class MachineConfigElementTestCase(unittest.TestCase):
                         2018, 1, 2, 9, 0, 30, tzinfo=timezone.utc
                     ).isoformat(),
                 },
-                "evaluation": {"cv_mode": "full_build", "scoring_scaler": None,},
+                "evaluation": {
+                    "cv_mode": "full_build",
+                    "scoring_scaler": None,
+                    "metrics": [
+                        "explained_variance_score",
+                        "r2_score",
+                        "mean_squared_error",
+                        "mean_absolute_error",
+                    ],
+                },
                 "metadata": {
                     "global-metadata": {},
                     "machine-metadata": {"id": "special-id"},
