@@ -6,11 +6,13 @@ import json
 import logging
 import os
 import time
+import random
 from pathlib import Path
 from typing import Union, Optional, Dict, Any, Tuple
 
 import pandas as pd
 import numpy as np
+import tensorflow as tf
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import (
@@ -88,6 +90,13 @@ def build_model(
     -------
         Tuple[Optional[sklearn.base.BaseEstimator], dict]
     """
+    if evaluation_config.get("seed"):
+        seed = evaluation_config["seed"]
+        logger.info(f"Setting random seed: '{seed}'")
+        tf.random.set_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+
     # Get the dataset from config
     logger.debug(f"Initializing Dataset with config {data_config}")
 
