@@ -592,14 +592,14 @@ def provide_saved_model(
 def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]:
     """
     Given a list of metric function paths. ie. sklearn.metrics.r2_score or
-    simple function names which are expected to be in the ``sklearn.metrics`` module
-    will also work to return the loaded functions
+    simple function names which are expected to be in the ``sklearn.metrics`` module,
+    this will return a list of those loaded functions.
 
     Parameters
     ----------
     metrics: Optional[List[str]]
         List of function paths to use as metrics for the model
-        Defaults to:
+        Defaults to those specified in :class:`gordo_components.workflow.config_components.NormalizedConfig`
         sklearn.metrics.explained_variance_score,
         sklearn.metrics.r2_score,
         sklearn.metrics.mean_squared_error,
