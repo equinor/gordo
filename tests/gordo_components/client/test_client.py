@@ -11,6 +11,7 @@ import pytest
 import requests
 import pandas as pd
 import numpy as np
+from unittest import mock
 from click.testing import CliRunner
 from sklearn.base import BaseEstimator
 from mock import patch, call
@@ -23,6 +24,7 @@ from gordo_components.client.io import (
     BadRequest,
 )
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
+from gordo_components.client.utils import PredictionResult
 from gordo_components.data_provider import providers
 from gordo_components.server import utils as server_utils
 from gordo_components.model import utils as model_utils
@@ -45,6 +47,29 @@ def test_client_get_metadata(watchman_service):
     with pytest.raises(ValueError):
         client = Client(project=tu.GORDO_PROJECT, target="no-such-target")
         client.get_metadata()
+
+
+def test_client_predict_specific_targets(watchman_service):
+    """
+    Client.predict should filter any endpoints given to it.
+    """
+    client = Client(project=tu.GORDO_PROJECT)
+    with mock.patch.object(
+        Client,
+        "predict_single_endpoint",
+        return_value=PredictionResult("test-name", [], []),
+    ) as patched:
+
+        start = (isoparse("2016-01-01T00:00:00+00:00"),)
+        end = isoparse("2016-01-01T12:00:00+00:00")
+
+        # Should not actually call any predictions because this machine name doesn't exist
+        client.predict(start=start, end=end, endpoint_names=["non-existant-machine"])
+        patched.assert_not_called()
+
+        # Should be called once, for this machine.
+        client.predict(start=start, end=end, endpoint_names=[tu.GORDO_SINGLE_TARGET])
+        patched.assert_called_once()
 
 
 def test_client_download_model(watchman_service):
