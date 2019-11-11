@@ -629,7 +629,12 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
 
 
 @pytest.mark.parametrize(
-    "metrics_", (["r2_score"], None, ["r2_score", "explained_variance_score"])
+    "metrics_",
+    (
+        ["sklearn.metrics.r2_score"],
+        None,
+        ["sklearn.metrics.r2_score", "sklearn.metrics.explained_variance_score"],
+    ),
 )
 def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
     model_config = {
@@ -652,14 +657,15 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
     )
 
     expected_metrics = metrics_ or [
-        "explained_variance_score",
-        "r2_score",
-        "mean_squared_error",
-        "mean_absolute_error",
+        "sklearn.metrics.explained_variance_score",
+        "sklearn.metrics.r2_score",
+        "sklearn.metrics.mean_squared_error",
+        "sklearn.metrics.mean_absolute_error",
     ]
 
     assert all(
-        metric.replace("_", "-") in metadata["model"]["cross-validation"]["scores"]
+        metric.split(".")[-1].replace("_", "-")
+        in metadata["model"]["cross-validation"]["scores"]
         for metric in expected_metrics
     )
 
@@ -676,7 +682,9 @@ def test_metrics_from_list():
         metrics.mean_absolute_error,
     ]
 
-    specifics = metrics_from_list(["adjusted_mutual_info_score", "r2_score"])
+    specifics = metrics_from_list(
+        ["sklearn.metrics.adjusted_mutual_info_score", "sklearn.metrics.r2_score"]
+    )
     assert specifics == [metrics.adjusted_mutual_info_score, metrics.r2_score]
 
 

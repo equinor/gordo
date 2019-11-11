@@ -3,6 +3,7 @@ import datetime
 from distutils.dir_util import copy_tree
 import hashlib
 import json
+import pydoc
 import logging
 import os
 import time
@@ -590,27 +591,35 @@ def provide_saved_model(
 
 def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]:
     """
-    Given a list of metric names, return the callables from
-    sklearn.metrics module.
+    Given a list of metric function paths. ie. sklearn.metrics.r2_score
+    return the loaded functions
 
     Parameters
     ----------
     metrics: Optional[List[str]]
-        List of function names which should be in ``sklearn.metrics`` module
+        List of function paths to use as metrics for the model
         Defaults to:
-        explained_variance_score, r2_score, mean_squared_error, mean_absolute_error]
+        sklearn.metrics.explained_variance_score,
+        sklearn.metrics.r2_score,
+        sklearn.metrics.mean_squared_error,
+        sklearn.metrics.mean_absolute_error
 
     Returns
     -------
     List[Callable]
-        A list of the functions loaded from ``sklearn.metrics`` module
+        A list of the functions loaded
 
     Raises
     ------
-    AttributeError
-        If the metric name is not found in `sklearn.metrics`
+    ValueError
+       If the function cannot be loaded.
     """
-    metric_list = (
-        metric_list or NormalizedConfig.DEFAULT_CONFIG_GLOBALS["evaluation"]["metrics"]
-    )
-    return [getattr(metrics, metric) for metric in metric_list]
+    defaults = NormalizedConfig.DEFAULT_CONFIG_GLOBALS["evaluation"]["metrics"]
+    funcs = list()
+    for func_path in metric_list or defaults:
+        func = pydoc.locate(func_path)
+        if func is None:
+            raise ValueError(f"Could not locate metric function: {func_path}")
+        else:
+            funcs.append(func)
+    return funcs
