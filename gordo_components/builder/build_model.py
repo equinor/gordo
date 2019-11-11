@@ -591,8 +591,9 @@ def provide_saved_model(
 
 def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]:
     """
-    Given a list of metric function paths. ie. sklearn.metrics.r2_score
-    return the loaded functions
+    Given a list of metric function paths. ie. sklearn.metrics.r2_score or
+    simple function names which are expected to be in the ``sklearn.metrics`` module
+    will also work to return the loaded functions
 
     Parameters
     ----------
@@ -611,7 +612,7 @@ def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]
 
     Raises
     ------
-    ValueError
+    AttributeError:
        If the function cannot be loaded.
     """
     defaults = NormalizedConfig.DEFAULT_CONFIG_GLOBALS["evaluation"]["metrics"]
@@ -619,7 +620,8 @@ def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]
     for func_path in metric_list or defaults:
         func = pydoc.locate(func_path)
         if func is None:
-            raise ValueError(f"Could not locate metric function: {func_path}")
+            # Final attempt, load function from sklearn.metrics module.
+            funcs.append(getattr(metrics, func_path))
         else:
             funcs.append(func)
     return funcs

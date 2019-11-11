@@ -632,6 +632,7 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
     "metrics_",
     (
         ["sklearn.metrics.r2_score"],
+        ["r2_score"],  # string names for funcs in sklearn.metrics should also work
         None,
         ["sklearn.metrics.r2_score", "sklearn.metrics.explained_variance_score"],
     ),
