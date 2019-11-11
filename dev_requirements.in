@@ -1,3 +1,4 @@
+-c requirements.txt
 pip>=19.2.3
 pip-tools~=4.2
 sphinx-rtd-theme~=0.4
