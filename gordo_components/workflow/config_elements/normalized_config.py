@@ -50,10 +50,10 @@ class NormalizedConfig:
             "cv_mode": "full_build",
             "scoring_scaler": "sklearn.preprocessing.RobustScaler",
             "metrics": [
-                "sklearn.metrics.explained_variance_score",
-                "sklearn.metrics.r2_score",
-                "sklearn.metrics.mean_squared_error",
-                "sklearn.metrics.mean_absolute_error",
+                "explained_variance_score",
+                "r2_score",
+                "mean_squared_error",
+                "mean_absolute_error",
             ],
         },
     }
