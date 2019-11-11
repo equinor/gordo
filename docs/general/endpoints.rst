@@ -10,58 +10,9 @@ project level index, with returns a collection of the metadata surrounding the m
 Each ``endpoint`` key has an associated ``endpoint-metadata`` key which is the direct transferal of metadata returned from
 the ML servers at their :ref:`ml-server-metadata-route` route.
 
-.. code-block:: python
+This returns *a lot* of metadata data, so we'll show a small screen-shot of some of the data you might expect to get:
 
-    {'endpoints': [{'endpoint': '/gordo/v0/sample-project/sample-model1/',
-                'endpoint-metadata': {'env': {'MODEL_LOCATION': '/gordo/models/sample1/1560329965701/model1'},
-                                      'gordo-server-version': '0.22.1.dev12+gfb2e8cb.d20190612',
-                                      'metadata': {'dataset': {'filter': '',
-                                                               'resolution': '10T',
-                                                               'tag_list': [{'asset': 'ASSET-A',
-                                                                             'name': 'TAG-1'},
-                                                                            {'asset': 'ASSET-B',
-                                                                             'name': 'TAG-2'},
-                                                                            {'asset': 'ASSET-C',
-                                                                             'name': 'TAG-3'}],
-                                                               'train_end_date': '2019-03-01 '
-                                                                                 '00:00:00+00:00',
-                                                               'train_start_date': '2019-01-01 '
-                                                                                   '00:00:00+00:00'},
-                                                   'model': {'cross-validation': {'cv-duration-sec': 15.931376934051514,
-                                                                                  'scores': {'explained-variance': {'max': 9.62193288008469e-16,
-                                                                                                                    'mean': 2.9605947323337506e-16,
-                                                                                                                    'min': -2.220446049250313e-16,
-                                                                                                                    'raw-scores': [-2.220446049250313e-16,
-                                                                                                                                   9.62193288008469e-16,
-                                                                                                                                   1.4802973661668753e-16],
-                                                                                                                    'std': 4.946644983939441e-16}}},
-                                                             'data-query-duration-sec': 44.260337114334106,
-                                                             'history': {'acc': [0.9912910438978463,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140472643,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495,
-                                                                                 0.9988231140402495],
-                                                                         'loss': [0.2624536094275365,
-                                                                                  0.1044679939132186,
-                                                                                  0.04376118538868986,
-                                                                                  0.021631221938998864,
-                                                                                  0.013675790901569965,
-                                                                                  0.010892559444415396,
-                                                                                  0.009980763574608167,
-                                                                                  0.009708345731069488,
-                                                                                  0.009639194397312994,
-                                                                                  0.009623750014195754,
-                                                                                  0.009622064676664956,
-                                                                                  0.009621601143707853,
-                                                                                  0.009620696473377858]}}}}}]}
+.. image:: ../_static/endpoint-metadata.png
 
 ----
 
@@ -102,28 +53,26 @@ Sample response:
 
 .. code-block:: python
 
-    {'data': [{'model-output': [3.2764337898700404],
-               'original-input': [1.0, 2.0]}
-               ],
-     'tags': [{'asset': 'ASSET-1', 'name': 'TAG-1'},
-              {'asset': 'ASSET-2', 'name': 'TAG-2'}],
-     'time-seconds': '0.0165'}
+    {'data': {'end': {'end': {'0': None, '1': None}},
+          'model-input': {'TAG-1': {'0': 0.7149938815135232,
+                                    '1': 0.5804863352453888},
+                          'TAG-2': {'0': 0.724091483437877,
+                                    '1': 0.9307866320901698},
+                          'TAG-3': {'0': 0.018676439423681468,
+                                    '1': 0.3389969016787632},
+                          'TAG-4': {'0': 0.285813103358881,
+                                    '1': 0.12008312306966606}},
+          'model-output': {'TARGET-TAG-1': {'0': 31.12387466430664,
+                                            '1': 31.12371063232422},
+                           'TARGET-TAG-2': {'0': 30.122753143310547,
+                                            '1': 30.122438430786133},
+                           'TARGET-TAG-3': {'0': 20.38254737854004,
+                                            '1': 20.382972717285156}},
+          'start': {'start': {'0': None, '1': None}}}}
 
 
-The endpoint accepts both POST and GET requests.
 
-``GET`` requests take ``start`` and  ``end`` timestamps with timezone information in the URL query:
-
-.. code-block:: python
-
-    >>> import requests
-    >>> requests.get("https://my-server.io/prediction?start=2019-01-01T00:00:00+01:00&end=2019-01-01T05:00:00+01:00")  # doctest: +SKIP
-    >>>
-    >>> # or...
-    >>> params = {"start": "2019-01-01T00:00:00+01:00", "end": "2019-01-01T05:00:00+01:00"}
-    >>> requests.get("https://my-server.io/prediction", params=params)  # doctest: +SKIP
-
-**NOTE:** The requested time interval must be less than 24hrs in time span.
+The endpoint only accepts POST requests.
 
 ``POST`` requests take raw data:
 
@@ -140,16 +89,86 @@ The endpoint accepts both POST and GET requests.
 **NOTE:** The client must provide the correct number of input features, ie. if the model was trained on 4 features,
 the client should provide 4 feature sample(s).
 
+You may also supply a dataframe using :func:`gordo_components.server.utils.dataframe_to_dict`:
+
+.. code-block:: python
+
+    >>> import requests
+    >>> import pprint
+    >>> from gordo_components.server import utils
+    >>> import pandas as pd
+    >>> X = pd.DataFrame({"TAG-1": range(4),
+    ...                   "TAG-2": range(4),
+    ...                   "TAG-3": range(4),
+    ...                   "TAG-4": range(4)},
+    ...                   index=pd.date_range('2019-01-01', '2019-01-02', periods=4)
+    ... )
+    >>> resp = requests.post("https://my-server.io/gordo/v0/project-name/model-name/prediction",
+    ...                      json={"X": utils.dataframe_to_dict(X)}
+    ... )
+    >>> pprint.pprint(resp.json())
+    {'data': {'end': {'end': {'2019-01-01 00:00:00': None,
+                              '2019-01-01 08:00:00': None,
+                              '2019-01-01 16:00:00': None,
+                              '2019-01-02 00:00:00': None}},
+          'model-input': {'TAG-1': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3},
+                          'TAG-2': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3},
+                          'TAG-3': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3},
+                          'TAG-4': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3}},
+          'model-output': {'TARGET-TAG-1': {'2019-01-01 00:00:00': 31.123781204223633,
+                                            '2019-01-01 08:00:00': 31.122915267944336,
+                                            '2019-01-01 16:00:00': 31.12187385559082,
+                                            '2019-01-02 00:00:00': 31.120620727539062},
+                           'TARGET-TAG-2': {'2019-01-01 00:00:00': 30.122575759887695,
+                                            '2019-01-01 08:00:00': 30.120899200439453,
+                                            '2019-01-01 16:00:00': 30.11887550354004,
+                                            '2019-01-02 00:00:00': 30.116445541381836},
+                           'TARGET-TAG-3': {'2019-01-01 00:00:00': 20.382783889770508,
+                                            '2019-01-01 08:00:00': 20.385055541992188,
+                                            '2019-01-01 16:00:00': 20.38779640197754,
+                                            '2019-01-02 00:00:00': 20.391088485717773}},
+          'start': {'start': {'2019-01-01 00:00:00': '2019-01-01T00:00:00',
+                              '2019-01-01 08:00:00': '2019-01-01T08:00:00',
+                              '2019-01-01 16:00:00': '2019-01-01T16:00:00',
+                              '2019-01-02 00:00:00': '2019-01-02T00:00:00'}}}}
+    >>> # Alternatively, you can convert the json back into a dataframe with:
+    >>> df = utils.dataframe_from_dict(resp.json())
+
+Furthermore, you can increase efficiency by instead converting your data to parquet with the following:
+
+.. code-block:: python
+
+    >>> resp = requests.post("https://my-server.io/gordo/v0/project-name/model-name/prediction?format=parquet",  # <- note the '?format=parquet'
+    ...                      files={"X": utils.dataframe_into_parquet_bytes(X)}
+    ... )
+    >>> resp.ok
+    True
+    >>> df = utils.dataframe_from_parquet_bytes(resp.content)
+
+
 ----
 
 /anomaly/prediction/
 ====================
 
 The ``/anomaly/prediction`` endpoint will return the data supplied by the ``/prediction`` endpoint
-but reserved for models which output the same shape as their input, expected to be AutoEncoder type
-models.
+but reserved for models which inherit from :class:`gordo_components.model.anomaly.base.AnomalyDetectorBase`
 
-By this restriction, additional _features_ are calculated and returned:
+By this restriction, additional _features_ are calculated and returned (depending on the `AnomalyDetector` model being served.
+
+For example, the :class:`gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector` will return the following:
 
 - ``tag-anomaly``:
     - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat)
@@ -160,29 +179,65 @@ Sample response:
 
 .. code-block:: python
 
-    {'data': [{'end': [None],
-               'tag-anomaly': [
-                    2.746687859183499,
-                    2.4497416272485886,
-                    2.508896707372706
-               ],
-               'total-anomaly': [60.4668517758241],
-               'model-output': [
-                    37.94235610961914,
-                    10.5305765271186829,
-                    12.7146536707878113
-               ],
-               'original-input': [1, 2, 3],
-               'start': [None]}],
-     'tags': [{'asset': 'ASSET-A', 'name': 'TAG-1'},
-              {'asset': 'ASSET-B', 'name': 'TAG-2'},
-              {'asset': 'ASSET-C', 'name': 'TAG-3'}],
-     'time-seconds': '0.0866'}
+    {'data': {'end': {'end': {'2019-01-01 00:00:00': '2019-01-01T00:10:00',
+                              '2019-01-01 08:00:00': '2019-01-01T08:10:00',
+                              '2019-01-01 16:00:00': '2019-01-01T16:10:00',
+                              '2019-01-02 00:00:00': '2019-01-02T00:10:00'}},
+          'model-input': {'TAG-1': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3},
+                          'TAG-2': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3},
+                          'TAG-3': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3},
+                          'TAG-4': {'2019-01-01 00:00:00': 0,
+                                    '2019-01-01 08:00:00': 1,
+                                    '2019-01-01 16:00:00': 2,
+                                    '2019-01-02 00:00:00': 3}},
+          'model-output': {'TARGET-TAG-1': {'2019-01-01 00:00:00': 31.123781204223633,
+                                            '2019-01-01 08:00:00': 31.122915267944336,
+                                            '2019-01-01 16:00:00': 31.12187385559082,
+                                            '2019-01-02 00:00:00': 31.120620727539062},
+                           'TARGET-TAG-2': {'2019-01-01 00:00:00': 30.122575759887695,
+                                            '2019-01-01 08:00:00': 30.120899200439453,
+                                            '2019-01-01 16:00:00': 30.11887550354004,
+                                            '2019-01-02 00:00:00': 30.116445541381836},
+                           'TARGET-TAG-3': {'2019-01-01 00:00:00': 20.382783889770508,
+                                            '2019-01-01 08:00:00': 20.385055541992188,
+                                            '2019-01-01 16:00:00': 20.38779640197754,
+                                            '2019-01-02 00:00:00': 20.391088485717773}},
+          'start': {'start': {'2019-01-01 00:00:00': '2019-01-01T00:00:00',
+                              '2019-01-01 08:00:00': '2019-01-01T08:00:00',
+                              '2019-01-01 16:00:00': '2019-01-01T16:00:00',
+                              '2019-01-02 00:00:00': '2019-01-02T00:00:00'}},
+          'tag-anomaly': {'TARGET-TAG-1': {'2019-01-01 00:00:00': 43.9791088965509,
+                                           '2019-01-01 08:00:00': 42.564846544761124,
+                                           '2019-01-01 16:00:00': 41.15033623847873,
+                                           '2019-01-02 00:00:00': 39.73552676971069},
+                          'TARGET-TAG-2': {'2019-01-01 00:00:00': 42.73147969197182,
+                                           '2019-01-01 08:00:00': 41.310514834943056,
+                                           '2019-01-01 16:00:00': 39.88905753340811,
+                                           '2019-01-02 00:00:00': 38.46702390945659},
+                          'TARGET-TAG-3': {'2019-01-01 00:00:00': 26.2922285259887,
+                                           '2019-01-01 08:00:00': 25.005235450434874,
+                                           '2019-01-01 16:00:00': 23.71884761692332,
+                                           '2019-01-02 00:00:00': 22.43317081979476}},
+          'total-anomaly': {'total-anomaly': {'2019-01-01 00:00:00': 66.71898273252445,
+                                              '2019-01-01 08:00:00': 64.37069672792737,
+                                              '2019-01-01 16:00:00': 62.024759698996235,
+                                              '2019-01-02 00:00:00': 59.68141393388054}}},
+ 'time-seconds': '0.1623'}
 
 
-This endpoint accepts both ``GET`` and ``POST`` requests.
-Model requests are exactly the same as :ref:`prediction-endpoint` but it is expected the model
-being served is of an AutoEncoder variety.
+
+This endpoint accepts only ``POST`` requests.
+Model requests are exactly the same as :ref:`prediction-endpoint`, but will require a ``y`` to compare the anomaly
+against.
 
 ----
 
