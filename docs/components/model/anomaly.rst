@@ -5,6 +5,17 @@ Models which implment a ``.anomaly(X, y)`` and can be served under the
 model server ``/anomaly/prediction`` endpoint.
 
 
+AnomalyDetectorBase
+===================
+
+The base class for all other anomaly detector models
+
+.. automodule:: gordo_components.model.anomaly.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 DiffBasedAnomalyDetector
 ========================
 
