@@ -81,7 +81,7 @@ tensorflow==2.0.0
 termcolor==1.1.0          # via tensorflow
 typing-extensions==3.7.4.1
 tzlocal==2.0.0            # via apscheduler
-urllib3==1.25.6
+urllib3==1.25.7
 websocket-client==0.56.0  # via kubernetes
 werkzeug==0.16.0          # via flask, tensorboard
 wheel==0.33.6             # via tensorboard, tensorflow
