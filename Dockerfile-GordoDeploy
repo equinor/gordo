@@ -6,7 +6,7 @@ FROM python:3.6.9 as builder
 
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.14.8"
-ARG ARGO_VERSION="v2.2.1"
+ARG ARGO_VERSION="v2.4.2"
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
