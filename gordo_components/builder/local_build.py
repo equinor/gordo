@@ -12,7 +12,9 @@ from gordo_components.workflow.workflow_generator.workflow_generator import (
 from gordo_components.builder import ModelBuilder
 
 
-def local_build(config_str: str) -> Iterable[Tuple[Union[BaseEstimator, None], dict]]:
+def local_build(
+    config_str: str, enable_remote_logging: bool = True, workspace_kwargs: dict = {}
+) -> Iterable[Tuple[Union[BaseEstimator, None], dict]]:
     """
     Build model(s) from a bare Gordo config file locally.
 
@@ -25,6 +27,15 @@ def local_build(config_str: str) -> Iterable[Tuple[Union[BaseEstimator, None], d
     ----------
     config_str: str
         The raw yaml config file in string format.
+    enable_mlflow: bool
+        Flag to enable Mlflow logging of model building results. With `enable_mlflow`
+        set to `True`, passing `workspace_kwargs` an empty dict (default) will result in
+        local MLflow logging, while passing a dict of keyword arguments as defined in
+        :func:`~gordo_components.builder.mlflow_utils.get_mlflow_client` will result in
+        remote logging.
+    workspace_kwargs: dict
+        AzureML Workspace configuration to use for remote MLFlow tracking. See
+        :func:`gordo_components.builder.azure_utils.get_mlflow_client`.
 
     Examples
     --------
@@ -55,7 +66,7 @@ def local_build(config_str: str) -> Iterable[Tuple[Union[BaseEstimator, None], d
     ...                     estimator: sklearn.linear_model.base.LinearRegression
     ...         name: crazy-sweet-name
     ... '''
-    >>> models_n_metadata = local_build(config)
+    >>> models_n_metadata = local_build(config, enable_mlflow=False)
     >>> assert len(list(models_n_metadata)) == 1
 
     Returns
