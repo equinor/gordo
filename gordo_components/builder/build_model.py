@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import datetime
 from distutils.dir_util import copy_tree
 import hashlib
@@ -80,8 +81,6 @@ def build_model(
                     {"cv_mode": "cross_val_only",
                     "scoring_scaler": "sklearn.preprocessing.RobustScaler"}
 
-
-
     Returns
     -------
         Tuple[Optional[sklearn.base.BaseEstimator], dict]
@@ -115,6 +114,7 @@ def build_model(
 
     cv_duration_sec = None
 
+    scores: Dict[str, Any] = dict()
     if evaluation_config["cv_mode"].lower() in ("cross_val_only", "full_build"):
 
         # Build up a metrics list.
@@ -123,7 +123,6 @@ def build_model(
         # Cross validate
         logger.debug("Starting cross validation")
         start = time.time()
-        scores: Dict[str, Any] = dict()
         if hasattr(model, "predict"):
 
             metrics_dict = get_metrics_dict(
@@ -155,22 +154,19 @@ def build_model(
 
         else:
             logger.debug("Unable to score model, has no attribute 'predict'.")
-            scores = dict()
 
         cv_duration_sec = time.time() - start
 
         # If cross_val_only, return the cv_scores and empty model.
         if evaluation_config["cv_mode"] == "cross_val_only":
+            model = None
             metadata["model"] = {
                 "cross-validation": {
                     "cv-duration-sec": cv_duration_sec,
                     "scores": scores,
                 }
             }
-            return None, metadata
-    else:
-        # Setting cv scores to zero when not used.
-        scores = dict()
+            return model, metadata
     # Train
     logger.debug("Starting to train model.")
     start = time.time()
@@ -192,6 +188,7 @@ def build_model(
     }
 
     metadata["model"].update(_get_metadata(model))
+
     return model, metadata
 
 
