@@ -120,14 +120,24 @@ def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
     logger.info("Running workflow generator and argo lint on examples/config.yaml...")
     result = docker_client.containers.run(
         argo_docker_image.id,
-        command="bash -c 'gordo-components "
+        # FIXME: Remove the kubectl stuff from this command
+        # We need this kubectl stuff here because argo lint has now started requiring a
+        # kubectl config to run. When that is changed we remove the "kubectl" lines
+        # below, and the "--username/--password" part of argo lint.
+        # Tracking issue:
+        # https://github.com/argoproj/argo/issues/1662
+        command="bash -c '"
+        "kubectl config set-cluster lame-cluster --server=https://lame.org:4443 && "
+        "kubectl config set-context lame-context --cluster=lame-cluster &&"
+        "kubectl config use-context lame-context &&"
+        "gordo-components "
         "workflow "
         "generate "
         "--project-name some-project "
         f"--machine-config {fp_config} "
         "--output-file /tmp/out.yaml "
-        "&& argo lint /tmp/out.yaml'",
-        auto_remove=True,
+        "&& argo lint /tmp/out.yaml --username lame --password lame'",
+        auto_remove=False,
         stderr=True,
         stdout=True,
         detach=False,
