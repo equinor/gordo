@@ -86,7 +86,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         if hasattr(self, "model") and self.model is not None:
             buf = io.BytesIO()
-            with h5py.File(buf, compression="lzf") as h5:
+            with h5py.File(buf, compression="lzf", mode="w") as h5:
                 save_model(self.model, h5, overwrite=True, save_format="h5")
                 buf.seek(0)
                 state["model"] = buf
@@ -102,7 +102,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     def __setstate__(self, state):
         if "model" in state:
-            with h5py.File(state["model"], compression="lzf") as h5:
+            with h5py.File(state["model"], compression="lzf", mode="r") as h5:
                 state["model"] = load_model(h5, compile=False)
             if "history" in state:
                 state["model"].__dict__["history"] = state.pop("history")
