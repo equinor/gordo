@@ -381,7 +381,7 @@ def test_main_tag_list(output_to_file, path_to_config_files, tmp_dir):
     assert result.exit_code == 0
 
     if output_to_file:
-        assert os.path.isfile(output_to_file)
+        assert os.path.isfile(out_file)
     else:
         output_tags = set(result.output.split(sep="\n")[:-1])
         expected_output_tags = {"Tag 1", "Tag 2", "Tag 3", "Tag 4", "Tag 5"}
