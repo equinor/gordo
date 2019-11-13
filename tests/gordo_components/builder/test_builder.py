@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-import os
 import dateutil.parser
-import yaml
-from sklearn.base import BaseEstimator
-
 from typing import List, Optional, Dict, Any
-from tempfile import TemporaryDirectory
+import os
+import yaml
 
 import pytest
 import numpy as np
 import pandas as pd
-
+from sklearn.base import BaseEstimator
+import sklearn.compose
+import sklearn.ensemble
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
@@ -26,7 +25,6 @@ from gordo_components.builder.build_model import (
 )
 from gordo_components.builder import build_model
 from gordo_components.dataset.sensor_tag import SensorTag
-
 from gordo_components.model import models
 from gordo_components.serializer import serializer
 
@@ -128,7 +126,7 @@ def test_output_dir(tmp_dir):
 
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir.name, "some", "sub", "directories")
+    output_dir = os.path.join(tmp_dir, "some", "sub", "directories")
 
     model, metadata = build_model(
         name="model-name",
@@ -181,9 +179,9 @@ def test_output_dir(tmp_dir):
         # Pipeline as a parameter to another estimator
         """
         sklearn.compose.TransformedTargetRegressor:
-            regressor: 
+            regressor:
                 sklearn.pipeline.Pipeline:
-                    steps: 
+                    steps:
                     - sklearn.preprocessing.data.MinMaxScaler
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_hourglass
@@ -212,10 +210,6 @@ def test_builder_metadata(raw_model_config):
     )
     # Check metadata, and only verify 'history' if it's a *Keras* type model
     metadata_check(metadata, "Keras" in raw_model_config)
-
-
-import sklearn.compose
-import sklearn.ensemble
 
 
 @pytest.mark.parametrize(
@@ -341,7 +335,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
                   out_func: linear
                   epochs: 1
                  """,
-        f""" 
+        f"""
   sklearn.pipeline.Pipeline:
       steps:
       - sklearn.preprocessing.data.MinMaxScaler
@@ -425,7 +419,7 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     """
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir.name, "model")
+    output_dir = os.path.join(tmp_dir, "model")
 
     provide_saved_model(
         name="model-name",
@@ -445,8 +439,8 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     same as output_dir, output_dir is returned"""
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir.name, "model")
-    registry_dir = os.path.join(tmp_dir.name, "registry")
+    output_dir = os.path.join(tmp_dir, "model")
+    registry_dir = os.path.join(tmp_dir, "registry")
 
     model_location1 = provide_saved_model(
         name="model-name",
@@ -478,10 +472,10 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     already exists. If it does then return it"""
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir1 = os.path.join(tmp_dir.name, "model1")
-    output_dir2 = os.path.join(tmp_dir.name, "model2")
+    output_dir1 = os.path.join(tmp_dir, "model1")
+    output_dir2 = os.path.join(tmp_dir, "model2")
 
-    registry_dir = os.path.join(tmp_dir.name, "registry")
+    registry_dir = os.path.join(tmp_dir, "registry")
 
     provide_saved_model(
         name="model-name",
@@ -527,6 +521,7 @@ def test_provide_saved_model_caching(
     metadata: Optional[Dict],
     tag_list: Optional[List[SensorTag]],
     replace_cache,
+    tmp_dir,
 ):
     """
     Test provide_saved_model with caching and possible cache busting if metadata,
@@ -554,44 +549,43 @@ def test_provide_saved_model_caching(
         tag_list = []
     if metadata is None:
         metadata = dict()
-    with TemporaryDirectory() as tmpdir:
 
-        model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
-        data_config = get_random_data()
-        output_dir = os.path.join(tmpdir, "model")
-        registry_dir = os.path.join(tmpdir, "registry")
+    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    data_config = get_random_data()
+    output_dir = os.path.join(tmp_dir, "model")
+    registry_dir = os.path.join(tmp_dir, "registry")
 
-        model_location = provide_saved_model(
-            name="model-name",
-            model_config=model_config,
-            data_config=data_config,
-            output_dir=output_dir,
-            metadata={},
-            model_register_dir=registry_dir,
-        )
+    model_location = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        output_dir=output_dir,
+        metadata={},
+        model_register_dir=registry_dir,
+    )
 
-        if tag_list:
-            data_config["tag_list"] = tag_list
-        new_output_dir = os.path.join(tmpdir, "model2")
-        model_location2 = provide_saved_model(
-            name="model-name",
-            model_config=model_config,
-            data_config=data_config,
-            output_dir=new_output_dir,
-            metadata=metadata,
-            model_register_dir=registry_dir,
-            replace_cache=replace_cache,
-        )
+    if tag_list:
+        data_config["tag_list"] = tag_list
+    new_output_dir = os.path.join(tmp_dir, "model2")
+    model_location2 = provide_saved_model(
+        name="model-name",
+        model_config=model_config,
+        data_config=data_config,
+        output_dir=new_output_dir,
+        metadata=metadata,
+        model_register_dir=registry_dir,
+        replace_cache=replace_cache,
+    )
 
-        first_metadata = serializer.load_metadata(str(model_location))
-        second_metadata = serializer.load_metadata(str(model_location2))
+    first_metadata = serializer.load_metadata(str(model_location))
+    second_metadata = serializer.load_metadata(str(model_location2))
 
-        model1_creation_date = first_metadata["model"]["model-creation-date"]
-        model2_creation_date = second_metadata["model"]["model-creation-date"]
-        if should_be_equal:
-            assert model1_creation_date == model2_creation_date
-        else:
-            assert model1_creation_date != model2_creation_date
+    model1_creation_date = first_metadata["model"]["model-creation-date"]
+    model2_creation_date = second_metadata["model"]["model-creation-date"]
+    if should_be_equal:
+        assert model1_creation_date == model2_creation_date
+    else:
+        assert model1_creation_date != model2_creation_date
 
 
 @pytest.mark.parametrize(

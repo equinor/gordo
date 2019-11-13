@@ -183,7 +183,7 @@ def test_generation_to_file(tmp_dir, path_to_config_files):
 
     # Execute CLI by passing a file to write to.
     config_file = os.path.join(path_to_config_files, config_filename)
-    outfile = os.path.join(tmp_dir.name, "out.yml")
+    outfile = os.path.join(tmp_dir, "out.yml")
     args = [
         "workflow",
         "generate",
@@ -370,7 +370,7 @@ def test_main_tag_list(output_to_file, path_to_config_files, tmp_dir):
     config_file = os.path.join(path_to_config_files, "config-test-tag-list.yml")
     args = ["workflow", "unique-tags", "--machine-config", config_file]
 
-    out_file = os.path.join(tmp_dir.name, "out.txt")
+    out_file = os.path.join(tmp_dir, "out.txt")
 
     if output_to_file:
         args.extend(["--output-file-tag-list", out_file])

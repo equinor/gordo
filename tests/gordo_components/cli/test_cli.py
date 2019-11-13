@@ -228,9 +228,7 @@ class CliTestCase(unittest.TestCase):
     "should_save_model, cv_mode",
     [(True, {"cv_mode": "full_build"}), (False, {"cv_mode": "cross_val_only"})],
 )
-def test_build_cv_mode(
-    should_save_model: bool, cv_mode: str, tmp_dir: tempfile.TemporaryDirectory
-):
+def test_build_cv_mode(should_save_model: bool, cv_mode: str, tmp_dir: str):
     """
     Testing build with cv_mode set to full and cross_val_only. Checks that cv_scores are
     printed and model are only saved when using the default (full) value.
@@ -242,7 +240,7 @@ def test_build_cv_mode(
 
     with temp_env_vars(
         MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir.name,
+        OUTPUT_DIR=tmp_dir,
         DATA_CONFIG=DATA_CONFIG,
         MODEL_CONFIG=json.dumps(MODEL_CONFIG_WITH_PREDICT),
     ):
@@ -251,9 +249,9 @@ def test_build_cv_mode(
         )
         # Checks that the file is empty or not depending on the mode.
         if should_save_model:
-            assert len(os.listdir(tmp_dir.name)) != 0
+            assert len(os.listdir(tmp_dir)) != 0
         else:
-            assert len(os.listdir(tmp_dir.name)) == 0
+            assert len(os.listdir(tmp_dir)) == 0
 
         # Checks the output contains 'explained-variance_raw-scores'
         assert "r2-score" in result.output
@@ -270,10 +268,7 @@ def test_build_cv_mode(
     ],
 )
 def test_build_cv_mode_cross_val_cache(
-    should_be_equal: bool,
-    cv_mode_1: str,
-    cv_mode_2: str,
-    tmp_dir: tempfile.TemporaryDirectory,
+    should_be_equal: bool, cv_mode_1: str, cv_mode_2: str, tmp_dir: str
 ):
     """
     Checks that cv_scores uses cache if ran after a full build. Loads the same model, and can
@@ -284,11 +279,11 @@ def test_build_cv_mode_cross_val_cache(
 
     logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG)}")
 
-    model_register_dir = f"{os.path.join(tmp_dir.name, 'reg')}"
+    model_register_dir = f"{os.path.join(tmp_dir, 'reg')}"
 
     with temp_env_vars(
         MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir.name,
+        OUTPUT_DIR=tmp_dir,
         DATA_CONFIG=DATA_CONFIG,
         MODEL_CONFIG=json.dumps(MODEL_CONFIG),
         MODEL_REGISTER_DIR=model_register_dir,
@@ -303,7 +298,7 @@ def test_build_cv_mode_cross_val_cache(
             assert not os.path.exists(model_register_dir)
 
 
-def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
+def test_build_cv_mode_build_only(tmp_dir: str):
     """
     Testing build with cv_mode set to build_only. Checks that OUTPUT_DIR gets a model
     saved to it. It also checks that the metadata contains cv-duration-sec=None and
@@ -316,18 +311,18 @@ def test_build_cv_mode_build_only(tmp_dir: tempfile.TemporaryDirectory):
 
     with temp_env_vars(
         MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir.name,
+        OUTPUT_DIR=tmp_dir,
         DATA_CONFIG=DATA_CONFIG,
         MODEL_CONFIG=json.dumps(MODEL_CONFIG),
     ):
 
-        metadata_file = f"{os.path.join(tmp_dir.name, 'metadata.json')}"
+        metadata_file = f"{os.path.join(tmp_dir, 'metadata.json')}"
         runner.invoke(
             cli.gordo, ["build", '--evaluation-config={"cv_mode": "build_only"}']
         )
 
         # A model has been saved
-        assert len(os.listdir(tmp_dir.name)) != 0
+        assert len(os.listdir(tmp_dir)) != 0
         with open(metadata_file) as f:
             metadata_json = json.loads(f.read())
             assert metadata_json["model"]["cross-validation"]["cv-duration-sec"] is None

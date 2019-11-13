@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import tempfile
 import json
 import logging
+import tempfile
 import typing
 from dateutil.parser import isoparse  # type: ignore
 
@@ -182,7 +182,7 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-def test_client_cli_metadata(watchman_service):
+def test_client_cli_metadata(watchman_service, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
@@ -204,79 +204,77 @@ def test_client_cli_metadata(watchman_service):
     assert tu.GORDO_SINGLE_TARGET in out.output
 
     # Save metadata to file
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        output_file = os.path.join(tmp_dir, "metadata.json")
-        out = runner.invoke(
-            cli.gordo,
-            args=[
-                "client",
-                "--project",
-                tu.GORDO_PROJECT,
-                "--target",
-                tu.GORDO_SINGLE_TARGET,
-                "metadata",
-                "--output-file",
-                output_file,
-            ],
-        )
-        assert out.exit_code == 0, f"{out.exc_info}"
-        assert os.path.exists(output_file)
-        with open(output_file) as f:
-            metadata = json.load(f)
-            assert tu.GORDO_SINGLE_TARGET in metadata
+    output_file = os.path.join(tmp_dir, "metadata.json")
+    out = runner.invoke(
+        cli.gordo,
+        args=[
+            "client",
+            "--project",
+            tu.GORDO_PROJECT,
+            "--target",
+            tu.GORDO_SINGLE_TARGET,
+            "metadata",
+            "--output-file",
+            output_file,
+        ],
+    )
+    assert out.exit_code == 0, f"{out.exc_info}"
+    assert os.path.exists(output_file)
+    with open(output_file) as f:
+        metadata = json.load(f)
+        assert tu.GORDO_SINGLE_TARGET in metadata
 
 
-def test_client_cli_download_model(watchman_service):
+def test_client_cli_download_model(watchman_service, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
     runner = CliRunner()
 
-    with tempfile.TemporaryDirectory() as output_dir:
+    # Empty output directory before downloading
+    assert len(os.listdir(tmp_dir)) == 0
 
-        # Empty output directory before downloading
-        assert len(os.listdir(output_dir)) == 0
+    out = runner.invoke(
+        cli.gordo,
+        args=[
+            "client",
+            "--project",
+            tu.GORDO_PROJECT,
+            "--target",
+            tu.GORDO_SINGLE_TARGET,
+            "download-model",
+            tmp_dir,
+        ],
+    )
+    assert (
+        out.exit_code == 0
+    ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
-        out = runner.invoke(
-            cli.gordo,
-            args=[
-                "client",
-                "--project",
-                tu.GORDO_PROJECT,
-                "--target",
-                tu.GORDO_SINGLE_TARGET,
-                "download-model",
-                output_dir,
-            ],
-        )
-        assert (
-            out.exit_code == 0
-        ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
+    # Output directory should not be empty any longer
+    assert len(os.listdir(tmp_dir)) > 0
 
-        # Output directory should not be empty any longer
-        assert len(os.listdir(output_dir)) > 0
+    model_output_dir = os.path.join(tmp_dir, tu.GORDO_SINGLE_TARGET)
+    assert os.path.isdir(model_output_dir)
 
-        model_output_dir = os.path.join(output_dir, tu.GORDO_SINGLE_TARGET)
-        assert os.path.isdir(model_output_dir)
-
-        model = serializer.load(model_output_dir)
-        assert isinstance(model, BaseEstimator)
+    model = serializer.load(model_output_dir)
+    assert isinstance(model, BaseEstimator)
 
 
 @pytest.mark.parametrize(
     "forwarder_args",
     [["--influx-uri", tu.INFLUXDB_URI, "--forward-resampled-sensors"], None],
 )
-@pytest.mark.parametrize("output_dir", [tempfile.TemporaryDirectory(), None])
+@pytest.mark.parametrize("output_dir", [True, False])
 @pytest.mark.parametrize("use_parquet", (True, False))
 @pytest.mark.parametrize("session_config", ({}, {"headers": {}}))
 def test_client_cli_predict(
     influxdb,
     gordo_name,
     watchman_service,
+    tmp_dir,
     forwarder_args,
-    output_dir,
     trained_model_directory,
+    output_dir,
     use_parquet,
     session_config,
 ):
@@ -314,8 +312,8 @@ def test_client_cli_predict(
         assert len(vals) == 0
 
     # Should it write out the predictions to dataframes in an output directory?
-    if output_dir is not None:
-        args.extend(["--output-dir", output_dir.name])
+    if output_dir:
+        args.extend(["--output-dir", tmp_dir])
 
     # Do we have a data provider, POST else GET requests
     args.extend(
@@ -335,10 +333,8 @@ def test_client_cli_predict(
         influx_client.drop_measurement("resampled")
 
     # Did it save dataframes to output dir if specified?
-    if output_dir is not None:
-        assert os.path.exists(
-            os.path.join(output_dir.name, f"{tu.GORDO_SINGLE_TARGET}.csv.gz")
-        )
+    if output_dir:
+        assert os.path.exists(os.path.join(tmp_dir, f"{tu.GORDO_SINGLE_TARGET}.csv.gz"))
 
 
 @pytest.mark.parametrize(
