@@ -49,7 +49,7 @@ GORDO_SINGLE_TARGET = GORDO_TARGETS[0]
 TEST_SERVER_MUTEXT = Lock()
 
 
-def wait_for_influx(max_wait=30, influx_host="localhost:8086"):
+def wait_for_influx(max_wait=40, influx_host="localhost:8086"):
     """Waits up to `max_wait` seconds for influx at `influx_host` to start up.
 
     Checks by pinging inflix at /ping.
