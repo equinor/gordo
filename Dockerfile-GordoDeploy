@@ -5,7 +5,7 @@
 FROM python:3.6.9 as builder
 
 ARG HTTPS_PROXY
-ARG KUBECTL_VERSION="v1.12.1"
+ARG KUBECTL_VERSION="v1.14.8"
 ARG ARGO_VERSION="v2.2.1"
 
 #donwload & install kubectl
