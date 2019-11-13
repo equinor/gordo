@@ -63,3 +63,4 @@ logging.basicConfig(
 )
 
 logging.getLogger("azure.datalake").setLevel(azure_log_level)
+logging.getLogger("matplotlib").setLevel(logging.INFO)
