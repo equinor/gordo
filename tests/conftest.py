@@ -46,9 +46,10 @@ def sensors():
 @pytest.fixture
 def tmp_dir():
     """
-    Fixture: Temporary directory
+    Fixture: Temporary directory, removed after test completion
     """
-    return tempfile.TemporaryDirectory()
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        yield tmp_dir
 
 
 @pytest.fixture(scope="session")
