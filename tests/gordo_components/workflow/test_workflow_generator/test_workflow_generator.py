@@ -137,7 +137,7 @@ def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
         f"--machine-config {fp_config} "
         "--output-file /tmp/out.yaml "
         "&& argo lint /tmp/out.yaml --username lame --password lame'",
-        auto_remove=False,
+        auto_remove=True,
         stderr=True,
         stdout=True,
         detach=False,
