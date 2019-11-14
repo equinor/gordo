@@ -46,7 +46,7 @@ mypy==0.740               # via pytest-mypy
 nbconvert==5.6.1
 nbformat==4.4.0           # via ipywidgets, nbconvert, notebook
 notebook==6.0.2
-numpy==1.17.3             # via scikit-learn, scipy
+numpy==1.17.4             # via scikit-learn, scipy
 packaging==19.2           # via pytest
 pandocfilters==1.4.2      # via nbconvert
 parso==0.5.1              # via jedi
