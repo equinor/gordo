@@ -50,6 +50,10 @@ commands:
           command: |
             mkdir -p /tmp/coverage-reports
             mv ./coverage.xml /tmp/coverage-reports/<< parameters.for >>-coverage.xml
+      - run:
+          name: Rename junit report to << parameters.for >>-junit.xml
+          command: |
+            mv ./junit/junit.xml ./junit/<< parameters.for >>-junit.xml
 
   # Run a collection of 'test' commands
   test-batch:
@@ -75,6 +79,8 @@ commands:
           root: /tmp/coverage-reports
           paths:
             - ./*-coverage.xml
+      - store_test_results:
+          path: ./junit/
       - save-eggs-cache
   upload-coverage-reports:
     description: "Upload the coverage reports"
