@@ -73,9 +73,10 @@ class Machine(ConfigElement):
         local_runtime = config.get("runtime", dict())
         runtime = patch_dict(config_globals.get("runtime", dict()), local_runtime)
 
-        dataset = Dataset.from_config(
-            config.get("dataset") or config_globals.get("dataset")
+        dataset_config = patch_dict(
+            config.get("dataset", dict()), config_globals.get("dataset", dict())
         )
+        dataset = Dataset.from_config(dataset_config)
         evaluation = patch_dict(
             config_globals.get("evaluation", dict()), config.get("evaluation", dict())
         )
