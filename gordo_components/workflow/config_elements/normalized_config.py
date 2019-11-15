@@ -33,8 +33,8 @@ class NormalizedConfig:
             },
             "builder": {
                 "resources": {
-                    "requests": {"memory": 3000, "cpu": 1001},
-                    "limits": {"memory": 3000, "cpu": 1001},
+                    "requests": {"memory": 3900, "cpu": 1001},
+                    "limits": {"memory": 3900, "cpu": 1001},
                 }
             },
             "client": {
