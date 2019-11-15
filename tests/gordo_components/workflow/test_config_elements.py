@@ -83,6 +83,7 @@ class MachineConfigElementTestCase(unittest.TestCase):
             }
         }
     }
+    default_globals["dataset"] = {"asset": "global-asset"}
 
     def test_from_config(self):
         """
@@ -149,6 +150,7 @@ class MachineConfigElementTestCase(unittest.TestCase):
                     "train_end_date": datetime(
                         2018, 1, 2, 9, 0, 30, tzinfo=timezone.utc
                     ).isoformat(),
+                    "asset": "global-asset",
                 },
                 "evaluation": {
                     "cv_mode": "full_build",
