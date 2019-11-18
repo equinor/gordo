@@ -38,7 +38,9 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
     )
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
-    model = DiffBasedAnomalyDetector(base_estimator=base_estimator, scaler=scaler)
+    model = DiffBasedAnomalyDetector(
+        base_estimator=base_estimator, scaler=scaler, require_thresholds=False
+    )
 
     assert isinstance(model, AnomalyDetectorBase)
 
@@ -203,3 +205,30 @@ def test_diff_detector_final_thresholds():
     assert len(output) == 2  # equal to number of features
     assert np.allclose(expected.values, output.values)
     assert output.name == "thresholds"
+
+
+@pytest.mark.parametrize("require_threshold", (True, False))
+def test_diff_detector_require_thresholds(require_threshold: bool):
+    """
+    Should fail if requiring thresholds, but not calling cross_validate
+    """
+    X = pd.DataFrame(np.random.random((100, 5)))
+    y = pd.DataFrame(np.random.random((100, 2)))
+
+    model = DiffBasedAnomalyDetector(
+        base_estimator=MultiOutputRegressor(LinearRegression()),
+        require_thresholds=require_threshold,
+    )
+
+    model.fit(X, y)
+
+    if require_threshold:
+        # FAIL: Forgot to call .cross_validate to calculate thresholds.
+        with pytest.raises(AttributeError):
+            model.anomaly(X, y)
+
+        model.cross_validate(X=X, y=y)
+        model.anomaly(X, y)
+    else:
+        # thresholds not required
+        model.anomaly(X, y)

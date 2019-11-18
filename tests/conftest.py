@@ -93,6 +93,7 @@ def trained_model_directory(
         definition = yaml.safe_load(
             """
             gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+                require_thresholds: false
                 base_estimator:
                     sklearn.pipeline.Pipeline:
                         steps:

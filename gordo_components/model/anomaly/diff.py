@@ -21,6 +21,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
         scaler: TransformerMixin = RobustScaler(),
+        require_thresholds: bool = True,
     ):
         """
         Classifier which wraps a ``base_estimator`` and provides a diff error
@@ -40,9 +41,15 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             Defaults to ``sklearn.preprocessing.RobustScaler``
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
+        require_thresholds: bool
+            Requires calculating ``thresholds_`` via a call to :func:`~DiffBasedAnomalyDetector.cross_validate`.
+            If this is set (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate`
+            was not called before calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
+            will be raised.
         """
         self.base_estimator = base_estimator
         self.scaler = scaler
+        self.require_thresholds = require_thresholds
 
     def __getattr__(self, item):
         """
@@ -253,5 +260,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
                 ),
             )
             data = data.join(anomaly_confidence_scores)
+
+        elif self.require_thresholds:
+            raise AttributeError(
+                f"`require_thresholds={self.require_thresholds}` however `.cross_validate`"
+                f"needs to be called in order to calculate these thresholds before calling `.anomaly`"
+            )
 
         return data
