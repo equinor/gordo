@@ -5,11 +5,15 @@ CLI interfaces
 """
 
 import logging
+import sys
+import traceback
+
 from gunicorn.glogging import Logger
 
 import jinja2
 import yaml
 import click
+from typing import Dict, Type
 
 from gordo_components.builder.build_model import (
     provide_saved_model,
@@ -28,6 +32,10 @@ from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
 from gordo_components.cli.custom_types import key_value_par, HostIP, DataProviderParam
 
+EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
+    PermissionError: 20,
+    FileNotFoundError: 30,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -181,47 +189,28 @@ def build(
     model_config = pipeline_into_definition(pipeline_from_definition(model_config))
     logger.debug(f"Fully expanded model config: {model_config}")
 
-    if evaluation_config["cv_mode"] == "cross_val_only":
+    try:
+        if evaluation_config["cv_mode"] == "cross_val_only":
 
-        cache_model_location = None
-        if model_register_dir is not None:
-            cache_key = calculate_model_key(
-                name, model_config, data_config, evaluation_config, metadata=metadata
-            )
-            cache_model_location = check_cache(model_register_dir, cache_key)
+            cache_model_location = None
+            if model_register_dir is not None:
+                cache_key = calculate_model_key(
+                    name,
+                    model_config,
+                    data_config,
+                    evaluation_config,
+                    metadata=metadata,
+                )
+                cache_model_location = check_cache(model_register_dir, cache_key)
 
-        if cache_model_location:
-            metadata = load_metadata(cache_model_location)
+            if cache_model_location:
+                metadata = load_metadata(cache_model_location)
+            else:
+                _, metadata = build_model(
+                    name, model_config, data_config, metadata, evaluation_config
+                )
+
         else:
-            _, metadata = build_model(
-                name, model_config, data_config, metadata, evaluation_config
-            )
-
-    else:
-        model_location = provide_saved_model(
-            name,
-            model_config,
-            data_config,
-            metadata,
-            output_dir,
-            model_register_dir,
-            evaluation_config=evaluation_config,
-        )
-        metadata = load_metadata(model_location)
-
-    # If the model is cached but without CV scores then we force a rebuild. We do this
-    # by deleting the entry in the cache and then rerun `provide_saved_model`
-    # (leaving the old model laying around)
-    if print_cv_scores:
-        retrieved_metadata = metadata
-        all_scores = get_all_score_strings(retrieved_metadata)
-        if not all_scores:
-            logger.warning(
-                "Found that loaded model does not have cross validation values "
-                "even though we were asked to print them, clearing cache and "
-                "rebuilding model"
-            )
-
             model_location = provide_saved_model(
                 name,
                 model_config,
@@ -229,16 +218,44 @@ def build(
                 metadata,
                 output_dir,
                 model_register_dir,
-                replace_cache=True,
                 evaluation_config=evaluation_config,
             )
-            saved_metadata = load_metadata(model_location)
-            all_scores = get_all_score_strings(saved_metadata)
+            metadata = load_metadata(model_location)
 
-        for score in all_scores:
-            print(score)
+        # If the model is cached but without CV scores then we force a rebuild. We do
+        # this by deleting the entry in the cache and then rerun
+        # `provide_saved_model` (leaving the old model laying around)
+        if print_cv_scores:
+            retrieved_metadata = metadata
+            all_scores = get_all_score_strings(retrieved_metadata)
+            if not all_scores:
+                logger.warning(
+                    "Found that loaded model does not have cross validation values "
+                    "even though we were asked to print them, clearing cache and "
+                    "rebuilding model"
+                )
 
-    return 0
+                model_location = provide_saved_model(
+                    name,
+                    model_config,
+                    data_config,
+                    metadata,
+                    output_dir,
+                    model_register_dir,
+                    replace_cache=True,
+                    evaluation_config=evaluation_config,
+                )
+                saved_metadata = load_metadata(model_location)
+                all_scores = get_all_score_strings(saved_metadata)
+
+            for score in all_scores:
+                print(score)
+    except Exception as e:
+        exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
+        traceback.print_exc()
+        sys.exit(exit_code)
+    else:
+        return 0
 
 
 def expand_model(model_config: str, model_parameters: dict):
