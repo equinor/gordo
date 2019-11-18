@@ -9,6 +9,10 @@ import yaml
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_validate
+from sklearn.model_selection import TimeSeriesSplit
 
 from gordo_components import serializer
 from gordo_components.model import utils as model_utils
@@ -21,7 +25,8 @@ from gordo_components.model.anomaly.base import AnomalyDetectorBase
     "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
 )
 @pytest.mark.parametrize("lookback", (0, 5))
-def test_diff_detector(scaler, index, lookback):
+@pytest.mark.parametrize("with_thresholds", (True, False))
+def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
     """
     Test the functionality of the DiffBasedAnomalyDetector
     """
@@ -32,17 +37,15 @@ def test_diff_detector(scaler, index, lookback):
         pd.DataFrame(np.random.random((10, 3))),
     )
 
-    # Use PCA because it auto adjusts to model input/output like our gordo models
-    base_estimator = PCA()
-
-    # Give PCA a .predict method for the anomaly detector
-    base_estimator.predict = base_estimator.transform
-
+    base_estimator = MultiOutputRegressor(estimator=LinearRegression())
     model = DiffBasedAnomalyDetector(base_estimator=base_estimator, scaler=scaler)
 
     assert isinstance(model, AnomalyDetectorBase)
 
     assert model.get_params() == dict(base_estimator=base_estimator, scaler=scaler)
+
+    if with_thresholds:
+        model.cross_validate(X=X, y=y)
 
     model.fit(X, y)
 
@@ -68,6 +71,11 @@ def test_diff_detector(scaler, index, lookback):
 
     total_anomaly = np.linalg.norm(feature_wise_error, axis=1)
     assert np.allclose(total_anomaly, anomaly_df["total-anomaly"].values)
+
+    if with_thresholds:
+        assert "anomaly-confidence" in anomaly_df.columns
+    else:
+        assert "anomaly-confidence" not in anomaly_df.columns
 
 
 @pytest.mark.parametrize(
@@ -101,3 +109,97 @@ def test_diff_detector_serializability(config):
     serializer.pipeline_into_definition(model)
     serialized_bytes = serializer.dumps(model)
     serializer.loads(serialized_bytes)
+
+
+@pytest.mark.parametrize("n_features_y", range(1, 3))
+@pytest.mark.parametrize("n_features_x", range(1, 3))
+def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
+    """
+    Basic construction logic of thresholds_ attribute in the
+    DiffBasedAnomalyDetector
+    """
+    X = np.random.random((100, n_features_x))
+    y = np.random.random((100, n_features_y))
+
+    model = DiffBasedAnomalyDetector(
+        base_estimator=MultiOutputRegressor(estimator=LinearRegression())
+    )
+
+    # Model has own implementation of cross_validate
+    assert hasattr(model, "cross_validate")
+
+    # When initialized it should not have a threshold calculated.
+    assert not hasattr(model, "thresholds_")
+
+    model.fit(X, y)
+
+    # Until it has done cross validation, it has no threshold.
+    assert not hasattr(model, "thresholds_")
+
+    # Calling cross validate should set the threshold for it.
+    model.cross_validate(X=X, y=y)
+
+    # Now we have calculated thresholds based on cross validation folds
+    assert hasattr(model, "thresholds_")
+    assert isinstance(model.thresholds_, pd.Series)
+    assert len(model.thresholds_) == y.shape[1]
+    assert all(model.thresholds_.notna())
+
+
+@pytest.mark.parametrize("return_estimator", (True, False))
+def test_diff_detector_cross_validate(return_estimator: bool):
+    """
+    DiffBasedAnomalyDetector.cross_validate implementation should be the
+    same as sklearn.model_selection.cross_validate if called the same.
+
+    And it always will update `return_estimator` to True, as it requires
+    the intermediate models to calculate the thresholds
+    """
+    X = np.random.random((100, 10))
+    y = np.random.random((100, 1))
+
+    model = DiffBasedAnomalyDetector(base_estimator=LinearRegression())
+
+    cv = TimeSeriesSplit(n_splits=3)
+    cv_results_da = model.cross_validate(
+        X=X, y=y, cv=cv, return_estimator=return_estimator
+    )
+    cv_results_sk = cross_validate(model, X=X, y=y, cv=cv, return_estimator=True)
+
+    assert cv_results_da.keys() == cv_results_sk.keys()
+
+
+# simulate LSTM outptu shorter than input
+@pytest.mark.parametrize("y_pred_shape", ((100, 2), (90, 2)))
+@pytest.mark.parametrize("y_true_shape", ((100, 2),))
+def test_diff_detector_fold_thresholds(y_pred_shape: tuple, y_true_shape: tuple):
+    """
+    Calculation of intermediate folds from y predicted and y true
+    """
+    y_pred = np.random.random(y_pred_shape)
+    y_true = np.random.random(y_true_shape)
+
+    expected = (
+        pd.DataFrame(np.abs(y_pred - y_true[-len(y_pred) :])).rolling(6).min().max()
+    )
+    output = DiffBasedAnomalyDetector._fold_thresholds(
+        y_true=y_true, y_pred=y_pred, fold=1
+    )
+
+    assert np.allclose(expected.values, output.values)
+    assert output.name == "fold-1"
+
+
+def test_diff_detector_final_thresholds():
+    """
+    Final thresholds is simply calculated as the mean of
+    previously calculated fold thresholds
+    """
+    thresholds = pd.DataFrame(np.random.random((4, 2)))  # 4 folds and 2 features
+
+    expected = thresholds.mean()
+    output = DiffBasedAnomalyDetector._final_thresholds(thresholds=thresholds)
+    assert isinstance(output, pd.Series)
+    assert len(output) == 2  # equal to number of features
+    assert np.allclose(expected.values, output.values)
+    assert output.name == "thresholds"

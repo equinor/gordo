@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Optional
 from datetime import timedelta
 from sklearn.base import BaseEstimator
+
 from gordo_components.model.base import GordoBase
 
 
