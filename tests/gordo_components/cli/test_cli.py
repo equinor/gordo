@@ -11,7 +11,11 @@ from unittest import mock
 
 
 from gordo_components import cli
-from gordo_components.cli.cli import expand_model, DEFAULT_MODEL_CONFIG
+from gordo_components.cli.cli import (
+    expand_model,
+    DEFAULT_MODEL_CONFIG,
+    EXCEPTION_TO_EXITCODE,
+)
 from gordo_components.serializer import serializer
 from tests.utils import temp_env_vars
 
@@ -222,6 +226,36 @@ class CliTestCase(unittest.TestCase):
         model_template = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
         with self.assertRaises(ValueError):
             expand_model(model_template, model_params)
+
+
+@pytest.mark.parametrize(
+    "exception,exit_code",  # ArithmeticError is not in the mapping of exceptions to
+    # exit codes, so it should default to 1
+    [(FileNotFoundError, 30), (Exception, 1), (ArithmeticError, 1)],
+)
+def test_build_exit_code(exception, exit_code, tmp_dir: str):
+    """
+    Test that cli build exists with different exit codes for different errors.
+    """
+
+    runner = CliRunner()
+
+    logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG_WITH_PREDICT)}")
+    with mock.patch(
+        "gordo_components.cli.cli.build_model",
+        mock.MagicMock(side_effect=exception, autospec=True, return_value=None),
+    ):
+        with temp_env_vars(
+            MODEL_NAME="model-name",
+            OUTPUT_DIR=tmp_dir,
+            DATA_CONFIG=DATA_CONFIG,
+            MODEL_CONFIG=json.dumps(MODEL_CONFIG_WITH_PREDICT),
+        ):
+            result = runner.invoke(
+                cli.gordo,
+                ["build", '--evaluation-config={"cv_mode": "cross_val_only"}'],
+            )
+            assert result.exit_code == exit_code
 
 
 @pytest.mark.parametrize(
