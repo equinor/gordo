@@ -66,7 +66,7 @@ class DatasetConfigElementTestCase(unittest.TestCase):
               train_start_date: 2018-05-10T15:05:50+02:00
               train_end_date: 2018-05-10T15:05:50+02:00
         """
-        dataset_config = yaml.load(element_str)["dataset"]
+        dataset_config = yaml.load(element_str, Loader=yaml.FullLoader)["dataset"]
         with self.assertRaises(ValueError):
             Dataset.from_config(dataset_config)
 
