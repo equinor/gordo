@@ -1282,16 +1282,6 @@ spec:
         template: gordo-watchman-to-postgres
         {% endif %}
 
-  - name: ml-server
-    inputs:
-      parameters:
-        - name: host-name
-    steps:
-      -  - name: serve-model
-           template: gordo-server
-           arguments:
-             parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
-
   - name: do-all
     dag:
       tasks:
@@ -1301,12 +1291,10 @@ spec:
           template: gordo-watchman
           dependencies:
             - ensure-single-workflow
-        - name: ml-server
-          template: ml-server
+        - name: gordo-server
+          template: gordo-server
           arguments:
-            parameters:
-              - name: host-name
-                value: "ml-server-{{ project_name }}"
+            parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
           dependencies:
             - ensure-single-workflow
         {% for machine in machines %}
@@ -1322,12 +1310,12 @@ spec:
             ]
           dependencies:
             - watchman
-            - ml-server
+            - gordo-server
         - name: model-notification-{{ machine.name }}
           template: gordo-notification-svc
           arguments:
             parameters: [{name: model-name, value: "{{ machine.name }}"},
-                         {name: host-name, value: "ml-server-{{ project_name }}"}
+                         {name: host-name, value: "gordo-srv-{{ project_name }}"}
             ]
           dependencies:
             - model-builder-{{ machine.name }}
@@ -1366,7 +1354,7 @@ spec:
               - name: data-provider
                 value: "{{ machine.data_provider.to_dict() }}"
           dependencies:
-            - ml-server
+            - gordo-server
             - gordo-influx
             - model-builder-{{ machine.name }}
         {% endif %}
