@@ -10,27 +10,17 @@ spec:
   config:
     machines:
 
-      - dataset:
+      - name: ct-23-0001 #1st machine
+        dataset:
           tags: #list of tags for 1st machine
             - TAG 1
             - TAG 2
             - TAG 3
           train_start_date: 2016-11-07T09:11:30+01:00
           train_end_date: 2018-09-15T03:01:00+01:00
-        runtime:
-          server:
-            resources:
-              requests: # The resources we require reserved
-                memory: 1700 # Request 1.7G of memory
-                cpu: 2000 # Request two cores, while e.g. 250 would mean a quarter core
-              limits: # The resources we are limited to using.
-                memory: 2000 #Kill the server if it uses more than 2GB
-                cpu: 2000 #Throttle the server to never using more than 2 cores
-        metadata:
-            model-hierarchy: "1218 -\u003e -\u003e g's"
-        name: ct-23-0001 #1st machine
 
-      - dataset:
+      - name: ct-23-0002 #2nd machine
+        dataset:
           resolution: 2T
           tags: #list of tags for 2nd machine
             - TAG 1
@@ -39,28 +29,27 @@ spec:
           train_start_date: 2018-05-20T01:00:04+02:00
           train_end_date: 2019-05-10T15:05:50+02:00
         runtime:
-          server: #one can override just a single resource request as well
+          builder: #one can override just a single resource request as well
             resources:
               requests:
                 memory: 1000
           influx: # Dont push results for this single model to influx
             enable: False
-        name: ct-23-0002 #2nd machine
 
-      - dataset:
+      - name: ct-23-0003 #3rd machine
+        dataset:
           tags: #list of tags for 3rd machine
             - TAG 1
             - TAG 2
             - TAG 3
           train_start_date: 2018-09-15T13:03:04+02:00
           train_end_date: 2019-03-11T11:05:10+02:00
-        name: ct-23-0003 #3rd machine
 
     globals:
       runtime:
         influx: # Change to False to disable influx. Default value: True
           enable: True
-        builder: # The model builder can only be customized globally, any per-machine settings will be ignored.
+        builder: # The model builder can be customized per-machine, or set globally
           resources:
             requests:
               memory: 4000 #4 GB of memory
@@ -68,6 +57,14 @@ spec:
             # since limits are not specified, the defaults are used (3GB memory and 32 cores CPU), but since the memory
             # limit (3GB) is less than request(4GB), which is not allowed, the memory limit will be lifted to match
             # the memory request (4GB).
+        server:  # The model server can only be set globally
+          resources:
+            requests: # The resources we require reserved
+              memory: 1700 # Request 1.7G of memory
+              cpu: 2000 # Request two cores, while e.g. 250 would mean a quarter core
+            limits: # The resources we are limited to using.
+              memory: 2000 #Kill the server if it uses more than 2GB
+              cpu: 2000 #Throttle the server to never using more than 2 cores
       model:
         gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
           base_estimator:
