@@ -419,7 +419,8 @@ def test_model_names_embedded(path_to_config_files):
         path_to_config_files, "config-test-allowed-timestamps.yml"
     )
     parsed_machines = yaml.load(
-        output_workflow["metadata"]["annotations"]["gordo-models"]
+        output_workflow["metadata"]["annotations"]["gordo-models"],
+        Loader=yaml.FullLoader,
     )
     assert parsed_machines == ["machine-1", "machine-2", "machine-3"]
 
