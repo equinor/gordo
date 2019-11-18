@@ -83,7 +83,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self,
         *,
         X: Union[pd.DataFrame, np.ndarray],
-        y: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+        y: Union[pd.DataFrame, np.ndarray],
         cv=TimeSeriesSplit(n_splits=3),
         **kwargs,
     ):
@@ -95,7 +95,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         ----------
         X: Union[pd.DataFrame, np.ndarray]
             Input data to the model
-        y: Optional[Union[pd.DataFrame, np.ndarray]]
+        y: Union[pd.DataFrame, np.ndarray]
             Target data
         kwargs: dict
             Any additional kwargs to be passed to :func:`sklearn.model_selection.cross_validate`
