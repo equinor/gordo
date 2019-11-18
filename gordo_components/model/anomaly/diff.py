@@ -107,18 +107,17 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
-        X = X if not isinstance(X, pd.DataFrame) else X.values
-        y = y if not isinstance(y, pd.DataFrame) else y.values
+        X = X.values if hasattr(X, "values") else X
+        y = y.values if hasattr(y, "values") else y
 
-        # Base cv_output dict, which we'll supplement
         cv_output = cross_validate(self, X=X, y=y, **kwargs)
 
         thresholds = pd.DataFrame()
 
-        for i, ((test_idxs, _train_idxs), model) in enumerate(
+        for i, ((test_idxs, _train_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
         ):
-            y_pred = model.predict(X[test_idxs])
+            y_pred = split_model.predict(X[test_idxs])
             y_true = y[test_idxs]
 
             diff = self._fold_thresholds(y_true=y_true, y_pred=y_pred, fold=i)
@@ -241,7 +240,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         if hasattr(self, "thresholds_"):
-            y = y if not hasattr(y, "values") else y.values
+            y = y.values if hasattr(y, "values") else y
             model_output = data["model-output"].values
             abs_diff = np.abs(model_output - y[-len(model_output) :])
             confidence_percentage = np.clip(abs_diff / self.thresholds_.values, 0, 1)
