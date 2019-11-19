@@ -97,7 +97,7 @@ class EndpointStatuses:
             # If we are listening to kubernetes events
             # we only do a "manual" update of every endpoint every 20 min
             self.happy_update_model_interval = 1200
-            watcher = watch_for_model_server_service(
+            watcher = watch_for_model_resource(
                 namespace=namespace,
                 project_name=self.project_name,
                 project_version=project_version,
@@ -291,7 +291,7 @@ def fetch_single_model_metadata(
     )
 
 
-def watch_for_model_server_service(
+def watch_for_model_resource(
     namespace: str, project_name: str, project_version: str, event_handler: Callable
 ):
     selectors = {
