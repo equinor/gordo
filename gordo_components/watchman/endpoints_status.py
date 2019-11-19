@@ -9,7 +9,7 @@ import kubernetes
 import pytz
 import requests
 
-from gordo_components.watchman.gordo_k8s_interface import watch_namespaced_services
+from gordo_components.watchman.gordo_k8s_interface import watch_namespaced_custom_object
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class EndpointStatuses:
             # If we are listening to kubernetes events
             # we only do a "manual" update of every endpoint every 20 min
             self.happy_update_model_interval = 1200
-            watcher = watch_for_model_server_service(
+            watcher = watch_for_model_resource(
                 namespace=namespace,
                 project_name=self.project_name,
                 project_version=project_version,
@@ -149,8 +149,8 @@ class EndpointStatuses:
         event_obj: kubernetes.client.models.v1_service.V1Service = event["object"]
         logger.debug(f"Full k8s event: {event}")
         model_name = None
-        if event_obj.metadata is not None and event_obj.metadata.labels is not None:
-            model_name = event_obj.metadata.labels.get(
+        if event_obj.get("metadata", dict()).get("labels") is not None:
+            model_name = event_obj["metadata"]["labels"].get(
                 "applications.gordo.equinor.com/model-name", None
             )
 
@@ -291,18 +291,18 @@ def fetch_single_model_metadata(
     )
 
 
-def watch_for_model_server_service(
+def watch_for_model_resource(
     namespace: str, project_name: str, project_version: str, event_handler: Callable
 ):
     selectors = {
         "applications.gordo.equinor.com/project-name": project_name,
         "applications.gordo.equinor.com/project-version": project_version,
-        "app.kubernetes.io/component": "service",
+        "app.kubernetes.io/component": "model",
         "app.kubernetes.io/managed-by": "gordo",
         "app.kubernetes.io/name": "model-server",
         "app.kubernetes.io/part-of": "gordo",
     }
 
-    return watch_namespaced_services(
+    return watch_namespaced_custom_object(
         event_handler=event_handler, namespace=namespace, selectors=selectors
     )

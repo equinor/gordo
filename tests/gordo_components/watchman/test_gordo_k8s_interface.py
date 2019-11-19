@@ -3,7 +3,7 @@ import logging
 import time
 from mock import MagicMock
 
-from gordo_components.watchman.gordo_k8s_interface import watch_namespaced_services
+from gordo_components.watchman.gordo_k8s_interface import watch_namespaced_custom_object
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def test_watch_service(mocker):
     mocker.patch("kubernetes.watch.watch.Watch.stream", watch_stream_mock)
     mock_client.list_service_for_all_namespaces = return_increasing_nr_and_sleep
 
-    watch_thread = watch_namespaced_services(
+    watch_thread = watch_namespaced_custom_object(
         event_handler=assign_to_last_sendt_var,
         namespace="somenamespace",
         client=mock_client,
@@ -50,7 +50,7 @@ def test_watch_service(mocker):
     watch_thread.join()
 
     # And again, but this time with selectors
-    watch_thread = watch_namespaced_services(
+    watch_thread = watch_namespaced_custom_object(
         event_handler=assign_to_last_sendt_var,
         namespace="somenamespace",
         client=mock_client,

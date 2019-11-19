@@ -418,9 +418,10 @@ def test_valid_dateformats(path_to_config_files):
     output_workflow = _generate_test_workflow_str(
         path_to_config_files, "config-test-allowed-timestamps.yml"
     )
-    # Three from the dataset and three from the start for tag fetching
-    assert output_workflow.count("2016-11-07") == 6
-    assert output_workflow.count("2017-11-07") == 3
+    # Three from the dataset, three from the start for tag fetching, and three in
+    # each machine's model-crd specification
+    assert output_workflow.count("2016-11-07") == 9
+    assert output_workflow.count("2017-11-07") == 6
 
 
 def test_model_names_embedded(path_to_config_files):

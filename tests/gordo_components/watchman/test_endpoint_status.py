@@ -30,7 +30,7 @@ def test_EndpointStatuses(mocker):
     host = "localhost"
     target_names = ["target 1", "target 2"]
     mocked_watch = mocker.patch(
-        "gordo_components.watchman.endpoints_status.watch_for_model_server_service"
+        "gordo_components.watchman.endpoints_status.watch_for_model_resource"
     )
     eps = EndpointStatuses(
         scheduler=scheduler,
@@ -57,11 +57,10 @@ def test_EndpointStatuses(mocker):
 
     # Target 1 is online!
     # We make a fake event
-    mock_event_obj = MagicMock()
-    mock_event_obj.metadata = MagicMock()
-    mock_event_obj.metadata.labels = {
-        "applications.gordo.equinor.com/model-name": "target 1"
-    }
+    mock_event_obj = dict(
+        metadata=dict(labels={"applications.gordo.equinor.com/model-name": "target 1"})
+    )
+
     # And we let the caller know about it
     event_handler({"type": "ADDED", "object": mock_event_obj})
 
@@ -71,7 +70,7 @@ def test_EndpointStatuses(mocker):
     assert scheduler.get_job("update_model_metadata_target 1") is not None
 
     # Target 2 is up as well
-    mock_event_obj.metadata.labels[
+    mock_event_obj["metadata"]["labels"][
         "applications.gordo.equinor.com/model-name"
     ] = "target 2"
     event_handler({"type": "ADDED", "object": mock_event_obj})
@@ -81,7 +80,7 @@ def test_EndpointStatuses(mocker):
     assert scheduler.get_job("update_model_metadata_target 2") is not None
 
     # Oida, target 1 seems to be removed!
-    mock_event_obj.metadata.labels = {
+    mock_event_obj["metadata"]["labels"] = {
         "applications.gordo.equinor.com/model-name": "target 1"
     }
 

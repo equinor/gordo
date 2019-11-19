@@ -23,7 +23,7 @@ def load_config():
     """
     try:
         config.load_kube_config()  # Local .kube/config
-    except FileNotFoundError:
+    except (FileNotFoundError, TypeError):
         config.load_incluster_config()  # Within cluster auth for a pod
 
 
@@ -93,7 +93,7 @@ class ThreadedWatcher(threading.Thread):
         self._die_after_next = val
 
 
-def watch_namespaced_services(
+def watch_namespaced_custom_object(
     event_handler: Callable,
     namespace: str,
     client: Optional[kubernetes.client.apis.core_v1_api.CoreV1Api] = None,
@@ -126,20 +126,23 @@ def watch_namespaced_services(
 
     if client is None:
         load_config()
-        client = kubeclient.CoreV1Api()
+        client = kubeclient.CustomObjectsApi()
     else:
         client = client
+
+    kwargs = dict(
+        event_handler=event_handler,
+        watched_function=client.list_namespaced_custom_object,
+        namespace=namespace,
+        group="equinor.com",
+        version="v1",
+        plural="models",
+    )
     if selectors:
         return ThreadedWatcher(
-            watched_function=client.list_namespaced_service,
-            event_handler=event_handler,
-            label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
-            namespace=namespace,
+            label_selector=",".join(f"{k}={v}" for k, v in selectors.items()), **kwargs
         )
     else:
         return ThreadedWatcher(
-            client.list_namespaced_service,
-            event_handler,
-            field_selector=f"metadata.namespace=={namespace}",
-            namespace=namespace,
+            field_selector=f"metadata.namespace=={namespace}", **kwargs
         )
