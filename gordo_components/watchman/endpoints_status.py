@@ -9,7 +9,7 @@ import kubernetes
 import pytz
 import requests
 
-from gordo_components.watchman.gordo_k8s_interface import watch_namespaced_services
+from gordo_components.watchman.gordo_k8s_interface import watch_namespaced_custom_object
 
 logger = logging.getLogger(__name__)
 
@@ -297,12 +297,12 @@ def watch_for_model_server_service(
     selectors = {
         "applications.gordo.equinor.com/project-name": project_name,
         "applications.gordo.equinor.com/project-version": project_version,
-        "app.kubernetes.io/component": "service",
+        "app.kubernetes.io/component": "model",
         "app.kubernetes.io/managed-by": "gordo",
         "app.kubernetes.io/name": "model-server",
         "app.kubernetes.io/part-of": "gordo",
     }
 
-    return watch_namespaced_services(
+    return watch_namespaced_custom_object(
         event_handler=event_handler, namespace=namespace, selectors=selectors
     )

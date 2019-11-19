@@ -93,7 +93,7 @@ class ThreadedWatcher(threading.Thread):
         self._die_after_next = val
 
 
-def watch_namespaced_services(
+def watch_namespaced_custom_object(
     event_handler: Callable,
     namespace: str,
     client: Optional[kubernetes.client.apis.core_v1_api.CoreV1Api] = None,
@@ -131,14 +131,14 @@ def watch_namespaced_services(
         client = client
     if selectors:
         return ThreadedWatcher(
-            watched_function=client.list_namespaced_service,
+            watched_function=client.list_namespaced_custom_object,
             event_handler=event_handler,
             label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
             namespace=namespace,
         )
     else:
         return ThreadedWatcher(
-            client.list_namespaced_service,
+            client.list_namespaced_custom_object,
             event_handler,
             field_selector=f"metadata.namespace=={namespace}",
             namespace=namespace,

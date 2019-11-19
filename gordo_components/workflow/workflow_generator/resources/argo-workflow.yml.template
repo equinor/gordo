@@ -809,7 +809,7 @@ spec:
                     labels:
                       app: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
                       app.kubernetes.io/name: model-server
-                      app.kubernetes.io/component: service
+                      app.kubernetes.io/component: model
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
