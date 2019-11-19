@@ -29,7 +29,7 @@ spec:
     # * OnPodSuccess - delete pods immediately when pod is successful
     # * OnWorkflowCompletion - delete pods when workflow is completed
     # * OnWorkflowSuccess - delete pods when workflow is successful
-    strategy: OnWorkflowSuccess
+    strategy: OnPodSuccess
   onExit: sql-and-cleanup
   volumes:
   - name: azurefile
