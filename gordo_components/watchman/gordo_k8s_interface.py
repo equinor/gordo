@@ -23,7 +23,7 @@ def load_config():
     """
     try:
         config.load_kube_config()  # Local .kube/config
-    except FileNotFoundError:
+    except (FileNotFoundError, TypeError):
         config.load_incluster_config()  # Within cluster auth for a pod
 
 
