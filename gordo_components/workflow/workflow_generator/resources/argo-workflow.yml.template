@@ -793,10 +793,7 @@ spec:
     inputs:
       parameters:
         - name: model-name
-        - name: evaluation
-        - name: dataset
-        - name: model
-        - name: metadata
+        - name: config
     steps:
       - - name: apply-with-retries
           template: apply-with-retries
@@ -824,13 +821,7 @@ spec:
                   spec:
                     gordo-version: {{ gordo_version }}
                     config:
-                      {% raw %}
-                      name: {{inputs.parameters.model-name}}
-                      dataset: {{inputs.parameters.dataset}}
-                      model: {{inputs.parameters.model}}
-                      metadata: {{inputs.parameters.metadata}}
-                      evaluation: {{inputs.parameters.evaluation}}
-                      {% endraw %}
+                      {% raw %}{{ inputs.parameters.config }}{% endraw %}
 
   - name: gordo-server-deployment
     inputs:
@@ -1335,18 +1326,9 @@ spec:
             parameters:
               - name: model-name
                 value: "{{ machine.name }}"
-              - name: dataset
+              - name: config
                 value: |
-                  {{ machine.dataset.to_dict() | tojson }}
-              - name: evaluation
-                value: |
-                  {{ machine.evaluation | tojson }}
-              - name: metadata
-                value: |
-                  {{ machine.metadata | tojson }}
-              - name: model
-                value: |
-                  {{ machine.model | tojson }}
+                  {{ machine.to_dict() | tojson }}
           dependencies:
             - model-builder-{{ machine.name }}
         {% endfor %}
