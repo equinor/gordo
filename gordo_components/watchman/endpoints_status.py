@@ -149,8 +149,8 @@ class EndpointStatuses:
         event_obj: kubernetes.client.models.v1_service.V1Service = event["object"]
         logger.debug(f"Full k8s event: {event}")
         model_name = None
-        if event_obj.metadata is not None and event_obj.metadata.labels is not None:
-            model_name = event_obj.metadata.labels.get(
+        if event_obj.get("metadata", dict()).get("labels") is not None:
+            model_name = event_obj["metadata"]["labels"].get(
                 "applications.gordo.equinor.com/model-name", None
             )
 
