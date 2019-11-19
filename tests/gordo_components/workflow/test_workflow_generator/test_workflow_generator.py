@@ -154,10 +154,7 @@ def test_basic_generation(path_to_config_files):
     """
 
     project_name = "some-fancy-project-name"
-    model_config = (
-        "{'sklearn.pipeline.Pipeline': {'steps': ['sklearn.preprocessing.data.MinMaxScaler',"
-        " {'gordo_components.model.models.KerasAutoEncoder': {'kind': 'feedforward_hourglass'}}]}}"
-    )
+    model_config = '{"sklearn.pipeline.Pipeline": {"steps": ["sklearn.preprocessing.data.MinMaxScaler", {"gordo_components.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}}]}}'
 
     config_filename = "config-test-with-models.yml"
     expanded_template = _generate_test_workflow_str(
@@ -214,6 +211,25 @@ def test_generation_to_file(tmp_dir, path_to_config_files):
     assert outfile_contents.rstrip() == expanded_template.rstrip()
 
 
+def test_quotes_work(path_to_config_files):
+    """Tests that quotes various places result in valid yaml"""
+    expanded_template = _generate_test_workflow_yaml(
+        path_to_config_files, "config-test-quotes.yml"
+    )
+    model_builder_machine_1_env = _get_env_for_machine_build_serve_task(
+        "machine-1", expanded_template
+    )
+    machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["metadata"])
+    assert machine_1_metadata["machine-metadata"] == {
+        "withSingle": "a string with ' in it",
+        "withDouble": 'a string with " in it',
+        "single'in'key": "why not",
+    }
+
+    machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["data-config"])
+    assert machine_1_dataset["tags"] == ["CT/1", 'CT"2', "CT'3"]
+
+
 def test_overrides_builder_datasource(path_to_config_files):
     expanded_template = _generate_test_workflow_yaml(
         path_to_config_files, "config-test-datasource.yml"
@@ -230,21 +246,18 @@ def test_overrides_builder_datasource(path_to_config_files):
     )
 
     # ct_23_0002 uses the global overriden requests, but default limits
-    assert (
-        "{'type': 'DataLakeProvider', 'threads': 20}"
-        == model_builder_machine_1_env["data-provider"]
+    assert {"type": "DataLakeProvider", "threads": 20} == yaml.safe_load(
+        model_builder_machine_1_env["data-provider"]
     )
 
     # This value must be changed if we change the default values
-    assert (
-        "{'type': 'custom', 'threads': 20}"
-        == model_builder_machine_2_env["data-provider"]
+    assert {"type": "custom", "threads": 20} == yaml.safe_load(
+        model_builder_machine_2_env["data-provider"]
     )
 
     # ct_23_0003 uses locally overriden request memory
-    assert (
-        "{'type': 'DataLakeProvider', 'threads': 10}"
-        == model_builder_machine_3_env["data-provider"]
+    assert {"type": "DataLakeProvider", "threads": 10} == yaml.safe_load(
+        model_builder_machine_3_env["data-provider"]
     )
 
 
