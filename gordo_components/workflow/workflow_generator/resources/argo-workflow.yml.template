@@ -788,8 +788,8 @@ spec:
                       - destination:
                           host: "{{'{{inputs.parameters.host-name}}'}}"
 
-  # CRD to notify watchman that a model has been built and can be served by the ML Server
-  - name: gordo-model-crd
+  # Model resource to notify watchman that a model has been built and can be served by the ML Server
+  - name: gordo-model
     inputs:
       parameters:
         - name: model-name
@@ -1320,7 +1320,7 @@ spec:
             - watchman
             - gordo-server
         - name: gordo-mdl-{{ machine.name }}
-          template: gordo-model-crd
+          template: gordo-model
           arguments:
             parameters:
               - name: model-name
