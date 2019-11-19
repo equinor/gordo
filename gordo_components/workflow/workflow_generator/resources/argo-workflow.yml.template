@@ -788,15 +788,15 @@ spec:
                       - destination:
                           host: "{{'{{inputs.parameters.host-name}}'}}"
 
-  # SVC to notify watchman that a model has been built and can be served by the ML Server
-  # This should only be temporary, as it's not _really_ a service, but used to notify Watchman
-  # that the model is built and should be able to be contacted via the main server.
-  # Here until we create a 'GordoModel' CRD which can then notify that the model is built.
-  - name: gordo-notification-svc
+  # CRD to notify watchman that a model has been built and can be served by the ML Server
+  - name: gordo-model-crd
     inputs:
       parameters:
         - name: model-name
-        - name: host-name
+        - name: evaluation
+        - name: dataset
+        - name: model
+        - name: metadata
     steps:
       - - name: apply-with-retries
           template: apply-with-retries
@@ -806,9 +806,9 @@ spec:
                 value: |
                   ---
                   apiVersion: v1
-                  kind: Service
+                  kind: Model
                   metadata:
-                    name: "gordo-ntf-{{project_name}}-{{'{{inputs.parameters.model-name}}'}}"
+                    name: "gordo-mdl-{{project_name}}-{% raw %}{{inputs.parameters.model-name}}{% endraw %}"
                     labels:
                       app: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
                       app.kubernetes.io/name: model-server
@@ -822,8 +822,15 @@ spec:
                     ownerReferences: {{owner_references}}
                     {% endif %}
                   spec:
-                    clusterIP: None
-
+                    gordo-version: {{ gordo_version }}
+                    config:
+                      {% raw %}
+                      name: {{inputs.parameters.model-name}}
+                      dataset: {{inputs.parameters.dataset}}
+                      model: {{inputs.parameters.model}}
+                      metadata: {{inputs.parameters.metadata}}
+                      evaluation: {{inputs.parameters.evaluation}}
+                      {% endraw %}
 
   - name: gordo-server-deployment
     inputs:
@@ -1322,12 +1329,24 @@ spec:
           dependencies:
             - watchman
             - gordo-server
-        - name: model-notification-{{ machine.name }}
-          template: gordo-notification-svc
+        - name: gordo-mdl-{{ machine.name }}
+          template: gordo-model-crd
           arguments:
-            parameters: [{name: model-name, value: "{{ machine.name }}"},
-                         {name: host-name, value: "gordo-srv-{{ project_name }}"}
-            ]
+            parameters:
+              - name: model-name
+                value: "{{ machine.name }}"
+              - name: dataset
+                value: |
+                  {{ machine.dataset.to_dict() | tojson }}
+              - name: evaluation
+                value: |
+                  {{ machine.evaluation | tojson }}
+              - name: metadata
+                value: |
+                  {{ machine.metadata | tojson }}
+              - name: model
+                value: |
+                  {{ machine.model | tojson }}
           dependencies:
             - model-builder-{{ machine.name }}
         {% endfor %}
