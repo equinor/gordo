@@ -802,7 +802,7 @@ spec:
               - name: resource
                 value: |
                   ---
-                  apiVersion: v1
+                  apiVersion: equinor.com/v1
                   kind: Model
                   metadata:
                     name: "gordo-mdl-{{project_name}}-{% raw %}{{inputs.parameters.model-name}}{% endraw %}"
