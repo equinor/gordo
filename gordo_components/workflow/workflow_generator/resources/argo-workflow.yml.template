@@ -1301,13 +1301,24 @@ spec:
         - name: model-builder-{{ machine.name }}
           template: model-builder
           arguments:
-            parameters: [{name: model-name, value: "{{ machine.name }}"},
-                         {name: model-config, value: "{{ machine.model }}"},
-                         {name: metadata, value: "{{ machine.metadata }}"},
-                         {name: data-config, value: "{{ machine.dataset.to_dict() }}"},
-                         {name: data-provider, value: "{{ machine.data_provider.to_dict() }}"},
-                         {name: evaluation-config, value: "{{ machine.evaluation}}"},
-            ]
+            parameters:
+              - name: model-name
+                value: "{{ machine.name }}"
+              - name: model-config
+                value: |
+                  {{ machine.model  | tojson }}
+              - name: metadata
+                value: |
+                  {{ machine.metadata | tojson }}
+              - name: data-config
+                value: |
+                  {{ machine.dataset.to_dict() | tojson }}
+              - name: data-provider
+                value: |
+                  {{ machine.data_provider.to_dict() | tojson }}
+              - name: evaluation-config
+                value: |
+                  {{ machine.evaluation | tojson}}
           dependencies:
             - watchman
             - gordo-server

@@ -26,6 +26,8 @@ spec:
               limits: # The resources we are limited to using.
                 memory: 2000 #Kill the server if it uses more than 2GB
                 cpu: 2000 #Throttle the server to never using more than 2 cores
+        metadata:
+            model-hierarchy: "1218 -\u003e -\u003e g's"
         name: ct-23-0001 #1st machine
 
       - dataset:
