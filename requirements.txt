@@ -73,7 +73,7 @@ retrying==1.3.3           # via plotly
 rsa==4.0                  # via google-auth
 scikit-learn==0.21.3
 scipy==1.3.1              # via catboost, scikit-learn
-simplejson==3.16.0
+simplejson==3.17.0
 six==1.12.0               # via absl-py, apscheduler, catboost, cryptography, cycler, flask-restplus, google-auth, grpcio, h5py, influxdb, jsonschema, keras-preprocessing, kubernetes, plotly, protobuf, pyarrow, pyrsistent, python-dateutil, retrying, tensorboard, tensorflow, websocket-client
 tensorboard==2.0.1        # via tensorflow
 tensorflow-estimator==2.0.1  # via tensorflow
