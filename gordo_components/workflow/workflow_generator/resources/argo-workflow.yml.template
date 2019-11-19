@@ -821,7 +821,7 @@ spec:
                   spec:
                     gordo-version: {{ gordo_version }}
                     config:
-                      {% raw %}{{ inputs.parameters.config }}{% endraw %}
+                      {% raw %}{{inputs.parameters.config}}{% endraw %}
 
   - name: gordo-server-deployment
     inputs:
