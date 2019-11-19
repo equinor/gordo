@@ -47,7 +47,9 @@ def _asset_from_tag_name(tag_name: str):
                 f"returning {pattern.asset_name}"
             )
             return pattern.asset_name
-    raise ValueError(f"Unable to find asset for tag with name {tag_name}")
+    raise SensorTagNormalizationError(
+        f"Unable to find asset for tag with name {tag_name}"
+    )
 
 
 def _normalize_sensor_tag(sensor: Union[Dict, List, str, SensorTag], asset: str = None):
@@ -66,7 +68,7 @@ def _normalize_sensor_tag(sensor: Union[Dict, List, str, SensorTag], asset: str 
     elif isinstance(sensor, SensorTag):
         return sensor
 
-    raise ValueError(
+    raise SensorTagNormalizationError(
         f"Sensor {sensor} with type {type(sensor)}cannot be converted to a valid "
         f"SensorTag"
     )
@@ -103,3 +105,9 @@ def normalize_sensor_tags(
 
 def to_list_of_strings(sensor_tag_list: List[SensorTag]):
     return [sensor_tag.name for sensor_tag in sensor_tag_list]
+
+
+class SensorTagNormalizationError(ValueError):
+    """Error indicating that something went wrong normalizing a sensor tag"""
+
+    pass

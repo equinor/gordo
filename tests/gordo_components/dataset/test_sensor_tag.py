@@ -1,6 +1,9 @@
 import pytest
 
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags
+from gordo_components.dataset.sensor_tag import (
+    normalize_sensor_tags,
+    SensorTagNormalizationError,
+)
 from gordo_components.dataset.sensor_tag import SensorTag
 
 
@@ -70,6 +73,6 @@ def test_normalize_sensor_tags_ok(good_input_tags, asset, expected_output_tags):
 
 
 def test_normalize_sensor_tags_not_ok():
-    with pytest.raises(ValueError):
+    with pytest.raises(SensorTagNormalizationError):
         tag_list_as_list_of_strings_nonsense = [TAG_NAME1, TAG_NAME2]
         normalize_sensor_tags(tag_list_as_list_of_strings_nonsense)
