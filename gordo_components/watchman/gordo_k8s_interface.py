@@ -126,7 +126,7 @@ def watch_namespaced_custom_object(
 
     if client is None:
         load_config()
-        client = kubeclient.CoreV1Api()
+        client = kubeclient.CustomObjectsApi()
     else:
         client = client
 
