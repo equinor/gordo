@@ -131,19 +131,18 @@ def watch_namespaced_custom_object(
         client = client
 
     kwargs = dict(
-        namespace=namespace, group="equinor.com", version="v1", plural="models"
+        event_handler=event_handler,
+        watched_function=client.list_namespaced_custom_object,
+        namespace=namespace,
+        group="equinor.com",
+        version="v1",
+        plural="models",
     )
     if selectors:
         return ThreadedWatcher(
-            watched_function=client.list_namespaced_custom_object,
-            event_handler=event_handler,
-            label_selector=",".join(f"{k}={v}" for k, v in selectors.items()),
-            **kwargs,
+            label_selector=",".join(f"{k}={v}" for k, v in selectors.items()), **kwargs
         )
     else:
         return ThreadedWatcher(
-            client.list_namespaced_custom_object,
-            event_handler,
-            field_selector=f"metadata.namespace=={namespace}",
-            **kwargs,
+            field_selector=f"metadata.namespace=={namespace}", **kwargs
         )
