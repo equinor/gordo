@@ -198,16 +198,13 @@ def build(
         if evaluation_config["cv_mode"] == "cross_val_only":
 
             if model_register_dir is not None:
-                cache_model_location = builder.check_cache(
-                    model_register_dir, builder.cache_key
-                )
+                cache_model_location = builder.check_cache(model_register_dir)
+                if cache_model_location:
+                    metadata = serializer.load_metadata(cache_model_location)
+                else:
+                    _model, metadata = builder.build()
             else:
-                cache_model_location = None
-
-            if cache_model_location:
-                metadata = serializer.load_metadata(cache_model_location)
-            else:
-                _, metadata = builder.build()
+                _model, metadata = builder.build()
 
         else:
             model_location = builder.provide_saved_model(output_dir, model_register_dir)
