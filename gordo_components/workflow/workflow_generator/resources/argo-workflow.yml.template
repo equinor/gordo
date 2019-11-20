@@ -1260,7 +1260,10 @@ spec:
         echo "Deleting gordo deployments and services for project {{project_name}} different than {{project_version}}" \
          && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
-         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}}
+         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
+         && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_version}}" \
+         && kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version={{project_version}}
+
       resources:
         requests:
           memory: 50M
