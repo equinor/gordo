@@ -25,5 +25,5 @@ cchardet~=2.1
 urllib3>=1.24.2,<2.0
 simplejson~=3.17
 gevent~=1.4.0
-catboost~=0.18
+catboost~=0.19
 typing_extensions~=3.7
