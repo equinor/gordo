@@ -15,15 +15,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn import metrics
 
 import gordo_components
-from gordo_components.builder.build_model import (
-    _save_model_for_workflow,
-    provide_saved_model,
-    _get_metadata,
-    _determine_offset,
-    get_metrics_dict,
-    metrics_from_list,
-)
-from gordo_components.builder import build_model
+from gordo_components.builder import ModelBuilder
 from gordo_components.dataset.sensor_tag import SensorTag
 from gordo_components.model import models
 from gordo_components.serializer import serializer
@@ -85,7 +77,7 @@ def test_get_metrics_dict_scaler(scaler, mock):
         np.array([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5]]) * [1, 100],
         columns=["Tag 1", "Tag 2"],
     )
-    metrics_dict = get_metrics_dict(metrics_list, y, scaler=scaler)
+    metrics_dict = ModelBuilder.build_metrics_dict(metrics_list, y, scaler=scaler)
     metric_func = metrics_dict["mean-squared-error"]
 
     mock_model.predict = lambda _y: _y * [0.8, 1]
@@ -114,7 +106,7 @@ def test_determine_offset(model: BaseEstimator, expected_offset: int):
     """
     X, y = np.random.random((100, 10)), np.random.random((100, 10))
     model.fit(X, y)
-    offset = _determine_offset(model, X)
+    offset = ModelBuilder._determine_offset(model, X)
     assert offset == expected_offset
 
 
@@ -127,16 +119,15 @@ def test_output_dir(tmp_dir):
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "some", "sub", "directories")
-
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
+    builder = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
     )
+    model, metadata = builder.build()
     metadata_check(metadata, False)
 
-    _save_model_for_workflow(model=model, metadata=metadata, output_dir=output_dir)
+    builder._save_model_for_workflow(
+        model=model, metadata=metadata, output_dir=output_dir
+    )
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -202,12 +193,9 @@ def test_builder_metadata(raw_model_config):
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     data_config = get_random_data()
 
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-    )
+    model, metadata = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    ).build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
     metadata_check(metadata, "Keras" in raw_model_config)
 
@@ -285,7 +273,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
 
     model.fit(X, y)
 
-    metadata = _get_metadata(model)
+    metadata = ModelBuilder._extract_metadata_from_model(model)
 
     # All the metadata we've implemented so far is 'history', so we'll check that
     if not expect_empty_dict:
@@ -353,12 +341,9 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
 def test_scores_metadata(raw_model_config):
     data_config = get_random_data()
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-    )
+    model, metadata = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    ).build()
     metadata_check(metadata, False)
 
 
@@ -385,12 +370,9 @@ def test_output_scores_metadata():
             """
 
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    model, metadata = build_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-    )
+    model, metadata = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    ).build()
     scores_metadata = metadata["model"]["cross-validation"]["scores"]
     assert (
         scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
@@ -421,13 +403,9 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "model")
 
-    provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-        output_dir=output_dir,
-    )
+    ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    ).provide_saved_model(output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -442,26 +420,21 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     output_dir = os.path.join(tmp_dir, "model")
     registry_dir = os.path.join(tmp_dir, "registry")
 
-    model_location1 = provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-        output_dir=output_dir,
-        model_register_dir=registry_dir,
+    builder = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    )
+    model_location1 = builder.provide_saved_model(
+        output_dir=output_dir, model_register_dir=registry_dir
     )
 
     assert model_location1 == output_dir
 
-    # Saving to same output_dir as the one saved in the registry just returns the
-    # output_dir
-    model_location2 = provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-        output_dir=output_dir,
-        model_register_dir=registry_dir,
+    # Saving to same output_dir as the one saved in the registry just returns the output_dir
+    builder = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    )
+    model_location2 = builder.provide_saved_model(
+        output_dir=output_dir, model_register_dir=registry_dir
     )
     assert model_location2 == output_dir
 
@@ -477,32 +450,18 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
 
     registry_dir = os.path.join(tmp_dir, "registry")
 
-    provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-        output_dir=output_dir1,
-        model_register_dir=registry_dir,
+    builder = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
     )
+    builder.provide_saved_model(output_dir=output_dir1, model_register_dir=registry_dir)
 
-    model_location2 = provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-        output_dir=output_dir2,
-        model_register_dir=registry_dir,
+    model_location2 = builder.provide_saved_model(
+        output_dir=output_dir2, model_register_dir=registry_dir
     )
     assert model_location2 == output_dir2
 
-    model_location3 = provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata={},
-        output_dir=output_dir2,
-        model_register_dir=registry_dir,
+    model_location3 = builder.provide_saved_model(
+        output_dir=output_dir2, model_register_dir=registry_dir
     )
     assert model_location3 == output_dir2
 
@@ -555,24 +514,21 @@ def test_provide_saved_model_caching(
     output_dir = os.path.join(tmp_dir, "model")
     registry_dir = os.path.join(tmp_dir, "registry")
 
-    model_location = provide_saved_model(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        output_dir=output_dir,
-        metadata={},
-        model_register_dir=registry_dir,
-    )
+    model_location = ModelBuilder(
+        name="model-name", model_config=model_config, data_config=data_config
+    ).provide_saved_model(output_dir=output_dir, model_register_dir=registry_dir)
 
     if tag_list:
         data_config["tag_list"] = tag_list
+
     new_output_dir = os.path.join(tmp_dir, "model2")
-    model_location2 = provide_saved_model(
+    model_location2 = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
-        output_dir=new_output_dir,
         metadata=metadata,
+    ).provide_saved_model(
+        output_dir=new_output_dir,
         model_register_dir=registry_dir,
         replace_cache=replace_cache,
     )
@@ -609,13 +565,12 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
 
-    model, metadata = build_model(
+    model, metadata = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
-        metadata={},
         evaluation_config=evaluation_config,
-    )
+    ).build()
     if should_be_equal:
         assert model is not None
     else:
@@ -643,13 +598,12 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
     if metrics_:
         evaluation_config.update({"metrics": metrics_})
 
-    _model, metadata = build_model(
+    _model, metadata = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
-        metadata={},
         evaluation_config=evaluation_config,
-    )
+    ).build()
 
     expected_metrics = metrics_ or [
         "sklearn.metrics.explained_variance_score",
@@ -669,7 +623,7 @@ def test_metrics_from_list():
     """
     Check getting functions from a list of metric names
     """
-    default = metrics_from_list()
+    default = ModelBuilder.metrics_from_list()
     assert default == [
         metrics.explained_variance_score,
         metrics.r2_score,
@@ -677,7 +631,7 @@ def test_metrics_from_list():
         metrics.mean_absolute_error,
     ]
 
-    specifics = metrics_from_list(
+    specifics = ModelBuilder.metrics_from_list(
         ["sklearn.metrics.adjusted_mutual_info_score", "sklearn.metrics.r2_score"]
     )
     assert specifics == [metrics.adjusted_mutual_info_score, metrics.r2_score]
@@ -709,20 +663,18 @@ def test_setting_seed(seed, model_config):
 
     # Training two instances, without a seed should result in different scores,
     # while doing it with a seed should result in the same scores.
-    _model, metadata1 = build_model(
+    _model, metadata1 = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
-        metadata={},
         evaluation_config=evaluation_config,
-    )
-    _model, metadata2 = build_model(
+    ).build()
+    _model, metadata2 = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
-        metadata={},
         evaluation_config=evaluation_config,
-    )
+    ).build()
 
     df1 = pd.DataFrame.from_dict(metadata1["model"]["cross-validation"]["scores"])
     df2 = pd.DataFrame.from_dict(metadata2["model"]["cross-validation"]["scores"])

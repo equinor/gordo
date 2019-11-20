@@ -9,7 +9,7 @@ from gordo_components.workflow.config_elements.normalized_config import Normaliz
 from gordo_components.workflow.workflow_generator.workflow_generator import (
     get_dict_from_yaml,
 )
-from gordo_components.builder.build_model import build_model
+from gordo_components.builder import ModelBuilder
 
 
 def local_build(config_str: str) -> Iterable[Tuple[Union[BaseEstimator, None], dict]]:
@@ -66,10 +66,10 @@ def local_build(config_str: str) -> Iterable[Tuple[Union[BaseEstimator, None], d
     config = get_dict_from_yaml(io.StringIO(config_str))
     normed = NormalizedConfig(config, project_name="local-build")
     for machine in normed.machines:
-        yield build_model(
+        yield ModelBuilder(
             name=machine.name,
             model_config=machine.model,
             data_config=machine.dataset.to_dict(),
             metadata=machine.metadata,
             evaluation_config=machine.evaluation,
-        )
+        ).build()
