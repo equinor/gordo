@@ -23,13 +23,6 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 115200 # 32 hours
   entrypoint: do-all
-  podGC:
-    # pod gc strategy must be one of the following
-    # * OnPodCompletion - delete pods immediately when pod is completed (including errors/failures)
-    # * OnPodSuccess - delete pods immediately when pod is successful
-    # * OnWorkflowCompletion - delete pods when workflow is completed
-    # * OnWorkflowSuccess - delete pods when workflow is successful
-    strategy: OnWorkflowSuccess
   onExit: sql-and-cleanup
   volumes:
   - name: azurefile
