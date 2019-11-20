@@ -259,10 +259,9 @@ class ModelBuilder:
         -------
             dict
         """
-        if isinstance(scaler, str):
-            scaler = serializer.pipeline_from_definition(scaler)
-
         if scaler:
+            if isinstance(scaler, str) or isinstance(scaler, dict):
+                scaler = serializer.pipeline_from_definition(scaler)
             logger.debug("Fitting scaler for scoring purpose")
             scaler.fit(y)
 
