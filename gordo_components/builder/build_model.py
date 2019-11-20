@@ -46,7 +46,8 @@ class ModelBuilder:
         },
     ):
         """
-        Build a model and serialize to a directory for later serving.
+        Use the raw data from Gordo config file keys: name, model, dataset, metadata, and evalution
+        to build the final ML model.
 
         Parameters
         ----------
@@ -83,6 +84,22 @@ class ModelBuilder:
 
                         {"cv_mode": "cross_val_only",
                         "scoring_scaler": "sklearn.preprocessing.RobustScaler"}
+
+        Example
+        -------
+        >>> from gordo_components.dataset.sensor_tag import SensorTag
+        >>> builder = ModelBuilder(
+        ...     name="special-model-name",
+        ...     model_config={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+        ...     data_config={
+        ...         "type": "RandomDataset",
+        ...         "train_start_date": "2017-12-25 06:00:00Z",
+        ...         "train_end_date": "2017-12-30 06:00:00Z",
+        ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...     }
+        ... )
+        >>> model, metadata = builder.build()
         """
         self.name = name
         self.model_config = model_config.copy()
