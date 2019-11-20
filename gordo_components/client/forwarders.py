@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import abc
 import itertools
 import logging
 import time
@@ -33,7 +34,20 @@ keyvalue pairs
 logger = logging.getLogger(__name__)
 
 
-class ForwardPredictionsIntoInflux:
+class PredictionForwarder(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def __call__(
+        self,
+        *,
+        predictions: pd.DataFrame = None,
+        endpoint: EndpointMetadata = None,
+        metadata: dict = dict(),
+        resampled_sensor_data: pd.DataFrame = None,
+    ):
+        ...
+
+
+class ForwardPredictionsIntoInflux(PredictionForwarder):
     """
     To be used as a 'forwarder' for the prediction client
 
