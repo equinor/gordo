@@ -33,10 +33,29 @@ TAG_TO_ASSET = [
 ]
 
 
-def _asset_from_tag_name(tag_name: str):
+def _asset_from_tag_name(tag_name: str, default_asset: str = None):
     """
     Resolves a tag to the asset it belongs to, if possible.
-    Returns None if it does not match any of the tag-regexps we know.
+
+    If `default_asset` is provided then it will be used as the fallback in case it
+    is impossible to resolve tag_name to an asset.
+
+    Parameters
+    ----------
+    tag_name : str
+        Tag to deduce the asset from.
+    default_asset : str
+        Asset to report if we are not able to resolve tag_name to an assets.
+
+    Returns
+    -------
+    str
+        The asset for provided tag.
+
+    Raises
+    ------
+    SensorTagNormalizationError
+        If we are not able to resolve the tag to an asset and default_asset is not set.
     """
     logger.debug(f"Looking for pattern for tag {tag_name}")
 
@@ -47,18 +66,27 @@ def _asset_from_tag_name(tag_name: str):
                 f"returning {pattern.asset_name}"
             )
             return pattern.asset_name
-    raise SensorTagNormalizationError(
-        f"Unable to find asset for tag with name {tag_name}"
-    )
+    if default_asset:
+        return default_asset
+    else:
+        raise SensorTagNormalizationError(
+            f"Unable to find asset for tag with name {tag_name}"
+        )
 
 
-def _normalize_sensor_tag(sensor: Union[Dict, List, str, SensorTag], asset: str = None):
+def _normalize_sensor_tag(
+    sensor: Union[Dict, List, str, SensorTag],
+    asset: str = None,
+    default_asset: str = None,
+):
     if isinstance(sensor, Dict):
         return SensorTag(sensor["name"], sensor["asset"])
 
     elif isinstance(sensor, str):
         if asset is None:
-            return SensorTag(sensor, _asset_from_tag_name(sensor))
+            return SensorTag(
+                sensor, _asset_from_tag_name(sensor, default_asset=default_asset)
+            )
         else:
             return SensorTag(sensor, asset)
 
@@ -69,24 +97,35 @@ def _normalize_sensor_tag(sensor: Union[Dict, List, str, SensorTag], asset: str 
         return sensor
 
     raise SensorTagNormalizationError(
-        f"Sensor {sensor} with type {type(sensor)}cannot be converted to a valid "
+        f"Sensor {sensor} with type {type(sensor)} cannot be converted to a valid "
         f"SensorTag"
     )
 
 
 def normalize_sensor_tags(
-    sensors: List[Union[Dict, str, SensorTag]], asset: str = None
+    sensors: List[Union[Dict, str, SensorTag]],
+    asset: str = None,
+    default_asset: str = None,
 ) -> List[SensorTag]:
     """
     Converts a list of sensors in different formats, into a list of SensorTag elements.
-    Note, if you input a list of SensorTag elements, these will just be returned.
+
+    Notes
+    -----
+    If you input a list of SensorTag elements, these will just be returned.
+    If you input a list of lists or a list of dicts they are expected to contain the
+    tag-name and the asset, and no deduction will happen.
 
     Parameters
     ----------
     sensors : List[Union[Mapping, str, SensorTag]]
             List of sensors
     asset : str
-            Optional asset code to put on sensors that don't have it
+            Optional asset code to put on sensors that don't have it. If this is
+            provided we will not attempt to deduce the asset from the tagame.
+    default_asset : str
+            Optional asset code to put on sensors that dont have it and which we are not
+            able to resolve to an asset.
 
     Returns
     -------
@@ -98,7 +137,7 @@ def normalize_sensor_tags(
         f"Normalizing list of sensors in some format into SensorTags: {sensors}"
     )
     return [
-        _normalize_sensor_tag(sensor_tag_element, asset)
+        _normalize_sensor_tag(sensor_tag_element, asset, default_asset)
         for sensor_tag_element in sensors
     ]
 

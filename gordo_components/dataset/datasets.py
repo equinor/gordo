@@ -60,6 +60,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         aggregation_methods: Union[str, List[str], Callable] = "mean",
         row_filter_buffer_size: int = 0,
         asset: Optional[str] = None,
+        default_asset: Optional[str] = None,
         **_kwargs,
     ):
         """
@@ -107,13 +108,16 @@ class TimeSeriesDataset(GordoBaseDataset):
             Default is zero 0
         asset: Optional[str]
             Asset for which the tags are associated with.
+        default_asset: Optional[str]
+            Asset which will be used if `asset` is not provided and the tag is not
+            resolvable to a specific asset.
         _kwargs
         """
         self.from_ts = self._validate_dt(from_ts)
         self.to_ts = self._validate_dt(to_ts)
-        self.tag_list = normalize_sensor_tags(list(tag_list), asset)
+        self.tag_list = normalize_sensor_tags(list(tag_list), asset, default_asset)
         self.target_tag_list = (
-            normalize_sensor_tags(list(target_tag_list), asset)
+            normalize_sensor_tags(list(target_tag_list), asset, default_asset)
             if target_tag_list
             else []
         )
