@@ -486,7 +486,7 @@ class ModelBuilder:
             )
             return None
 
-    def provide_saved_model(
+    def build_with_cache(
         self,
         output_dir: Union[os.PathLike, str],
         model_register_dir: Union[os.PathLike, str] = None,

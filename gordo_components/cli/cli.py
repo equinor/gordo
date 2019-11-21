@@ -207,7 +207,7 @@ def build(
                 _model, metadata = builder.build()
 
         else:
-            model_location = builder.provide_saved_model(output_dir, model_register_dir)
+            model_location = builder.build_with_cache(output_dir, model_register_dir)
             metadata = serializer.load_metadata(model_location)
 
         # If the model is cached but without CV scores then we force a rebuild. We do
@@ -223,7 +223,7 @@ def build(
                     "rebuilding model"
                 )
 
-                model_location = builder.provide_saved_model(
+                model_location = builder.build_with_cache(
                     output_dir, model_register_dir, replace_cache=True
                 )
                 saved_metadata = serializer.load_metadata(model_location)

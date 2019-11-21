@@ -405,7 +405,7 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
 
     ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).provide_saved_model(output_dir=output_dir)
+    ).build_with_cache(output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -423,7 +423,7 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    model_location1 = builder.provide_saved_model(
+    model_location1 = builder.build_with_cache(
         output_dir=output_dir, model_register_dir=registry_dir
     )
 
@@ -433,7 +433,7 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    model_location2 = builder.provide_saved_model(
+    model_location2 = builder.build_with_cache(
         output_dir=output_dir, model_register_dir=registry_dir
     )
     assert model_location2 == output_dir
@@ -453,14 +453,14 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    builder.provide_saved_model(output_dir=output_dir1, model_register_dir=registry_dir)
+    builder.build_with_cache(output_dir=output_dir1, model_register_dir=registry_dir)
 
-    model_location2 = builder.provide_saved_model(
+    model_location2 = builder.build_with_cache(
         output_dir=output_dir2, model_register_dir=registry_dir
     )
     assert model_location2 == output_dir2
 
-    model_location3 = builder.provide_saved_model(
+    model_location3 = builder.build_with_cache(
         output_dir=output_dir2, model_register_dir=registry_dir
     )
     assert model_location3 == output_dir2
@@ -516,7 +516,7 @@ def test_provide_saved_model_caching(
 
     model_location = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).provide_saved_model(output_dir=output_dir, model_register_dir=registry_dir)
+    ).build_with_cache(output_dir=output_dir, model_register_dir=registry_dir)
 
     if tag_list:
         data_config["tag_list"] = tag_list
@@ -527,7 +527,7 @@ def test_provide_saved_model_caching(
         model_config=model_config,
         data_config=data_config,
         metadata=metadata,
-    ).provide_saved_model(
+    ).build_with_cache(
         output_dir=new_output_dir,
         model_register_dir=registry_dir,
         replace_cache=replace_cache,
