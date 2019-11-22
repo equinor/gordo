@@ -23,6 +23,10 @@ from gordo_components.dataset.sensor_tag import SensorTag
 logger = logging.getLogger(__name__)
 
 
+class NoSuitableDataProviderError(ValueError):
+    pass
+
+
 def load_series_from_multiple_providers(
     data_providers: typing.List[GordoBaseDataProvider],
     from_ts: datetime,
@@ -58,7 +62,9 @@ def load_series_from_multiple_providers(
                 break
         # The else branch is executed if the break is not called
         else:
-            raise ValueError(f"Found no data providers able to download the tag {tag} ")
+            raise NoSuitableDataProviderError(
+                f"Found no data providers able to download the tag {tag} "
+            )
     before_downloading = timeit.default_timer()
     for tag_reader, readers_tags in readers_to_tags.items():
         if readers_tags:

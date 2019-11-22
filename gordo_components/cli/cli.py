@@ -8,6 +8,7 @@ import logging
 import sys
 import traceback
 
+from gordo_components.data_provider.providers import NoSuitableDataProviderError
 from gordo_components.dataset.sensor_tag import SensorTagNormalizationError
 from gunicorn.glogging import Logger
 
@@ -37,6 +38,7 @@ EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     PermissionError: 20,
     FileNotFoundError: 30,
     SensorTagNormalizationError: 60,
+    NoSuitableDataProviderError: 70,
 }
 
 logger = logging.getLogger(__name__)
