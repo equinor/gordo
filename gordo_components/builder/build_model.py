@@ -46,15 +46,16 @@ class ModelBuilder:
         },
     ):
         """
-        Use the raw data from Gordo config file keys: name, model, dataset, metadata, and evalution
-        to build the final ML model.
+        Use the raw data from Gordo config file keys: name, model, dataset,
+        metadata, and evalution to build the final ML model.
 
         Parameters
         ----------
         name: str
             Name of model to be built
         model_config: dict
-            Mapping of Model to initialize and any additional kwargs which are to be used in it's initialization.
+            Mapping of Model to initialize and any additional kwargs which are
+            to be used in it's initialization.
             Example::
 
               {'type': 'KerasAutoEncoder',
@@ -67,7 +68,8 @@ class ModelBuilder:
         evaluation_config: dict
             Dict of parameters which are exposed to build_model.
                 - cv_mode: str
-                    String which enables three different modes, represented as a key value in evaluation_config:
+                    String which enables three different modes, represented as a
+                    key value in evaluation_config:
                     * cross_val_only: Only perform cross validation
                     * build_only: Skip cross validation and only build the model
                     * full_build: Cross validation and full build of the model, default value
@@ -364,8 +366,8 @@ class ModelBuilder:
         model: BaseEstimator
         metadata: dict
             Any initial starting metadata, but is mainly meant to be used during
-            the recursive calls to accumulate any multiple :class:`gordo_components.model.base.GordoBase`
-            models found in this model
+            the recursive calls to accumulate any multiple
+            :class:`gordo_components.model.base.GordoBase` models found in this model
 
         Notes
         -----
@@ -375,7 +377,8 @@ class ModelBuilder:
         Returns
         -------
         dict
-            Dictionary representing accumulated calls to :meth:`gordo_components.model.base.GordoBase.get_metadata`
+            Dictionary representing accumulated calls to
+            :meth:`gordo_components.model.base.GordoBase.get_metadata`
         """
         metadata = metadata.copy()
 
@@ -422,8 +425,8 @@ class ModelBuilder:
             self.metadata = {}
 
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
-        # consistent hash-values even if json.dumps changes their default values (and as such might
-        # generate different json which again gives different hash)
+        # consistent hash-values even if json.dumps changes their default values
+        # (and as such might generate different json which again gives different hash)
         json_rep = json.dumps(
             {
                 "name": self.name,
@@ -579,8 +582,8 @@ class ModelBuilder:
         Parameters
         ----------
         metrics: Optional[List[str]]
-            List of function paths to use as metrics for the model
-            Defaults to those specified in :class:`gordo_components.workflow.config_components.NormalizedConfig`
+            List of function paths to use as metrics for the model Defaults to
+            those specified in :class:`gordo_components.workflow.config_components.NormalizedConfig`
             sklearn.metrics.explained_variance_score,
             sklearn.metrics.r2_score,
             sklearn.metrics.mean_squared_error,
