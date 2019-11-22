@@ -11,6 +11,7 @@ from cachetools import cached, TTLCache
 import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
+from threading import Lock
 
 from gordo_components.data_provider.azure_utils import create_adls_client
 from gordo_components.data_provider.base import GordoBaseDataProvider, capture_args
@@ -124,6 +125,7 @@ class DataLakeProvider(GordoBaseDataProvider):
             "DL_SERVICE_AUTH_STR"
         )
         self.client = None
+        self._client_get_lock = Lock()
         self.kwargs = kwargs
 
     def load_series(
@@ -151,12 +153,16 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
 
     def _get_client(self):
-        if not self.client:
-            self.client = create_adls_client(
-                storename=self.storename,
-                dl_service_auth_str=self.dl_service_auth_str,
-                interactive=self.interactive,
-            )
+        self._client_get_lock.acquire()
+        try:
+            if not self.client:
+                self.client = create_adls_client(
+                    storename=self.storename,
+                    dl_service_auth_str=self.dl_service_auth_str,
+                    interactive=self.interactive,
+                )
+        finally:
+            self._client_get_lock.release()
         return self.client
 
     def _get_sub_dataproviders(self):
