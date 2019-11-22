@@ -331,7 +331,7 @@ class ModelBuilder:
         model: BaseEstimator, metadata: dict, output_dir: Union[os.PathLike, str]
     ):
         """
-        Save a model according to the expected Argo workflow procedure.
+        Save the model according to the expected Argo workflow procedure.
 
         Parameters
         ----------
@@ -357,7 +357,7 @@ class ModelBuilder:
     ) -> dict:
         """
         Recursively check for :class:`gordo_components.model.base.GordoBase` in a
-        given ``model``. If such a model exists buried inside of a
+        given ``model``. If such the model exists buried inside of a
         :class:`sklearn.pipeline.Pipeline` which is then part of another
         :class:`sklearn.base.BaseEstimator`, this function will return its metadata.
 
@@ -407,7 +407,7 @@ class ModelBuilder:
     @property
     def cache_key(self) -> str:
         """
-        Calculates a hash-key from a model and data-config.
+        Calculates a hash-key from the model and data-config.
 
         Returns
         -------
@@ -452,7 +452,7 @@ class ModelBuilder:
 
     def check_cache(self, model_register_dir: Union[os.PathLike, str]):
         """
-        Checks if a model is cached, and returns its path if it exists.
+        Checks if the model is cached, and returns its path if it exists.
 
         Parameters
         ----------
