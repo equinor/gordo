@@ -17,17 +17,8 @@ import yaml
 import click
 from typing import Dict, Type
 
-from gordo_components.builder.build_model import (
-    provide_saved_model,
-    check_cache,
-    calculate_model_key,
-    build_model,
-)
-from gordo_components.serializer import (
-    load_metadata,
-    pipeline_into_definition,
-    pipeline_from_definition,
-)
+from gordo_components.builder.build_model import ModelBuilder
+from gordo_components import serializer
 from gordo_components.server import server
 from gordo_components import watchman, __version__
 from gordo_components.cli.workflow_generator import workflow_cli
@@ -162,7 +153,7 @@ def build(
         config wherever there is a jinja variable with the key.
 
     evaluation_config: dict
-        Dict of parameters which are exposed to build_model.
+        Dict of parameters which are exposed to ModelBuilder.build.
             - cv_mode: str
                 String which enables three different modes, represented as a key value in evaluation_config:
                 * cross_val_only: Only perform cross validation
@@ -190,41 +181,34 @@ def build(
     # Convert the config into a pipeline, and back into definition to ensure
     # all default parameters are part of the config.
     logger.debug(f"Ensuring the passed model config is fully expanded.")
-    model_config = pipeline_into_definition(pipeline_from_definition(model_config))
+    model_config = serializer.pipeline_into_definition(
+        serializer.pipeline_from_definition(model_config)
+    )
     logger.debug(f"Fully expanded model config: {model_config}")
+
+    builder = ModelBuilder(
+        name=name,
+        model_config=model_config,
+        data_config=data_config,
+        metadata=metadata,
+        evaluation_config=evaluation_config,
+    )
 
     try:
         if evaluation_config["cv_mode"] == "cross_val_only":
 
-            cache_model_location = None
             if model_register_dir is not None:
-                cache_key = calculate_model_key(
-                    name,
-                    model_config,
-                    data_config,
-                    evaluation_config,
-                    metadata=metadata,
-                )
-                cache_model_location = check_cache(model_register_dir, cache_key)
-
-            if cache_model_location:
-                metadata = load_metadata(cache_model_location)
+                cache_model_location = builder.check_cache(model_register_dir)
+                if cache_model_location:
+                    metadata = serializer.load_metadata(cache_model_location)
+                else:
+                    _model, metadata = builder.build()
             else:
-                _, metadata = build_model(
-                    name, model_config, data_config, metadata, evaluation_config
-                )
+                _model, metadata = builder.build()
 
         else:
-            model_location = provide_saved_model(
-                name,
-                model_config,
-                data_config,
-                metadata,
-                output_dir,
-                model_register_dir,
-                evaluation_config=evaluation_config,
-            )
-            metadata = load_metadata(model_location)
+            model_location = builder.build_with_cache(output_dir, model_register_dir)
+            metadata = serializer.load_metadata(model_location)
 
         # If the model is cached but without CV scores then we force a rebuild. We do
         # this by deleting the entry in the cache and then rerun
@@ -239,17 +223,10 @@ def build(
                     "rebuilding model"
                 )
 
-                model_location = provide_saved_model(
-                    name,
-                    model_config,
-                    data_config,
-                    metadata,
-                    output_dir,
-                    model_register_dir,
-                    replace_cache=True,
-                    evaluation_config=evaluation_config,
+                model_location = builder.build_with_cache(
+                    output_dir, model_register_dir, replace_cache=True
                 )
-                saved_metadata = load_metadata(model_location)
+                saved_metadata = serializer.load_metadata(model_location)
                 all_scores = get_all_score_strings(saved_metadata)
 
             for score in all_scores:
