@@ -53,7 +53,7 @@ numpy==1.17.4
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
 pandas==0.25.3
-peewee==3.11.2
+peewee==3.12.0
 plotly==4.2.1             # via catboost
 protobuf==3.10.0          # via tensorboard, tensorflow
 psycopg2-binary==2.8.4
@@ -89,4 +89,4 @@ wrapt==1.11.2             # via tensorflow
 zipp==0.6.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==41.6.0        # via apscheduler, gunicorn, jsonschema, kiwisolver, kubernetes, markdown, protobuf, tensorboard
+# setuptools==42.0.0        # via apscheduler, gunicorn, jsonschema, kiwisolver, kubernetes, markdown, protobuf, tensorboard
