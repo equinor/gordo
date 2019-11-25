@@ -106,7 +106,13 @@ class ThreadedListWatcher(threading.Thread):
                             {"resource_version": initial_resource_version}
                         )
                     for event in w.stream(self.func, **self.kwargs):
-                        self.process_event(event)
+                        if event.get("type", "").upper() == "ERROR":
+                            logger.debug(
+                                "Error-event received from k8s, restarting watch"
+                            )
+                            break  # List the objects again
+                        else:
+                            self.process_event(event)
                         if self._die_after_next:
                             return
                 except ApiException:
