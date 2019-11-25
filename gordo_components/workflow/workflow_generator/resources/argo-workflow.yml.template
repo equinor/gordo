@@ -1357,8 +1357,7 @@ spec:
                 value: |
                   {{ machine.evaluation | tojson}}
               - name: enable-remote-logging
-                value: |
-                  {{ machine.runtime.builder.remote_logging.enable }}
+                value: {{ machine.runtime.builder.remote_logging.enable }}
           dependencies:
             - watchman
             - gordo-server
