@@ -27,16 +27,19 @@ def load_config():
         config.load_incluster_config()  # Within cluster auth for a pod
 
 
-class ThreadedWatcher(threading.Thread):
-    """Thread watching for changes in kubernetes. Will restart on
+class ThreadedListWatcher(threading.Thread):
+    """Thread list-then-watch for kubernetes resources. Will restart on
     `kubernetes.client.rest.ApiException`, other exceptions causes an interrupt of the
     main thread.
     """
 
     def __init__(self, watched_function: Callable, event_handler: Callable, **kwargs):
         """
-        A  thread watching for kubernetes changes using `watched_function`, invoking
-        `event_handler` on each event emitted by the watched function.
+        A  thread list-then-watch for kubernetes resources using `watched_function`,
+        invoking `event_handler` on each event emitted by the watched function.
+
+        `watched_function` is called once in the beginning, and all returned elements
+        are sent as events with `type`: `None` and `object` being the resource.
 
         `watched_function` is expected to be of a type which can be used by
         :py:func:`kubernetes.watch.watch.Watch.stream`, most prominently
@@ -74,7 +77,34 @@ class ThreadedWatcher(threading.Thread):
         try:
             while True:
                 try:
+
+                    logger.debug(
+                        f"Calling func {self.func} for initial list of elements"
+                    )
+                    initial_list_resp = self.func(**self.kwargs)
+                    initial_resource_version = initial_list_resp.get(
+                        "metadata", {}
+                    ).get("resourceVersion", None)
+
+                    initial_list = initial_list_resp.get("items", [])
+
+                    logger.debug(
+                        f"Initial list of objects had resource_version {initial_resource_version}"
+                    )
+                    logger.debug(
+                        f"Initial list of objects had {len(initial_list)} items"
+                    )
+
+                    for item in initial_list:
+                        self.process_event({"type": None, "object": item})
+
+                    logger.debug("Done processing initial list of elements")
+
                     w = watch.Watch()
+                    if initial_resource_version:
+                        self.kwargs.update(
+                            {"resource_version": initial_resource_version}
+                        )
                     for event in w.stream(self.func, **self.kwargs):
                         self.process_event(event)
                         if self._die_after_next:
@@ -98,9 +128,9 @@ def watch_namespaced_custom_object(
     namespace: str,
     client: Optional[kubernetes.client.apis.core_v1_api.CoreV1Api] = None,
     selectors: Optional[Dict[str, str]] = None,
-) -> ThreadedWatcher:
+) -> ThreadedListWatcher:
     """Watches changes to k8s services in a given namespace, and executed
-    `event_handler` for each event.
+    `event_handler` for each event, pluss for all initial objects in the cluster.
 
     Returns the watching thread, which must be started by the caller.
 
@@ -119,7 +149,7 @@ def watch_namespaced_custom_object(
 
     Returns
     -------
-    gordo_components.watchman.gordo_k8s_interface.ThreadedWatcher
+    gordo_components.watchman.gordo_k8s_interface.ThreadedListWatcher
         The watching thread, must be started by the caller.
 
     """
@@ -139,10 +169,10 @@ def watch_namespaced_custom_object(
         plural="models",
     )
     if selectors:
-        return ThreadedWatcher(
+        return ThreadedListWatcher(
             label_selector=",".join(f"{k}={v}" for k, v in selectors.items()), **kwargs
         )
     else:
-        return ThreadedWatcher(
+        return ThreadedListWatcher(
             field_selector=f"metadata.namespace=={namespace}", **kwargs
         )
