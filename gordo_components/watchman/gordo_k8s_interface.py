@@ -130,7 +130,7 @@ def watch_namespaced_custom_object(
     selectors: Optional[Dict[str, str]] = None,
 ) -> ThreadedListWatcher:
     """Watches changes to k8s services in a given namespace, and executed
-    `event_handler` for each event, pluss for all initial objects in the cluster.
+    `event_handler` for each event, plus for all initial objects in the cluster.
 
     Returns the watching thread, which must be started by the caller.
 
