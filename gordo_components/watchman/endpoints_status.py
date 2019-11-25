@@ -95,8 +95,8 @@ class EndpointStatuses:
                     "`listen_to_kubernetes`==True"
                 )
             # If we are listening to kubernetes events
-            # we only do a "manual" update of every endpoint every 20 min
-            self.happy_update_model_interval = 1200
+            # we only do a "manual" update of every endpoint every hour
+            self.happy_update_model_interval = 3600
             watcher = watch_for_model_resource(
                 namespace=namespace,
                 project_name=self.project_name,
