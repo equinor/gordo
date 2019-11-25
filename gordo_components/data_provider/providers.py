@@ -2,6 +2,7 @@
 import os
 import random
 import logging
+import threading
 import timeit
 
 from datetime import datetime
@@ -125,6 +126,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
         self.client = None
         self.kwargs = kwargs
+        self.lock = threading.Lock()
 
     def load_series(
         self,
@@ -151,12 +153,16 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
 
     def _get_client(self):
-        if not self.client:
-            self.client = create_adls_client(
-                storename=self.storename,
-                dl_service_auth_str=self.dl_service_auth_str,
-                interactive=self.interactive,
-            )
+        logger.info("Acquiring threading lock for Datalake authentication.")
+        with self.lock:
+            if not self.client:
+                self.client = create_adls_client(
+                    storename=self.storename,
+                    dl_service_auth_str=self.dl_service_auth_str,
+                    interactive=self.interactive,
+                )
+        logger.info("Released threading lock for Datalake authentication.")
+
         return self.client
 
     def _get_sub_dataproviders(self):
@@ -273,10 +279,10 @@ class InfluxDataProvider(GordoBaseDataProvider):
         logger.info(f"Reading tag: {tag}")
         logger.info(f"Fetching data from {from_ts} to {to_ts}")
         query_string = f"""
-            SELECT "{self.value_name}" as "{tag}" 
-            FROM "{measurement}" 
-            WHERE("tag" =~ /^{tag}$/) 
-                {f"AND time >= {int(from_ts.timestamp())}s" if from_ts else ""} 
+            SELECT "{self.value_name}" as "{tag}"
+            FROM "{measurement}"
+            WHERE("tag" =~ /^{tag}$/)
+                {f"AND time >= {int(from_ts.timestamp())}s" if from_ts else ""}
                 {f"AND time <= {int(to_ts.timestamp())}s" if to_ts else ""}
         """
 
