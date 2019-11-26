@@ -239,7 +239,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         if hasattr(self, "thresholds_"):
-            confidence = np.clip(tag_anomaly.values / self.thresholds_.values, 0, 1)
+            confidence = tag_anomaly.values / self.thresholds_.values
 
             # Dataframe of % abs_diff is of the thresholds
             anomaly_confidence_scores = pd.DataFrame(
