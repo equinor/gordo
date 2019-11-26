@@ -183,14 +183,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         final_thresholds.name = "thresholds"
         return final_thresholds
 
-    def _apply_theshold_anomlay_features(self):
-        """
-
-        Returns
-        -------
-
-        """
-
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
     ) -> pd.DataFrame:
