@@ -2,7 +2,7 @@ apscheduler~=3.6
 Click~=7.0
 cachetools~=3.1
 dictdiffer
-gunicorn~=20.0.2
+gunicorn~=20.0.3
 h5py~=2.8
 influxdb~=5.2
 jinja2~=2.10

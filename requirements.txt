@@ -31,7 +31,7 @@ google-pasta==0.1.8       # via tensorflow
 graphviz==0.13.2          # via catboost
 greenlet==0.4.15          # via gevent
 grpcio==1.25.0            # via tensorboard, tensorflow
-gunicorn==20.0.2
+gunicorn==20.0.3
 h5py==2.10.0
 idna==2.8                 # via requests
 importlib-metadata==0.23  # via jsonschema
