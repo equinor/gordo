@@ -195,27 +195,13 @@ def build(
     )
 
     try:
-        if evaluation_config["cv_mode"] == "cross_val_only":
-
-            if model_register_dir is not None:
-                cache_model_location = builder.check_cache(model_register_dir)
-                if cache_model_location:
-                    metadata = serializer.load_metadata(cache_model_location)
-                else:
-                    _model, metadata = builder.build()
-            else:
-                _model, metadata = builder.build()
-
-        else:
-            model_location = builder.build_with_cache(output_dir, model_register_dir)
-            metadata = serializer.load_metadata(model_location)
+        model, metadata = builder.build(output_dir, model_register_dir)
 
         # If the model is cached but without CV scores then we force a rebuild. We do
         # this by deleting the entry in the cache and then rerun
         # `provide_saved_model` (leaving the old model laying around)
         if print_cv_scores:
-            retrieved_metadata = metadata
-            all_scores = get_all_score_strings(retrieved_metadata)
+            all_scores = get_all_score_strings(metadata)
             if not all_scores:
                 logger.warning(
                     "Found that loaded model does not have cross validation values "
@@ -223,11 +209,10 @@ def build(
                     "rebuilding model"
                 )
 
-                model_location = builder.build_with_cache(
+                _model, metadata = builder.build(
                     output_dir, model_register_dir, replace_cache=True
                 )
-                saved_metadata = serializer.load_metadata(model_location)
-                all_scores = get_all_score_strings(saved_metadata)
+                all_scores = get_all_score_strings(metadata)
 
             for score in all_scores:
                 print(score)

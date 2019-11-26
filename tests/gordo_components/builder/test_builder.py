@@ -122,7 +122,7 @@ def test_output_dir(tmp_dir):
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    model, metadata = builder.build()
+    model, metadata = builder._build()
     metadata_check(metadata, False)
 
     builder._save_model_for_workflow(
@@ -195,7 +195,7 @@ def test_builder_metadata(raw_model_config):
 
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build()
+    )._build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
     metadata_check(metadata, "Keras" in raw_model_config)
 
@@ -343,7 +343,7 @@ def test_scores_metadata(raw_model_config):
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build()
+    )._build()
     metadata_check(metadata, False)
 
 
@@ -372,7 +372,7 @@ def test_output_scores_metadata():
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build()
+    )._build()
     scores_metadata = metadata["model"]["cross-validation"]["scores"]
     assert (
         scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
@@ -405,7 +405,7 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
 
     ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build_with_cache(output_dir=output_dir)
+    ).build(output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -423,20 +423,12 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    model_location1 = builder.build_with_cache(
-        output_dir=output_dir, model_register_dir=registry_dir
-    )
-
-    assert model_location1 == output_dir
+    builder.build(output_dir=output_dir, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir
 
     # Saving to same output_dir as the one saved in the registry just returns the output_dir
-    builder = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    )
-    model_location2 = builder.build_with_cache(
-        output_dir=output_dir, model_register_dir=registry_dir
-    )
-    assert model_location2 == output_dir
+    builder.build(output_dir=output_dir, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir
 
 
 def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir):
@@ -453,17 +445,13 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    builder.build_with_cache(output_dir=output_dir1, model_register_dir=registry_dir)
+    builder.build(output_dir=output_dir1, model_register_dir=registry_dir)
 
-    model_location2 = builder.build_with_cache(
-        output_dir=output_dir2, model_register_dir=registry_dir
-    )
-    assert model_location2 == output_dir2
+    builder.build(output_dir=output_dir2, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir2
 
-    model_location3 = builder.build_with_cache(
-        output_dir=output_dir2, model_register_dir=registry_dir
-    )
-    assert model_location3 == output_dir2
+    builder.build(output_dir=output_dir2, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir2
 
 
 @pytest.mark.parametrize(
@@ -514,27 +502,24 @@ def test_provide_saved_model_caching(
     output_dir = os.path.join(tmp_dir, "model")
     registry_dir = os.path.join(tmp_dir, "registry")
 
-    model_location = ModelBuilder(
+    _model, first_metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build_with_cache(output_dir=output_dir, model_register_dir=registry_dir)
+    ).build(output_dir=output_dir, model_register_dir=registry_dir)
 
     if tag_list:
         data_config["tag_list"] = tag_list
 
     new_output_dir = os.path.join(tmp_dir, "model2")
-    model_location2 = ModelBuilder(
+    _model, second_metadata = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
         metadata=metadata,
-    ).build_with_cache(
+    ).build(
         output_dir=new_output_dir,
         model_register_dir=registry_dir,
         replace_cache=replace_cache,
     )
-
-    first_metadata = serializer.load_metadata(str(model_location))
-    second_metadata = serializer.load_metadata(str(model_location2))
 
     model1_creation_date = first_metadata["model"]["model-creation-date"]
     model2_creation_date = second_metadata["model"]["model-creation-date"]
@@ -570,7 +555,7 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    ).build()
+    )._build()
     if should_be_equal:
         assert model is not None
     else:
@@ -603,7 +588,7 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    ).build()
+    )._build()
 
     expected_metrics = metrics_ or [
         "sklearn.metrics.explained_variance_score",
@@ -668,13 +653,13 @@ def test_setting_seed(seed, model_config):
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    ).build()
+    )._build()
     _model, metadata2 = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    ).build()
+    )._build()
 
     df1 = pd.DataFrame.from_dict(metadata1["model"]["cross-validation"]["scores"])
     df2 = pd.DataFrame.from_dict(metadata2["model"]["cross-validation"]["scores"])

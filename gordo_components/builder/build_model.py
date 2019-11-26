@@ -109,7 +109,116 @@ class ModelBuilder:
         self.evaluation_config = evaluation_config.copy()
         self.metadata = metadata.copy()
 
-    def build(self) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
+    @property
+    def cached_model_path(self) -> Union[os.PathLike, str]:
+        return getattr(self, "_cached_model_path", None)
+
+    @cached_model_path.setter
+    def cached_model_path(self, value):
+        self._cached_model_path = value
+
+    def build(
+        self,
+        output_dir: Optional[Union[os.PathLike, str]] = None,
+        model_register_dir: Optional[Union[os.PathLike, str]] = None,
+        replace_cache=False,
+    ) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
+        """
+        Build the model and/or ensure that the desired model exists on disk
+        in `output_dir`, and returns the path to it. If `output_dir` exists we
+        assume the model is there (no validation), and return that path.
+
+        If ``output_dir`` is not given, it will simply build the model without
+        any caching logic. Otherwise builds the model if needed, or finds it
+        among already existing models if ``model_register_dir`` is non-None,
+        and we find the model there. If `model_register_dir` is set we will also
+        store the model-location of the generated model there for future use.
+        Think about it as a cache that is never emptied.
+
+        Parameters
+        ----------
+        output_dir: Optional[Union[os.PathLike, str]]
+            A path to where the model will be deposited if it is built.
+        model_register_dir: Optional[Union[os.PathLike, str]]
+            A path to a register, see `gordo_components.util.disk_registry`. If this is None
+            then always build the model, otherwise try to resolve the model from the
+            registry.
+        replace_cache: bool
+            Forces a rebuild of the model, and replaces the entry in the cache with the new
+            model.
+
+        Returns
+        -------
+        Tuple[Optional[sklearn.base.BaseEstimator], dict]
+            Built model and its metadata
+        """
+        if (
+            not model_register_dir
+            and not output_dir
+            or self.evaluation_config.get("cv_mode") == "cross_val_only"
+        ):
+            model, metadata = self._build()
+        else:
+            logger.info(
+                f"Model caching activated, attempting to read model-location with key "
+                f"{self.cache_key} from register {model_register_dir}"
+            )
+            if replace_cache and model_register_dir:
+                logger.info("replace_cache=True, deleting any existing cache entry")
+                disk_registry.delete_value(model_register_dir, self.cache_key)
+
+            cached_model_location = (
+                self.check_cache(model_register_dir) if model_register_dir else None
+            )
+            if cached_model_location:
+
+                # Model cached but not in the desired output location
+                if output_dir and str(cached_model_location) != str(output_dir):
+                    logger.info(
+                        f"Copying cached model from {cached_model_location} to {output_dir} "
+                    )
+                    try:
+                        # Why not shutil.copytree? Because in python <3.7 it causes
+                        # errors on Azure NFS, see:
+                        # - https://bugs.python.org/issue24564
+                        # - https://stackoverflow.com/questions/51616058/shutil-copystat-fails-inside-docker-on-azure/51635427#51635427
+                        copy_tree(
+                            str(cached_model_location),
+                            str(output_dir),
+                            preserve_mode=0,
+                            preserve_times=0,
+                        )
+                    except FileExistsError:
+                        logger.warning(
+                            f"Found that output directory {output_dir} "
+                            f"already exists, assuming model is already located there"
+                        )
+                    else:
+                        # Update the cached_model_location to be the current output dir after copy
+                        cached_model_location = output_dir
+
+                self.cached_model_path = cached_model_location
+                model = serializer.load(cached_model_location)
+                metadata = serializer.load_metadata(cached_model_location)
+
+            elif output_dir:
+                model, metadata = self._build()
+                self.cached_model_path = self._save_model_for_workflow(
+                    model=model,
+                    metadata=metadata,
+                    output_dir=output_dir,  # type: ignore
+                )
+                logger.info(f"Built model, and deposited at {self.cached_model_path}")
+                if model_register_dir:
+                    logger.info(f"Writing model-location to model registry")
+                    disk_registry.write_key(  # type: ignore
+                        model_register_dir, self.cache_key, self.cached_model_path
+                    )
+            else:
+                model, metadata = self._build()
+        return model, metadata
+
+    def _build(self) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
         """
         Build the model using the current state of the Builder
 
@@ -491,89 +600,6 @@ class ModelBuilder:
                 f"{model_register_dir}."
             )
             return None
-
-    def build_with_cache(
-        self,
-        output_dir: Union[os.PathLike, str],
-        model_register_dir: Union[os.PathLike, str] = None,
-        replace_cache=False,
-    ) -> Union[os.PathLike, str]:
-        """
-        Ensures that the desired model exists on disk in `output_dir`, and returns the path
-        to it. If `output_dir` exists we assume the model is there (no validation), and
-        return that path.
-
-
-        Builds the model if needed, or finds it among already existing models if
-        ``model_register_dir`` is non-None, and we find the model there. If
-        `model_register_dir` is set we will also store the model-location of the generated
-        model there for future use. Think about it as a cache that is never emptied.
-
-        Parameters
-        ----------
-        output_dir: Union[os.PathLike, str]
-            A path to where the model will be deposited if it is built.
-        model_register_dir:
-            A path to a register, see `gordo_components.util.disk_registry`. If this is None
-            then always build the model, otherwise try to resolve the model from the
-            registry.
-        replace_cache: bool
-            Forces a rebuild of the model, and replaces the entry in the cache with the new
-            model.
-
-        Returns
-        -------
-        Union[os.PathLike, str]:
-            Path to the model
-        """
-        if model_register_dir:
-            logger.info(
-                f"Model caching activated, attempting to read model-location with key "
-                f"{self.cache_key} from register {model_register_dir}"
-            )
-            if replace_cache:
-                logger.info(
-                    "replace_cache activated, deleting any existing cache entry"
-                )
-                disk_registry.delete_value(model_register_dir, self.cache_key)
-            else:
-                cached_model_location = self.check_cache(model_register_dir)
-                if cached_model_location:
-                    logger.info(
-                        f"Found model in cache, copying from {cached_model_location} to "
-                        f"new location {output_dir} "
-                    )
-                    if cached_model_location == output_dir:
-                        return output_dir
-                    else:
-                        try:
-                            # Why not shutil.copytree? Because in python <3.7 it causes
-                            # errors on Azure NFS, see:
-                            # - https://bugs.python.org/issue24564
-                            # - https://stackoverflow.com/questions/51616058/shutil-copystat-fails-inside-docker-on-azure/51635427#51635427
-                            copy_tree(
-                                str(cached_model_location),
-                                str(output_dir),
-                                preserve_mode=0,
-                                preserve_times=0,
-                            )
-                        except FileExistsError:
-                            logger.warning(
-                                f"Found that output directory {output_dir} "
-                                f"already exists, assuming model is "
-                                f"already located there"
-                            )
-                        return output_dir
-
-        model, metadata = self.build()
-        model_location = self._save_model_for_workflow(
-            model=model, metadata=metadata, output_dir=output_dir
-        )
-        logger.info(f"Successfully built model, and deposited at {model_location}")
-        if model_register_dir:
-            logger.info(f"Writing model-location to model registry")
-            disk_registry.write_key(model_register_dir, self.cache_key, model_location)
-        return model_location
 
     @staticmethod
     def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]:
