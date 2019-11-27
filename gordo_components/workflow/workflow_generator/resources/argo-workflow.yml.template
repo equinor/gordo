@@ -1364,7 +1364,7 @@ spec:
           dependencies:
             - gordo-server
             - gordo-influx
-            - model-builder-{{ machine.name }}
+            - gordo-mdl-{{ machine.name }}
         {% endif %}
         {% endfor %}
         {% endif %}
