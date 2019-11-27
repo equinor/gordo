@@ -1250,9 +1250,10 @@ spec:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Deleting gordo deployments and services for project {{project_name}} different than {{project_version}}" \
+        echo "Deleting gordo deployments, services, models, and hpa's for project {{project_name}} different than {{project_version}}" \
          && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
+         && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
          && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
          && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_version}}" \
          && kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version={{project_version}}
