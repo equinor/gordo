@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from sklearn.preprocessing import RobustScaler
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.model_selection import TimeSeriesSplit, cross_validate
 
 from gordo_components.model.base import GordoBase
 from gordo_components.model import utils as model_utils
@@ -20,6 +21,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
         scaler: TransformerMixin = RobustScaler(),
+        require_thresholds: bool = True,
     ):
         """
         Classifier which wraps a ``base_estimator`` and provides a diff error
@@ -39,9 +41,15 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             Defaults to ``sklearn.preprocessing.RobustScaler``
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
+        require_thresholds: bool
+            Requires calculating ``thresholds_`` via a call to :func:`~DiffBasedAnomalyDetector.cross_validate`.
+            If this is set (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate`
+            was not called before calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
+            will be raised.
         """
         self.base_estimator = base_estimator
         self.scaler = scaler
+        self.require_thresholds = require_thresholds
 
     def __getattr__(self, item):
         """
@@ -77,6 +85,103 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self.base_estimator.fit(X, y)
         self.scaler.fit(y)  # Scaler is used for calculating errors in .anomaly()
         return self
+
+    def cross_validate(
+        self,
+        *,
+        X: Union[pd.DataFrame, np.ndarray],
+        y: Union[pd.DataFrame, np.ndarray],
+        cv=TimeSeriesSplit(n_splits=3),
+        **kwargs,
+    ):
+        """
+        Run cross validation on the model, and will update the model's threshold value based
+        on the cross validation folds
+
+        Parameters
+        ----------
+        X: Union[pd.DataFrame, np.ndarray]
+            Input data to the model
+        y: Union[pd.DataFrame, np.ndarray]
+            Target data
+        kwargs: dict
+            Any additional kwargs to be passed to :func:`sklearn.model_selection.cross_validate`
+
+        Returns
+        -------
+        dict
+        """
+        # Depend on having the trained fold models
+        kwargs.update(dict(return_estimator=True, cv=cv))
+
+        X = X.values if hasattr(X, "values") else X
+        y = y.values if hasattr(y, "values") else y
+
+        cv_output = cross_validate(self, X=X, y=y, **kwargs)
+
+        thresholds = pd.DataFrame()
+
+        for i, ((test_idxs, _train_idxs), split_model) in enumerate(
+            zip(kwargs["cv"].split(X, y), cv_output["estimator"])
+        ):
+            y_pred = split_model.predict(X[test_idxs])
+            y_true = y[test_idxs]
+
+            diff = self._fold_thresholds(y_true=y_true, y_pred=y_pred, fold=i)
+
+            # Accumulate the rolling mins of diffs into common df
+            thresholds = thresholds.append(diff)
+
+        # And finally, get the mean of all the pre-calculated thresholds over the folds
+        self.thresholds_ = self._final_thresholds(thresholds=thresholds)
+        return cv_output
+
+    @staticmethod
+    def _fold_thresholds(
+        y_true: np.ndarray, y_pred: np.ndarray, fold: int
+    ) -> pd.Series:
+        """
+        Calculate the per fold thresholds
+
+        Parameters
+        ----------
+        y_true: np.ndarray
+            True valudes
+        y_pred: np.ndarray
+            Predicted values
+        fold: int
+            Current fold iteration number
+
+        Returns
+        -------
+        pd.Series
+            Per feature calculated thresholds
+        """
+        diff = (
+            pd.DataFrame(np.abs(y_pred - y_true[-len(y_pred) :])).rolling(6).min().max()
+        )
+        diff.name = f"fold-{fold}"
+        return diff
+
+    @staticmethod
+    def _final_thresholds(thresholds: pd.DataFrame) -> pd.Series:
+        """
+        Calculate the aggregate and final thresholds from previously
+        calculated fold thresholds.
+
+        Parameters
+        ----------
+        thresholds: pd.DataFrame
+            Aggregate thresholds from previous folds.
+
+        Returns
+        -------
+        pd.Series
+            Per feature calculated final thresholds over the fold thresholds
+        """
+        final_thresholds = thresholds.mean()
+        final_thresholds.name = "thresholds"
+        return final_thresholds
 
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
@@ -131,5 +236,24 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # Calculate the total anomaly
         data["total-anomaly"] = np.linalg.norm(data["tag-anomaly"], axis=1)
+
+        # If we have `thresholds_` values, then we can calculate anomaly confidence
+        if hasattr(self, "thresholds_"):
+            confidence = tag_anomaly.values / self.thresholds_.values
+
+            # Dataframe of % abs_diff is of the thresholds
+            anomaly_confidence_scores = pd.DataFrame(
+                confidence,
+                columns=pd.MultiIndex.from_product(
+                    (("anomaly-confidence",), data["model-output"].columns)
+                ),
+            )
+            data = data.join(anomaly_confidence_scores)
+
+        elif self.require_thresholds:
+            raise AttributeError(
+                f"`require_thresholds={self.require_thresholds}` however `.cross_validate`"
+                f"needs to be called in order to calculate these thresholds before calling `.anomaly`"
+            )
 
         return data

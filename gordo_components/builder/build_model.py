@@ -159,14 +159,18 @@ class ModelBuilder:
                 scaler = self.evaluation_config.get("scoring_scaler")
                 metrics_dict = self.build_metrics_dict(metrics_list, y, scaler=scaler)
 
-                cv = cross_validate(
-                    model,
-                    X,
-                    y,
+                cv_kwargs = dict(
+                    X=X,
+                    y=y,
                     scoring=metrics_dict,
                     return_estimator=True,
                     cv=TimeSeriesSplit(n_splits=3),
                 )
+                if hasattr(model, "cross_validate"):
+                    cv = model.cross_validate(**cv_kwargs)
+                else:
+                    cv = cross_validate(model, **cv_kwargs)
+
                 for metric, test_metric in map(
                     lambda k: (k, f"test_{k}"), metrics_dict
                 ):
@@ -183,7 +187,6 @@ class ModelBuilder:
                         }
                     )
                     scores.update({metric: val})
-
             else:
                 logger.debug("Unable to score model, has no attribute 'predict'.")
 
