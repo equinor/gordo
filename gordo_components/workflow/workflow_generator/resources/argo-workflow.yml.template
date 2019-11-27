@@ -798,7 +798,7 @@ spec:
                   apiVersion: equinor.com/v1
                   kind: Model
                   metadata:
-                    name: "gordo-mdl-{{project_name}}-{% raw %}{{inputs.parameters.model-name}}{% endraw %}"
+                    name: "{{project_name}}-{% raw %}{{inputs.parameters.model-name}}{% endraw %}"
                     labels:
                       app: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
                       app.kubernetes.io/name: model-server
