@@ -114,9 +114,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
-        X = X.values if hasattr(X, "values") else X
-        y = y.values if hasattr(y, "values") else y
-
         cv_output = cross_validate(self, X=X, y=y, **kwargs)
 
         thresholds = pd.DataFrame()
@@ -124,8 +121,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         for i, ((test_idxs, _train_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
         ):
-            y_pred = split_model.predict(X[test_idxs])
-            y_true = y[test_idxs]
+            y_pred = split_model.predict(
+                X.iloc[test_idxs] if isinstance(X, pd.DataFrame) else X[test_idxs]
+            )
+            y_true = y.iloc[test_idxs] if isinstance(y, pd.DataFrame) else y[test_idxs]
 
             diff = self._fold_thresholds(y_true=y_true, y_pred=y_pred, fold=i)
 
