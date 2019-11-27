@@ -1,7 +1,7 @@
 -c requirements.txt
 locustio~=0.12.2
 pip>=19.2.3
-pip-tools~=4.2
+pip-tools~=4.3
 sphinx-rtd-theme~=0.4
 sphinxcontrib-websupport~=1.1
 sphinx~=2.1
