@@ -184,7 +184,7 @@ def build(
     model_config = serializer.pipeline_into_definition(
         serializer.pipeline_from_definition(model_config)
     )
-    logger.debug(f"Fully expanded model config: {model_config}")
+    logger.info(f"Fully expanded model config: {model_config}")
 
     builder = ModelBuilder(
         name=name,
