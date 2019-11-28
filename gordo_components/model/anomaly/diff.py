@@ -62,13 +62,20 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             return getattr(self.base_estimator, item)
 
     def get_metadata(self):
+        metadata = dict()
+
+        if hasattr(self, "feature_thresholds_"):
+            metadata["feature-thresholds"] = self.feature_thresholds_.tolist()
+        if hasattr(self, "aggregate_threshold_"):
+            metadata["aggregate-threshold"] = self.aggregate_threshold_
+
         if isinstance(self.base_estimator, GordoBase):
-            return self.base_estimator.get_metadata()
+            metadata.update(self.base_estimator.get_metadata())
         else:
-            return {
-                "scaler": str(self.scaler),
-                "base_estimator": str(self.base_estimator),
-            }
+            metadata.update(
+                {"scaler": str(self.scaler), "base_estimator": str(self.base_estimator)}
+            )
+        return metadata
 
     def score(
         self,
@@ -116,7 +123,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         cv_output = cross_validate(self, X=X, y=y, **kwargs)
 
-        thresholds = pd.DataFrame()
+        feature_thresholds = pd.DataFrame()
+        scaled_mse_per_timestep = pd.Series()
 
         for i, ((test_idxs, _train_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
@@ -124,19 +132,54 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             y_pred = split_model.predict(
                 X.iloc[test_idxs] if isinstance(X, pd.DataFrame) else X[test_idxs]
             )
+
+            # Adjust y_true for any possible model offset in its prediction
+            test_idxs = test_idxs[-len(y_pred) :]
             y_true = y.iloc[test_idxs] if isinstance(y, pd.DataFrame) else y[test_idxs]
 
-            diff = self._fold_thresholds(y_true=y_true, y_pred=y_pred, fold=i)
+            # Model's timestep scaled mse
+            scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
+            scaled_mse_per_timestep = pd.concat((scaled_mse_per_timestep, scaled_mse))
 
             # Accumulate the rolling mins of diffs into common df
-            thresholds = thresholds.append(diff)
+            tag_thresholds_fold = self._feature_fold_thresholds(y_true, y_pred, fold=i)
+            feature_thresholds = feature_thresholds.append(tag_thresholds_fold)
 
-        # And finally, get the mean of all the pre-calculated thresholds over the folds
-        self.thresholds_ = self._final_thresholds(thresholds=thresholds)
+        # Calculate the final thresholds per feature based on the previous fold calculations
+        self.feature_thresholds_ = self._final_thresholds(thresholds=feature_thresholds)
+
+        # For the aggregate, use the accumulated mse of scaled residuals per timestep
+        self.aggregate_threshold_ = scaled_mse_per_timestep.rolling(6).min().max()
         return cv_output
 
     @staticmethod
-    def _fold_thresholds(
+    def _scaled_mse_per_timestep(
+        model: BaseEstimator,
+        y_true: Union[pd.DataFrame, np.ndarray],
+        y_pred: Union[pd.DataFrame, np.ndarray],
+    ) -> pd.Series:
+        """
+        Calculate the scaled MSE per timestep/sample
+
+        Parameters
+        ----------
+        model: BaseEstimator
+            Instance of a fitted :class:`~DiffBasedAnomalyDetector`
+        y_true: Union[numpy.ndarray, pd.DataFrame]
+        y_pred: Union[numpy.ndarray, pd.DataFrame]
+
+        Returns
+        -------
+        panadas.Series
+            The MSE calculated from the scaled y and y predicted.
+        """
+        scaled_y_true = model.scaler.transform(y_true)
+        scaled_y_pred = model.scaler.transform(y_pred)
+        mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
+        return pd.Series(mse_per_time_step)
+
+    @staticmethod
+    def _feature_fold_thresholds(
         y_true: np.ndarray, y_pred: np.ndarray, fold: int
     ) -> pd.Series:
         """
@@ -156,9 +199,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         pd.Series
             Per feature calculated thresholds
         """
-        diff = (
-            pd.DataFrame(np.abs(y_pred - y_true[-len(y_pred) :])).rolling(6).min().max()
-        )
+        diff = pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
         diff.name = f"fold-{fold}"
         return diff
 
@@ -226,7 +267,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Calculate the total anomaly between all tags for the original/untransformed
         # Ensure to offset the y to match model out, which could be less if it was an LSTM
         scaled_y = self.scaler.transform(y)
-        tag_anomaly = np.abs(model_out_scaled - scaled_y[-len(data) :, :])
+        scaled_diff = model_out_scaled - scaled_y[-len(data) :, :]
+        tag_anomaly = np.abs(scaled_diff)
         tag_anomaly.columns = pd.MultiIndex.from_tuples(
             ("tag-anomaly", col) for col in tag_anomaly.columns
         )
@@ -237,8 +279,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         data["total-anomaly"] = np.linalg.norm(data["tag-anomaly"], axis=1)
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
-        if hasattr(self, "thresholds_"):
-            confidence = tag_anomaly.values / self.thresholds_.values
+        if hasattr(self, "feature_thresholds_"):
+            confidence = tag_anomaly.values / self.feature_thresholds_.values
 
             # Dataframe of % abs_diff is of the thresholds
             anomaly_confidence_scores = pd.DataFrame(
@@ -249,7 +291,16 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             )
             data = data.join(anomaly_confidence_scores)
 
-        elif self.require_thresholds:
+        if hasattr(self, "aggregate_threshold_"):
+            scaled_mse = (scaled_diff ** 2).mean(axis=1)
+            data["total-anomaly-confidence"] = scaled_mse / self.aggregate_threshold_
+
+        # Explicitly raise error if we were required to do threshold based calculations
+        # should would have required a call to .cross_validate before .anomaly
+        if self.require_thresholds and not any(
+            hasattr(self, attr)
+            for attr in ("feature_thresholds_", "aggregate_threshold_")
+        ):
             raise AttributeError(
                 f"`require_thresholds={self.require_thresholds}` however `.cross_validate`"
                 f"needs to be called in order to calculate these thresholds before calling `.anomaly`"

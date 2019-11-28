@@ -76,8 +76,10 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 
     if with_thresholds:
         assert "anomaly-confidence" in anomaly_df.columns
+        assert "total-anomaly-confidence" in anomaly_df.columns
     else:
         assert "anomaly-confidence" not in anomaly_df.columns
+        assert "total-anomaly-confidence" not in anomaly_df.columns
 
 
 @pytest.mark.parametrize(
@@ -131,21 +133,24 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert hasattr(model, "cross_validate")
 
     # When initialized it should not have a threshold calculated.
-    assert not hasattr(model, "thresholds_")
+    assert not hasattr(model, "feature_thresholds_")
+    assert not hasattr(model, "aggregate_threshold_")
 
     model.fit(X, y)
 
     # Until it has done cross validation, it has no threshold.
-    assert not hasattr(model, "thresholds_")
+    assert not hasattr(model, "feature_thresholds_")
+    assert not hasattr(model, "aggregate_threshold_")
 
     # Calling cross validate should set the threshold for it.
     model.cross_validate(X=X, y=y)
 
     # Now we have calculated thresholds based on cross validation folds
-    assert hasattr(model, "thresholds_")
-    assert isinstance(model.thresholds_, pd.Series)
-    assert len(model.thresholds_) == y.shape[1]
-    assert all(model.thresholds_.notna())
+    assert hasattr(model, "feature_thresholds_")
+    assert hasattr(model, "aggregate_threshold_")
+    assert isinstance(model.feature_thresholds_, pd.Series)
+    assert len(model.feature_thresholds_) == y.shape[1]
+    assert all(model.feature_thresholds_.notna())
 
 
 @pytest.mark.parametrize("return_estimator", (True, False))
@@ -172,7 +177,7 @@ def test_diff_detector_cross_validate(return_estimator: bool):
 
 
 # simulate LSTM outptu shorter than input
-@pytest.mark.parametrize("y_pred_shape", ((100, 2), (90, 2)))
+@pytest.mark.parametrize("y_pred_shape", ((100, 2), (100, 2)))
 @pytest.mark.parametrize("y_true_shape", ((100, 2),))
 def test_diff_detector_fold_thresholds(y_pred_shape: tuple, y_true_shape: tuple):
     """
@@ -184,7 +189,7 @@ def test_diff_detector_fold_thresholds(y_pred_shape: tuple, y_true_shape: tuple)
     expected = (
         pd.DataFrame(np.abs(y_pred - y_true[-len(y_pred) :])).rolling(6).min().max()
     )
-    output = DiffBasedAnomalyDetector._fold_thresholds(
+    output = DiffBasedAnomalyDetector._feature_fold_thresholds(
         y_true=y_true, y_pred=y_pred, fold=1
     )
 
