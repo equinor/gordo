@@ -125,9 +125,7 @@ def test_output_dir(tmp_dir):
     model, metadata = builder._build()
     metadata_check(metadata, False)
 
-    builder._save_model_for_workflow(
-        model=model, metadata=metadata, output_dir=output_dir
-    )
+    builder._save_model(model=model, metadata=metadata, output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
