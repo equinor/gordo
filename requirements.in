@@ -1,8 +1,8 @@
 apscheduler~=3.6
 Click~=7.0
 cachetools~=3.1
-dictdiffer
-gunicorn~=20.0.4
+dictdiffer~=0.8
+gunicorn~=20.0
 h5py~=2.8
 influxdb~=5.2
 jinja2~=2.10
@@ -10,10 +10,10 @@ pyarrow~=0.15
 numpy~=1.17
 pandas~=0.25
 peewee~=3.12
-numexpr>=2.6.1
+numexpr~=2.6
 psycopg2-binary==2.8.4
 python-dateutil~=2.8
-pyyaml>=4.2b1
+pyyaml~=5.1
 requests~=2.20
 scikit-learn~=0.20
 tensorflow~=2.0
@@ -22,8 +22,8 @@ flask-restplus~=0.12
 azure-datalake-store~=0.0
 kubernetes~=10.0
 cchardet~=2.1
-urllib3>=1.24.2,<2.0
+urllib3~=1.24
 simplejson~=3.17
-gevent~=1.4.0
+gevent~=1.4
 catboost~=0.20
 typing_extensions~=3.7
