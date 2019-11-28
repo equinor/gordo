@@ -12,7 +12,7 @@ astor==0.8.0              # via tensorflow
 attrs==19.3.0             # via jsonschema
 azure-datalake-store==0.0.48
 cachetools==3.1.1
-catboost==0.19.1
+catboost==0.20
 cchardet==2.1.5
 certifi==2019.9.11        # via kubernetes, requests
 cffi==1.13.2              # via azure-datalake-store, cryptography
@@ -89,4 +89,4 @@ wrapt==1.11.2             # via tensorflow
 zipp==0.6.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools
+# setuptools==42.0.1        # via apscheduler, google-auth, gunicorn, jsonschema, kiwisolver, kubernetes, markdown, protobuf, tensorboard
