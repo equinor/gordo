@@ -159,16 +159,16 @@ class IrocReader(GordoBaseDataProvider):
         if not asset:
             return None
 
-        logger.info(f"Looking for match for asset {asset}")
+        logger.debug(f"Looking for match for asset {asset}")
         asset = asset.lower()
         if asset not in IrocReader.ASSET_TO_PATH:
-            logger.info(
+            logger.warning(
                 f"Could not find match for asset {asset} in the list of "
                 f"supported assets: {IrocReader.ASSET_TO_PATH.keys()}"
             )
             return None
 
-        logger.info(
+        logger.debug(
             f"Found asset code {asset}, returning {IrocReader.ASSET_TO_PATH[asset]}"
         )
         return IrocReader.ASSET_TO_PATH[asset]

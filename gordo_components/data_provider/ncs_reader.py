@@ -169,7 +169,7 @@ class NcsReader(GordoBaseDataProvider):
 
             info = adls_file_system_client.info(file_path)
             file_size = info.get("length") / (1024 ** 2)
-            logger.info(f"File size: {file_size:.2f}MB")
+            logger.info(f"File size for file {file_path}: {file_size:.2f}MB")
             if dry_run:
                 logger.info("Dry run only, returning empty frame early")
                 return pd.DataFrame()
@@ -208,16 +208,16 @@ class NcsReader(GordoBaseDataProvider):
         if not asset:
             return None
 
-        logger.info(f"Looking for match for asset {asset}")
+        logger.debug(f"Looking for match for asset {asset}")
         asset = asset.lower()
         if asset not in NcsReader.ASSET_TO_PATH:
-            logger.info(
+            logger.warning(
                 f"Could not find match for asset {asset} in the list of "
                 f"supported assets: {NcsReader.ASSET_TO_PATH.keys()}"
             )
             return None
 
-        logger.info(
+        logger.debug(
             f"Found asset code {asset}, returning {NcsReader.ASSET_TO_PATH[asset]}"
         )
         return NcsReader.ASSET_TO_PATH[asset]

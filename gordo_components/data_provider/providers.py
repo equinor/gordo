@@ -57,7 +57,7 @@ def load_series_from_multiple_providers(
         for tag_reader in data_providers:
             if tag_reader.can_handle_tag(tag):
                 readers_to_tags[tag_reader].append(tag)
-                logger.info(f"Assigning tag: {tag} to reader {tag_reader}")
+                logger.debug(f"Assigning tag: {tag} to reader {tag_reader}")
                 # In case of a tag matching two readers, we let the "first"
                 # one handle it
                 break
@@ -69,7 +69,7 @@ def load_series_from_multiple_providers(
     before_downloading = timeit.default_timer()
     for tag_reader, readers_tags in readers_to_tags.items():
         if readers_tags:
-            logger.info(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
+            logger.debug(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
             for series in tag_reader.load_series(
                 from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags, dry_run=dry_run
             ):
@@ -153,7 +153,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         )
 
     def _get_client(self):
-        logger.info("Acquiring threading lock for Datalake authentication.")
+        logger.debug("Acquiring threading lock for Datalake authentication.")
         with self.lock:
             if not self.client:
                 self.client = create_adls_client(
@@ -161,7 +161,7 @@ class DataLakeProvider(GordoBaseDataProvider):
                     dl_service_auth_str=self.dl_service_auth_str,
                     interactive=self.interactive,
                 )
-        logger.info("Released threading lock for Datalake authentication.")
+        logger.debug("Released threading lock for Datalake authentication.")
 
         return self.client
 

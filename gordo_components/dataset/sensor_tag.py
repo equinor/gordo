@@ -64,7 +64,7 @@ def _asset_from_tag_name(tag_name: str, default_asset: str = None):
 
     for pattern in TAG_TO_ASSET:
         if pattern.tag_regexp.match(tag_name):
-            logger.info(
+            logger.debug(
                 f"Found pattern {pattern.tag_regexp} in tag {tag_name}, "
                 f"returning {pattern.asset_name}"
             )
@@ -136,7 +136,7 @@ def normalize_sensor_tags(
             List of SensorTags
 
     """
-    logger.info(
+    logger.debug(
         f"Normalizing list of sensors in some format into SensorTags: {sensors}"
     )
     return [
