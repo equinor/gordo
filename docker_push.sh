@@ -1,3 +1,4 @@
+#!/bin/bash
 # Script to push an docker image to a docker registry. The docker image can
 # either exist and be provided in the env variable DOCKER_IMAGE, or it will be
 # built if DOCKER_IMAGE is empty and DOCKER_FILE is provided
