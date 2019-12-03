@@ -14,7 +14,6 @@ docutils==0.15.2          # via recommonmark, sphinx
 flask==1.1.1              # via locustio
 gevent==1.4.0             # via geventhttpclient-wheels, locustio
 geventhttpclient-wheels==1.3.1.dev2  # via locustio
-greenlet==0.4.15          # via gevent
 idna==2.8                 # via requests
 imagesize==1.1.0          # via sphinx
 itsdangerous==1.1.0       # via flask
@@ -47,5 +46,5 @@ urllib3==1.25.7           # via requests
 werkzeug==0.16.0          # via flask
 
 # The following packages are considered to be unsafe in a requirements file:
-# pip==19.3.1
-# setuptools==42.0.1        # via sphinx
+# pip
+# setuptools
