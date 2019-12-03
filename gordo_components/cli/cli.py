@@ -196,25 +196,8 @@ def build(
 
     try:
         model, metadata = builder.build(output_dir, model_register_dir)
-
-        # If the model is cached but without CV scores then we force a rebuild. We do
-        # this by deleting the entry in the cache and then rerun
-        # `provide_saved_model` (leaving the old model laying around)
         if print_cv_scores:
-            all_scores = get_all_score_strings(metadata)
-            if not all_scores:
-                logger.warning(
-                    "Found that loaded model does not have cross validation values "
-                    "even though we were asked to print them, clearing cache and "
-                    "rebuilding model"
-                )
-
-                _model, metadata = builder.build(
-                    output_dir, model_register_dir, replace_cache=True
-                )
-                all_scores = get_all_score_strings(metadata)
-
-            for score in all_scores:
+            for score in get_all_score_strings(metadata):
                 print(score)
     except Exception as e:
         exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
