@@ -155,9 +155,6 @@ class ModelBuilder:
         if not model_register_dir:
             model, metadata = self._build()
         else:
-            # here for mypy checking, it can't infer that this will not be None at this point
-            assert model_register_dir is not None
-
             logger.debug(
                 f"Model caching activated, attempting to read model-location with key "
                 f"{self.cache_key} from register {model_register_dir}"
