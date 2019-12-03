@@ -271,6 +271,11 @@ spec:
   - name: gordo-influx-database-creator
     retryStrategy:
       limit: 5
+    metadata:
+      labels:
+        app: gordo-influx-database-creator
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -400,6 +405,11 @@ spec:
   - name: gordo-grafana-datasource-creator
     retryStrategy:
       limit: 5
+    metadata:
+      labels:
+        app: gordo-grafana-datasource-creator
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -584,6 +594,11 @@ spec:
   - name: gordo-watchman-to-postgres
     retryStrategy:
       limit: 5
+    metadata:
+      labels:
+        app: gordo-watchman-to-postgres
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -1205,6 +1220,11 @@ spec:
     activeDeadlineSeconds: 300
     retryStrategy:
       limit: 5
+    metadata:
+      labels:
+        app: gordo-influx-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -1227,6 +1247,11 @@ spec:
     activeDeadlineSeconds: 300
     retryStrategy:
       limit: 5
+    metadata:
+      labels:
+        app: gordo-postgres-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -1246,6 +1271,11 @@ spec:
   - name: cleanup
     retryStrategy:
       limit: 5
+    metadata:
+      labels:
+        app: gordo-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
