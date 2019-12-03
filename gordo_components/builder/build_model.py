@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-from distutils.dir_util import copy_tree
 import hashlib
 import json
 import pydoc
