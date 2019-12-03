@@ -52,7 +52,8 @@ def test_raw_keras_basic(spec_str: str):
     Can load a keras.Sequential model from a config/yaml definition(s)
     """
     spec = yaml.safe_load(spec_str)
-    model = KerasRawModelRegressor.keras_from_spec(spec)
+    pipe = KerasRawModelRegressor(spec)
+    model = pipe.build_fn()
     assert isinstance(model, tf.keras.models.Sequential)
 
 

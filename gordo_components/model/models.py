@@ -291,9 +291,9 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     """
 
     def __init__(self, kind: dict, **kwargs):
+
         self.kind = kind  # type: ignore
         self.kwargs = kwargs
-        self.build_fn = lambda: self.keras_from_spec(self.kind)  # type: ignore
 
     def __repr__(self):
         stream = io.StringIO()
@@ -302,17 +302,17 @@ class KerasRawModelRegressor(KerasAutoEncoder):
         result = f"{self.__class__.__name__}(kind: {stream.read()})"
         return result
 
-    @staticmethod
-    def keras_from_spec(spec: dict):
+    def build_fn(self):
+        """Build Keras model from specification"""
         _expected_keys = ("spec", "compile")
-        if not all(k in spec for k in _expected_keys):
+        if not all(k in self.kind for k in _expected_keys):
             raise ValueError(
-                f"Expected spec to have keys: {_expected_keys}, but found {spec.keys()}"
+                f"Expected spec to have keys: {_expected_keys}, but found {self.kind.keys()}"
             )
-        logger.debug(f"Building model from spec: {spec}")
+        logger.debug(f"Building model from spec: {self.kind}")
 
-        model = serializer.pipeline_from_definition(spec["spec"])
-        model.compile(**spec["compile"])
+        model = serializer.pipeline_from_definition(self.kind["spec"])
+        model.compile(**self.kind["compile"])
         return model
 
 
