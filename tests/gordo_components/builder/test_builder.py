@@ -139,7 +139,7 @@ def test_output_dir(tmp_dir):
     (
         # Without pipeline
         """
-    sklearn.preprocessing.data.MinMaxScaler:
+    sklearn.preprocessing.MinMaxScaler:
         feature_range: [-1, 1]
     """,
         # Saves history
@@ -151,7 +151,7 @@ def test_output_dir(tmp_dir):
         """
     sklearn.pipeline.Pipeline:
         steps:
-          - sklearn.preprocessing.data.MinMaxScaler
+          - sklearn.preprocessing.MinMaxScaler
           - sklearn.decomposition.pca.PCA:
               svd_solver: auto
     """,
@@ -161,7 +161,7 @@ def test_output_dir(tmp_dir):
             steps:
               - sklearn.pipeline.Pipeline:
                   steps:
-                    - sklearn.preprocessing.data.MinMaxScaler
+                    - sklearn.preprocessing.MinMaxScaler
               - sklearn.pipeline.Pipeline:
                   steps:
                     - sklearn.decomposition.pca.PCA:
@@ -173,7 +173,7 @@ def test_output_dir(tmp_dir):
             regressor:
                 sklearn.pipeline.Pipeline:
                     steps:
-                    - sklearn.preprocessing.data.MinMaxScaler
+                    - sklearn.preprocessing.MinMaxScaler
                     - gordo_components.model.models.KerasAutoEncoder:
                         kind: feedforward_hourglass
                         compression_factor: 0.5
@@ -181,7 +181,7 @@ def test_output_dir(tmp_dir):
                         func: tanh
                         out_func: linear
                         epochs: 3
-            transformer: sklearn.preprocessing.data.MinMaxScaler
+            transformer: sklearn.preprocessing.MinMaxScaler
     """,
     ),
 )
@@ -208,7 +208,7 @@ def test_builder_metadata(raw_model_config):
             sklearn.compose.TransformedTargetRegressor(
                 regressor=sklearn.pipeline.Pipeline(
                     steps=[
-                        ("s1", sklearn.preprocessing.data.MinMaxScaler()),
+                        ("s1", sklearn.preprocessing.MinMaxScaler()),
                         ("s2", sklearn.ensemble.RandomForestRegressor()),
                     ]
                 ),
@@ -229,7 +229,7 @@ def test_builder_metadata(raw_model_config):
             sklearn.compose.TransformedTargetRegressor(
                 regressor=sklearn.pipeline.Pipeline(
                     steps=[
-                        ("s1", sklearn.preprocessing.data.MinMaxScaler()),
+                        ("s1", sklearn.preprocessing.MinMaxScaler()),
                         (
                             "s2",
                             gordo_components.model.models.KerasAutoEncoder(
@@ -290,14 +290,14 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
     (
         f"""
     gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
-        scaler: sklearn.preprocessing.data.MinMaxScaler
+        scaler: sklearn.preprocessing.MinMaxScaler
         base_estimator:
             sklearn.compose.TransformedTargetRegressor:
-                transformer: sklearn.preprocessing.data.MinMaxScaler
+                transformer: sklearn.preprocessing.MinMaxScaler
                 regressor:
                     sklearn.pipeline.Pipeline:
                         steps:
-                        - sklearn.preprocessing.data.MinMaxScaler
+                        - sklearn.preprocessing.MinMaxScaler
                         - gordo_components.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                             batch_size: 3
@@ -309,11 +309,11 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
         """,
         f"""
    sklearn.compose.TransformedTargetRegressor:
-       transformer: sklearn.preprocessing.data.MinMaxScaler
+       transformer: sklearn.preprocessing.MinMaxScaler
        regressor:
           sklearn.pipeline.Pipeline:
               steps:
-              - sklearn.preprocessing.data.MinMaxScaler
+              - sklearn.preprocessing.MinMaxScaler
               - gordo_components.model.models.KerasAutoEncoder:
                   kind: feedforward_hourglass
                   batch_size: 2
@@ -326,7 +326,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
         f"""
   sklearn.pipeline.Pipeline:
       steps:
-      - sklearn.preprocessing.data.MinMaxScaler
+      - sklearn.preprocessing.MinMaxScaler
       - gordo_components.model.models.KerasAutoEncoder:
           kind: feedforward_hourglass
           batch_size: 2
@@ -351,14 +351,14 @@ def test_output_scores_metadata():
     data_config = get_random_data()
     raw_model_config = f"""
             gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
-                scaler: sklearn.preprocessing.data.MinMaxScaler
+                scaler: sklearn.preprocessing.MinMaxScaler
                 base_estimator:
                     sklearn.compose.TransformedTargetRegressor:
-                        transformer: sklearn.preprocessing.data.MinMaxScaler
+                        transformer: sklearn.preprocessing.MinMaxScaler
                         regressor:
                             sklearn.pipeline.Pipeline:
                                 steps:
-                                - sklearn.preprocessing.data.MinMaxScaler
+                                - sklearn.preprocessing.MinMaxScaler
                                 - gordo_components.model.models.KerasAutoEncoder:
                                     kind: feedforward_hourglass
                                     batch_size: 3
