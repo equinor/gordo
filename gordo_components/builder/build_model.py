@@ -124,23 +124,24 @@ class ModelBuilder:
         replace_cache=False,
     ) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
         """
-        Build the model and/or ensure that the desired model exists on disk
-        in `output_dir`, and returns the path to it. If `output_dir` exists we
-        assume the model is there (no validation), and return that path.
+        Always return a model and its metadata.
 
-        If ``output_dir`` is not given, it will simply build the model without
-        any caching logic. Otherwise builds the model if needed, or finds it
-        among already existing models if ``model_register_dir`` is non-None,
-        and we find the model there. If `model_register_dir` is set we will also
-        store the model-location of the generated model there for future use.
-        Think about it as a cache that is never emptied.
+        If ``output_dir`` is supplied without ``model_register_dir`` the model
+        and metadata will be deposited to this output directory.
+
+        However if ``model_register_dir`` is supplied, it will attempt to read
+        a previously cached model. Failing to find it will simply build the model.
+
+        If both ``model_register_dir`` and ``output_dir`` are specified, it will
+        check the cache and copy over to the output directory, otherwise build
+        and cache the model.
 
         Parameters
         ----------
         output_dir: Optional[Union[os.PathLike, str]]
             A path to where the model will be deposited if it is built.
         model_register_dir: Optional[Union[os.PathLike, str]]
-            A path to a register, see `gordo_components.util.disk_registry`. If this is None
+            A path to a register, see `:func:gordo_components.util.disk_registry`. If this is None
             then always build the model, otherwise try to resolve the model from the
             registry.
         replace_cache: bool
