@@ -122,7 +122,7 @@ def test_output_dir(tmp_dir):
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    model, metadata = builder._build()
+    model, metadata = builder.build()
     metadata_check(metadata, False)
 
     builder._save_model(model=model, metadata=metadata, output_dir=output_dir)
@@ -193,7 +193,7 @@ def test_builder_metadata(raw_model_config):
 
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    )._build()
+    ).build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
     metadata_check(metadata, "Keras" in raw_model_config)
 
@@ -341,7 +341,7 @@ def test_scores_metadata(raw_model_config):
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    )._build()
+    ).build()
     metadata_check(metadata, False)
 
 
@@ -370,7 +370,7 @@ def test_output_scores_metadata():
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    )._build()
+    ).build()
     scores_metadata = metadata["model"]["cross-validation"]["scores"]
     assert (
         scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
@@ -553,7 +553,7 @@ def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: 
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    )._build()
+    ).build()
     if should_be_equal:
         assert model is not None
     else:
@@ -586,7 +586,7 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    )._build()
+    ).build()
 
     expected_metrics = metrics_ or [
         "sklearn.metrics.explained_variance_score",
@@ -651,13 +651,13 @@ def test_setting_seed(seed, model_config):
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    )._build()
+    ).build()
     _model, metadata2 = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
         evaluation_config=evaluation_config,
-    )._build()
+    ).build()
 
     df1 = pd.DataFrame.from_dict(metadata1["model"]["cross-validation"]["scores"])
     df2 = pd.DataFrame.from_dict(metadata2["model"]["cross-validation"]["scores"])
