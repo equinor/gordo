@@ -32,29 +32,49 @@ RUN cat /code/requirements.txt | grep tensorflow== > /code/prereq.txt \
     && cat /code/requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements.txt | grep catboost== >> /code/prereq.txt
 
+
 FROM python:3.6.9-slim-stretch
 
-# Install requirements separately for improved docker caching
+# Nonroot user for running CMD
+RUN groupadd -g 999 gordo && \
+    useradd -r -u 999 -g gordo gordo
+
+ENV HOME "/home/gordo"
+ENV PATH "${HOME}/.local/bin:${PATH}"
+
+# Install requirements and gordo-components packaged in intermediate image 'python setup.py sdist'
+# perfomed separately for improved docker caching
 COPY --from=builder /code/prereq.txt .
 RUN pip install --no-deps -r prereq.txt --no-cache-dir
 
-COPY requirements.txt /code/
-RUN pip install -r /code/requirements.txt --no-cache-dir
+COPY --from=builder /code/dist/gordo-infrastructure-packed.tar.gz .
+RUN pip install gordo-infrastructure-packed.tar.gz
 
-COPY ./run_workflow_and_argo.sh /code/run_workflow_and_argo.sh
+COPY requirements.txt .
+RUN pip install -r requirements.txt --no-cache-dir
 
-COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
-COPY --from=builder /usr/local/bin/argo /usr/local/bin/argo
 RUN apt-get update && apt-get install -y \
     curl \
     jq \
  && rm -rf /var/lib/apt/lists/*
 
-COPY resources /code/resources
+COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
+COPY --from=builder /usr/local/bin/argo /usr/local/bin/argo
+COPY ./run_workflow_and_argo.sh ${HOME}/run_workflow_and_argo.sh
 
-# Install the current distribution of gordo-infrastructure
-COPY --from=builder /code/dist/gordo-infrastructure-packed.tar.gz .
-RUN pip install ./gordo-infrastructure-packed.tar.gz
+# Baking in example configs for running tests, as docker.client.containers.run
+# bind doesn't seem to work correctly for non-root users
+# volumes={repo_dir: {"bind": "/home/gordo", "mode": "ro"}},
+COPY ./examples ${HOME}/examples
+COPY ./resources ${HOME}/resources
 
+# Make gordo own all in its home
+RUN chown -R gordo:gordo ${HOME}
 
-CMD ["bash", "/code/run_workflow_and_argo.sh"]
+# Switch user
+USER gordo
+
+# Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
+WORKDIR ${HOME}
+
+CMD ["bash", "./run_workflow_and_argo.sh"]
