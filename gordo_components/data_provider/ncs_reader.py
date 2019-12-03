@@ -36,6 +36,7 @@ class NcsReader(GordoBaseDataProvider):
         "1901-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1901-JSV",
         "1902-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1902-JSV",
         "1903-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1903-JSV",
+        "1904-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1904-JSV",
     }
 
     def __init__(
