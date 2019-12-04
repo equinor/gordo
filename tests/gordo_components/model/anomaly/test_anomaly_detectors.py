@@ -59,7 +59,12 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
     # Base prediction dataframe has none of these columns
     assert not any(
         col in base_df.columns
-        for col in ("total-anomaly", "tag-anomaly-scaled", "tag-anomaly-unscaled")
+        for col in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+        )
     )
 
     # Apply the anomaly detection logic on the base prediction df
