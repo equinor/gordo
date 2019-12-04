@@ -79,6 +79,8 @@ spec:
         value: "{{project_name}}"
       - name: GORDO_PROJECT_REVISION
         value: "{{project_revision}}"
+      - name: GORDO_LOG_LEVEL
+        value: "{{log_level}}"
 
   - name: apply-with-retries
     retryStrategy:
@@ -654,6 +656,8 @@ spec:
           secretKeyRef:
             name: dlserviceauth
             key: tenant_id_secret
+      - name: GORDO_LOG_LEVEL
+        value: "{{log_level}}"
       volumeMounts:
       - name: azurefile
         mountPath: /gordo
@@ -876,6 +880,8 @@ spec:
                              env:
                                - name: MODEL_COLLECTION_DIR
                                  value: /gordo/models/{{project_name}}/{{project_revision}}
+                               - name: GORDO_LOG_LEVEL
+                                 value: "{{log_level}}"
 
                              resources:
                                requests:
@@ -1034,6 +1040,8 @@ spec:
           secretKeyRef:
             name: dlserviceauth
             key: tenant_id_secret
+      - name: GORDO_LOG_LEVEL
+        value: "{{log_level}}"
 
   - name: influx-cleanup
     activeDeadlineSeconds: 300

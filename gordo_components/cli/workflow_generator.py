@@ -3,6 +3,7 @@ import time
 import pkg_resources
 import json
 import sys
+import os
 
 from typing import Dict, Any
 
@@ -21,7 +22,8 @@ PREFIX = "WORKFLOW_GENERATOR"
 
 
 @click.group("workflow")
-def workflow_cli():
+@click.pass_context
+def workflow_cli(gordo_ctx):
     pass
 
 
@@ -111,14 +113,22 @@ def workflow_cli():
     help="The docker registry to use for pulling component images from",
     envvar=f"{PREFIX}_DOCKER_REGISTRY",
 )
-def workflow_generator_cli(**ctx: dict):
+@click.pass_context
+def workflow_generator_cli(gordo_ctx, **ctx):
     """
     Machine Configuration to Argo Workflow
     """
 
     context: Dict[Any, Any] = ctx.copy()
-
     yaml_content = wg.get_dict_from_yaml(context["machine_config"])
+
+    try:
+        log_level = yaml_content["globals"]["runtime"]["log_level"]
+    except KeyError:
+        log_level = os.getenv("GORDO_LOG_LEVEL", gordo_ctx.obj["log_level"])
+
+    logging.getLogger("gordo_components").setLevel(log_level.upper())
+    context["log_level"] = log_level.upper()
 
     # Create normalized config
     config = NormalizedConfig(yaml_content, project_name=context["project_name"])
