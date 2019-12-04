@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-from distutils.dir_util import copy_tree
 import hashlib
 import json
 import pydoc
@@ -109,7 +108,89 @@ class ModelBuilder:
         self.evaluation_config = evaluation_config.copy()
         self.metadata = metadata.copy()
 
-    def build(self) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
+    @property
+    def cached_model_path(self) -> Union[os.PathLike, str, None]:
+        return getattr(self, "_cached_model_path", None)
+
+    @cached_model_path.setter
+    def cached_model_path(self, value):
+        self._cached_model_path = value
+
+    def build(
+        self,
+        output_dir: Optional[Union[os.PathLike, str]] = None,
+        model_register_dir: Optional[Union[os.PathLike, str]] = None,
+        replace_cache=False,
+    ) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
+        """
+        Always return a model and its metadata.
+
+        If ``output_dir`` is supplied, it will save the model there.
+        ``model_register_dir`` points to the model cache directory which it will
+        attempt to read the model from. Supplying both will then have the effect
+        of both; reading from the cache and saving that cached model to the new
+        output directory.
+
+        Parameters
+        ----------
+        output_dir: Optional[Union[os.PathLike, str]]
+            A path to where the model will be deposited.
+        model_register_dir: Optional[Union[os.PathLike, str]]
+            A path to a register, see `:func:gordo_components.util.disk_registry`.
+            If this is None then always build the model, otherwise try to resolve
+            the model from the registry.
+        replace_cache: bool
+            Forces a rebuild of the model, and replaces the entry in the cache
+            with the new model.
+
+        Returns
+        -------
+        Tuple[Optional[sklearn.base.BaseEstimator], dict]
+            Built model and its metadata
+        """
+        if not model_register_dir:
+            model, metadata = self._build()
+        else:
+            logger.debug(
+                f"Model caching activated, attempting to read model-location with key "
+                f"{self.cache_key} from register {model_register_dir}"
+            )
+            self.cached_model_path = self.check_cache(model_register_dir)
+
+            if replace_cache:
+                logger.info("replace_cache=True, deleting any existing cache entry")
+                disk_registry.delete_value(model_register_dir, self.cache_key)
+                self.cached_model_path = None
+
+            # Load the model from previous cached directory
+            if self.cached_model_path:
+                model = serializer.load(self.cached_model_path)
+                metadata = serializer.load_metadata(self.cached_model_path)
+
+            # Otherwise build and cache the model
+            else:
+                model, metadata = self._build()
+                self.cached_model_path = self._save_model(
+                    model=model,
+                    metadata=metadata,
+                    output_dir=output_dir,  # type: ignore
+                )
+                logger.info(f"Built model, and deposited at {self.cached_model_path}")
+                logger.info(f"Writing model-location to model registry")
+                disk_registry.write_key(  # type: ignore
+                    model_register_dir, self.cache_key, self.cached_model_path
+                )
+
+        # Save model to disk, if we're not building for cv only purposes.
+        if output_dir and (
+            self.evaluation_config.get("cv_mode", None) != "cross_val_only"
+        ):
+            self.cached_model_path = self._save_model(
+                model=model, metadata=metadata, output_dir=output_dir
+            )
+        return model, metadata
+
+    def _build(self) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
         """
         Build the model using the current state of the Builder
 
@@ -330,7 +411,7 @@ class ModelBuilder:
         return len(X) - len(out)
 
     @staticmethod
-    def _save_model_for_workflow(
+    def _save_model(
         model: BaseEstimator, metadata: dict, output_dir: Union[os.PathLike, str]
     ):
         """
@@ -491,89 +572,6 @@ class ModelBuilder:
                 f"{model_register_dir}."
             )
             return None
-
-    def build_with_cache(
-        self,
-        output_dir: Union[os.PathLike, str],
-        model_register_dir: Union[os.PathLike, str] = None,
-        replace_cache=False,
-    ) -> Union[os.PathLike, str]:
-        """
-        Ensures that the desired model exists on disk in `output_dir`, and returns the path
-        to it. If `output_dir` exists we assume the model is there (no validation), and
-        return that path.
-
-
-        Builds the model if needed, or finds it among already existing models if
-        ``model_register_dir`` is non-None, and we find the model there. If
-        `model_register_dir` is set we will also store the model-location of the generated
-        model there for future use. Think about it as a cache that is never emptied.
-
-        Parameters
-        ----------
-        output_dir: Union[os.PathLike, str]
-            A path to where the model will be deposited if it is built.
-        model_register_dir:
-            A path to a register, see `gordo_components.util.disk_registry`. If this is None
-            then always build the model, otherwise try to resolve the model from the
-            registry.
-        replace_cache: bool
-            Forces a rebuild of the model, and replaces the entry in the cache with the new
-            model.
-
-        Returns
-        -------
-        Union[os.PathLike, str]:
-            Path to the model
-        """
-        if model_register_dir:
-            logger.info(
-                f"Model caching activated, attempting to read model-location with key "
-                f"{self.cache_key} from register {model_register_dir}"
-            )
-            if replace_cache:
-                logger.info(
-                    "replace_cache activated, deleting any existing cache entry"
-                )
-                disk_registry.delete_value(model_register_dir, self.cache_key)
-            else:
-                cached_model_location = self.check_cache(model_register_dir)
-                if cached_model_location:
-                    logger.info(
-                        f"Found model in cache, copying from {cached_model_location} to "
-                        f"new location {output_dir} "
-                    )
-                    if cached_model_location == output_dir:
-                        return output_dir
-                    else:
-                        try:
-                            # Why not shutil.copytree? Because in python <3.7 it causes
-                            # errors on Azure NFS, see:
-                            # - https://bugs.python.org/issue24564
-                            # - https://stackoverflow.com/questions/51616058/shutil-copystat-fails-inside-docker-on-azure/51635427#51635427
-                            copy_tree(
-                                str(cached_model_location),
-                                str(output_dir),
-                                preserve_mode=0,
-                                preserve_times=0,
-                            )
-                        except FileExistsError:
-                            logger.warning(
-                                f"Found that output directory {output_dir} "
-                                f"already exists, assuming model is "
-                                f"already located there"
-                            )
-                        return output_dir
-
-        model, metadata = self.build()
-        model_location = self._save_model_for_workflow(
-            model=model, metadata=metadata, output_dir=output_dir
-        )
-        logger.info(f"Successfully built model, and deposited at {model_location}")
-        if model_register_dir:
-            logger.info(f"Writing model-location to model registry")
-            disk_registry.write_key(model_register_dir, self.cache_key, model_location)
-        return model_location
 
     @staticmethod
     def metrics_from_list(metric_list: Optional[List[str]] = None) -> List[Callable]:

@@ -72,4 +72,4 @@ def local_build(config_str: str) -> Iterable[Tuple[Union[BaseEstimator, None], d
             data_config=machine.dataset.to_dict(),
             metadata=machine.metadata,
             evaluation_config=machine.evaluation,
-        ).build()
+        )._build()

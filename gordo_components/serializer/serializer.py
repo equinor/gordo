@@ -67,14 +67,14 @@ def loads(bytes_object: bytes) -> GordoBase:
     return pickle.loads(bytes_object)
 
 
-def load_metadata(source_dir: str) -> dict:
+def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
     """
     Load the given metadata.json which was saved during the ``serializer.dump``
     will return the loaded metadata as a dict, or empty dict if no file was found
 
     Parameters
     ----------
-    source_dir: str
+    source_dir: Union[os.PathLike, str]
         Directory of the saved model, As with serializer.load(source_dir) this
         source_dir can be the top level, or the first dir into the serialized model.
 
@@ -98,7 +98,7 @@ def load_metadata(source_dir: str) -> dict:
     return dict()
 
 
-def load(source_dir: str) -> Any:
+def load(source_dir: Union[os.PathLike, str]) -> Any:
     """
     Load an object from a directory, saved by
     ``gordo_components.serializer.pipeline_serializer.dump``
@@ -111,7 +111,7 @@ def load(source_dir: str) -> Any:
 
     Parameters
     ----------
-    source_dir: str
+    source_dir: Union[os.PathLike, str]
         Location of the top level dir the pipeline was saved
 
     Returns

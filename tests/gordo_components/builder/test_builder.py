@@ -125,9 +125,7 @@ def test_output_dir(tmp_dir):
     model, metadata = builder.build()
     metadata_check(metadata, False)
 
-    builder._save_model_for_workflow(
-        model=model, metadata=metadata, output_dir=output_dir
-    )
+    builder._save_model(model=model, metadata=metadata, output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -405,7 +403,7 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
 
     ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build_with_cache(output_dir=output_dir)
+    ).build(output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -423,20 +421,12 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    model_location1 = builder.build_with_cache(
-        output_dir=output_dir, model_register_dir=registry_dir
-    )
-
-    assert model_location1 == output_dir
+    builder.build(output_dir=output_dir, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir
 
     # Saving to same output_dir as the one saved in the registry just returns the output_dir
-    builder = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    )
-    model_location2 = builder.build_with_cache(
-        output_dir=output_dir, model_register_dir=registry_dir
-    )
-    assert model_location2 == output_dir
+    builder.build(output_dir=output_dir, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir
 
 
 def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir):
@@ -453,17 +443,13 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     builder = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     )
-    builder.build_with_cache(output_dir=output_dir1, model_register_dir=registry_dir)
+    builder.build(output_dir=output_dir1, model_register_dir=registry_dir)
 
-    model_location2 = builder.build_with_cache(
-        output_dir=output_dir2, model_register_dir=registry_dir
-    )
-    assert model_location2 == output_dir2
+    builder.build(output_dir=output_dir2, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir2
 
-    model_location3 = builder.build_with_cache(
-        output_dir=output_dir2, model_register_dir=registry_dir
-    )
-    assert model_location3 == output_dir2
+    builder.build(output_dir=output_dir2, model_register_dir=registry_dir)
+    assert builder.cached_model_path == output_dir2
 
 
 @pytest.mark.parametrize(
@@ -514,27 +500,24 @@ def test_provide_saved_model_caching(
     output_dir = os.path.join(tmp_dir, "model")
     registry_dir = os.path.join(tmp_dir, "registry")
 
-    model_location = ModelBuilder(
+    _model, first_metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
-    ).build_with_cache(output_dir=output_dir, model_register_dir=registry_dir)
+    ).build(output_dir=output_dir, model_register_dir=registry_dir)
 
     if tag_list:
         data_config["tag_list"] = tag_list
 
     new_output_dir = os.path.join(tmp_dir, "model2")
-    model_location2 = ModelBuilder(
+    _model, second_metadata = ModelBuilder(
         name="model-name",
         model_config=model_config,
         data_config=data_config,
         metadata=metadata,
-    ).build_with_cache(
+    ).build(
         output_dir=new_output_dir,
         model_register_dir=registry_dir,
         replace_cache=replace_cache,
     )
-
-    first_metadata = serializer.load_metadata(str(model_location))
-    second_metadata = serializer.load_metadata(str(model_location2))
 
     model1_creation_date = first_metadata["model"]["model-creation-date"]
     model2_creation_date = second_metadata["model"]["model-creation-date"]

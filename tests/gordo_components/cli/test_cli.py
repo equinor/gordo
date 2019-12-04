@@ -295,14 +295,14 @@ def test_build_cv_mode(should_save_model: bool, cv_mode: str, tmp_dir: str):
 
 
 @pytest.mark.parametrize(
-    "should_be_equal,cv_mode_1, cv_mode_2",
+    "should_save_model, cv_mode_1, cv_mode_2",
     [
         (True, {"cv_mode": "full_build"}, {"cv_mode": "cross_val_only"}),
         (False, {"cv_mode": "cross_val_only"}, {"cv_mode": "cross_val_only"}),
     ],
 )
 def test_build_cv_mode_cross_val_cache(
-    should_be_equal: bool, cv_mode_1: str, cv_mode_2: str, tmp_dir: str
+    should_save_model: bool, cv_mode_1: str, cv_mode_2: str, tmp_dir: str
 ):
     """
     Checks that cv_scores uses cache if ran after a full build. Loads the same model, and can
@@ -313,23 +313,20 @@ def test_build_cv_mode_cross_val_cache(
 
     logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG)}")
 
-    model_register_dir = f"{os.path.join(tmp_dir, 'reg')}"
-
     with temp_env_vars(
         MODEL_NAME="model-name",
         OUTPUT_DIR=tmp_dir,
         DATA_CONFIG=DATA_CONFIG,
         MODEL_CONFIG=json.dumps(MODEL_CONFIG),
-        MODEL_REGISTER_DIR=model_register_dir,
     ):
 
         runner.invoke(cli.gordo, ["build", f"--evaluation-config={cv_mode_1}"])
         runner.invoke(cli.gordo, ["build", f"--evaluation-config={cv_mode_2}"])
 
-        if should_be_equal:
-            assert os.path.exists(model_register_dir)
+        if should_save_model:
+            assert len(os.listdir(tmp_dir)) > 0
         else:
-            assert not os.path.exists(model_register_dir)
+            assert len(os.listdir(tmp_dir)) == 0
 
 
 def test_build_cv_mode_build_only(tmp_dir: str):
