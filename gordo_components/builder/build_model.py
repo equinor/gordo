@@ -125,27 +125,23 @@ class ModelBuilder:
         """
         Always return a model and its metadata.
 
-        If ``output_dir`` is supplied without ``model_register_dir`` the model
-        and metadata will be deposited to this output directory.
-
-        However if ``model_register_dir`` is supplied, it will attempt to read
-        a previously cached model. Failing to find it will simply build the model.
-
-        If both ``model_register_dir`` and ``output_dir`` are specified, it will
-        check the cache and copy over to the output directory, otherwise build
-        and cache the model.
+        If ``output_dir`` is supplied, it will save the model there.
+        ``model_register_dir`` points to the model cache directory which it will
+        attempt to read the model from. Supplying both will then have the effect
+        of both; reading from the cache and saving that cached model to the new
+        output directory.
 
         Parameters
         ----------
         output_dir: Optional[Union[os.PathLike, str]]
-            A path to where the model will be deposited if it is built.
+            A path to where the model will be deposited.
         model_register_dir: Optional[Union[os.PathLike, str]]
-            A path to a register, see `:func:gordo_components.util.disk_registry`. If this is None
-            then always build the model, otherwise try to resolve the model from the
-            registry.
+            A path to a register, see `:func:gordo_components.util.disk_registry`.
+            If this is None then always build the model, otherwise try to resolve
+            the model from the registry.
         replace_cache: bool
-            Forces a rebuild of the model, and replaces the entry in the cache with the new
-            model.
+            Forces a rebuild of the model, and replaces the entry in the cache
+            with the new model.
 
         Returns
         -------
