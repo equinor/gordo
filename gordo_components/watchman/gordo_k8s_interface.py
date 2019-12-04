@@ -91,7 +91,7 @@ class ThreadedListWatcher(threading.Thread):
                     logger.debug(
                         f"Initial list of objects had resource_version {initial_resource_version}"
                     )
-                    logger.debug(
+                    logger.info(
                         f"Initial list of objects had {len(initial_list)} items"
                     )
 

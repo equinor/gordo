@@ -195,14 +195,14 @@ class EndpointStatuses:
         """
         job_name = job_name_for_model_update(model_name)
         if self.scheduler.get_job(job_name):
-            logger.info(
+            logger.debug(
                 f"Updating scheduled job {job_name} to run every {seconds} seconds"
             )
             self.scheduler.reschedule_job(
                 job_id=job_name, trigger="interval", seconds=seconds
             )
         else:
-            logger.info(
+            logger.debug(
                 f"Adding scheduled job {job_name} to run every {seconds} seconds"
             )
             self.scheduler.add_job(
@@ -228,7 +228,7 @@ class EndpointStatuses:
             Name of model to update metadata for.
 
         """
-        logger.info(f"Checking model {model_name}")
+        logger.debug(f"Checking model {model_name}")
         endpoint = fetch_single_model_metadata(
             host=self.host,
             model_name=model_name,
@@ -273,14 +273,16 @@ def fetch_single_model_metadata(
     metadata_resp_ok = False
     try:
         metadata_url = f"{base_url}/metadata"
-        logger.info(f"Trying to fetch metadata from url {metadata_url}")
+        logger.debug(f"Trying to fetch metadata from url {metadata_url}")
         metadata_resp = requests.get(metadata_url, timeout=2)
-        logger.info(f"Url {metadata_url} gave exit code: {metadata_resp.status_code}")
+        logger.debug(f"Url {metadata_url} gave exit code: {metadata_resp.status_code}")
         metadata_resp_ok = metadata_resp.ok
         if metadata_resp_ok:
             metadata = metadata_resp.json()
     except requests.exceptions.RequestException:
-        logger.info(f"Failed getting metadata for endpoint {base_url}")
+        logger.info(
+            f"Failed getting metadata for endpoint {base_url} from url {metadata_url}"
+        )
     return EndpointStatus(
         endpoint="/" + endpoint_url,
         target=model_name,
