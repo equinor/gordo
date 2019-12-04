@@ -57,22 +57,42 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
     )
 
     # Base prediction dataframe has none of these columns
-    assert not any(col in base_df.columns for col in ("total-anomaly", "tag-anomaly"))
+    assert not any(
+        col in base_df.columns
+        for col in ("total-anomaly", "tag-anomaly-scaled", "tag-anomaly-unscaled")
+    )
 
     # Apply the anomaly detection logic on the base prediction df
     anomaly_df = model.anomaly(X, y, timedelta(days=1))
 
     # Should have these added error calculated columns now.
-    assert all(col in anomaly_df.columns for col in ("total-anomaly", "tag-anomaly"))
+    assert all(
+        col in anomaly_df.columns
+        for col in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+        )
+    )
 
-    # Verify calculations
-    feature_wise_error = np.abs(
+    # Verify calculation for unscaled data
+    feature_error_unscaled = np.abs(base_df["model-output"].values - y.values)
+    total_anomaly_unscaled = np.linalg.norm(feature_error_unscaled, axis=1)
+    assert np.allclose(
+        feature_error_unscaled, anomaly_df["tag-anomaly-unscaled"].values
+    )
+    assert np.allclose(
+        total_anomaly_unscaled, anomaly_df["total-anomaly-unscaled"].values
+    )
+
+    # Verify calculations for scaled data
+    feature_error_scaled = np.abs(
         scaler.transform(base_df["model-output"].values) - scaler.transform(y)
     )
-    assert np.allclose(feature_wise_error, anomaly_df["tag-anomaly"].values)
-
-    total_anomaly = np.linalg.norm(feature_wise_error, axis=1)
-    assert np.allclose(total_anomaly, anomaly_df["total-anomaly"].values)
+    total_anomaly_scaled = np.linalg.norm(feature_error_scaled, axis=1)
+    assert np.allclose(feature_error_scaled, anomaly_df["tag-anomaly-scaled"].values)
+    assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].values)
 
     if with_thresholds:
         assert "anomaly-confidence" in anomaly_df.columns
