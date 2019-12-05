@@ -268,19 +268,31 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Ensure to offset the y to match model out, which could be less if it was an LSTM
         scaled_y = self.scaler.transform(y)
         scaled_diff = model_out_scaled - scaled_y[-len(data) :, :]
-        tag_anomaly = np.abs(scaled_diff)
-        tag_anomaly.columns = pd.MultiIndex.from_tuples(
-            ("tag-anomaly", col) for col in tag_anomaly.columns
+        tag_anomaly_scaled = np.abs(scaled_diff)
+        tag_anomaly_scaled.columns = pd.MultiIndex.from_product(
+            (("tag-anomaly-scaled",), tag_anomaly_scaled.columns)
+        )
+        data = data.join(tag_anomaly_scaled)
+        data["total-anomaly-scaled"] = np.linalg.norm(
+            data["tag-anomaly-scaled"], axis=1
         )
 
-        data = data.join(tag_anomaly)
-
-        # Calculate the total anomaly
-        data["total-anomaly"] = np.linalg.norm(data["tag-anomaly"], axis=1)
+        # Unscaled anomalies: feature-wise and total
+        unscaled_abs_diff = pd.DataFrame(
+            data=np.abs(data["model-output"].values - y.values[-len(data) :, :]),
+            index=data.index,
+            columns=pd.MultiIndex.from_product(
+                (("tag-anomaly-unscaled",), y.columns.tolist())
+            ),
+        )
+        data = data.join(unscaled_abs_diff)
+        data["total-anomaly-unscaled"] = np.linalg.norm(
+            data["tag-anomaly-unscaled"], axis=1
+        )
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         if hasattr(self, "feature_thresholds_"):
-            confidence = tag_anomaly.values / self.feature_thresholds_.values
+            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
 
             # Dataframe of % abs_diff is of the thresholds
             anomaly_confidence_scores = pd.DataFrame(

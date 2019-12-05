@@ -54,5 +54,12 @@ def test_anomaly_prediction_endpoint(
 
     assert all(
         key in data
-        for key in ("total-anomaly", "tag-anomaly", "model-input", "model-output")
+        for key in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+            "model-input",
+            "model-output",
+        )
     )
