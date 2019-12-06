@@ -631,12 +631,14 @@ spec:
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     inputs:
       parameters:
+      - name: project-name
       - name: model-name
       - name: metadata
       - name: model-config
       - name: data-config
       - name: data-provider
       - name: evaluation-config
+      - name: enable-remote-logging
     container:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       env:
@@ -644,6 +646,8 @@ spec:
         value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.model-name}}'}}"
       - name: MODEL_REGISTER_DIR
         value: "/gordo/models/{{project_name}}/model_register"
+      - name: PROJECT_NAME
+        value: "{{ project_name }}"
       - name: MODEL_NAME
         value: {{ '"{{inputs.parameters.model-name}}" '}}
       - name: METADATA
@@ -661,6 +665,13 @@ spec:
         value: {{ '"{{inputs.parameters.data-provider}}"' }}
       - name: EVALUATION_CONFIG
         value: {{ '"{{inputs.parameters.evaluation-config}}"' }}
+      - name: ENABLE_REMOTE_LOGGING
+        value: {{ '"{{inputs.parameters.enable-remote-logging}}"' | capitalize }}
+      - name: AZUREML_WORKSPACE_STR
+        valueFrom:
+          configMapKeyRef:
+            name: gordo-components-config-map
+            key: azureml_workspace_str
       volumeMounts:
       - name: azurefile
         mountPath: /gordo
@@ -1326,6 +1337,8 @@ spec:
           template: model-builder
           arguments:
             parameters:
+              - name: project-name
+                value: "{{ project_name }}"
               - name: model-name
                 value: "{{ machine.name }}"
               - name: model-config
@@ -1343,6 +1356,8 @@ spec:
               - name: evaluation-config
                 value: |
                   {{ machine.evaluation | tojson}}
+              - name: enable-remote-logging
+                value: {{ machine.runtime.builder.remote_logging.enable }}
           dependencies:
             - watchman
             - gordo-server

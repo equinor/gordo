@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import os
-import glob
-import unittest
-import logging
-import nbformat
-import tempfile
 import dateutil.parser
+import glob
 import importlib
+import logging
+import mock
+import nbformat
+import os
 import sys
-
-from unittest import mock
 
 import pandas as pd
 import numpy as np
@@ -28,54 +25,50 @@ def _fake_data():
     return data, data
 
 
-class ExampleNotebooksTestCase(unittest.TestCase):
-    @mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
-    def test_faked_DataLakeBackedDataset(self, _mocked_method):
+@mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
+def test_faked_DataLakeBackedDataset(MockDataset):
 
-        config = dict(
-            from_ts=dateutil.parser.isoparse("2014-07-01T00:10:00+00:00"),
-            to_ts=dateutil.parser.isoparse("2015-01-01T00:00:00+00:00"),
-            tag_list=[
-                "asgb.19ZT3950%2FY%2FPRIM",
-                "asgb.19PST3925%2FDispMeasOut%2FPRIM",
-            ],
-        )
+    config = dict(
+        from_ts=dateutil.parser.isoparse("2014-07-01T00:10:00+00:00"),
+        to_ts=dateutil.parser.isoparse("2015-01-01T00:00:00+00:00"),
+        tag_list=["asgb.19ZT3950%2FY%2FPRIM", "asgb.19PST3925%2FDispMeasOut%2FPRIM"],
+    )
 
-        provider = DataLakeProvider(storename="dataplatformdlsprod", interactive=True)
-        dataset = TimeSeriesDataset(data_provider=provider, **config)
+    provider = DataLakeProvider(storename="dataplatformdlsprod", interactive=True)
+    dataset = TimeSeriesDataset(data_provider=provider, **config)
 
-        # Should be able to call get_data without being asked to authenticate in tests
-        X, y = dataset.get_data()
+    # Should be able to call get_data without being asked to authenticate in tests
+    X, y = dataset.get_data()
 
-    @mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
-    def test_notebooks(self, _mocked_method):
-        """
-        Ensures all notebooks will run without error
-        """
-        repo_root = os.path.join(os.path.dirname(__file__), "..")
-        notebooks = glob.glob(os.path.join(repo_root, "examples", "*.ipynb"))
 
-        logger.info(f"Found {len(notebooks)} notebooks to test.")
+@mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
+def test_notebooks(MockDataset, tmp_dir):
+    """
+    Ensures all notebooks will run without error
+    """
+    repo_root = os.path.join(os.path.dirname(__file__), "..")
+    notebooks = glob.glob(os.path.join(repo_root, "examples", "*.ipynb"))
 
-        for notebook in notebooks:
+    logger.info(f"Found {len(notebooks)} notebooks to test.")
 
-            logger.info(f"Testing notebook: {os.path.basename(notebook)}")
+    for notebook in notebooks:
 
-            with open(notebook) as f:
-                nb = nbformat.read(f, as_version=4)
-                exporter = PythonExporter()
-                source, _meta = exporter.from_notebook_node(nb)
+        logger.info(f"Testing notebook: {os.path.basename(notebook)}")
 
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    with open(os.path.join(tmpdir, "tmpmodule.py"), "w") as f:
-                        f.writelines(source)
-                    with open(os.path.join(tmpdir, "__init__.py"), "w") as f:
-                        f.write("from .tmpmodule import *")
+        with open(notebook) as f:
+            nb = nbformat.read(f, as_version=4)
+            exporter = PythonExporter()
+            source, _meta = exporter.from_notebook_node(nb)
 
-                    # Import this module to 'run' the code
-                    module_dir = os.path.join(tmpdir, "..")
-                    sys.path.insert(0, module_dir)
+            with open(os.path.join(tmp_dir, "tmpmodule.py"), "w") as f:
+                f.writelines(source)
+            with open(os.path.join(tmp_dir, "__init__.py"), "w") as f:
+                f.write("from .tmpmodule import *")
 
-                    importlib.import_module(os.path.basename(tmpdir), ".")
+            # Import this module to 'run' the code
+            module_dir = os.path.join(tmp_dir, "..")
+            sys.path.insert(0, module_dir)
 
-                    sys.path.remove(module_dir)
+            importlib.import_module(os.path.basename(tmp_dir), ".")
+
+            sys.path.remove(module_dir)

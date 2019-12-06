@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import mock
 
 from gordo_components.builder import local_build
 
@@ -59,7 +60,7 @@ from gordo_components.builder import local_build
     ),
 )
 def test_local_builder_valid_configs(config):
-    models_n_metadata = list(local_build(config))
+    models_n_metadata = list(local_build(config, enable_mlflow=False))
     assert len(models_n_metadata) == 1
 
     model_n_metadata = models_n_metadata.pop()
@@ -117,4 +118,47 @@ def test_local_builder_valid_configs(config):
 )
 def test_local_builder_invalid_configs(config):
     with pytest.raises(Exception):
-        list(local_build(config))
+        list(local_build(config, enable_mlflow=False))
+
+
+@mock.patch("gordo_components.builder.mlflow_utils.MlflowClient", autospec=True)
+@pytest.mark.parametrize("enable_mlflow", [True, False])
+def test_local_builder_mlflow(MockClient, enable_mlflow):
+    """
+    Test that logging is called when mlflow flag is enabled
+    """
+
+    config = """
+    machines:
+      - dataset:
+          tags:
+            - SOME-TAG1
+            - SOME-TAG2
+          train_end_date: '2019-03-01T00:00:00+00:00'
+          train_start_date: '2019-01-01T00:00:00+00:00'
+          asset: asgb
+          data_provider:
+            type: RandomDataProvider
+        name: crazy-sweet-name1
+      - dataset:
+          tags:
+            - SOME-TAG1
+            - SOME-TAG2
+          train_end_date: '2019-03-01T00:00:00+00:00'
+          train_start_date: '2019-01-01T00:00:00+00:00'
+          asset: asgb
+          data_provider:
+            type: RandomDataProvider
+        name: crazy-sweet-name2
+    globals:
+        model:
+          gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+            base_estimator:
+              sklearn.pipeline.Pipeline:
+                steps:
+                - sklearn.decomposition.pca.PCA
+                - sklearn.multioutput.MultiOutputRegressor:
+                    estimator: sklearn.linear_model.base.LinearRegression
+    """
+    n_builds = len(list(local_build(config, enable_mlflow=enable_mlflow)))
+    assert MockClient.call_count == (n_builds if enable_mlflow else 0)

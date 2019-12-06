@@ -10,6 +10,7 @@ import traceback
 
 from gordo_components.data_provider.providers import NoSuitableDataProviderError
 from gordo_components.dataset.sensor_tag import SensorTagNormalizationError
+from gordo_components.builder.mlflow_utils import MlflowLoggingError
 from gunicorn.glogging import Logger
 
 import jinja2
@@ -19,6 +20,7 @@ from typing import Dict, Type
 
 from gordo_components.builder.build_model import ModelBuilder
 from gordo_components import serializer
+from gordo_components.builder import mlflow_utils
 from gordo_components.server import server
 from gordo_components import watchman, __version__
 from gordo_components.cli.workflow_generator import workflow_cli
@@ -30,6 +32,7 @@ EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     FileNotFoundError: 30,
     SensorTagNormalizationError: 60,
     NoSuitableDataProviderError: 70,
+    MlflowLoggingError: 80,
 }
 
 logger = logging.getLogger(__name__)
@@ -51,7 +54,8 @@ DEFAULT_MODEL_CONFIG = (
 
 
 @click.command()
-@click.argument("name", envvar="MODEL_NAME")
+@click.argument("project-name", envvar="PROJECT_NAME", type=str)
+@click.argument("name", envvar="MODEL_NAME", type=str)
 @click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
 @click.argument(
     "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=str
@@ -102,7 +106,11 @@ DEFAULT_MODEL_CONFIG = (
     ),
     type=yaml.safe_load,
 )
+@click.option(
+    "--enable-remote-logging", envvar="ENABLE_REMOTE_LOGGING", type=bool, default=False
+)
 def build(
+    project_name,
     name,
     output_dir,
     model_config,
@@ -113,6 +121,7 @@ def build(
     print_cv_scores,
     model_parameter,
     evaluation_config,
+    enable_remote_logging,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -121,6 +130,8 @@ def build(
     \b
     Parameters
     ----------
+    project_name: str
+        Project name for collection of builds.
     name: str
         Name given to the model to build
     output_dir: str
@@ -162,7 +173,12 @@ def build(
                 Example::
 
                     {"cv_mode": "cross_val_only"}
+    enable_remote_logging: bool
+        Flag to enable logging of model building metadata to a remote backend.  By
+        default remote logging is disabled and the MlFlow client logs to a local
+        `mlruns/` directory.
     """
+
     # Set default data provider for data config
     # TODO: This is for backwards compatibility, as the `data_provider` param should
     # TODO: be provided in the `data_config` itself
@@ -199,6 +215,17 @@ def build(
         if print_cv_scores:
             for score in get_all_score_strings(metadata):
                 print(score)
+
+        # If enabled, configure remote logging to AzureML, otherwise logs locally
+        if enable_remote_logging:
+            metadata.update({"project-name": project_name})
+            workspace_kwargs = mlflow_utils.get_workspace_kwargs()
+            service_principal_kwargs = mlflow_utils.get_spauth_kwargs()
+            with mlflow_utils.mlflow_context(
+                name, builder.cache_key, workspace_kwargs, service_principal_kwargs
+            ) as (mlflow_client, run_id):
+                mlflow_utils.log_metadata(mlflow_client, run_id, metadata)
+
     except Exception as e:
         exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
         traceback.print_exc()

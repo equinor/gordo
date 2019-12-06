@@ -35,7 +35,8 @@ class NormalizedConfig:
                 "resources": {
                     "requests": {"memory": 3900, "cpu": 1001},
                     "limits": {"memory": 3900, "cpu": 1001},
-                }
+                },
+                "remote_logging": {"enable": False},
             },
             "client": {
                 "resources": {

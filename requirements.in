@@ -27,3 +27,5 @@ simplejson~=3.17
 gevent~=1.4
 catboost~=0.20
 typing_extensions~=3.7
+mlflow~=1.4.0
+azureml-contrib-run~=1.0.69
