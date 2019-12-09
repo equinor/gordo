@@ -2,7 +2,6 @@
 
 import inspect
 import logging
-from typing import Iterable, Dict, Union, List, Any  # pragma: no flakes
 
 from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
@@ -46,7 +45,7 @@ def pipeline_into_definition(
     sklearn.pipeline.Pipeline:
       memory: null
       steps:
-      - sklearn.decomposition.pca.PCA:
+      - sklearn.decomposition._pca.PCA:
           copy: true
           iterated_power: auto
           n_components: 4
