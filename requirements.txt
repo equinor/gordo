@@ -85,7 +85,7 @@ oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
 pandas==0.25.3
 pathspec==0.6.0           # via azureml-core
-peewee==3.12.0
+peewee==3.13.1
 plotly==4.3.0             # via catboost
 protobuf==3.11.1          # via mlflow, tensorboard, tensorflow
 psycopg2-binary==2.8.4
@@ -130,4 +130,4 @@ wrapt==1.11.2             # via tensorflow
 zipp==0.6.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools==42.0.2        # via apscheduler, google-auth, gunicorn, jsonschema, kiwisolver, kubernetes, markdown, protobuf, tensorboard
+# setuptools
