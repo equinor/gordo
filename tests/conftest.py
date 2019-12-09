@@ -178,13 +178,13 @@ def influxdb(base_influxdb):
 
 
 @pytest.fixture(scope="module")
-def watchman_service(
+def controller_service(
     trained_model_directory,
     host=tu.GORDO_HOST,
     project=tu.GORDO_PROJECT,
     targets=tu.GORDO_TARGETS,
 ):
-    with tu.watchman(
+    with tu.controller(
         host=host,
         project=project,
         targets=targets,

@@ -1,7 +1,6 @@
 
 MODEL_BUILDER_IMG_NAME := gordo-model-builder
 MODEL_SERVER_IMG_NAME  := gordo-model-server
-WATCHMAN_IMG_NAME := gordo-watchman
 CLIENT_IMG_NAME := gordo-client
 WORKFLOW_GENERATOR_IMG_NAME := gordo-deploy
 
@@ -23,10 +22,6 @@ model-builder:
 model-server:
 	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_IMG_NAME)
 
-# Create the image which reports status of expected model endpoints for the project
-watchman:
-	docker build . -f Dockerfile-Watchman -t $(WATCHMAN_IMG_NAME)
-
 client:
 	docker build . -f Dockerfile-Client -t $(CLIENT_IMG_NAME)
 
@@ -40,11 +35,6 @@ push-builder: model-builder
 	export DOCKER_IMAGE=$(MODEL_BUILDER_IMG_NAME);\
 	bash ./docker_push.sh
 
-push-watchman: watchman
-	export DOCKER_NAME=$(WATCHMAN_IMG_NAME);\
-	export DOCKER_IMAGE=$(WATCHMAN_IMG_NAME);\
-	bash ./docker_push.sh
-
 push-client: client
 	export DOCKER_NAME=$(CLIENT_IMG_NAME);\
 	export DOCKER_IMAGE=$(CLIENT_IMG_NAME);\
@@ -56,7 +46,7 @@ push-dev-images:
 	# Push everything to auroradevacr.azurecr.io/gordo-components
 	export DOCKER_REGISTRY=auroradevacr.azurecr.io;\
 	export DOCKER_REPO=gordo-components;\
-	$(MAKE) push-builder push-server push-watchman push-client push-workflow-generator
+	$(MAKE) push-builder push-server push-client push-workflow-generator
 
 	# Also push workflow-generator to auroradevacr.azurecr.io/gordo-infrastructure
 	# as gordo-controller still expects it to be located there.
@@ -65,7 +55,7 @@ push-dev-images:
 	$(MAKE) push-workflow-generator
 
 push-prod-images: export GORDO_PROD_MODE:="true"
-push-prod-images: push-builder push-server push-watchman push-client push-workflow-generator
+push-prod-images: push-builder push-server push-client push-workflow-generator
 
 # Make the python source distribution
 sdist:
@@ -73,7 +63,7 @@ sdist:
 	rm -rf ./dist/
 	python setup.py sdist
 
-images: model-builder model-server watchman client
+images: model-builder model-server client
 
 test:
 	python setup.py test
@@ -86,4 +76,4 @@ docs:
 
 all: test images push-dev-images
 
-.PHONY: model-builder model-server client watchman push-server push-builder push-watchman push-client push-dev-images push-prod-images images test all docs workflow-generator push-workflow-generator
+.PHONY: model-builder model-server client watchman push-server push-builder push-client push-dev-images push-prod-images images test all docs workflow-generator push-workflow-generator

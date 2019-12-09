@@ -29,7 +29,6 @@ from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 @click.option("--host", help="The host the server is running on", default="localhost")
 @click.option("--port", help="Port the server is running on", default=443)
 @click.option("--scheme", help="tcp/http/https", default="https")
-@click.option("--gordo-version", help="Version of gordo", default="v0")
 @click.option("--batch-size", help="How many samples to send", default=100000)
 @click.option("--parallelism", help="Maximum asynchronous jobs to run", default=10)
 @click.option(
@@ -96,13 +95,6 @@ def client(ctx: click.Context, *args, **kwargs):
     default=False,
 )
 @click.option(
-    "--ignore-unhealthy-targets",
-    help="Ignore any unhealthy targets. By default the client will raise an "
-    "error if any unhealthy endpoints are encountered.",
-    is_flag=True,
-    default=False,
-)
-@click.option(
     "--n-retries",
     help="Time client should retry failed predictions",
     type=int,
@@ -124,7 +116,6 @@ def predict(
     influx_api_key: str,
     influx_recreate_db: bool,
     forward_resampled_sensors: bool,
-    ignore_unhealthy_targets: bool,
     n_retries: int,
     parquet: bool,
 ):
@@ -135,7 +126,6 @@ def predict(
         {
             "data_provider": data_provider,
             "forward_resampled_sensors": forward_resampled_sensors,
-            "ignore_unhealthy_targets": ignore_unhealthy_targets,
             "n_retries": n_retries,
             "use_parquet": parquet,
         }

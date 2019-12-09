@@ -30,7 +30,6 @@ and deployed as a REST API on Kubernetes.
     ./components/data_provider.rst
     ./components/dataset.rst
     ./components/serializer.rst
-    ./components/watchman.rst
     ./components/server/server.rst
     ./components/cli.rst
     ./components/client.rst

@@ -24,7 +24,7 @@ from gordo_components.builder.build_model import ModelBuilder
 from gordo_components import serializer
 from gordo_components.builder import mlflow_utils
 from gordo_components.server import server
-from gordo_components import watchman, __version__
+from gordo_components import __version__
 from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
 from gordo_components.cli.custom_types import key_value_par, HostIP, DataProviderParam
@@ -390,76 +390,9 @@ def run_server_cli(host, port, workers, worker_connections, log_level):
     server.run_server(host, port, workers, worker_connections, log_level.lower())
 
 
-@click.command("run-watchman")
-@click.argument("project-name", envvar="PROJECT_NAME", type=str)
-@click.argument("project-version", envvar="PROJECT_VERSION", type=str)
-@click.argument("target-names", envvar="TARGET_NAMES", type=yaml.safe_load)
-@click.option(
-    "--host", type=str, help="The host to run the server on.", default="0.0.0.0"
-)
-@click.option("--port", type=int, help="The port to run the server on.", default=5555)
-@click.option("--debug", type=bool, help="Run in debug mode.", default=False)
-@click.option(
-    "--namespace",
-    type=str,
-    help="Namespace watchman should make requests in for ML servers",
-    default="kubeflow",
-    envvar="NAMESPACE",
-)
-@click.option(
-    "--ambassador-namespace",
-    type=str,
-    help="Namespace watchman expects Ambassador to be in.",
-    default="ambassador",
-    envvar="AMBASSADOR_NAMESPACE",
-)
-@click.option(
-    "--ambassador-host",
-    type=str,
-    help="Full hostname of ambassador. If this is set then `--ambassador-namespace` is "
-    "ignored even if set explicitly.",
-    default=None,
-    envvar="AMBASSADOR_HOST",
-)
-def run_watchman_cli(
-    project_name,
-    project_version,
-    target_names,
-    host,
-    port,
-    debug,
-    namespace,
-    ambassador_namespace,
-    ambassador_host,
-):
-    """
-    Start the Gordo Watchman server for this project. Which is responsible
-    for dynamically comparing expected URLs derived from a project config fle
-    against those actually deployed to determine and report their health.
-
-    \b
-    Must have the following environment variables set:
-        PROJECT_NAME: project_name for the config file
-        TARGET_NAMES: A list of non-sanitized machine / target names
-    """
-    watchman.server.run_server(
-        host,
-        port,
-        debug,
-        project_name,
-        project_version,
-        target_names,
-        namespace=namespace,
-        ambassador_host=ambassador_host
-        if ambassador_host
-        else f"ambassador.{ambassador_namespace}",
-    )
-
-
 gordo.add_command(workflow_cli)
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
-gordo.add_command(run_watchman_cli)
 gordo.add_command(gordo_client)
 
 if __name__ == "__main__":

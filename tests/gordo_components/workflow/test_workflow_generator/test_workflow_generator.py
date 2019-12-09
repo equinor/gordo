@@ -90,7 +90,6 @@ def _generate_test_workflow_str(
 
     if result.exception is not None:
         raise result.exception
-
     return result.output
 
 

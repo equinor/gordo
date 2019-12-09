@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 import requests
 import logging
@@ -35,7 +35,7 @@ class Machine(Model):
         Parameters
         ----------
         ep: Dict
-            Endpoint from watchman
+            Endpoint from controller
 
         Returns
         -------
@@ -49,11 +49,9 @@ class Machine(Model):
 
 
 def endpoint_to_machine_data(ep):
-    name = ep["endpoint-metadata"]["metadata"]["name"]
-    train_start_date = ep["endpoint-metadata"]["metadata"]["dataset"][
-        "train_start_date"
-    ]
-    train_end_date = ep["endpoint-metadata"]["metadata"]["dataset"]["train_end_date"]
+    name = ep["spec"]["config"]["name"]
+    train_start_date = ep["spec"]["config"]["dataset"]["train_start_date"]
+    train_end_date = ep["spec"]["config"]["dataset"]["train_end_date"]
     return dict(
         name=name,
         metadata=ep,
@@ -62,8 +60,8 @@ def endpoint_to_machine_data(ep):
     )
 
 
-def watchman_to_sql(
-    watchman_address: str,
+def controller_to_sql(
+    controller_address: str,
     sql_host: str,
     sql_port: int = 5432,
     sql_database: str = "postgres",
@@ -71,12 +69,12 @@ def watchman_to_sql(
     sql_password: str = None,
 ):
     """
-    Connects to watchman, downloads all metadata, and proceeds to push them to postgres.
+    Connects to controller, downloads all metadata, and proceeds to push them to postgres.
 
     Parameters
     ----------
-    watchman_address: str
-        Full URL (including http/https) to watchman
+    controller_address: str
+        Full URL (including http/https) to controller
     sql_host: str
         Host where postgres resides, e.g. "localhost"
     sql_port: int
@@ -100,7 +98,7 @@ def watchman_to_sql(
         sql_parameters.update({"password": sql_password})
     db.init(sql_database, **sql_parameters)
     Machine.create_table(safe=True)
-    machines = get_machines_from_watchman(watchman_address)
+    machines = get_machines_from_controller(controller_address)
     got_all_machines = None not in machines
     logger.debug(f"Fetched a total of {len(machines)} machines")
     machines = [machine for machine in machines if machine is not None]
@@ -112,89 +110,74 @@ def watchman_to_sql(
     return got_all_machines
 
 
-def get_machines_from_watchman(watchman_address: str) -> List[Optional[Machine]]:
+def get_machines_from_controller(controller_address: str) -> List[dict]:
     """
-    Returns a list of `Machine` objects from watchman, with None indicating a failed
+    Returns a list of `Machine` objects from controller, with None indicating a failed
     machine.
 
     Parameters
     ----------
-    watchman_address: str
-        Full address of watchman, including "http" / "https"
+    controller_address: str
+        Full address of controller, including "http" / "https"
 
     Returns
     -------
-    List[Optional[Machine]]
+    List[dict]
         List of Machine objects, with possible None values indicating a failed machine.
-
     """
-    ret: List[Optional[Machine]] = []
-    response = requests.get(watchman_address, timeout=5)
+    ret: List[dict] = []
+    response = requests.get(controller_address, timeout=5)
     if response.ok:
-        watchman_response = response.json()
-        ret = _extract_machines_from_watchman_response(watchman_response)
+        controller_response = response.json()
+        ret = _extract_machines_from_controller_response(controller_response)
     return ret
 
 
-def _extract_machines_from_watchman_response(
-    watchman_response: Dict,
-) -> List[Optional[Machine]]:
+def _extract_machines_from_controller_response(
+    controller_response: Dict,
+) -> List[dict]:
     """
-    Extracts the list of machines from the watchman json response, with None indicating
-    a failed machine.
+    Extracts the list of machines from the controller json response,
 
     Parameters
     ----------
-    watchman_response: Dict
-        Response from watchman
+    controller_response: Dict
+        Response from controller
 
     Examples
     --------
-    >>> example_response = {
-    ...     "endpoints": [
+    >>> example_response = [
     ...         {
-    ...             "endpoint-metadata": {
-    ...                    "metadata": {
-    ...                       "user-defined": {"machine-name": "test_machine1"},
+    ...             # Other keys such as 'metadata', 'kind', 'apiVersion' and other k8s keys
+    ...             "spec": {
+    ...                    "config": {
+    ...                        "metadata": {"machine-name": "test_machine1"},
     ...                        "dataset": {
     ...                            "train_start_date": "2019-05-08T14:10:38Z",
     ...                            "train_end_date": "2019-06-08T14:10:38Z",
     ...                        },
     ...                        "name": "machine-1"
     ...                    }},
-    ...             "healthy": False
     ...          },
     ...          {
-    ...             "endpoint-metadata": {
-    ...                    "metadata": {
-    ...                       "user-defined": {"machine-name": "test_machine2"},
-    ...                        "dataset": {
+    ...             "spec": {
+    ...                    "config": {
+    ...                       "metadata": {"machine-name": "test_machine2"},
+    ...                       "dataset": {
     ...                            "train_start_date": "2019-05-08T14:10:38Z",
     ...                            "train_end_date": "2019-06-08T14:10:38Z",
     ...                        },
-    ...                        "name": "machine-2"
+    ...                       "name": "machine-2"
     ...                    }},
-    ...             "healthy": True
     ...          }
     ...     ]
-    ... }
-    >>> machines = _extract_machines_from_watchman_response(example_response)
+    >>> machines = _extract_machines_from_controller_response(example_response)
     >>> len(machines)
     2
-    >>> len([m for m in machines if m is not None] )
-    1
 
     Returns
     -------
-    List[Optional[Machine]]
-        List of Machine objects, with possible None values indicating a failed machine.
+    List[dict]
+        List of Machine objects
     """
-    machines = []
-    if "endpoints" in watchman_response:
-        for ep in watchman_response["endpoints"]:
-            if ep["healthy"]:
-                machines.append(endpoint_to_machine_data(ep))
-            else:
-                logger.info(f"Found non-healthy endpoint {ep}, ignoring")
-                machines.append(None)
-    return machines
+    return [endpoint_to_machine_data(ep) for ep in controller_response]

@@ -1,0 +1,151 @@
+[
+  {
+    "apiVersion": "equinor.com/v1",
+    "kind": "Model",
+    "metadata": {
+      "name": "gordo-mdl-test-eimj-845946cf-basic-ff",
+      "namespace": "kubeflow",
+      "labels": {
+        "app": "model-stache-845946cf-basic-ff",
+        "app.kubernetes.io/component": "model",
+        "app.kubernetes.io/managed-by": "gordo",
+        "app.kubernetes.io/name": "model-server",
+        "app.kubernetes.io/part-of": "gordo",
+        "applications.gordo.equinor.com/model-name": "845946cf-basic-ff",
+        "applications.gordo.equinor.com/project-name": "test-eimj",
+        "applications.gordo.equinor.com/project-version": "1574854412004"
+      },
+      "annotations": {},
+      "resourceVersion": "8490757",
+      "ownerReferences": [
+        {
+          "controller": true,
+          "blockOwnerDeletion": true,
+          "name": "test-eimj",
+          "apiVersion": "v1",
+          "kind": "Gordo",
+          "uid": "b2c306fa-1109-11ea-8446-1e67938d5594"
+        }
+      ],
+      "uid": "adca1bb5-110a-11ea-8446-1e67938d5594",
+      "generation": 1.0
+    },
+    "spec": {
+      "gordo-version": "0.41.1.dev13_g7be378e",
+      "config": {
+        "data_provider": {
+          "threads": 20,
+          "type": "DataLakeProvider"
+        },
+        "dataset": {
+          "tags": [
+            "tag-0",
+            "tag-1",
+            "tag-2",
+            "tag-3"
+          ],
+          "target_tag_list": [
+            "tag-0",
+            "tag-1",
+            "tag-2",
+            "tag-3"
+          ],
+          "train_end_date": "2019-02-02T00:00:00+00:00",
+          "train_start_date": "2019-01-02T00:00:00+00:00",
+          "type": "TimeSeriesDataset"
+        },
+        "evaluation": {
+          "cv_mode": "full_build",
+          "metrics": [
+            "explained_variance_score",
+            "r2_score",
+            "mean_squared_error",
+            "mean_absolute_error"
+          ],
+          "scoring_scaler": "sklearn.preprocessing.RobustScaler"
+        },
+        "metadata": {
+          "global-metadata": {},
+          "machine-metadata": {
+            "information": "Example with a minmax scaler and feed forward autoencoder"
+          }
+        },
+        "model": {
+          "gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector": {
+            "base_estimator": {
+              "sklearn.compose.TransformedTargetRegressor": {
+                "regressor": {
+                  "sklearn.pipeline.Pipeline": {
+                    "steps": [
+                      "sklearn.preprocessing.data.MinMaxScaler",
+                      {
+                        "gordo_components.model.models.KerasAutoEncoder": {
+                          "kind": "feedforward_hourglass"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "transformer": "sklearn.preprocessing.data.MinMaxScaler"
+              }
+            }
+          }
+        },
+        "name": "machine-1",
+        "project_name": "test-eimj",
+        "runtime": {
+          "builder": {
+            "resources": {
+              "limits": {
+                "cpu": 1001,
+                "memory": 3900
+              },
+              "requests": {
+                "cpu": 1001,
+                "memory": 3900
+              }
+            }
+          },
+          "client": {
+            "max_instances": 30,
+            "resources": {
+              "limits": {
+                "cpu": 2000,
+                "memory": 5000
+              },
+              "requests": {
+                "cpu": 100,
+                "memory": 5000
+              }
+            }
+          },
+          "influx": {
+            "enable": true,
+            "resources": {
+              "limits": {
+                "cpu": 10360,
+                "memory": 6960
+              },
+              "requests": {
+                "cpu": 680,
+                "memory": 6960
+              }
+            }
+          },
+          "server": {
+            "resources": {
+              "limits": {
+                "cpu": 2000,
+                "memory": 6000
+              },
+              "requests": {
+                "cpu": 1000,
+                "memory": 3000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+]

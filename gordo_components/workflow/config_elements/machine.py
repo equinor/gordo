@@ -66,6 +66,10 @@ class Machine(ConfigElement):
     ):
         if config_globals is None:
             config_globals = dict()
+        else:
+            config_globals = config_globals.copy()
+
+        config = config.copy()
 
         name = config["name"]
         model = config.get("model") or config_globals.get("model")
@@ -105,6 +109,9 @@ class Machine(ConfigElement):
 
     def __str__(self):
         return yaml.dump(self.to_dict())
+
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
 
     def to_dict(self):
         return {
