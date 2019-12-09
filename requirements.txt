@@ -17,8 +17,8 @@ azure-graphrbac==0.61.1   # via azureml-core
 azure-mgmt-authorization==0.60.0  # via azureml-core
 azure-mgmt-containerregistry==2.8.0  # via azureml-core
 azure-mgmt-keyvault==2.0.0  # via azureml-core
-azure-mgmt-resource==6.0.0  # via azureml-core
-azure-mgmt-storage==6.0.0  # via azureml-core
+azure-mgmt-resource==7.0.0  # via azureml-core
+azure-mgmt-storage==7.0.0  # via azureml-core
 azureml-contrib-run==1.0.76
 azureml-core==1.0.76      # via azureml-mlflow
 azureml-mlflow==1.0.76    # via azureml-contrib-run
@@ -47,7 +47,7 @@ gevent==1.4.0
 gitdb2==2.0.6             # via gitpython
 gitpython==3.0.5          # via mlflow
 google-auth-oauthlib==0.4.1  # via tensorboard
-google-auth==1.7.1        # via google-auth-oauthlib, kubernetes, tensorboard
+google-auth==1.7.2        # via google-auth-oauthlib, kubernetes, tensorboard
 google-pasta==0.1.8       # via tensorflow
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
@@ -56,7 +56,7 @@ grpcio==1.25.0            # via tensorboard, tensorflow
 gunicorn==20.0.4
 h5py==2.10.0
 idna==2.8                 # via requests
-importlib-metadata==1.1.0  # via jsonschema
+importlib-metadata==1.2.0  # via jsonschema
 influxdb==5.2.3
 isodate==0.6.0            # via msrest
 itsdangerous==1.1.0       # via flask
@@ -75,7 +75,7 @@ markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2, mako
 matplotlib==3.1.2         # via catboost
 mlflow==1.4.0
-more-itertools==8.0.0     # via zipp
+more-itertools==8.0.2     # via zipp
 msrest==0.6.10            # via azure-graphrbac, azure-mgmt-authorization, azure-mgmt-containerregistry, azure-mgmt-keyvault, azure-mgmt-resource, azure-mgmt-storage, azureml-core, msrestazure
 msrestazure==0.6.2        # via azure-graphrbac, azure-mgmt-authorization, azure-mgmt-containerregistry, azure-mgmt-keyvault, azure-mgmt-resource, azure-mgmt-storage, azureml-core
 ndg-httpsclient==0.5.1    # via azureml-core
@@ -85,7 +85,7 @@ oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
 pandas==0.25.3
 pathspec==0.6.0           # via azureml-core
-peewee==3.12.0
+peewee==3.13.1
 plotly==4.3.0             # via catboost
 protobuf==3.11.1          # via mlflow, tensorboard, tensorflow
 psycopg2-binary==2.8.4
