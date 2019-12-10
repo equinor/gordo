@@ -1319,6 +1319,7 @@ spec:
 
   - name: do-all
     dag:
+      failFast: false
       tasks:
         - name: ensure-single-workflow
           template: ensure-single-workflow
