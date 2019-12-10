@@ -2,8 +2,11 @@
 
 import logging
 import functools
+import zlib
 import os
 import io
+import pickle
+
 import dateutil
 import timeit
 from datetime import datetime
@@ -337,7 +340,6 @@ def load_model(directory: str, name: str) -> BaseEstimator:
     return model
 
 
-@lru_cache(maxsize=20)
 def load_metadata(directory: str, name: str) -> dict:
     """
     Load metadata from a directory for a given model by name.
@@ -354,8 +356,24 @@ def load_metadata(directory: str, name: str) -> dict:
     -------
     dict
     """
+    compressed_metadata = _load_compressed_metadata(directory, name)
+    return pickle.loads(zlib.decompress(compressed_metadata))
+
+
+@lru_cache(maxsize=25000)
+def _load_compressed_metadata(directory: str, name: str):
+    """
+    Loads the metadata for model 'name' from directory 'directory', and returns it as a
+    zlib compressed pickle, to use as little space as possible in the cache.
+
+    Notes
+    ----
+    Some simple measurement indicated that a typical metadata dict uses 37kb in memory,
+    while pickled it uses 8kb, and pickled-compressed it uses 4kb.
+
+    """
     metadata = serializer.load_metadata(os.path.join(directory, name))
-    return metadata
+    return zlib.compress(pickle.dumps(metadata))
 
 
 def metadata_required(f):
