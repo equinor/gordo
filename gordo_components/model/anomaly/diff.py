@@ -297,6 +297,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             # Dataframe of % abs_diff is of the thresholds
             anomaly_confidence_scores = pd.DataFrame(
                 confidence,
+                index=tag_anomaly_scaled.index,
                 columns=pd.MultiIndex.from_product(
                     (("anomaly-confidence",), data["model-output"].columns)
                 ),

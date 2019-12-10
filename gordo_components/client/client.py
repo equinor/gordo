@@ -104,7 +104,7 @@ class Client:
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
-        self.controller_endpoint = f"{self.base_url}/models/{project}"
+        self.server_endpoint = f"{self.base_url}/gordo/v0/{project}"
         self.metadata = metadata if metadata is not None else dict()
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
@@ -125,7 +125,7 @@ class Client:
     def get_machines(self) -> List[Machine]:
         # Thread safe single access and updating of machines.
         with self._mutex:
-            machines = self._machines_from_controller(self.controller_endpoint)
+            machines = self._machines_from_server()
             return self._filter_machines(machines=machines, target=self.target)
 
     @staticmethod
@@ -169,17 +169,43 @@ class Client:
             )
         return machines
 
-    def _machines_from_controller(self, machine: str) -> typing.List[Machine]:
+    def _machines_from_server(self) -> typing.List[Machine]:
         """
         Get a list of machines by querying controller
         """
-        resp = self.session.get(machine)
+        resp = self.session.get(f"{self.server_endpoint}/models")
         if not resp.ok:
             raise IOError(f"Failed to get machines: {repr(resp.content)}")
-        return [
-            Machine.from_config(data["spec"]["config"], project_name=self.project_name)
-            for data in resp.json()
-        ]
+        else:
+            model_names = resp.json()
+            with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
+                machines = executor.map(self._machine_from_metadata, model_names)
+                return list(machines)
+
+    def _machine_from_metadata(self, name: str) -> Machine:
+        """
+        Create a :class:`gordo_components.workflow.config_elements.machine.Machine`
+        from this model's endpoint
+
+        Parameters
+        ----------
+        name: str
+            Name of this machine
+
+        Returns
+        -------
+        Machine
+        """
+        resp = self.session.get(
+            f"{self.base_url}/gordo/v0/{self.project_name}/{name}/metadata"
+        )
+        if resp.ok:
+            metadata = resp.json()["metadata"]
+            return Machine.from_config(metadata, project_name=self.project_name)
+        else:
+            raise IOError(
+                f"Unable to create machine '{name}': {resp.content.decode(errors='ignore')}"
+            )
 
     def download_model(self) -> typing.Dict[str, BaseEstimator]:
         """
@@ -220,13 +246,7 @@ class Client:
 
         if force_refresh:
             self.machines = self.get_machines()  # Forced refresh if
-        self.metadata_: Dict[str, dict] = {
-            # TODO: Make this better
-            ep.name: requests.get(
-                f"{self.base_url}/gordo/v0/{ep.project_name}/{ep.name}/metadata"
-            ).json()
-            for ep in self.machines
-        }
+        self.metadata_: Dict[str, dict] = {ep.name: ep.metadata for ep in self.machines}
         return self.metadata_.copy()
 
     def predict(
@@ -473,17 +493,21 @@ class Client:
         # extra data than what we're being asked to get predictions for.
         # just to give us some buffer zone.
         resolution = machine.dataset.to_dict().get("resolution", "10T")
+        n_intervals = (
+            machine.metadata["machine-metadata"]["build-metadata"]["model"].get(
+                "model-offset", 0
+            )
+            + 5
+        )
         start = self._adjust_for_offset(
-            dt=start,
-            resolution=resolution,
-            n_intervals=self.get_metadata()[machine.name].get("model_offset", 0) + 5,
+            dt=start, resolution=resolution, n_intervals=n_intervals
         )
         dataset = TimeSeriesDataset(
             data_provider=self.data_provider,  # type: ignore
             from_ts=start,
             to_ts=end,
             resolution=resolution,
-            tag_list=machine.dataset.tags,
+            tag_list=machine.dataset.tag_list,
             target_tag_list=machine.dataset.target_tag_list,
         )
         return dataset.get_data()

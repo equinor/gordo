@@ -89,7 +89,7 @@ def wait_for_influx(max_wait=120, influx_host="localhost:8086"):
 
 
 @contextmanager
-def controller(
+def ml_server_deployment(
     host: str,
     project: str,
     targets: typing.List[str],
@@ -181,7 +181,7 @@ def controller(
             )
             rsps.add_callback(
                 responses.GET,
-                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.*.\/.*"),
+                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.+"),
                 callback=gordo_ml_server_callback,
                 content_type="application/json",
             )
@@ -196,28 +196,6 @@ def controller(
             rsps.add_passthru("http://localhost:8086")  # Local influx
             rsps.add_passthru("http://localhost:8087")  # Local influx
 
-            def controller_callback(_request):
-                """
-                Redirect calls to a gordo endpoint to reflect what the local testing app gives
-                """
-                with open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "data",
-                        "controller_resp_models_by_project_name.json",
-                    )
-                ) as f:
-                    resp = json.load(f)
-                headers = {}
-                return 200, headers, json.dumps(resp)
-
-            # controller requests
-            rsps.add_callback(
-                responses.GET,
-                re.compile(rf".*{host}.*\/models\/{project}$"),
-                callback=controller_callback,
-                content_type="application/json",
-            )
             yield
 
 

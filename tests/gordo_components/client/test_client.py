@@ -34,7 +34,7 @@ from gordo_components.cli import custom_types
 from tests import utils as tu
 
 
-def test_client_get_metadata(controller_service):
+def test_client_get_metadata(ml_server):
     """
     Test client's ability to get metadata from some target
     """
@@ -49,7 +49,7 @@ def test_client_get_metadata(controller_service):
         client.get_metadata()
 
 
-def test_client_predict_specific_targets(controller_service):
+def test_client_predict_specific_targets(ml_server):
     """
     Client.predict should filter any endpoints given to it.
     """
@@ -72,7 +72,7 @@ def test_client_predict_specific_targets(controller_service):
         patched.assert_called_once()
 
 
-def test_client_download_model(controller_service):
+def test_client_download_model(ml_server):
     """
     Test client's ability to download the model
     """
@@ -91,7 +91,7 @@ def test_client_download_model(controller_service):
 @pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_predictions_diff_batch_sizes(
-    influxdb, controller_service, batch_size: int, use_parquet: bool
+    influxdb, ml_server, batch_size: int, use_parquet: bool
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -141,11 +141,7 @@ def test_client_predictions_diff_batch_sizes(
     assert len(prediction_client.machines) == 1
 
     # Get predictions
-    with patch(
-        "gordo_components.dataset.sensor_tag._asset_from_tag_name",
-        side_effect=lambda *args, **kwargs: "default",
-    ):
-        predictions = prediction_client.predict(start=start, end=end)
+    predictions = prediction_client.predict(start=start, end=end)
     assert isinstance(predictions, list)
     assert len(predictions) == 1
 
@@ -184,7 +180,7 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-def test_client_cli_metadata(controller_service, tmp_dir):
+def test_client_cli_metadata(ml_server, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
@@ -227,7 +223,7 @@ def test_client_cli_metadata(controller_service, tmp_dir):
         assert tu.GORDO_SINGLE_TARGET in metadata
 
 
-def test_client_cli_download_model(controller_service, tmp_dir):
+def test_client_cli_download_model(ml_server, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
@@ -272,7 +268,7 @@ def test_client_cli_download_model(controller_service, tmp_dir):
 def test_client_cli_predict(
     influxdb,
     gordo_name,
-    controller_service,
+    ml_server,
     tmp_dir,
     forwarder_args,
     trained_model_directory,
@@ -351,7 +347,7 @@ def test_client_cli_predict(
     ],
 )
 def test_client_cli_predict_non_zero_exit(
-    should_fail, start_date, end_date, caplog, influxdb, controller_service
+    should_fail, start_date, end_date, caplog, influxdb, ml_server
 ):
     """
     Test ability for client to get predictions via CLI
@@ -485,7 +481,7 @@ def test_client_machine_filtering(
         ), f"Not equal: {expected} \n----\n {filtered_machines}"
 
 
-def test_exponential_sleep_time(caplog, controller_service):
+def test_exponential_sleep_time(caplog, ml_server):
 
     start, end = (
         isoparse("2016-01-01T00:00:00+00:00"),

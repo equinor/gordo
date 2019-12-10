@@ -147,8 +147,11 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
 
             # Set the sub df's column names equal to the name of the tags if
             # they match the length of the tag list.
-            if len(sub_df.columns) == len(machine.dataset.tags):
-                sub_df.columns = [tag for tag in machine.dataset.tags]
+            if len(sub_df.columns) == len(machine.dataset.tag_list):
+                sub_df.columns = [
+                    tag["name"] if isinstance(tag, dict) else tag
+                    for tag in machine.dataset.tag_list
+                ]
 
             self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
 

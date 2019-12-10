@@ -66,10 +66,6 @@ class Machine(ConfigElement):
     ):
         if config_globals is None:
             config_globals = dict()
-        else:
-            config_globals = config_globals.copy()
-
-        config = config.copy()
 
         name = config["name"]
         model = config.get("model") or config_globals.get("model")

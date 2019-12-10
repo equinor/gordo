@@ -7,13 +7,12 @@ import tempfile
 from typing import List
 
 import pytest
-import yaml
-import numpy as np
 
 from gordo_components import serializer
 from gordo_components.dataset.sensor_tag import SensorTag
 from gordo_components.data_provider.providers import InfluxDataProvider
 from gordo_components.server import server
+from gordo_components.builder.local_build import local_build
 
 from tests import utils as tu
 
@@ -90,36 +89,40 @@ def trained_model_directory(
         model_dir = os.path.join(collection_dir, gordo_name)
         os.makedirs(model_dir, exist_ok=True)
 
-        definition = yaml.safe_load(
-            """
-            gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
-                require_thresholds: false
-                base_estimator:
-                    sklearn.pipeline.Pipeline:
-                        steps:
+        config = f"""
+                machines:
+                  - dataset:
+                      tags:
+                        - {tu.SENSORS_STR_LIST[0]}
+                        - {tu.SENSORS_STR_LIST[1]}
+                        - {tu.SENSORS_STR_LIST[2]}
+                        - {tu.SENSORS_STR_LIST[3]}
+                      target_tag_list:
+                        - {tu.SENSORS_STR_LIST[0]}
+                        - {tu.SENSORS_STR_LIST[1]}
+                        - {tu.SENSORS_STR_LIST[2]}
+                        - {tu.SENSORS_STR_LIST[3]}
+                      train_start_date: '2019-01-01T00:00:00+00:00'
+                      train_end_date: '2019-10-01T00:00:00+00:00'
+                      asset: asgb
+                      data_provider:
+                        type: RandomDataProvider
+                    metadata:
+                      information: Some sweet information about the model
+                    model:
+                      gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+                        require_thresholds: false
+                        base_estimator:
+                          sklearn.pipeline.Pipeline:
+                            steps:
                             - sklearn.preprocessing.data.MinMaxScaler
                             - gordo_components.model.models.KerasAutoEncoder:
                                 kind: feedforward_hourglass
-                        memory:
-            """
-        )
-        model = serializer.pipeline_from_definition(definition)
-        X = np.random.random(size=len(sensors) * 10).reshape(10, len(sensors))
-        model.fit(X, X)
-        serializer.dump(
-            model,
-            model_dir,
-            metadata={
-                "dataset": {
-                    "tag_list": sensors,
-                    "resolution": "10T",
-                    "target_tag_list": sensors,
-                },
-                "name": "machine-1",
-                "model": {"model-offset": 0},
-                "user-defined": {"model-name": "test-model"},
-            },
-        )
+                    name: {tu.GORDO_SINGLE_TARGET}
+                 """
+        builder = local_build(config_str=config, enable_mlflow=False)
+        model, metadata = next(builder)  # type: ignore
+        serializer.dump(model, model_dir, metadata=metadata)
         yield collection_dir
 
 
@@ -178,13 +181,13 @@ def influxdb(base_influxdb):
 
 
 @pytest.fixture(scope="module")
-def controller_service(
+def ml_server(
     trained_model_directory,
     host=tu.GORDO_HOST,
     project=tu.GORDO_PROJECT,
     targets=tu.GORDO_TARGETS,
 ):
-    with tu.controller(
+    with tu.ml_server_deployment(
         host=host,
         project=project,
         targets=targets,

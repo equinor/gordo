@@ -28,7 +28,7 @@ def test_dataset_from_config():
         name: ct-23-0002
         dataset:
           resolution: 2T
-          tags:
+          tag_list:
             - GRA-YE  -23-0751X.PV
             - GRA-TE  -23-0698.PV
             - GRA-PIT -23-0619B.PV
@@ -117,7 +117,7 @@ def test_machine_from_config(default_globals: dict):
     )
     logger.info(f"{machine}")
     assert isinstance(machine, Machine)
-    assert len(machine.dataset.tags) == 3
+    assert len(machine.dataset.tag_list) == 3
 
     # The metadata of machine should be json serializable
     json.dumps(machine.to_dict()["metadata"])
@@ -134,7 +134,7 @@ def test_machine_from_config(default_globals: dict):
         "project_name": "test-project-name",
         "dataset": {
             "type": "TimeSeriesDataset",
-            "tags": [
+            "tag_list": [
                 "GRA-TE  -23-0733.PV",
                 "GRA-TT  -23-0719.PV",
                 "GRA-YE  -23-0751X.PV",

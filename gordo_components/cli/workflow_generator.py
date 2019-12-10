@@ -238,7 +238,7 @@ def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
 
     machines = NormalizedConfig(yaml_content, project_name="test-proj-name").machines
 
-    tag_list = set(tag for machine in machines for tag in machine.dataset.tags)
+    tag_list = set(tag for machine in machines for tag in machine.dataset.tag_list)
     if output_file_tag_list:
         with open(output_file_tag_list, "w") as output_file:
             for item in tag_list:

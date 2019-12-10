@@ -9,6 +9,7 @@ from gordo_components.workflow.config_elements.validators import (
     ValidDatetime,
     ValidDatasetKwargs,
 )
+from gordo_components.dataset.datasets import compat
 
 
 class Dataset(ConfigElement):
@@ -18,7 +19,7 @@ class Dataset(ConfigElement):
     """
 
     # Required arguments for Dataset
-    tags = ValidTagList()
+    tag_list = ValidTagList()
     target_tag_list = ValidTagList()
     train_start_date = ValidDatetime()
     train_end_date = ValidDatetime()
@@ -26,12 +27,13 @@ class Dataset(ConfigElement):
     # Optional kwargs to constructing the dataset, such as 'resolution'
     kwargs = ValidDatasetKwargs()
 
+    @compat
     def __init__(
         self,
-        tags: List[str],
+        tag_list: List[str],
         target_tag_list: List[str],
-        train_start_date: datetime,
-        train_end_date: datetime,
+        from_ts: datetime,
+        to_ts: datetime,
         **kwargs,
     ):
         """
@@ -46,21 +48,21 @@ class Dataset(ConfigElement):
         kwargs
 
         """
-        self.tags = tags
+        self.tag_list = tag_list
         self.target_tag_list = target_tag_list
-        self.train_start_date = train_start_date
-        self.train_end_date = train_end_date
-        if train_start_date >= train_end_date:
+        self.train_start_date = from_ts
+        self.train_end_date = to_ts
+        if self.train_start_date >= self.train_end_date:
             raise ValueError(
-                f"train_start_date ({train_start_date}) must be before "
-                f"train_end_date ({train_end_date})"
+                f"from_ts ({self.train_start_date}) must be before "
+                f"to_ts ({self.train_end_date})"
             )
         self.kwargs = kwargs
 
     def to_dict(self):
         config = {
             "type": "TimeSeriesDataset",
-            "tags": self.tags,
+            "tag_list": self.tag_list,
             "target_tag_list": self.target_tag_list,
             "train_start_date": self.train_start_date.isoformat(),
             "train_end_date": self.train_end_date.isoformat(),
@@ -73,6 +75,7 @@ class Dataset(ConfigElement):
     def from_config(cls, config: Dict[str, Any]) -> "Dataset":
 
         # Set target_tag_list as tags if it wasn't set; we always expect there to be target tags
-        config.setdefault("target_tag_list", config["tags"])
+        config = config.copy()
+        config.setdefault("target_tag_list", config.get("tags") or config["tag_list"])
 
         return cls(**config)

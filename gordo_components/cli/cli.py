@@ -222,6 +222,7 @@ def build(
 
     try:
         model, metadata = builder.build(output_dir, model_register_dir)
+
         if print_cv_scores:
             for score in get_all_score_strings(metadata):
                 print(score)
@@ -308,17 +309,22 @@ def get_all_score_strings(metadata):
     --------
     >>> score_strings = get_all_score_strings(
     ...  {
-    ...     "model": {
-    ...         "cross-validation": {
-    ...             "scores": {"explained variance tag 0": {"fold_1": 0, "fold_2": 0.9, "fold_3": 0.1,"min": 0.1, "max": 0.9, "mean": 1/3},
-    ...                        "explained variance tag 1": {"fold_1": 0.2, "fold_2": 0.3, "fold_3": 0.6, "min": 0.2, "max": 0.6, "mean": 0.3666666666666667},
-    ...                        "explained variance" : {"min": 0.1, "max": 0.6, "mean": 0.3499999999999999},
-    ...                        "r2 score tag 0" : {"fold_1": 0.8, "fold_2": 0.5, "fold_3": 0.6, "min": 0.5, "max": 0.8, "mean": 0.6333333333333333},
-    ...                        "r2 score tag 1" : {"fold_1": 0.4, "fold_2": 0.3, "fold_3": 0.5, "min": 0.3, "max": 0.5, "mean": 0.39999999999999997},
-    ...                        "r2 score"  : {"min": 0.4,"max": 0.6, "mean": 0.5166666666666666}
-    ...                          }
+    ...     "metadata": {
+    ...         "build-metadata": {
+    ...             "model": {
+    ...                 "cross-validation": {
+    ...                     "scores": {
+    ...                         "explained variance tag 0": {"fold_1": 0, "fold_2": 0.9, "fold_3": 0.1,"min": 0.1, "max": 0.9, "mean": 1/3},
+    ...                         "explained variance tag 1": {"fold_1": 0.2, "fold_2": 0.3, "fold_3": 0.6, "min": 0.2, "max": 0.6, "mean": 0.3666666666666667},
+    ...                         "explained variance" : {"min": 0.1, "max": 0.6, "mean": 0.3499999999999999},
+    ...                         "r2 score tag 0" : {"fold_1": 0.8, "fold_2": 0.5, "fold_3": 0.6, "min": 0.5, "max": 0.8, "mean": 0.6333333333333333},
+    ...                         "r2 score tag 1" : {"fold_1": 0.4, "fold_2": 0.3, "fold_3": 0.5, "min": 0.3, "max": 0.5, "mean": 0.39999999999999997},
+    ...                         "r2 score"  : {"min": 0.4,"max": 0.6, "mean": 0.5166666666666666}
+    ...                     }
+    ...                 }
+    ...             }
+    ...         }
     ...     }
-    ...   }
     ... }
     ... )
     >>> len(score_strings)
@@ -326,11 +332,12 @@ def get_all_score_strings(metadata):
     >>> score_strings
     ['explained-variance-tag-0_fold_1=0', 'explained-variance-tag-0_fold_2=0.9', 'explained-variance-tag-0_fold_3=0.1', 'explained-variance-tag-0_min=0.1', 'explained-variance-tag-0_max=0.9', 'explained-variance-tag-0_mean=0.3333333333333333', 'explained-variance-tag-1_fold_1=0.2', 'explained-variance-tag-1_fold_2=0.3', 'explained-variance-tag-1_fold_3=0.6', 'explained-variance-tag-1_min=0.2', 'explained-variance-tag-1_max=0.6', 'explained-variance-tag-1_mean=0.3666666666666667', 'explained-variance_min=0.1', 'explained-variance_max=0.6', 'explained-variance_mean=0.3499999999999999', 'r2-score-tag-0_fold_1=0.8', 'r2-score-tag-0_fold_2=0.5', 'r2-score-tag-0_fold_3=0.6', 'r2-score-tag-0_min=0.5', 'r2-score-tag-0_max=0.8', 'r2-score-tag-0_mean=0.6333333333333333', 'r2-score-tag-1_fold_1=0.4', 'r2-score-tag-1_fold_2=0.3', 'r2-score-tag-1_fold_3=0.5', 'r2-score-tag-1_min=0.3', 'r2-score-tag-1_max=0.5', 'r2-score-tag-1_mean=0.39999999999999997', 'r2-score_min=0.4', 'r2-score_max=0.6', 'r2-score_mean=0.5166666666666666']
 
-
     """
     all_scores = []
     for metric_name, scores in (
-        metadata.get("model", dict())
+        metadata.get("metadata", dict())
+        .get("build-metadata", dict())
+        .get("model", dict())
         .get("cross-validation", dict())
         .get("scores", dict())
         .items()

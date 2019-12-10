@@ -239,7 +239,7 @@ class ValidTagList(BaseDescriptor):
         if (
             len(value) == 0
             or not isinstance(value, list)
-            or not isinstance(value[0], str)
+            or not any(isinstance(value[0], inst) for inst in (str, dict))
         ):
             raise ValueError(f"Requires setting a non-empty list of strings")
         instance.__dict__[self.name] = value

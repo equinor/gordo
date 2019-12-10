@@ -8,6 +8,8 @@ import subprocess
 from gordo_components.server.server import run_cmd
 from gordo_components import serializer
 
+import tests.utils as tu
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +49,7 @@ def test_metadata_endpoint(base_route, gordo_ml_server_client):
 
     data = resp.get_json()
     assert "metadata" in data
-    assert data["metadata"]["user-defined"]["model-name"] == "test-model"
+    assert data["metadata"]["name"] == tu.GORDO_SINGLE_TARGET
 
 
 def test_download_model(base_route, gordo_ml_server_client):
