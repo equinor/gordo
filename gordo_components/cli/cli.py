@@ -4,6 +4,7 @@
 CLI interfaces
 """
 
+import os
 import logging
 import sys
 import traceback
@@ -44,7 +45,14 @@ def gordo():
     """
     The main entry point for the CLI interface
     """
-    pass
+
+    # Set log level, defaulting to INFO
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+
+    logging.basicConfig(
+        level=getattr(logging, log_level),
+        format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+    )
 
 
 DEFAULT_MODEL_CONFIG = (

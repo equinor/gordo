@@ -51,12 +51,3 @@ try:
 except Exception:
     warnings.warn(f"Failed to fix absl logging bug {traceback.format_exc()}")
     pass
-
-
-# Set log level, defaulting to INFO
-log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-
-logging.basicConfig(
-    level=getattr(logging, log_level),
-    format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
-)
