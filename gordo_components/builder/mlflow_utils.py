@@ -262,11 +262,20 @@ def get_batch_kwargs(metadata: dict) -> dict:
     model_keys = ["model-creation-date", "model-builder-version", "model-offset"]
     param_list += get_params(build_metadata["model"], model_keys)
 
+    # Parse cross-validation split metadata
+    try:
+        splits = build_metadata["model"]["cross-validation"]["splits"]
+        param_list += get_params(splits, splits.keys())
+    except KeyError:
+        logger.debug(
+            "Key 'metadata.model.cross-validation.splits' not found found in metadata."
+        )
+
     # Parse cross-validation metrics
-    tag_list = normalize_sensor_tags(
-        metadata["dataset"]["tag_list"], asset=metadata["dataset"]["asset"]
-    )
-    if build_metadata["model"].get("cross-validation", {}).get("scores", None):
+    try:
+        tag_list = normalize_sensor_tags(
+            metadata["dataset"]["tag_list"], asset=metadata["dataset"]["asset"]
+        )
         scores = build_metadata["model"]["cross-validation"]["scores"]
         keys = sorted(list(scores.keys()))
         subkeys = ["mean", "max", "min", "std"]
@@ -280,16 +289,20 @@ def get_batch_kwargs(metadata: dict) -> dict:
             # Summary stats per metric
             for sk in subkeys:
                 metric_list.append(
-                    Metric(f"{k}_{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0)
+                    Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0)
                 )
             # Append value for each fold with increasing steps
             metric_list += [
                 Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i)
                 for i in range(n_folds)
             ]
+    except KeyError:
+        logger.debug(
+            "Key 'metadata.model.cross-validation.scores' not found found in metadata."
+        )
 
     # Parse fit metrics
-    if build_metadata["model"].get("history", None):
+    try:
         meta_params = build_metadata["model"]["history"]["params"]
 
         metric_list += get_metrics(
@@ -305,6 +318,8 @@ def get_batch_kwargs(metadata: dict) -> dict:
                 Metric(m, float(x), timestamp=epoch_now(), step=i)
                 for i, x in enumerate(data)
             ]
+    except KeyError:
+        logger.debug("Key 'metadata.model.history.params' not found found in metadata.")
 
     return {"metrics": metric_list, "params": param_list}
 

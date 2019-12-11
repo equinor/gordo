@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 import mlflow
 from mlflow.entities import Metric, Param
@@ -166,9 +166,9 @@ def test_get_run_id_external_calls(
 @pytest.mark.parametrize(
     "x,expected",
     [
-        (datetime(1970, 1, 1), 0),
-        (datetime(1970, 1, 1, 0, 0, 1), 1000),
-        (datetime(1970, 1, 1, 0, 0, 0, 1000), 1),
+        (datetime.datetime(1970, 1, 1), 0),
+        (datetime.datetime(1970, 1, 1, 0, 0, 1), 1000),
+        (datetime.datetime(1970, 1, 1, 0, 0, 0, 1000), 1),
     ],
 )
 def test_datetime_to_ms_since_epoch(x, expected):
