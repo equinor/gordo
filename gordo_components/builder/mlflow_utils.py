@@ -265,11 +265,12 @@ def get_batch_kwargs(metadata: dict) -> dict:
     # Parse cross-validation split metadata
     try:
         splits = build_metadata["model"]["cross-validation"]["splits"]
-        param_list += get_params(splits, splits.keys())
     except KeyError:
         logger.debug(
-            "Key 'metadata.model.cross-validation.splits' not found found in metadata."
+            "Key 'build-metadata.model.cross-validation.splits' not found found in metadata."
         )
+    else:
+        param_list += get_params(splits, splits.keys())
 
     # Parse cross-validation metrics
     try:
@@ -277,6 +278,11 @@ def get_batch_kwargs(metadata: dict) -> dict:
             metadata["dataset"]["tag_list"], asset=metadata["dataset"]["asset"]
         )
         scores = build_metadata["model"]["cross-validation"]["scores"]
+    except KeyError:
+        logger.debug(
+            "Key 'build-metadata.model.cross-validation.scores' not found found in metadata."
+        )
+    else:
         keys = sorted(list(scores.keys()))
         subkeys = ["mean", "max", "min", "std"]
 
@@ -296,15 +302,15 @@ def get_batch_kwargs(metadata: dict) -> dict:
                 Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i)
                 for i in range(n_folds)
             ]
-    except KeyError:
-        logger.debug(
-            "Key 'metadata.model.cross-validation.scores' not found found in metadata."
-        )
 
     # Parse fit metrics
     try:
         meta_params = build_metadata["model"]["history"]["params"]
-
+    except KeyError:
+        logger.debug(
+            "Key 'build-metadata.model.history.params' not found found in metadata."
+        )
+    else:
         metric_list += get_metrics(
             build_metadata["model"],
             ["data-query-duration-sec", "model-training-duration-sec"],
@@ -318,8 +324,6 @@ def get_batch_kwargs(metadata: dict) -> dict:
                 Metric(m, float(x), timestamp=epoch_now(), step=i)
                 for i, x in enumerate(data)
             ]
-    except KeyError:
-        logger.debug("Key 'metadata.model.history.params' not found found in metadata.")
 
     return {"metrics": metric_list, "params": param_list}
 
