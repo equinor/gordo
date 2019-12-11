@@ -9,9 +9,7 @@ from typing import Dict, Any
 import click
 
 from gordo_components import __version__
-from gordo_components.workflow.controller_to_sql.controller_to_sql import (
-    controller_to_sql,
-)
+from gordo_components.workflow.server_to_sql.server_to_sql import server_to_sql
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo_components.workflow.workflow_generator import workflow_generator as wg
 
@@ -248,10 +246,8 @@ def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
             print(tag)
 
 
-@click.command("controller-to-sql")
-@click.option(
-    "--controller-address", help="Address of controller", required=True, type=str
-)
+@click.command("server-to-sql")
+@click.option("--server-address", help="Address of server", required=True, type=str)
 @click.option("--sql-host", help="Host of the sql server", required=True, type=str)
 @click.option(
     "--sql-port", help="Port of the sql server", required=False, type=int, default=5432
@@ -277,15 +273,28 @@ def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
     type=str,
     default=None,
 )
-def controller_to_sql_cli(
-    controller_address, sql_host, sql_port, sql_database, sql_username, sql_password
+@click.option("--project-name", envvar="PROJECT_NAME", required=True)
+def server_to_sql_cli(
+    server_address,
+    sql_host,
+    sql_port,
+    sql_database,
+    sql_username,
+    sql_password,
+    project_name,
 ):
     """
-    Program to fetch metadata from controller and push the metadata to a postgres sql
+    Program to fetch metadata from server and push the metadata to a postgres sql
     database. Pushes to the table `machine`.
     """
-    if controller_to_sql(
-        controller_address, sql_host, sql_port, sql_database, sql_username, sql_password
+    if server_to_sql(
+        project_name,
+        server_address,
+        sql_host,
+        sql_port,
+        sql_database,
+        sql_username,
+        sql_password,
     ):
         sys.exit(0)
     else:
@@ -294,7 +303,7 @@ def controller_to_sql_cli(
 
 workflow_cli.add_command(workflow_generator_cli)
 workflow_cli.add_command(unique_tag_list_cli)
-workflow_cli.add_command(controller_to_sql_cli)
+workflow_cli.add_command(server_to_sql_cli)
 
 if __name__ == "__main__":
     workflow_cli()

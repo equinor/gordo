@@ -455,8 +455,8 @@ def test_gunicorn_execution_hosts(runner, arg, value, exception_expected):
         assert m.called_once_with(value)
 
 
-def test_controller_to_sql_cli():
+def test_server_to_sql_cli():
     runner = CliRunner()
-    args = ["workflow", "controller-to-sql", "--help"]
+    args = ["workflow", "server-to-sql", "--help"]
     result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0

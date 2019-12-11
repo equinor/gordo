@@ -591,12 +591,12 @@ spec:
 
 
 
-  - name: gordo-controller-to-postgres
+  - name: gordo-server-to-postgres
     retryStrategy:
       limit: 5
     metadata:
       labels:
-        app: gordo-controller-to-postgres
+        app: gordo-server-to-postgres
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
@@ -604,7 +604,7 @@ spec:
       command: [bash]
       source: |
         echo "Feeding sql with metadata for project {{project_name}} using source ur http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
-        && gordo-components workflow controller-to-sql --controller-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME"
+        && gordo-components workflow server-to-sql --server-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME" --project-name $PROJECT_NAME
       env:
         - name: PROJECT_NAME
           value: "{{project_name}}"
@@ -807,7 +807,7 @@ spec:
                       - destination:
                           host: "{{'{{inputs.parameters.host-name}}'}}"
 
-  # Model resource to notify controller that a model has been built and can be served by the ML Server
+  # Model resource to notify server that a model has been built and can be served by the ML Server
   - name: gordo-model
     inputs:
       parameters:
@@ -1150,8 +1150,8 @@ spec:
     - - name: cleanup
         template: cleanup
         {%if enable_influx %}
-      - name: gordo-controller-to-postgres
-        template: gordo-controller-to-postgres
+      - name: gordo-server-to-postgres
+        template: gordo-server-to-postgres
         {% endif %}
 
   - name: do-all
