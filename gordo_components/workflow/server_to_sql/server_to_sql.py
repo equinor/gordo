@@ -56,7 +56,10 @@ def server_to_sql(
 
     Parameters
     ----------
-    TODO: FIll in missing params
+    project_name: str
+        Name of the project to run against.
+    server_address:
+        Address of the server to connect to. ie. https://myhost.com
     sql_host: str
         Host where postgres resides, e.g. "localhost"
     sql_port: int
