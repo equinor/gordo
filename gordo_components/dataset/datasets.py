@@ -21,6 +21,10 @@ from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 logger = logging.getLogger(__name__)
 
 
+class InsufficientDataError(ValueError):
+    pass
+
+
 def compat(init):
     """
     __init__ decorator for compatibility where the Gordo config file's ``dataset`` keys have
@@ -61,6 +65,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         row_filter_buffer_size: int = 0,
         asset: Optional[str] = None,
         default_asset: Optional[str] = None,
+        n_samples_threshold: int = 0,
         **_kwargs,
     ):
         """
@@ -111,6 +116,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         default_asset: Optional[str]
             Asset which will be used if `asset` is not provided and the tag is not
             resolvable to a specific asset.
+        n_samples_threshold: int = 0
+            The threshold at which the generated DataFrame is considered to have too few rows of data.
         _kwargs
         """
         self.from_ts = self._validate_dt(from_ts)
@@ -131,6 +138,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.aggregation_methods = aggregation_methods
         self.row_filter_buffer_size = row_filter_buffer_size
         self.asset = asset
+        self.n_samples_threshold = n_samples_threshold
 
         if not self.from_ts.tzinfo or not self.to_ts.tzinfo:
             raise ValueError(
@@ -157,15 +165,26 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         # Resample if we have a resolution set, otherwise simply join the series.
         if self.resolution:
-            data = self.join_timeseries(
-                series_iter,
-                self.from_ts,
-                self.to_ts,
-                self.resolution,
-                aggregation_methods=self.aggregation_methods,
-            )
+            try:
+                data = self.join_timeseries(
+                    series_iter,
+                    self.from_ts,
+                    self.to_ts,
+                    self.resolution,
+                    aggregation_methods=self.aggregation_methods,
+                )
+            except IndexError:
+                raise InsufficientDataError(
+                    f"One or more series in the tag list is missing data for the specified period."
+                )
         else:
             data = pd.concat(series_iter, axis=1, join="inner")
+
+        if len(data) <= self.n_samples_threshold:
+            raise InsufficientDataError(
+                f"The length of the generated DataFrame ({len(data)}) does not exceed the "
+                f"specified required threshold for number of rows ({self.n_samples_threshold})."
+            )
 
         if self.row_filter:
             data = pandas_filter_rows(
