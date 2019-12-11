@@ -13,25 +13,24 @@ from gordo_components.client.utils import influx_client_from_uri
 from gordo_components.workflow.config_elements.machine import Machine
 
 
-"""
-Module contains objects which can be made into generators which take
-and Machine and metadata (dict) when instantiated and are sent
-prediction dataframes as the prediction client runs::
-
-    def my_forwarder(
-        predictions: pd.DataFrame = None,
-        machine: Machine = None,
-        metadata: dict = dict(),
-        resampled_sensor_data: pd.DataFrame = None
-    ):
-        ...
-"""
-
-
 logger = logging.getLogger(__name__)
 
 
 class PredictionForwarder(metaclass=abc.ABCMeta):
+
+    """
+    Definition of a callable which the :class:`gordo_components.client.Client`
+    will call after each successful prediction response::
+
+        def my_forwarder(
+            predictions: pd.DataFrame = None,
+            machine: Machine = None,
+            metadata: dict = dict(),
+            resampled_sensor_data: pd.DataFrame = None
+        ):
+            ...
+    """
+
     @abc.abstractmethod
     def __call__(
         self,
