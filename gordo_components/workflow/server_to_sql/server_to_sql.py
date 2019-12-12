@@ -14,7 +14,6 @@ from playhouse.postgres_ext import (
     PostgresqlExtDatabase,
     CharField,
     BinaryJSONField,
-    DateTimeTZField,
 )
 
 db = PostgresqlExtDatabase(None)
@@ -22,9 +21,9 @@ db = PostgresqlExtDatabase(None)
 
 class Machine(Model):
     name = CharField(index=True, unique=True)
+    dataset = BinaryJSONField()
+    model = BinaryJSONField()
     metadata = BinaryJSONField()
-    train_start_date = DateTimeTZField()
-    train_end_date = DateTimeTZField()
 
     class Meta:
         database = db
@@ -36,9 +35,9 @@ class Machine(Model):
 def machine_config_to_machine_data(machine: MachineConfig):
     return dict(
         name=machine.name,
-        metadata=machine.metadata["machine-metadata"],
-        train_start_date=machine.dataset.train_start_date,
-        train_end_date=machine.dataset.train_end_date,
+        dataset=machine.dataset.to_dict(),
+        model=machine.model,
+        metadata=machine.metadata,
     )
 
 
