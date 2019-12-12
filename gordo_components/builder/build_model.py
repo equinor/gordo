@@ -223,6 +223,13 @@ class ModelBuilder:
 
         cv_duration_sec = None
 
+        metadata: Dict[Any, Any] = dict(
+            name=self.name,
+            dataset=dataset.get_metadata(),
+            metadata=self.metadata,
+            model=self.model_config,
+        )
+
         scores: Dict[str, Any] = dict()
         if self.evaluation_config["cv_mode"].lower() in (
             "cross_val_only",
@@ -273,18 +280,23 @@ class ModelBuilder:
             else:
                 logger.debug("Unable to score model, has no attribute 'predict'.")
 
+            # If cross_val_only, return without fitting to the whole dataset
+            if self.evaluation_config["cv_mode"] == "cross_val_only":
+                metadata["metadata"]["build-metadata"] = {
+                    "model": {
+                        "cross-validation": {
+                            "cv-duration-sec": cv_duration_sec,
+                            "scores": scores,
+                        }
+                    }
+                }
+                return model, metadata
+
         # Train
         logger.debug("Starting to train model.")
         start = time.time()
         model.fit(X, y)
         time_elapsed_model = time.time() - start
-
-        metadata: Dict[Any, Any] = dict(
-            name=self.name,
-            dataset=dataset.get_metadata(),
-            metadata=self.metadata,
-            model=self.model_config,
-        )
 
         # Build specific metadata
         metadata["metadata"]["build-metadata"] = dict(
