@@ -8,6 +8,7 @@ import typing
 from typing import Optional
 
 import pandas as pd
+import numpy as np
 
 from gordo_components.client.utils import influx_client_from_uri
 from gordo_components.workflow.config_elements.machine import Machine
@@ -93,6 +94,12 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         metadata: dict = dict(),
         resampled_sensor_data: pd.DataFrame = None,
     ):
+        # clean predictions for possible inf, nan, which influx can't handle
+        if predictions is not None:
+            predictions = self._clean_df(predictions)
+        if resampled_sensor_data is not None:
+            resampled_sensor_data = self._clean_df(resampled_sensor_data)
+
         if resampled_sensor_data is None and predictions is None:
             raise ValueError(
                 "Argument `resampled_sensor_data` or `predictions` must be passed"
@@ -105,6 +112,21 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             self.forward_predictions(predictions, machine=machine, metadata=metadata)
         if resampled_sensor_data is not None:
             self.send_sensor_data(resampled_sensor_data)
+
+    @staticmethod
+    def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Ensure dataframe doesn't have inf / nan values which influx can't handle
+
+        Parameters
+        ----------
+        df: pandas.DataFrame
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return df.replace([np.inf, -np.inf], np.nan).dropna()
 
     def forward_predictions(
         self, predictions: pd.DataFrame, machine: Machine, metadata: dict = dict()
