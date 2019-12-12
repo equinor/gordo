@@ -32,8 +32,8 @@ class Dataset(ConfigElement):
         self,
         tag_list: List[str],
         target_tag_list: List[str],
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         **kwargs,
     ):
         """
@@ -50,12 +50,12 @@ class Dataset(ConfigElement):
         """
         self.tag_list = tag_list
         self.target_tag_list = target_tag_list
-        self.train_start_date = from_ts
-        self.train_end_date = to_ts
+        self.train_start_date = train_start_date
+        self.train_end_date = train_end_date
         if self.train_start_date >= self.train_end_date:
             raise ValueError(
-                f"from_ts ({self.train_start_date}) must be before "
-                f"to_ts ({self.train_end_date})"
+                f"train_start_date ({self.train_start_date}) must be before "
+                f"train_end_date ({self.train_end_date})"
             )
         self.kwargs = kwargs
 

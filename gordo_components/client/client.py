@@ -504,8 +504,8 @@ class Client:
         )
         dataset = TimeSeriesDataset(
             data_provider=self.data_provider,  # type: ignore
-            from_ts=start,
-            to_ts=end,
+            train_start_date=start,
+            train_end_date=end,
             resolution=resolution,
             tag_list=machine.dataset.tag_list,
             target_tag_list=machine.dataset.target_tag_list,

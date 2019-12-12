@@ -18,8 +18,8 @@ class MockProducerRegExp(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: List[SensorTag],
         dry_run=False,
     ) -> Iterable[pd.Series]:

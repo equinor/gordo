@@ -38,8 +38,8 @@ class IrocReader(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
     ):
@@ -51,9 +51,9 @@ class IrocReader(GordoBaseDataProvider):
         if not tag_list:
             logger.warning("Iroc reader called with empty tag_list, returning none")
             return
-        if to_ts < from_ts:
+        if train_end_date < train_start_date:
             raise ValueError(
-                f"Iroc reader called with to_ts: {to_ts} before from_ts: {from_ts}"
+                f"Iroc reader called with train_end_date: {train_end_date} before train_start_date: {train_start_date}"
             )
 
         base_paths_from_assets = list(
@@ -75,19 +75,19 @@ class IrocReader(GordoBaseDataProvider):
         all_base_paths = (
             f"{base_path}/{t.year:0>4d}/{t.month:0>2d}/{t.day:0>2d}/"
             for t in pd.date_range(
-                start=from_ts.astimezone(tz.tzutc()) - pd.Timedelta("1D"),
-                end=to_ts.astimezone(tz.tzutc()) + pd.Timedelta("1D"),
+                start=train_start_date.astimezone(tz.tzutc()) - pd.Timedelta("1D"),
+                end=train_end_date.astimezone(tz.tzutc()) + pd.Timedelta("1D"),
                 freq="D",
             )
         )
 
         fetched_tags = self._fetch_all_iroc_files_from_paths(
-            all_base_paths, from_ts, to_ts, tag_list
+            all_base_paths, train_start_date, train_end_date, tag_list
         )
         if len(fetched_tags) < 0:
             raise ValueError(
-                f"Found no data for tags {tag_list} in the daterange {from_ts} to "
-                f"{to_ts}"
+                f"Found no data for tags {tag_list} in the daterange {train_start_date} to "
+                f"{train_end_date}"
             )
 
         concatted = pd.concat(fetched_tags, copy=False)
@@ -106,8 +106,8 @@ class IrocReader(GordoBaseDataProvider):
     def _fetch_all_iroc_files_from_paths(
         self,
         all_base_paths: Iterable[str],
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: List[SensorTag],
     ):
         # Generator over all files in all of the base_paths
@@ -123,8 +123,8 @@ class IrocReader(GordoBaseDataProvider):
                 executor.map(
                     lambda file_path: self._read_iroc_df_from_azure(
                         file_path=file_path,
-                        from_ts=from_ts,
-                        to_ts=to_ts,
+                        train_start_date=train_start_date,
+                        train_end_date=train_end_date,
                         tag_list=tag_list,
                     ),
                     _all_files(),
@@ -135,7 +135,7 @@ class IrocReader(GordoBaseDataProvider):
         return fetched_tags
 
     def _read_iroc_df_from_azure(
-        self, file_path, from_ts: datetime, to_ts: datetime, tag_list
+        self, file_path, train_start_date: datetime, train_end_date: datetime, tag_list
     ):
         adls_file_system_client = self.client
 
@@ -144,7 +144,7 @@ class IrocReader(GordoBaseDataProvider):
         try:
             with adls_file_system_client.open(file_path, "rb") as f:
                 logger.info("Parsing file {}".format(file_path))
-                df = read_iroc_file(f, from_ts, to_ts, tag_list)
+                df = read_iroc_file(f, train_start_date, train_end_date, tag_list)
             return df
         except:
             logger.warning(f"Problem parsing file {file_path}, skipping.")
@@ -175,7 +175,10 @@ class IrocReader(GordoBaseDataProvider):
 
 
 def read_iroc_file(
-    file_obj, from_ts: datetime, to_ts: datetime, tag_list: List[SensorTag]
+    file_obj,
+    train_start_date: datetime,
+    train_end_date: datetime,
+    tag_list: List[SensorTag],
 ) -> pd.DataFrame:
     """
     Reads a single iroc timeseries csv, and returns it as a pandas.DataFrame.
@@ -186,9 +189,9 @@ def read_iroc_file(
     ----------
     file_obj: str or path object or file-like object
         File object to read iroc timeseries data from
-    from_ts
+    train_start_date
         Only keep timestamps later or equal than this
-    to_ts
+    train_end_date
         Only keep timestamps earlier than this
     tag_list
         Only keep tags in this list.
@@ -209,6 +212,6 @@ def read_iroc_file(
     df.dropna(inplace=True, subset=["value"])
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
     df = df.pivot(index="timestamp", columns="tag")
-    df = df[(df.index >= from_ts) & (df.index < to_ts)]
+    df = df[(df.index >= train_start_date) & (df.index < train_end_date)]
     df.columns = df.columns.droplevel(0)
     return df

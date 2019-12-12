@@ -11,24 +11,24 @@ from gordo_components.dataset.sensor_tag import normalize_sensor_tags
 
 
 def _get_default_dataset_config():
-    from_ts = dateutil.parser.isoparse("2017-01-01T08:56:00+00:00")
-    to_ts = dateutil.parser.isoparse("2017-01-01T10:01:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2017-01-01T08:56:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2017-01-01T10:01:00+00:00")
     return {
         "type": "TimeSeriesDataset",
-        "from_ts": from_ts,
-        "to_ts": to_ts,
+        "train_start_date": train_start_date,
+        "train_end_date": train_end_date,
         "tag_list": normalize_sensor_tags(["TRC-FIQ -39-0706", "GRA-EM-23-0003ARV.PV"]),
         "data_provider": DataLakeProvider(),
     }
 
 
 def test_get_data_serviceauth_fail(caplog):
-    from_ts = dateutil.parser.isoparse("2017-01-01T08:56:00+00:00")
-    to_ts = dateutil.parser.isoparse("2017-01-01T10:01:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2017-01-01T08:56:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2017-01-01T10:01:00+00:00")
 
     dataset_config = _get_default_dataset_config()
-    dataset_config["from_ts"] = from_ts
-    dataset_config["to_ts"] = to_ts
+    dataset_config["train_start_date"] = train_start_date
+    dataset_config["train_end_date"] = train_end_date
     dataset_config["data_provider"] = DataLakeProvider(
         dl_service_auth_str="TENTANT_UNKNOWN:BOGUS:PASSWORD"
     )
@@ -52,8 +52,8 @@ def test_get_metadata():
     dl_backed = dataset._get_dataset(dataset_config)
     metadata = dl_backed.get_metadata()
 
-    assert metadata["train_start_date"] == dataset_config["from_ts"]
-    assert metadata["train_end_date"] == dataset_config["to_ts"]
+    assert metadata["train_start_date"] == dataset_config["train_start_date"]
+    assert metadata["train_end_date"] == dataset_config["train_end_date"]
     assert metadata["tag_list"] == dataset_config["tag_list"]
     assert metadata["resolution"] == "10T"
 

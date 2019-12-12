@@ -53,8 +53,8 @@ class GordoBaseDataProvider(object):
     @abc.abstractmethod
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
@@ -64,9 +64,9 @@ class GordoBaseDataProvider(object):
 
         Parameters
         ----------
-        from_ts: datetime
+        train_start_date: datetime
             Datetime object representing the start of fetching data
-        to_ts: datetime
+        train_end_date: datetime
             Datetime object representing the end of fetching data
         tag_list: List[SensorTag]
             List of tags to fetch, where each will end up being its own dataframe

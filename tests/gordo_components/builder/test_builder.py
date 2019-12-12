@@ -24,8 +24,8 @@ from gordo_components.serializer import serializer
 def get_random_data():
     data = {
         "type": "RandomDataset",
-        "from_ts": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
-        "to_ts": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
+        "train_start_date": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        "train_end_date": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
         "target_tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
     }

@@ -67,8 +67,8 @@ class IrocDataSourceTestCase(unittest.TestCase):
         f = StringIO(IROC_HAPPY_PATH_CSV)
         res_df = read_iroc_file(
             file_obj=f,
-            from_ts=HAPPY_FROM_TS,
-            to_ts=HAPPY_TO_TS,
+            train_start_date=HAPPY_FROM_TS,
+            train_end_date=HAPPY_TO_TS,
             tag_list=IROC_HAPPY_TAG_LIST,
         )
         for tag in IROC_HAPPY_TAG_LIST:
@@ -92,8 +92,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
 
         res_df = read_iroc_file(
             file_obj=f,
-            from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-            to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+            train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+            train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
             tag_list=IROC_HAPPY_TAG_LIST,
         )
         for tag in IROC_HAPPY_TAG_LIST:
@@ -105,11 +105,11 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     @mock.patch.object(
         IrocReader,
         "_fetch_all_iroc_files_from_paths",
-        side_effect=lambda all_base_paths, from_ts, to_ts, tag_list: [
+        side_effect=lambda all_base_paths, train_start_date, train_end_date, tag_list: [
             read_iroc_file(
                 file_obj=StringIO(IROC_HAPPY_PATH_CSV),
-                from_ts=from_ts,
-                to_ts=to_ts,
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
                 tag_list=tag_list,
             )
         ],
@@ -120,8 +120,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
-                    from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+                    train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=[SensorTag("jalla", None)],  # Not a tag in the input
                 )
             )
@@ -131,8 +131,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         iroc_reader = IrocReader(client=None, threads=1)
         res = list(
             iroc_reader.load_series(
-                from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+                train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                 tag_list=[],
             )
         )
@@ -157,8 +157,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
-                    from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+                    train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=IROC_MANY_ASSETS_SENSOR_TAG_LIST,  # Not a tag in the input
                 )
             )
@@ -170,20 +170,20 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
-                    from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+                    train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=IROC_NO_ASSET_TAG_LIST,  # Not a tag in the input
                 )
             )
 
     def test_load_series_checks_date(self):
-        """load_series will raise ValueError if to_ts<from_ts"""
+        """load_series will raise ValueError if train_end_date<train_start_date"""
         iroc_reader = IrocReader(client=None, threads=1)
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
-                    from_ts=isoparse("2018-05-03T01:56:00+00:00"),
-                    to_ts=isoparse("2018-05-02T01:56:00+00:00"),
+                    train_start_date=isoparse("2018-05-03T01:56:00+00:00"),
+                    train_end_date=isoparse("2018-05-02T01:56:00+00:00"),
                     tag_list=[SensorTag("jalla", None)],  # Not a tag in the input
                 )
             )
@@ -191,11 +191,11 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     @mock.patch.object(
         IrocReader,
         "_fetch_all_iroc_files_from_paths",
-        side_effect=lambda all_base_paths, from_ts, to_ts, tag_list: [
+        side_effect=lambda all_base_paths, train_start_date, train_end_date, tag_list: [
             read_iroc_file(
                 file_obj=StringIO(IROC_HAPPY_PATH_CSV),
-                from_ts=from_ts,
-                to_ts=to_ts,
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
                 tag_list=tag_list,
             )
         ],
@@ -207,8 +207,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
-                    from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+                    train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=IROC_HAPPY_TAG_LIST + [SensorTag("jalla", None)],
                     # "jalla" is not a tag
                 )
@@ -217,11 +217,11 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     @mock.patch.object(
         IrocReader,
         "_fetch_all_iroc_files_from_paths",
-        side_effect=lambda all_base_paths, from_ts, to_ts, tag_list: [
+        side_effect=lambda all_base_paths, train_start_date, train_end_date, tag_list: [
             read_iroc_file(
                 file_obj=StringIO(IROC_HAPPY_PATH_CSV),
-                from_ts=from_ts,
-                to_ts=to_ts,
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
                 tag_list=tag_list,
             )
         ],
@@ -231,8 +231,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         iroc_reader = IrocReader(client=None, threads=1)
         res = list(
             iroc_reader.load_series(
-                from_ts=isoparse("2018-05-02T01:56:00+00:00"),
-                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
+                train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                 tag_list=IROC_HAPPY_TAG_LIST,
             )
         )
@@ -242,11 +242,11 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     @mock.patch.object(
         IrocReader,
         "_fetch_all_iroc_files_from_paths",
-        side_effect=lambda all_base_paths, from_ts, to_ts, tag_list: [
+        side_effect=lambda all_base_paths, train_start_date, train_end_date, tag_list: [
             read_iroc_file(
                 file_obj=StringIO(IROC_HAPPY_PATH_CSV),
-                from_ts=from_ts,
-                to_ts=to_ts,
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
                 tag_list=tag_list,
             )
         ],
@@ -256,8 +256,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         iroc_reader = IrocReader(client=None, threads=1)
         res = list(
             iroc_reader.load_series(
-                from_ts=isoparse("2018-05-02T01:56:00+02:00"),
-                to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                train_start_date=isoparse("2018-05-02T01:56:00+02:00"),
+                train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                 tag_list=IROC_HAPPY_TAG_LIST,
             )
         )
@@ -270,8 +270,8 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         with self.assertRaises(NotImplementedError):
             list(
                 iroc_reader.load_series(
-                    from_ts=isoparse("2018-05-02T01:56:00+02:00"),
-                    to_ts=isoparse("2018-05-03T01:56:00+00:00"),
+                    train_start_date=isoparse("2018-05-02T01:56:00+02:00"),
+                    train_end_date=isoparse("2018-05-03T01:56:00+00:00"),
                     tag_list=IROC_HAPPY_TAG_LIST,
                     dry_run=True,
                 )

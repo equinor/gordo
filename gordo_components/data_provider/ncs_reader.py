@@ -81,21 +81,21 @@ class NcsReader(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
         """
         See GordoBaseDataProvider for documentation
         """
-        if to_ts < from_ts:
+        if train_end_date < train_start_date:
             raise ValueError(
-                f"NCS reader called with to_ts: {to_ts} before from_ts: {from_ts}"
+                f"NCS reader called with train_end_date: {train_end_date} before train_start_date: {train_start_date}"
             )
         adls_file_system_client = self.client
 
-        years = range(from_ts.year, to_ts.year + 1)
+        years = range(train_start_date.year, train_end_date.year + 1)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             fetched_tags = executor.map(
@@ -112,8 +112,8 @@ class NcsReader(GordoBaseDataProvider):
 
             for tag_frame_all_years in fetched_tags:
                 filtered = tag_frame_all_years[
-                    (tag_frame_all_years.index >= from_ts)
-                    & (tag_frame_all_years.index < to_ts)
+                    (tag_frame_all_years.index >= train_start_date)
+                    & (tag_frame_all_years.index < train_end_date)
                 ]
                 yield filtered
 

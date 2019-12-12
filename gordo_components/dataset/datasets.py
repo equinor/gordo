@@ -30,7 +30,7 @@ def compat(init):
     __init__ decorator for compatibility where the Gordo config file's ``dataset`` keys have
     drifted from what kwargs are actually expected in the given dataset. For example,
     using `train_start_date` is common in the configs, but :class:`~TimeSeriesDataset`
-    takes this parameter as ``from_ts``, as well as :class:`~RandomDataset`
+    takes this parameter as ``train_start_date``, as well as :class:`~RandomDataset`
 
     Renames old/other acceptable kwargs to the ones that the dataset type expects
     """
@@ -38,8 +38,8 @@ def compat(init):
     @wraps(init)
     def wrapper(*args, **kwargs):
         renamings = {
-            "train_start_date": "from_ts",
-            "train_end_date": "to_ts",
+            "from_ts": "train_start_date",
+            "to_ts": "train_end_date",
             "tags": "tag_list",
         }
         for old, new in renamings.items():
@@ -54,8 +54,8 @@ class TimeSeriesDataset(GordoBaseDataset):
     @compat
     def __init__(
         self,
-        from_ts: Union[datetime, str],
-        to_ts: Union[datetime, str],
+        train_start_date: Union[datetime, str],
+        train_end_date: Union[datetime, str],
         tag_list: Sequence[Union[str, Dict, SensorTag]],
         target_tag_list: Optional[Sequence[Union[str, Dict, SensorTag]]] = None,
         data_provider: Union[GordoBaseDataProvider, dict] = DataLakeProvider(),
@@ -76,9 +76,9 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         Parameters
         ----------
-        from_ts: Union[datetime, str]
+        train_start_date: Union[datetime, str]
             Earliest possible point in the dataset (inclusive)
-        to_ts: Union[datetime, str]
+        train_end_date: Union[datetime, str]
             Earliest possible point in the dataset (exclusive)
         tag_list: Sequence[Union[str, Dict, sensor_tag.SensorTag]]
             List of tags to include in the dataset. The elements can be strings,
@@ -88,7 +88,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             tag_list when fetching and pre-processing (resampling) but will be split
             into the y return from ``.get_data()``
         data_provider: Union[GordoBaseDataProvider, dict]
-            A dataprovider which can provide dataframes for tags from from_ts to to_ts
+            A dataprovider which can provide dataframes for tags from train_start_date to train_end_date
             of which can also be a config definition from a data provider's ``.to_dict()`` method.
         resolution: Optional[str]
             The bucket size for grouping all incoming time data (e.g. "10T").
@@ -120,8 +120,8 @@ class TimeSeriesDataset(GordoBaseDataset):
             The threshold at which the generated DataFrame is considered to have too few rows of data.
         _kwargs
         """
-        self.from_ts = self._validate_dt(from_ts)
-        self.to_ts = self._validate_dt(to_ts)
+        self.train_start_date = self._validate_dt(train_start_date)
+        self.train_end_date = self._validate_dt(train_end_date)
         self.tag_list = normalize_sensor_tags(list(tag_list), asset, default_asset)
         self.target_tag_list = (
             normalize_sensor_tags(list(target_tag_list), asset, default_asset)
@@ -140,9 +140,9 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.asset = asset
         self.n_samples_threshold = n_samples_threshold
 
-        if not self.from_ts.tzinfo or not self.to_ts.tzinfo:
+        if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
-                f"Timestamps ({self.from_ts}, {self.to_ts}) need to include timezone "
+                f"Timestamps ({self.train_start_date}, {self.train_end_date}) need to include timezone "
                 f"information"
             )
 
@@ -158,8 +158,8 @@ class TimeSeriesDataset(GordoBaseDataset):
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(
-            from_ts=self.from_ts,
-            to_ts=self.to_ts,
+            train_start_date=self.train_start_date,
+            train_end_date=self.train_end_date,
             tag_list=list(set(self.tag_list + self.target_tag_list)),
         )
 
@@ -168,8 +168,8 @@ class TimeSeriesDataset(GordoBaseDataset):
             try:
                 data = self.join_timeseries(
                     series_iter,
-                    self.from_ts,
-                    self.to_ts,
+                    self.train_start_date,
+                    self.train_end_date,
                     self.resolution,
                     aggregation_methods=self.aggregation_methods,
                 )
@@ -203,8 +203,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         metadata = {
             "tag_list": self.tag_list,
             "target_tag_list": self.target_tag_list,
-            "train_start_date": self.from_ts,
-            "train_end_date": self.to_ts,
+            "train_start_date": self.train_start_date,
+            "train_end_date": self.train_end_date,
             "resolution": self.resolution,
             "filter": self.row_filter,
             "row_filter_buffer_size": self.row_filter_buffer_size,
@@ -221,12 +221,18 @@ class RandomDataset(TimeSeriesDataset):
     """
 
     @compat
-    def __init__(self, from_ts: datetime, to_ts: datetime, tag_list: list, **kwargs):
+    def __init__(
+        self,
+        train_start_date: datetime,
+        train_end_date: datetime,
+        tag_list: list,
+        **kwargs,
+    ):
         kwargs.pop("data_provider", None)  # Dont care what you ask for, you get random!
         super().__init__(
             data_provider=RandomDataProvider(),
-            from_ts=from_ts,
-            to_ts=to_ts,
+            train_start_date=train_start_date,
+            train_end_date=train_end_date,
             tag_list=tag_list,
             **kwargs,
         )
