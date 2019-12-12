@@ -84,15 +84,14 @@ def server_to_sql(
     db.init(sql_database, **sql_parameters)
     Machine.create_table(safe=True)
     machines = get_machines_from_server(project_name, server_address)
-    got_all_machines = None not in machines
     logger.debug(f"Fetched a total of {len(machines)} machines")
-    machines = [machine for machine in machines if machine is not None]
-    logger.debug(f"Fetched a total of {len(machines)} healthy machines")
     with db.atomic():
         for machine in machines:
-            logger.debug(f"Inserting machine {machine['name']} in sql")  # type: ignore
-            Machine.insert(machine).on_conflict_ignore().execute()
-    return got_all_machines
+            logger.debug(f"Inserting machine {machine.name} in sql")  # type: ignore
+            Machine.insert(
+                machine_config_to_machine_data(machine)
+            ).on_conflict_ignore().execute()
+    return True
 
 
 def get_machines_from_server(
