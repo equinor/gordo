@@ -25,7 +25,7 @@ azureml-mlflow==1.0.76    # via azureml-contrib-run
 backports.tempfile==1.0   # via azureml-core
 backports.weakref==1.0.post1  # via backports.tempfile
 cachetools==3.1.1
-catboost==0.20
+catboost==0.20.1
 cchardet==2.1.5
 certifi==2019.11.28       # via kubernetes, msrest, requests
 cffi==1.13.2              # via azure-datalake-store, cryptography
