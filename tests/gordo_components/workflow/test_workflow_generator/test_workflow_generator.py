@@ -108,7 +108,8 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
 
 
 @pytest.mark.parametrize(
-    "fp_config", ("/code/examples/config_legacy.yaml", "/code/examples/config_crd.yaml")
+    "fp_config",
+    ("/home/gordo/examples/config_legacy.yaml", "/home/gordo/examples/config_crd.yaml"),
 )
 @pytest.mark.dockertest
 def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
@@ -134,13 +135,12 @@ def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
         "generate "
         "--project-name some-project "
         f"--machine-config {fp_config} "
-        "--output-file /tmp/out.yaml "
-        "&& argo lint /tmp/out.yaml --username lame --password lame'",
+        "--output-file /home/gordo/out.yaml "
+        "&& argo lint /home/gordo/out.yaml --username lame --password lame'",
         auto_remove=True,
         stderr=True,
         stdout=True,
         detach=False,
-        volumes={repo_dir: {"bind": "/code", "mode": "ro"}},
     )
     assert result.decode().strip().split("\n")[-1] == "Workflow manifests validated"
 
