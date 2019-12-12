@@ -97,7 +97,18 @@ def get_machines_from_server(
     project_name: str, server_address: str
 ) -> List[MachineConfig]:
     """
-    TODO: Parameters
+    Get a list of machines from the server
+
+    Parameters
+    ----------
+    project_name: str
+        Project name to query machines for
+    server_address: str
+        The address of the server ie. https://myhost.com
+
+    Returns
+    -------
+    List[gordo_components.workflow.config_elements.machine.Machine]
     """
     address: ParseResult = urlparse(server_address)
 
