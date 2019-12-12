@@ -9,6 +9,8 @@ import dateutil.parser
 import logging
 
 from gordo_components.serializer import pipeline_from_definition
+from gordo_components.dataset.sensor_tag import SensorTag
+
 
 logger = logging.getLogger(__name__)
 
@@ -239,7 +241,7 @@ class ValidTagList(BaseDescriptor):
         if (
             len(value) == 0
             or not isinstance(value, list)
-            or not any(isinstance(value[0], inst) for inst in (str, dict))
+            or not any(isinstance(value[0], inst) for inst in (str, dict, SensorTag))
         ):
             raise ValueError(f"Requires setting a non-empty list of strings")
         instance.__dict__[self.name] = value
