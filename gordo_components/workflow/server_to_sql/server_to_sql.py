@@ -36,7 +36,7 @@ class Machine(Model):
 def machine_config_to_machine_data(machine: MachineConfig):
     return dict(
         name=machine.name,
-        metadata=machine.metadata,
+        metadata=machine.metadata["machine-metadata"],
         train_start_date=machine.dataset.train_start_date,
         train_end_date=machine.dataset.train_end_date,
     )
