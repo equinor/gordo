@@ -179,13 +179,13 @@ class Client:
         else:
             model_names = resp.json()
             with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
-                machines = executor.map(self._machine_from_metadata, model_names)
+                machines = executor.map(self._machine_from_server, model_names)
                 return list(machines)
 
-    def _machine_from_metadata(self, name: str) -> Machine:
+    def _machine_from_server(self, name: str) -> Machine:
         """
         Create a :class:`gordo_components.workflow.config_elements.machine.Machine`
-        from this model's endpoint
+        from this model's endpoint on the server
 
         Parameters
         ----------
