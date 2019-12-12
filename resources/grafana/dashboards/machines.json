@@ -20,7 +20,7 @@
           "iconColor": "rgba(255, 96, 96, 1)",
           "limit": 100,
           "name": "Training start-date",
-          "rawQuery": "SELECT train_start_date as time, 'Training start-date' as text FROM machine WHERE name='$Machine' and $__timeFilter(train_start_date)",
+          "rawQuery": "SELECT date(dataset->>'train_start_date' ) as time, 'Training start-date' as text FROM machine WHERE name='$Machine' and $__timeFilter(dataset->>'train_start_date')",
           "showIn": 0,
           "tags": [],
           "type": "tags"
@@ -32,7 +32,7 @@
           "iconColor": "#FADE2A",
           "limit": 100,
           "name": "Training end-date",
-          "rawQuery": "SELECT train_end_date as time, 'Training end-date' as text FROM machine WHERE name='$Machine' and $__timeFilter(train_end_date)",
+          "rawQuery": "SELECT date(dataset->>'train_end_date') as time, 'Training end-date' as text FROM machine WHERE name='$Machine' and $__timeFilter(dataset->>'train_end_date')",
           "showIn": 0,
           "tags": [],
           "type": "tags"
@@ -43,7 +43,7 @@
     "gnetId": null,
     "graphTooltip": 1,
     "id": null,
-    "iteration": 1566813225630,
+    "iteration": 1576152421332,
     "links": [],
     "panels": [
       {
@@ -111,7 +111,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT metadata->'endpoint-metadata'->'metadata'->'dataset'->>'resolution' FROM machine where name='$Machine';",
+            "rawSql": "SELECT dataset->>'resolution' FROM machine where name='$Machine';",
             "refId": "A",
             "select": [
               [
@@ -198,7 +198,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "select machine.metadata->'endpoint-metadata'->'metadata'->'model'->'model-config' as Configuration from machine where name='$Machine'",
+            "rawSql": "select machine.model as Configuration from machine where name='$Machine'",
             "refId": "A",
             "select": [
               [
@@ -291,7 +291,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT metadata->'endpoint-metadata'->'metadata'->'dataset'->>'filter' FROM machine where name='$Machine';",
+            "rawSql": "SELECT dataset ->> 'filter'  FROM machine where name='$Machine';",
             "refId": "A",
             "select": [
               [
@@ -388,14 +388,14 @@
           "lineColor": "rgb(31, 120, 193)",
           "show": false
         },
-        "tableColumn": "date_part",
+        "tableColumn": "age",
         "targets": [
           {
             "format": "table",
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "SELECT extract( epoch from train_end_date-train_start_date) FROM machine where name='$Machine';",
+            "rawSql": "SELECT age(date(dataset->>'train_end_date'), date(dataset->>'train_start_date'))  FROM machine where name='$Machine';",
             "refId": "A",
             "select": [
               [
@@ -482,7 +482,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'endpoint-metadata'->'metadata'->'model'->'cross-validation'->'scores'->'explained-variance-score') where name='$Machine'",
+            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'machine-metadata'->'build-metadata'->'model'->'cross-validation'->'scores'->'explained-variance-score') where name='$Machine'",
             "refId": "A",
             "select": [
               [
@@ -941,8 +941,8 @@
             "measurement": "total-anomaly",
             "orderByTime": "ASC",
             "policy": "default",
-            "query": "SELECT mean(/^$Sensor$/) as \"field\" FROM \"original-input\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
-            "rawQuery": false,
+            "query": "SELECT mean(*) FROM \"total-anomaly-scaled\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
             "refId": "B",
             "resultFormat": "time_series",
             "select": [
@@ -1104,6 +1104,6 @@
     "timezone": "",
     "title": "Machine details",
     "uid": "Lg4VHfEiz",
-    "version": 5
+    "version": 3
   }
 }
