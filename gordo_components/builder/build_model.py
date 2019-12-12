@@ -166,6 +166,7 @@ class ModelBuilder:
             if self.cached_model_path:
                 model = serializer.load(self.cached_model_path)
                 metadata = serializer.load_metadata(self.cached_model_path)
+                metadata["metadata"]["user-metadata"] = self.metadata
 
             # Otherwise build and cache the model
             else:
@@ -226,7 +227,7 @@ class ModelBuilder:
         metadata: Dict[Any, Any] = dict(
             name=self.name,
             dataset=dataset.get_metadata(),
-            metadata=self.metadata,
+            metadata={"user-metadata": self.metadata},
             model=self.model_config,
         )
 

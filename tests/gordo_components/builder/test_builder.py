@@ -470,6 +470,7 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     [
         (True, None, None, False),
         (True, {"metadata": "something"}, None, False),
+        (False, {"metadata": "something"}, None, True),
         (False, None, [SensorTag("extra_tag", None)], False),
         (False, None, None, True),  # replace_cache gives a new model location
     ],
@@ -541,6 +542,9 @@ def test_provide_saved_model_caching(
         assert model1_creation_date == model2_creation_date
     else:
         assert model1_creation_date != model2_creation_date
+
+    if metadata is not None:
+        assert str(metadata) in str(second_metadata)
 
 
 @pytest.mark.parametrize(
