@@ -239,7 +239,7 @@ spec:
               {% endif %}
             spec:
               containers:
-              - image: "influxdb:1.7.6-alpine"
+              - image: "influxdb:1.7.9-alpine"
                 imagePullPolicy: "IfNotPresent"
                 name: gordo-influx-{{project_name}}
                 volumeMounts:
