@@ -27,15 +27,15 @@ ENV HOME "/home/gordo"
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
 # Install requirements separately for improved docker caching
-COPY --from=builder /code/prereq.txt  .
+COPY --from=builder /code/prereq.txt .
 RUN pip install --no-deps -r prereq.txt --no-cache-dir
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt --no-cache-dir
 
 # Install gordo-components, packaged from earlier 'python setup.py sdist'
 COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
 RUN pip install gordo-components-packed.tar.gz
-
-COPY requirements.txt .
-RUN pip install -r requirements.txt --no-cache-dir
 
 # Make gordo own all in its home
 RUN chown -R gordo:gordo ${HOME}
