@@ -418,7 +418,7 @@ spec:
         && curl -XPOST -H 'Content-Type: application/json' -d '{"name":"InfluxDB", "type":"influxdb", "url":"http://gordo-influx-{{project_name}}:8086", "access":"proxy", "database": "feeder", "isDefault":true, "password": "", "user": "", "basicAuth": false}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
         && curl -XPOST -H 'Content-Type: application/json' -d '{"name": "Postgres-metadata","type": "postgres","url": "gordo-postgres-{{project_name}}","access": "proxy","database": "postgres","isDefault": false,"user": "postgres","jsonData": {"sslmode": "disable","postgresVersion": 1000,"timescaledb": false}}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
         && echo "Uploading grafana dashboard for project {{project_name}}" \
-        && curl -XPOST -d @/code/resources/grafana/dashboards/machines.json -H "Content-Type: application/json"  http://gordo-grafana-{{project_name}}:3000/api/dashboards/db
+        && curl -XPOST -d @/home/gordo/resources/grafana/dashboards/machines.json -H "Content-Type: application/json"  http://gordo-grafana-{{project_name}}:3000/api/dashboards/db
       resources:
         requests:
           memory: 50M
