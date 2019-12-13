@@ -17,8 +17,8 @@ def test_read_single_sensor_empty_data_time_range_indexerror(influxdb, caplog):
     """
     Asserts that an IndexError is raised because the dates requested are outside the existing time period
     """
-    from_ts = dateutil.parser.isoparse("2017-01-01T09:11:00+00:00")
-    to_ts = dateutil.parser.isoparse("2017-01-01T10:30:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2017-01-01T09:11:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2017-01-01T10:30:00+00:00")
 
     ds = InfluxDataProvider(
         measurement="sensors",
@@ -29,8 +29,8 @@ def test_read_single_sensor_empty_data_time_range_indexerror(influxdb, caplog):
     with caplog.at_level(logging.CRITICAL):
         with pytest.raises(IndexError):
             ds.read_single_sensor(
-                from_ts=from_ts,
-                to_ts=to_ts,
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
                 tag=tu.SENSORS_STR_LIST[0],
                 measurement="sensors",
             )
@@ -40,8 +40,8 @@ def test_read_single_sensor_empty_data_invalid_tag_name_valueerror(influxdb):
     """
     Asserts that a ValueError is raised because the tag name inputted is invalid
     """
-    from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
-    to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
 
     ds = InfluxDataProvider(
         measurement="sensors",
@@ -50,8 +50,8 @@ def test_read_single_sensor_empty_data_invalid_tag_name_valueerror(influxdb):
     )
     with pytest.raises(ValueError):
         ds.read_single_sensor(
-            from_ts=from_ts,
-            to_ts=to_ts,
+            train_start_date=train_start_date,
+            train_end_date=train_end_date,
             tag="tag-does-not-exist",
             measurement="sensors",
         )
@@ -94,13 +94,13 @@ def test_influx_dataset_attrs(influxdb):
     """
     Test expected attributes
     """
-    from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
-    to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
     tag_list = tu.SENSORTAG_LIST
     config = {
         "type": "TimeSeriesDataset",
-        "from_ts": from_ts,
-        "to_ts": to_ts,
+        "train_start_date": train_start_date,
+        "train_end_date": train_end_date,
         "tag_list": tag_list,
     }
     config["data_provider"] = InfluxDataProvider(
@@ -117,8 +117,13 @@ def test_influx_dataset_attrs(influxdb):
 
 def test_influx_load_series_dry_run_raises():
     ds = InfluxDataProvider(measurement="sensors", value_name="Value", client=None)
-    from_ts = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
-    to_ts = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2016-01-01T09:11:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2016-01-01T10:30:00+00:00")
     tag_list = tu.SENSORTAG_LIST
     with pytest.raises(NotImplementedError):
-        ds.load_series(from_ts=from_ts, to_ts=to_ts, tag_list=tag_list, dry_run=True)
+        ds.load_series(
+            train_start_date=train_start_date,
+            train_end_date=train_end_date,
+            tag_list=tag_list,
+            dry_run=True,
+        )

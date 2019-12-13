@@ -166,6 +166,7 @@ class ModelBuilder:
             if self.cached_model_path:
                 model = serializer.load(self.cached_model_path)
                 metadata = serializer.load_metadata(self.cached_model_path)
+                metadata["metadata"]["user-defined"] = self.metadata
 
             # Otherwise build and cache the model
             else:
@@ -223,6 +224,13 @@ class ModelBuilder:
 
         cv_duration_sec = None
 
+        metadata: Dict[Any, Any] = dict(
+            name=self.name,
+            dataset=dataset.get_metadata(),
+            metadata={"user-defined": self.metadata},
+            model=self.model_config,
+        )
+
         scores: Dict[str, Any] = dict()
         if self.evaluation_config["cv_mode"].lower() in (
             "cross_val_only",
@@ -233,9 +241,9 @@ class ModelBuilder:
             metrics_list = self.metrics_from_list(self.evaluation_config.get("metrics"))
 
             # Cross validate
-            logger.debug("Starting cross validation")
-            start = time.time()
             if hasattr(model, "predict"):
+                logger.debug("Starting cross validation")
+                start = time.time()
 
                 scaler = self.evaluation_config.get("scoring_scaler")
                 metrics_dict = self.build_metrics_dict(metrics_list, y, scaler=scaler)
@@ -268,44 +276,48 @@ class ModelBuilder:
                         }
                     )
                     scores.update({metric: val})
+
+                cv_duration_sec = time.time() - start
             else:
                 logger.debug("Unable to score model, has no attribute 'predict'.")
 
-            cv_duration_sec = time.time() - start
-
-            # If cross_val_only, return the cv_scores and empty model.
+            # If cross_val_only, return without fitting to the whole dataset
             if self.evaluation_config["cv_mode"] == "cross_val_only":
-                model = None
-                self.metadata["model"] = {
-                    "cross-validation": {
-                        "cv-duration-sec": cv_duration_sec,
-                        "scores": scores,
+                metadata["metadata"]["build-metadata"] = {
+                    "model": {
+                        "cross-validation": {
+                            "cv-duration-sec": cv_duration_sec,
+                            "scores": scores,
+                        }
                     }
                 }
-                return model, self.metadata
+                return model, metadata
+
         # Train
         logger.debug("Starting to train model.")
         start = time.time()
         model.fit(X, y)
         time_elapsed_model = time.time() - start
 
-        metadata: Dict[Any, Any]
-        metadata = {"user-defined": self.metadata}
-        metadata["name"] = self.name
-        metadata["dataset"] = dataset.get_metadata()
-        utc_dt = datetime.datetime.now(datetime.timezone.utc)
-        metadata["model"] = {
-            "model-offset": self._determine_offset(model, X),
-            "model-creation-date": str(utc_dt.astimezone()),
-            "model-builder-version": __version__,
-            "model-config": self.model_config,
-            "data-query-duration-sec": time_elapsed_data,
-            "model-training-duration-sec": time_elapsed_model,
-            "cross-validation": {"cv-duration-sec": cv_duration_sec, "scores": scores},
-        }
-
-        metadata["model"].update(self._extract_metadata_from_model(model))
-
+        # Build specific metadata
+        metadata["metadata"]["build-metadata"] = dict(
+            model={
+                "model-offset": self._determine_offset(model, X),
+                "model-creation-date": str(
+                    datetime.datetime.now(datetime.timezone.utc).astimezone()
+                ),
+                "model-builder-version": __version__,
+                "data-query-duration-sec": time_elapsed_data,
+                "model-training-duration-sec": time_elapsed_model,
+                "cross-validation": {
+                    "cv-duration-sec": cv_duration_sec,
+                    "scores": scores,
+                },
+            }
+        )
+        metadata["metadata"]["build-metadata"]["model"].update(
+            self._extract_metadata_from_model(model)
+        )
         return model, metadata
 
     def set_seed(self, seed: int):
@@ -505,9 +517,6 @@ class ModelBuilder:
         >>> len(builder.cache_key)
         128
         """
-        if self.metadata is None:
-            self.metadata = {}
-
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)
@@ -516,7 +525,6 @@ class ModelBuilder:
                 "name": self.name,
                 "model_config": self.model_config,
                 "data_config": self.data_config,
-                "user-defined": self.metadata,
                 "evaluation_config": self.evaluation_config,
                 "gordo-major-version": MAJOR_VERSION,
                 "gordo-minor-version": MINOR_VERSION,

@@ -106,6 +106,9 @@ class Machine(ConfigElement):
     def __str__(self):
         return yaml.dump(self.to_dict())
 
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
+
     def to_dict(self):
         return {
             "name": self.name,

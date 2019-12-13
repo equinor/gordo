@@ -29,8 +29,8 @@ def _fake_data():
 def test_faked_DataLakeBackedDataset(MockDataset):
 
     config = dict(
-        from_ts=dateutil.parser.isoparse("2014-07-01T00:10:00+00:00"),
-        to_ts=dateutil.parser.isoparse("2015-01-01T00:00:00+00:00"),
+        train_start_date=dateutil.parser.isoparse("2014-07-01T00:10:00+00:00"),
+        train_end_date=dateutil.parser.isoparse("2015-01-01T00:00:00+00:00"),
         tag_list=["asgb.19ZT3950%2FY%2FPRIM", "asgb.19PST3925%2FDispMeasOut%2FPRIM"],
     )
 

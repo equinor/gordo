@@ -99,8 +99,8 @@ def test_build_use_registry(runner, tmp_dir):
     # The metadata contains the model build date, so if it got rebuilt these two
     # would be different
     assert (
-        first_metadata["model"]["model-creation-date"]
-        == second_metadata["model"]["model-creation-date"]
+        first_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
+        == second_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
     )
 
 
@@ -149,8 +149,8 @@ def test_build_use_registry_bust_cache(runner, tmp_dir):
     # The metadata contains the model build date, so if it got rebuilt these two
     # would be different
     assert (
-        first_metadata["model"]["model-creation-date"]
-        != second_metadata["model"]["model-creation-date"]
+        first_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
+        != second_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
     )
 
 
@@ -276,6 +276,7 @@ def test_build_cv_mode(
         result = runner.invoke(
             cli.gordo, ["build", "--print-cv-scores", f"--evaluation-config={cv_mode}"]
         )
+        assert result.exit_code == 0
         # Checks that the file is empty or not depending on the mode.
         if should_save_model:
             assert len(os.listdir(tmp_model_dir)) != 0
@@ -352,8 +353,18 @@ def test_build_cv_mode_build_only(runner: CliRunner, tmp_dir: str):
         assert len(os.listdir(tmp_dir)) != 0
         with open(metadata_file) as f:
             metadata_json = json.loads(f.read())
-            assert metadata_json["model"]["cross-validation"]["cv-duration-sec"] is None
-            assert metadata_json["model"]["cross-validation"]["scores"] == {}
+            assert (
+                metadata_json["metadata"]["build-metadata"]["model"][
+                    "cross-validation"
+                ]["cv-duration-sec"]
+                is None
+            )
+            assert (
+                metadata_json["metadata"]["build-metadata"]["model"][
+                    "cross-validation"
+                ]["scores"]
+                == {}
+            )
 
 
 @mock.patch("gordo_components.builder.mlflow_utils.get_spauth_kwargs")
@@ -444,8 +455,8 @@ def test_gunicorn_execution_hosts(runner, arg, value, exception_expected):
         assert m.called_once_with(value)
 
 
-def test_watchman_to_sql_cli():
+def test_server_to_sql_cli():
     runner = CliRunner()
-    args = ["workflow", "watchman-to-sql", "--help"]
+    args = ["workflow", "server-to-sql", "--help"]
     result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0

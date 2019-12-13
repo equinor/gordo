@@ -1,91 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import io
-import pprint
-from typing import Tuple, Union, Optional, Dict, List
+from typing import Tuple, Union, Optional, Dict
 from collections import namedtuple
 
 from influxdb import DataFrameClient, InfluxDBClient
-
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags, SensorTag
-
-
-class EndpointMetadata:
-    def __init__(self, data: dict):
-        """
-        Keeps easy access to common endpoint data attributes, the raw data
-        being accessible via ``EndpointMetadata.data()``
-        """
-        self.__data = data
-
-    def raw_metadata(self):
-        """
-        Access the raw metadata
-        """
-        return self.__data.copy()
-
-    @property
-    def name(self):
-        """Name of this endpoint"""
-        return self.__data["endpoint-metadata"]["metadata"]["name"]
-
-    @property
-    def endpoint(self):
-        """
-        The path to the endpoint, *not* including the base url
-        ie. /gordo/v0/project-name/target-name
-        """
-        return self.__data["endpoint"]
-
-    @property
-    def tag_list(self) -> List[SensorTag]:
-        """
-        List of the input tags for the model
-        """
-        return normalize_sensor_tags(
-            self.__data["endpoint-metadata"]["metadata"]["dataset"]["tag_list"]
-        )
-
-    @property
-    def target_tag_list(self) -> List[SensorTag]:
-        """
-        List of the target tags for the model
-        """
-        return normalize_sensor_tags(
-            self.__data["endpoint-metadata"]["metadata"]["dataset"]["target_tag_list"]
-        )
-
-    @property
-    def resolution(self):
-        """
-        Resolution used in aggregation of the data
-        """
-        return self.__data["endpoint-metadata"]["metadata"]["dataset"]["resolution"]
-
-    @property
-    def model_offset(self):
-        """
-        Any model offset to be expected when getting predictions.
-        """
-        return self.__data["endpoint-metadata"]["metadata"]["model"].get(
-            "model-offset", 0
-        )
-
-    @property
-    def healthy(self):
-        """
-        Whether this endpoint is considered available to accept requests.
-        """
-        return self.__data["healthy"]
-
-    def __eq__(self, other):
-        return self.__data == other.__data
-
-    def __repr__(self):
-        buff = io.StringIO()
-        pprint.pprint(self.__data, stream=buff)
-        buff.seek(0)
-        return f"EndpointMetadata(data={buff.read()})"
 
 
 # Prediction result representation, name=str, predictions=dataframe, error_messages=List[str]

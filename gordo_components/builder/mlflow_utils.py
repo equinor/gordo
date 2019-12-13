@@ -476,9 +476,12 @@ def log_metadata(mlflow_client, run_id, metadata: dict):
     try:
         with tempfile.TemporaryDirectory() as tmp_dir:
             for name, obj in [
-                ("model-config", metadata["model"]["model-config"]),
+                ("model-config", metadata["model"]),
                 ("dataset-config", metadata["dataset"]),
-                ("user-config", metadata["user-defined"]),
+                (
+                    "user-config",
+                    metadata.get("user-defined") or metadata.get("metadata"),
+                ),
             ]:
                 fp = os.path.join(tmp_dir, f"{name}.json")
                 json.dump(obj, open(fp, "w"), cls=DatetimeEncoder)

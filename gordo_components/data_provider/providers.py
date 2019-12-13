@@ -30,8 +30,8 @@ class NoSuitableDataProviderError(ValueError):
 
 def load_series_from_multiple_providers(
     data_providers: typing.List[GordoBaseDataProvider],
-    from_ts: datetime,
-    to_ts: datetime,
+    train_start_date: datetime,
+    train_end_date: datetime,
     tag_list: typing.List[SensorTag],
     dry_run: typing.Optional[bool] = False,
 ) -> typing.Iterable[pd.DataFrame]:
@@ -71,7 +71,10 @@ def load_series_from_multiple_providers(
         if readers_tags:
             logger.debug(f"Using tag reader {tag_reader} to fetch tags {readers_tags}")
             for series in tag_reader.load_series(
-                from_ts=from_ts, to_ts=to_ts, tag_list=readers_tags, dry_run=dry_run
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
+                tag_list=readers_tags,
+                dry_run=dry_run,
             ):
                 yield series
     logger.debug(
@@ -130,8 +133,8 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: typing.List[SensorTag],
         dry_run: typing.Optional[bool] = False,
     ) -> typing.Iterable[pd.Series]:
@@ -142,14 +145,14 @@ class DataLakeProvider(GordoBaseDataProvider):
         """
         # We create them here so we only try to get a auth-token once we actually need
         # it, otherwise we would have constructed them in the constructor.
-        if to_ts < from_ts:
+        if train_end_date < train_start_date:
             raise ValueError(
-                f"DataLakeReader called with to_ts: {to_ts} before from_ts: {from_ts}"
+                f"DataLakeReader called with train_end_date: {train_end_date} before train_start_date: {train_start_date}"
             )
         data_providers = self._get_sub_dataproviders()
 
         yield from load_series_from_multiple_providers(
-            data_providers, from_ts, to_ts, tag_list, dry_run
+            data_providers, train_start_date, train_end_date, tag_list, dry_run
         )
 
     def _get_client(self):
@@ -238,8 +241,8 @@ class InfluxDataProvider(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: typing.List[SensorTag],
         dry_run: typing.Optional[bool] = False,
     ) -> typing.Iterable[pd.Series]:
@@ -252,20 +255,27 @@ class InfluxDataProvider(GordoBaseDataProvider):
             )
         return (
             self.read_single_sensor(
-                from_ts=from_ts, to_ts=to_ts, tag=tag.name, measurement=self.measurement
+                train_start_date=train_start_date,
+                train_end_date=train_end_date,
+                tag=tag.name,
+                measurement=self.measurement,
             )
             for tag in tag_list
         )
 
     def read_single_sensor(
-        self, from_ts: datetime, to_ts: datetime, tag: str, measurement: str
+        self,
+        train_start_date: datetime,
+        train_end_date: datetime,
+        tag: str,
+        measurement: str,
     ) -> pd.Series:
         """
         Parameters
         ----------
-            from_ts: datetime
+            train_start_date: datetime
                 Datetime to start querying for data
-            to_ts: datetime
+            train_end_date: datetime
                 Datetime to stop query for data
             tag: str
                 Name of the tag to match in influx
@@ -277,13 +287,13 @@ class InfluxDataProvider(GordoBaseDataProvider):
         """
 
         logger.info(f"Reading tag: {tag}")
-        logger.info(f"Fetching data from {from_ts} to {to_ts}")
+        logger.info(f"Fetching data from {train_start_date} to {train_end_date}")
         query_string = f"""
             SELECT "{self.value_name}" as "{tag}"
             FROM "{measurement}"
             WHERE("tag" =~ /^{tag}$/)
-                {f"AND time >= {int(from_ts.timestamp())}s" if from_ts else ""}
-                {f"AND time <= {int(to_ts.timestamp())}s" if to_ts else ""}
+                {f"AND time >= {int(train_start_date.timestamp())}s" if train_start_date else ""}
+                {f"AND time <= {int(train_end_date.timestamp())}s" if train_end_date else ""}
         """
 
         logger.info(f"Query string: {query_string}")
@@ -298,7 +308,7 @@ class InfluxDataProvider(GordoBaseDataProvider):
             if tag not in list_of_tags:
                 raise ValueError(f"tag {tag} is not found in influx")
             logger.error(
-                f"Unable to find data for tag {tag} in the time range {from_ts} - {to_ts}"
+                f"Unable to find data for tag {tag} in the time range {train_start_date} - {train_end_date}"
             )
             raise e
 
@@ -361,8 +371,8 @@ class RandomDataProvider(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: typing.List[SensorTag],
         dry_run: typing.Optional[bool] = False,
     ) -> typing.Iterable[pd.Series]:
@@ -373,7 +383,7 @@ class RandomDataProvider(GordoBaseDataProvider):
         for tag in tag_list:
             nr = random.randint(self.min_size, self.max_size)
 
-            random_index = self._random_dates(from_ts, to_ts, n=nr)
+            random_index = self._random_dates(train_start_date, train_end_date, n=nr)
             series = pd.Series(
                 index=random_index,
                 name=tag.name,

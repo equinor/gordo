@@ -122,7 +122,6 @@ jobs:
             make push-server
             make push-client
             make push-builder
-            make push-watchman
             make push-workflow-generator
 
   # Publish to PyPi, only on tagged commits.
@@ -203,7 +202,7 @@ jobs:
       - save-venv-cache
 
   # Specific collections of python tests
-  test-builder-server-formatting-serializer-watchman-dataset:
+  test-builder-server-formatting-serializer-dataset:
     executor: python-executor
     steps:
       - test-batch:
@@ -216,8 +215,6 @@ jobs:
                 for: formatting
             - test:
                 for: serializer
-            - test:
-                for: watchman
             - test:
                 for: dataset
   test-client-allelse-dataprovider-util:
@@ -263,7 +260,7 @@ workflows:
     jobs:
       - make-docs
       - install
-      - test-builder-server-formatting-serializer-watchman-dataset:
+      - test-builder-server-formatting-serializer-dataset:
           requires:
             - install
       - test-client-allelse-dataprovider-util:
@@ -283,7 +280,7 @@ workflows:
               only: /.*/
       - upload-coverage-reports:
           requires:
-            - test-builder-server-formatting-serializer-watchman-dataset
+            - test-builder-server-formatting-serializer-dataset
             - test-client-allelse-dataprovider-util
             - test-workflow-cli
             - test-model

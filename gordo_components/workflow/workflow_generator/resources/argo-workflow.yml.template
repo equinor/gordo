@@ -591,12 +591,12 @@ spec:
 
 
 
-  - name: gordo-watchman-to-postgres
+  - name: gordo-server-to-postgres
     retryStrategy:
       limit: 5
     metadata:
       labels:
-        app: gordo-watchman-to-postgres
+        app: gordo-server-to-postgres
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     script:
@@ -604,7 +604,7 @@ spec:
       command: [bash]
       source: |
         echo "Feeding sql with metadata for project {{project_name}} using source ur http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
-        && gordo-components workflow watchman-to-sql --watchman-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME"
+        && gordo-components workflow server-to-sql --server-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME" --project-name $PROJECT_NAME
       env:
         - name: PROJECT_NAME
           value: "{{project_name}}"
@@ -807,7 +807,7 @@ spec:
                       - destination:
                           host: "{{'{{inputs.parameters.host-name}}'}}"
 
-  # Model resource to notify watchman that a model has been built and can be served by the ML Server
+  # Model resource to notify server that a model has been built and can be served by the ML Server
   - name: gordo-model
     inputs:
       parameters:
@@ -1064,169 +1064,6 @@ spec:
             name: dlserviceauth
             key: tenant_id_secret
 
-  - name: gordo-watchman-svc
-    steps:
-      - - name: apply-with-retries
-          template: apply-with-retries
-          arguments:
-            parameters:
-              - name: resource
-                value:  |
-                  ---
-                  apiVersion: v1
-                  kind: Service
-                  metadata:
-                    name: "gordo-watchman-{{project_name}}"
-                    annotations:
-                      getambassador.io/config: |
-                        ---
-                        apiVersion: ambassador/v0
-                        kind:  Mapping
-                        name:  "gordo-watchman-{{project_name}}"
-                        prefix: "/gordo/v0/{{project_name}}/$"
-                        prefix_regex: true
-                        service: "gordo-watchman-{{project_name}}.{{namespace}}"
-                        timeout_ms: 600000  # 10 mins
-                    labels:
-                      app: "gordo-watchman-{{project_name}}"
-                      app.kubernetes.io/name: watchman
-                      app.kubernetes.io/component: service
-                      app.kubernetes.io/part-of: gordo
-                      app.kubernetes.io/managed-by: gordo
-                      applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
-                    {% if owner_references is defined %}
-                    ownerReferences: {{owner_references}}
-                    {% endif %}
-                  spec:
-                    selector:
-                      app: "gordo-watchman-{{project_name}}"
-                    ports:
-                    - port: 80
-                      name: http-gordo
-                      targetPort: http-api
-
-
-
-  - name: gordo-watchman-istio
-    steps:
-      - - name: apply-with-retries
-          template: apply-with-retries
-          arguments:
-            parameters:
-              - name: resource
-                value:  |
-                  ---
-                  apiVersion: networking.istio.io/v1alpha3
-                  kind: VirtualService
-                  metadata:
-                    name: "gordo-watchman-{{project_name}}"
-                    annotations:
-                    labels:
-                      app: "gordo-watchman-{{project_name}}"
-                      app.kubernetes.io/name: watchman
-                      app.kubernetes.io/component: VirtualService
-                      app.kubernetes.io/part-of: gordo
-                      app.kubernetes.io/managed-by: gordo
-                      applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
-                    {% if owner_references is defined %}
-                    ownerReferences: {{owner_references}}
-                    {% endif %}
-                  spec:
-                    hosts:
-                    - "*"
-                    gateways:
-                    - istio-system/istio-gateway
-                    http:
-                    - match:
-                      - uri:
-                          regex: "/gordo/v0/{{project_name}}/$"
-                      rewrite:
-                        uri: "/"
-                      route:
-                      - destination:
-                          host: "gordo-watchman-{{project_name}}"
-
-
-
-  - name: gordo-watchman-deployment
-    steps:
-      - - name: apply-with-retries
-          template: apply-with-retries
-          arguments:
-            parameters:
-              - name: resource
-                value:  |
-                  ---
-                  apiVersion: apps/v1
-                  kind: Deployment
-                  metadata:
-                    name: "gordo-watchman-{{project_name}}"
-                    labels:
-                      app: "gordo-watchman-{{project_name}}"
-                      app.kubernetes.io/name: watchman-deployment
-                      app.kubernetes.io/component: watchman
-                      app.kubernetes.io/part-of: gordo
-                      app.kubernetes.io/managed-by: gordo
-                      applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
-                    {% if owner_references is defined %}
-                    ownerReferences: {{owner_references}}
-                    {% endif %}
-                  spec:
-                    replicas: 1
-                    selector:
-                      matchLabels:
-                        app: "gordo-watchman-{{project_name}}"
-                    strategy:
-                      type: Recreate
-                    template:
-                      metadata:
-                        labels:
-                          app: "gordo-watchman-{{project_name}}"
-                      spec:
-                        containers:
-                           - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-watchman:{{gordo_version}}"
-                             imagePullPolicy: "IfNotPresent"
-                             name: "gordo-watchman-{{project_name}}"
-                             ports:
-                               - name: http-api
-                                 containerPort: 5556
-                             readinessProbe:
-                               httpGet:
-                                 path: /healthcheck
-                                 port: http-api
-                               initialDelaySeconds: 5
-                               timeoutSeconds: 2
-                             env:
-                               - name: TARGET_NAMES
-                                 value: "{{target_names}}"
-                               - name: PROJECT_NAME
-                                 value: {{project_name}}
-                               - name: PROJECT_VERSION
-                                 value: "{{project_version}}"
-                               - name: AMBASSADOR_NAMESPACE
-                                 value: "{{ambassador_namespace}}"
-                             resources:
-                               requests:
-                                 memory: 500M
-                                 cpu: 10m
-                               limits:
-                                 memory: 1G
-                                 cpu: 1
-                        terminationGracePeriodSeconds: 1
-
-
-  - name: gordo-watchman
-    steps:
-    - - name: gordo-watchman-deployment
-        template: gordo-watchman-deployment
-    - - name: gordo-watchman-svc
-        template: gordo-watchman-svc
-    - - name: gordo-watchman-istio
-        template: gordo-watchman-istio
-
   - name: influx-cleanup
     activeDeadlineSeconds: 300
     retryStrategy:
@@ -1313,8 +1150,8 @@ spec:
     - - name: cleanup
         template: cleanup
         {%if enable_influx %}
-      - name: gordo-watchman-to-postgres
-        template: gordo-watchman-to-postgres
+      - name: gordo-server-to-postgres
+        template: gordo-server-to-postgres
         {% endif %}
 
   - name: do-all
@@ -1323,10 +1160,6 @@ spec:
       tasks:
         - name: ensure-single-workflow
           template: ensure-single-workflow
-        - name: watchman
-          template: gordo-watchman
-          dependencies:
-            - ensure-single-workflow
         - name: gordo-server
           template: gordo-server
           arguments:
@@ -1360,7 +1193,6 @@ spec:
               - name: enable-remote-logging
                 value: {{ machine.runtime.builder.remote_logging.enable }}
           dependencies:
-            - watchman
             - gordo-server
         - name: gordo-mdl-{{ machine.name }}
           template: gordo-model

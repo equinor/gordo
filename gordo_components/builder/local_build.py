@@ -10,7 +10,6 @@ from gordo_components.workflow.workflow_generator.workflow_generator import (
     get_dict_from_yaml,
 )
 from gordo_components.builder import ModelBuilder
-from gordo_components.builder.mlflow_utils import mlflow_context, log_metadata
 
 
 def local_build(
@@ -75,6 +74,8 @@ def local_build(
     Iterable[Tuple[Union[BaseEstimator, None], dict]]
         A generator yielding tuples of models and their metadata.
     """
+    from gordo_components.builder.mlflow_utils import mlflow_context, log_metadata
+
     config = get_dict_from_yaml(io.StringIO(config_str))
     normed = NormalizedConfig(config, project_name="local-build")
     for machine in normed.machines:

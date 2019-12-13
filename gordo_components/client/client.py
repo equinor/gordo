@@ -20,10 +20,11 @@ from werkzeug.exceptions import BadRequest
 from gordo_components import serializer
 from gordo_components.client.io import _handle_response
 from gordo_components.client.io import HttpUnprocessableEntity
-from gordo_components.client.utils import EndpointMetadata, PredictionResult
+from gordo_components.client.utils import PredictionResult
 from gordo_components.dataset.datasets import TimeSeriesDataset
 from gordo_components.data_provider.base import GordoBaseDataProvider
 from gordo_components.server import utils as server_utils
+from gordo_components.workflow.config_elements.machine import Machine
 
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class Client:
     """
 
     _mutex = Lock()
-    endpoints: List[EndpointMetadata] = []
+    machines: List[Machine] = []
 
     def __init__(
         self,
@@ -46,16 +47,14 @@ class Client:
         host: str = "localhost",
         port: int = 443,
         scheme: str = "https",
-        gordo_version: str = "v0",
         metadata: typing.Optional[dict] = None,
         data_provider: typing.Optional[GordoBaseDataProvider] = None,
         prediction_forwarder: typing.Optional[
-            Callable[[pd.DataFrame, EndpointMetadata, dict, pd.DataFrame], None]
+            Callable[[pd.DataFrame, Machine, dict, pd.DataFrame], None]
         ] = None,
         batch_size: int = 100000,
         parallelism: int = 10,
         forward_resampled_sensors: bool = False,
-        ignore_unhealthy_targets: bool = False,
         n_retries: int = 5,
         use_parquet: bool = False,
         session: requests.Session = requests.Session(),
@@ -68,24 +67,22 @@ class Client:
             Name of the project.
         target: Optional[str]
             Target name if desired to only make predictions against one target.
-            Leave as None to run predictions against all targets in Watchman.
+            Leave as None to run predictions against all targets in controller.
         host: str
-            Host of where to find watchman and other services.
+            Host of where to find controller and other services.
         port: int
             Port to communicate on.
         scheme: str
             The request scheme to use, ie 'https'.
-        gordo_version: str
-            The version of major gordo the services are using, ie. 'v0'.
         metadata: Optional[dict]
             Arbitrary mapping of key-value pairs to save to influx with
             prediction runs in 'tags' property
         data_provider: Optional[GordoBaseDataProvider]
             The data provider to use for the dataset. If not set, the client
-            will fall back to using the GET /prediction endpoint
-        prediction_forwarder: Optional[Callable[[pd.DataFrame, EndpointMetadata, dict, pd.DataFrame], None]]
+            will fall back to using the GET /prediction machine
+        prediction_forwarder: Optional[Callable[[pd.DataFrame, Machine, dict, pd.DataFrame], None]]
             callable which will take a dataframe of predictions,
-            ``EndpointMetadata``, the metadata, and the dataframe of resampled sensor
+            ``Machine``, the metadata, and the dataframe of resampled sensor
             values and forward them somewhere.
         batch_size: int
             How many samples to send to the server, only applicable when data
@@ -95,9 +92,6 @@ class Client:
             running predictions
         forward_resampled_sensors: bool
             If true then forward resampled sensor values to the prediction_forwarder
-        ignore_unhealthy_targets: bool
-            Ignore any targets which are unhealthy. Will raise a ``ValueError``
-            if the client encounters any unhealthy endpoints, warnings emitted otherwise
         n_retries: int
             Number of times the client should attempt to retry a failed prediction request. Each time the client
             retires the time it sleeps before retrying is exponentially calculated.
@@ -110,12 +104,13 @@ class Client:
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
-        self.watchman_endpoint = f"{self.base_url}/gordo/{gordo_version}/{project}/"
+        self.server_endpoint = f"{self.base_url}/gordo/v0/{project}"
         self.metadata = metadata if metadata is not None else dict()
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
         self.use_parquet = use_parquet
         self.session = session
+        self.project_name = project
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -125,90 +120,92 @@ class Client:
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
         self.target = target
-        self.ignore_unhealthy_targets = ignore_unhealthy_targets
-        self.endpoints = self.get_endpoints()
+        self.machines = self.get_machines()
 
-    def get_endpoints(self) -> List[EndpointMetadata]:
-        # Thread safe single access and updating of endpoints.
+    def get_machines(self) -> List[Machine]:
+        # Thread safe single access and updating of machines.
         with self._mutex:
-            endpoints = self._endpoints_from_watchman(self.watchman_endpoint)
-            return self._filter_endpoints(
-                endpoints=endpoints,
-                target=self.target,
-                ignore_unhealthy_targets=self.ignore_unhealthy_targets,
-            )
+            machines = self._machines_from_server()
+            return self._filter_machines(machines=machines, target=self.target)
 
     @staticmethod
-    def _filter_endpoints(
-        endpoints: typing.List[EndpointMetadata],
-        target: typing.Optional[str] = None,
-        ignore_unhealthy_targets: typing.Optional[bool] = False,
-    ) -> typing.List[EndpointMetadata]:
+    def _filter_machines(
+        machines: typing.List[Machine], target: typing.Optional[str] = None
+    ) -> typing.List[Machine]:
         """
-        Based on the current configuration, filter out endpoints which the client
+        Based on the current configuration, filter out machines which the client
         should not care about.
 
         Parameters
         ----------
-        endpoints: List[EndpointMetadata]
-            List of EndpointMetadata objs
+        machines: List[Machine]
+            List of Machine objs
         target: Optional[str] (None)
-            Name of the target/machine/endpoint we should filter down to
-        ignore_unhealthy_targets: Optional[bool] (False)
-            Should the client ignore any unhealthy endpoints?
+            Name of the target/machine/machine we should filter down to
 
         Returns
         -------
-        List[EndpointMetadata]
-            The filtered ``EndpointMetadata``s
+        List[Machine]
+            The filtered ``Machine``s
         """
 
-        original_endpoints = copy.copy(endpoints)
+        original_machines = copy.copy(machines)
 
-        # Raise an error if we got some unhealty endpoints and weren't suppose to ignore them.
-        # otherwise filter out any unhealthy endpoints
-        if (
-            not target
-            and not ignore_unhealthy_targets
-            and not all(e.healthy for e in endpoints)
-        ):
-            raise ValueError(
-                f"Flag 'ignore_unhealthy_targets' is set to False and we encountered some "
-                f"unhealthy ones: {[ep for ep in endpoints if ep.healthy is False]}"
-            )
-        else:
-            endpoints = [ep for ep in endpoints if ep.healthy]
-
-        # Filter down to single endpoint if requested
+        # Filter down to single machine if requested
         if target:
-            endpoints = [ep for ep in endpoints if ep.name == target]
+            machines = [ep for ep in machines if ep.name == target]
 
             # And check for single result and that it's healthy
-            if len(endpoints) != 1:
+            if len(machines) != 1:
                 raise ValueError(
-                    f"Found {'multiple' if len(endpoints) else 'no'} endpoints matching "
-                    f"target name '{target}' in {original_endpoints}"
-                )
-            if not endpoints[0].healthy:
-                raise ValueError(
-                    f"The targeted endpoint: '{endpoints[0]}' is unhealthy"
+                    f"Found {'multiple' if len(machines) else 'no'} machines matching "
+                    f"target name '{target}' in {original_machines}"
                 )
 
-        # finally, raise an error if all this left us without any endpoints
-        if not endpoints:
+        # finally, raise an error if all this left us without any machines
+        if not machines:
             raise ValueError(
-                f"Found no endpoints out of supplied endpoints: {original_endpoints} after filtering"
+                f"Found no machines out of supplied machines: {original_machines} after filtering"
             )
-        return endpoints
+        return machines
 
-    def _endpoints_from_watchman(self, endpoint: str) -> typing.List[EndpointMetadata]:
+    def _machines_from_server(self) -> typing.List[Machine]:
         """
-        Get a list of endpoints by querying Watchman
+        Get a list of machines by querying controller
         """
-        resp = self.session.get(endpoint)
+        resp = self.session.get(f"{self.server_endpoint}/models")
         if not resp.ok:
-            raise IOError(f"Failed to get endpoints: {repr(resp.content)}")
-        return [EndpointMetadata(data) for data in resp.json()["endpoints"]]
+            raise IOError(f"Failed to get machines: {repr(resp.content)}")
+        else:
+            model_names = resp.json()
+            with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
+                machines = executor.map(self._machine_from_server, model_names)
+                return list(machines)
+
+    def _machine_from_server(self, name: str) -> Machine:
+        """
+        Create a :class:`gordo_components.workflow.config_elements.machine.Machine`
+        from this model's endpoint on the server
+
+        Parameters
+        ----------
+        name: str
+            Name of this machine
+
+        Returns
+        -------
+        Machine
+        """
+        resp = self.session.get(
+            f"{self.base_url}/gordo/v0/{self.project_name}/{name}/metadata"
+        )
+        if resp.ok:
+            metadata = resp.json()["metadata"]
+            return Machine.from_config(metadata, project_name=self.project_name)
+        else:
+            raise IOError(
+                f"Unable to create machine '{name}': {resp.content.decode(errors='ignore')}"
+            )
 
     def download_model(self) -> typing.Dict[str, BaseEstimator]:
         """
@@ -220,12 +217,12 @@ class Client:
             Mapping of target name to the model
         """
         models = dict()
-        for endpoint in self.endpoints:
+        for machine in self.machines:
             resp = self.session.get(
-                f"{self.base_url + endpoint.endpoint}/download-model"
+                f"{self.base_url}/gordo/v0/{machine.project_name}/{machine.name}/download-model"
             )
             if resp.ok:
-                models[endpoint.name] = serializer.loads(resp.content)
+                models[machine.name] = serializer.loads(resp.content)
             else:
                 raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
@@ -248,18 +245,16 @@ class Client:
             return self.metadata_.copy()
 
         if force_refresh:
-            self.endpoints = self.get_endpoints()  # Forced refresh if
-        self.metadata_: Dict[str, dict] = {
-            ep.name: ep.raw_metadata() for ep in self.endpoints
-        }
+            self.machines = self.get_machines()  # Forced refresh if
+        self.metadata_: Dict[str, dict] = {ep.name: ep.metadata for ep in self.machines}
         return self.metadata_.copy()
 
     def predict(
         self,
         start: datetime,
         end: datetime,
-        refresh_endpoints: bool = False,
-        endpoint_names: Optional[List[str]] = None,
+        refresh_machines: bool = False,
+        machine_names: Optional[List[str]] = None,
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
         Start the prediction process.
@@ -268,11 +263,11 @@ class Client:
         ----------
         start: datetime
         end: datetime
-        refresh_endpoints : bool
-            Before running predictions, refresh the current endpoints. Default
-            ``False`` and will use the endpoints obtained during initialization.
-        endpoint_names: Optional[List[str]]
-            Optionally only target certain endpoints, referring to them by name.
+        refresh_machines : bool
+            Before running predictions, refresh the current machines. Default
+            ``False`` and will use the machines obtained during initialization.
+        machine_names: Optional[List[str]]
+            Optionally only target certain machines, referring to them by name.
 
         Returns
         -------
@@ -282,32 +277,32 @@ class Client:
               1st element is the dataframe of the predictions; complete with a DateTime index.
               2nd element is a list of error messages (if any) for running the predictions
         """
-        if refresh_endpoints:
-            self.endpoints = self.get_endpoints()
+        if refresh_machines:
+            self.machines = self.get_machines()
 
-        # Select endpoints if the endpoint_names were provided.
-        if endpoint_names:
-            endpoints = [ep for ep in self.endpoints if ep.name in endpoint_names]
+        # Select machines if the machine_names were provided.
+        if machine_names:
+            machines = [ep for ep in self.machines if ep.name in machine_names]
         else:
-            endpoints = self.endpoints
+            machines = self.machines
 
-        # For every endpoint, start making predictions for the time range
+        # For every machine, start making predictions for the time range
         with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
             jobs = executor.map(
-                lambda ep: self.predict_single_endpoint(ep, start, end), endpoints
+                lambda ep: self.predict_single_machine(ep, start, end), machines
             )
             return [(j.name, j.predictions, j.error_messages) for j in jobs]
 
-    def predict_single_endpoint(
-        self, endpoint: EndpointMetadata, start: datetime, end: datetime
+    def predict_single_machine(
+        self, machine: Machine, start: datetime, end: datetime
     ) -> PredictionResult:
         """
-        Get predictions based on the /prediction POST endpoint of Gordo ML Servers
+        Get predictions based on the /prediction POST machine of Gordo ML Servers
 
         Parameters
         ----------
-        endpoint: EndpointMetadata
-            Named tuple which has 'endpoint' specifying the full url to the base ml server
+        machine: Machine
+            Named tuple which has 'machine' specifying the full url to the base ml server
         start: datetime
         end: datetime
 
@@ -318,7 +313,7 @@ class Client:
         """
 
         # Fetch all of the raw data
-        X, y = self._raw_data(endpoint, start, end)
+        X, y = self._raw_data(machine, start, end)
 
         # Forward sensor data
         if self.prediction_forwarder is not None and self.forward_resampled_sensors:
@@ -333,7 +328,7 @@ class Client:
                     X,
                     y,
                     chunk=slice(i, i + self.batch_size),
-                    endpoint=endpoint,
+                    machine=machine,
                     start=X.index[i],
                     end=X.index[
                         i + self.batch_size
@@ -358,7 +353,7 @@ class Client:
                 else pd.DataFrame()
             )
         return PredictionResult(
-            name=endpoint.name, predictions=predictions, error_messages=error_messages
+            name=machine.name, predictions=predictions, error_messages=error_messages
         )
 
     def _send_prediction_request(
@@ -366,12 +361,12 @@ class Client:
         X: pd.DataFrame,
         y: typing.Optional[pd.DataFrame],
         chunk: slice,
-        endpoint: EndpointMetadata,
+        machine: Machine,
         start: datetime,
         end: datetime,
     ):
         """
-        Post a slice of data to the endpoint
+        Post a slice of data to the machine
 
         Parameters
         ----------
@@ -379,7 +374,7 @@ class Client:
             The data for the model, in pandas representation
         chunk: slice
             The slice to take from DataFrame.iloc for the batch size
-        endpoint: EndpointMetadata
+        machine: Machine
         start: datetime
         end: datetime
 
@@ -393,7 +388,7 @@ class Client:
         """
 
         kwargs: Dict[str, Any] = dict(
-            url=f"{self.base_url + endpoint.endpoint}{self.prediction_path}{self.query}"
+            url=f"{self.base_url}/gordo/v0/{machine.project_name}/{machine.name}{self.prediction_path}{self.query}"
         )
 
         # We're going to serialize the data as either JSON or Arrow
@@ -421,7 +416,7 @@ class Client:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
-                    ] = f"{self.base_url + endpoint.endpoint}{self.prediction_path}{self.query}"
+                    ] = f"{self.base_url}/gordo/v0/{machine.project_name}/{machine.name}{self.prediction_path}{self.query}"
                     resp = _handle_response(self.session.post(**kwargs))
             # If it was an IO or TimeoutError, we can retry
             except (
@@ -441,23 +436,23 @@ class Client:
                 else:
                     msg = (
                         f"Failed to get predictions for dates {start} -> {end} "
-                        f"for target: '{endpoint.name}' Error: {exc}"
+                        f"for target: '{machine.name}' Error: {exc}"
                     )
                     logger.error(msg)
 
                     return PredictionResult(
-                        name=endpoint.name, predictions=None, error_messages=[msg]
+                        name=machine.name, predictions=None, error_messages=[msg]
                     )
 
             # No point in retrying a BadRequest
             except BadRequest as exc:
                 msg = (
                     f"Failed with BadRequest error for dates {start} -> {end} "
-                    f"for target: '{endpoint.name}' Error: {exc}"
+                    f"for target: '{machine.name}' Error: {exc}"
                 )
                 logger.error(msg)
                 return PredictionResult(
-                    name=endpoint.name, predictions=None, error_messages=[msg]
+                    name=machine.name, predictions=None, error_messages=[msg]
                 )
 
             # Process response and return if no exception
@@ -468,49 +463,52 @@ class Client:
                 # Forward predictions to any other consumer if registered.
                 if self.prediction_forwarder is not None:
                     self.prediction_forwarder(  # type: ignore
-                        predictions=predictions,
-                        endpoint=endpoint,
-                        metadata=self.metadata,
+                        predictions=predictions, machine=machine, metadata=self.metadata
                     )
                 return PredictionResult(
-                    name=endpoint.name, predictions=predictions, error_messages=[]
+                    name=machine.name, predictions=predictions, error_messages=[]
                 )
 
     def _raw_data(
-        self, endpoint: EndpointMetadata, start: datetime, end: datetime
-    ) -> pd.DataFrame:
+        self, machine: Machine, start: datetime, end: datetime
+    ) -> typing.Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Fetch the required raw data in this time range which would
-        satisfy this endpoint's /prediction POST
+        satisfy this machine's /prediction POST
 
         Parameters
         ----------
-        endpoint: EndpointMetadata
-            Named tuple representing the endpoint info from Watchman
+        machine: Machine
+            Named tuple representing the machine info from controller
         start: datetime
         end: datetime
 
         Returns
         -------
-        pandas.core.DataFrame
-            Dataframe of required tags and index reflecting the datetime point
+        Tuple[pandas.core.DataFrame, pandas.core.DataFrame]
+            The dataframes representing X and y.
         """
 
         # We want to adjust for any model offset. If the model outputs less than it got in, it requires
         # extra data than what we're being asked to get predictions for.
         # just to give us some buffer zone.
+        resolution = machine.dataset.to_dict().get("resolution", "10T")
+        n_intervals = (
+            machine.metadata["machine-metadata"]["build-metadata"]["model"].get(
+                "model-offset", 0
+            )
+            + 5
+        )
         start = self._adjust_for_offset(
-            dt=start,
-            resolution=endpoint.resolution,
-            n_intervals=endpoint.model_offset + 5,
+            dt=start, resolution=resolution, n_intervals=n_intervals
         )
         dataset = TimeSeriesDataset(
             data_provider=self.data_provider,  # type: ignore
-            from_ts=start,
-            to_ts=end,
-            resolution=endpoint.resolution,
-            tag_list=endpoint.tag_list,
-            target_tag_list=endpoint.target_tag_list,
+            train_start_date=start,
+            train_end_date=end,
+            resolution=resolution,
+            tag_list=machine.dataset.tag_list,
+            target_tag_list=machine.dataset.target_tag_list,
         )
         return dataset.get_data()
 

@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np
 
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
-from gordo_components.client.utils import EndpointMetadata, influx_client_from_uri
+from gordo_components.client.utils import influx_client_from_uri
+from gordo_components.workflow.config_elements.machine import Machine
 import tests.utils as tu
 
 
@@ -15,22 +16,19 @@ def test_influx_forwarder(influxdb):
     Test that the forwarder creates correct points from a
     multi-indexed series
     """
-    endpoint = EndpointMetadata(
-        data={
-            "endpoint-metadata": {
-                "metadata": {
-                    "name": "some-target-name",
-                    "dataset": {
-                        "tag_list": tu.SENSORTAG_LIST,
-                        "target_tag_list": tu.SENSORTAG_LIST,
-                        "resolution": "10T",
-                    },
-                    "model": {"model-offset": 0},
-                }
+    machine = Machine.from_config(
+        config={
+            "name": "some-target-name",
+            "dataset": {
+                "tags": tu.SENSORS_STR_LIST,
+                "target_tag_list": tu.SENSORS_STR_LIST,
+                "train_start_date": "2016-01-01T00:00:00Z",
+                "train_end_date": "2016-01-05T00:00:00Z",
+                "resolution": "10T",
             },
-            "endpoint": "/some-endpoint",
-            "healthy": True,
-        }
+            "model": "sklearn.linear_model.LinearRegression",
+        },
+        project_name="test-project",
     )
 
     # Feature outs which match length of tags
@@ -52,7 +50,7 @@ def test_influx_forwarder(influxdb):
 
     # Create the forwarder and forward the 'predictions' to influx.
     forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=tu.INFLUXDB_URI)
-    forwarder.forward_predictions(predictions=df, endpoint=endpoint)
+    forwarder.forward_predictions(predictions=df, machine=machine)
 
     # Client to manually verify the points written
     client = influx_client_from_uri(tu.INFLUXDB_URI, dataframe_client=True)

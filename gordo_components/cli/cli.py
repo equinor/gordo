@@ -24,7 +24,7 @@ from gordo_components.builder.build_model import ModelBuilder
 from gordo_components import serializer
 from gordo_components.builder import mlflow_utils
 from gordo_components.server import server
-from gordo_components import watchman, __version__
+from gordo_components import __version__
 from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
 from gordo_components.cli.custom_types import key_value_par, HostIP, DataProviderParam
@@ -222,6 +222,7 @@ def build(
 
     try:
         model, metadata = builder.build(output_dir, model_register_dir)
+
         if print_cv_scores:
             for score in get_all_score_strings(metadata):
                 print(score)
@@ -308,17 +309,22 @@ def get_all_score_strings(metadata):
     --------
     >>> score_strings = get_all_score_strings(
     ...  {
-    ...     "model": {
-    ...         "cross-validation": {
-    ...             "scores": {"explained variance tag 0": {"fold_1": 0, "fold_2": 0.9, "fold_3": 0.1,"min": 0.1, "max": 0.9, "mean": 1/3},
-    ...                        "explained variance tag 1": {"fold_1": 0.2, "fold_2": 0.3, "fold_3": 0.6, "min": 0.2, "max": 0.6, "mean": 0.3666666666666667},
-    ...                        "explained variance" : {"min": 0.1, "max": 0.6, "mean": 0.3499999999999999},
-    ...                        "r2 score tag 0" : {"fold_1": 0.8, "fold_2": 0.5, "fold_3": 0.6, "min": 0.5, "max": 0.8, "mean": 0.6333333333333333},
-    ...                        "r2 score tag 1" : {"fold_1": 0.4, "fold_2": 0.3, "fold_3": 0.5, "min": 0.3, "max": 0.5, "mean": 0.39999999999999997},
-    ...                        "r2 score"  : {"min": 0.4,"max": 0.6, "mean": 0.5166666666666666}
-    ...                          }
+    ...     "metadata": {
+    ...         "build-metadata": {
+    ...             "model": {
+    ...                 "cross-validation": {
+    ...                     "scores": {
+    ...                         "explained variance tag 0": {"fold_1": 0, "fold_2": 0.9, "fold_3": 0.1,"min": 0.1, "max": 0.9, "mean": 1/3},
+    ...                         "explained variance tag 1": {"fold_1": 0.2, "fold_2": 0.3, "fold_3": 0.6, "min": 0.2, "max": 0.6, "mean": 0.3666666666666667},
+    ...                         "explained variance" : {"min": 0.1, "max": 0.6, "mean": 0.3499999999999999},
+    ...                         "r2 score tag 0" : {"fold_1": 0.8, "fold_2": 0.5, "fold_3": 0.6, "min": 0.5, "max": 0.8, "mean": 0.6333333333333333},
+    ...                         "r2 score tag 1" : {"fold_1": 0.4, "fold_2": 0.3, "fold_3": 0.5, "min": 0.3, "max": 0.5, "mean": 0.39999999999999997},
+    ...                         "r2 score"  : {"min": 0.4,"max": 0.6, "mean": 0.5166666666666666}
+    ...                     }
+    ...                 }
+    ...             }
+    ...         }
     ...     }
-    ...   }
     ... }
     ... )
     >>> len(score_strings)
@@ -326,11 +332,12 @@ def get_all_score_strings(metadata):
     >>> score_strings
     ['explained-variance-tag-0_fold_1=0', 'explained-variance-tag-0_fold_2=0.9', 'explained-variance-tag-0_fold_3=0.1', 'explained-variance-tag-0_min=0.1', 'explained-variance-tag-0_max=0.9', 'explained-variance-tag-0_mean=0.3333333333333333', 'explained-variance-tag-1_fold_1=0.2', 'explained-variance-tag-1_fold_2=0.3', 'explained-variance-tag-1_fold_3=0.6', 'explained-variance-tag-1_min=0.2', 'explained-variance-tag-1_max=0.6', 'explained-variance-tag-1_mean=0.3666666666666667', 'explained-variance_min=0.1', 'explained-variance_max=0.6', 'explained-variance_mean=0.3499999999999999', 'r2-score-tag-0_fold_1=0.8', 'r2-score-tag-0_fold_2=0.5', 'r2-score-tag-0_fold_3=0.6', 'r2-score-tag-0_min=0.5', 'r2-score-tag-0_max=0.8', 'r2-score-tag-0_mean=0.6333333333333333', 'r2-score-tag-1_fold_1=0.4', 'r2-score-tag-1_fold_2=0.3', 'r2-score-tag-1_fold_3=0.5', 'r2-score-tag-1_min=0.3', 'r2-score-tag-1_max=0.5', 'r2-score-tag-1_mean=0.39999999999999997', 'r2-score_min=0.4', 'r2-score_max=0.6', 'r2-score_mean=0.5166666666666666']
 
-
     """
     all_scores = []
     for metric_name, scores in (
-        metadata.get("model", dict())
+        metadata.get("metadata", dict())
+        .get("build-metadata", dict())
+        .get("model", dict())
         .get("cross-validation", dict())
         .get("scores", dict())
         .items()
@@ -390,76 +397,9 @@ def run_server_cli(host, port, workers, worker_connections, log_level):
     server.run_server(host, port, workers, worker_connections, log_level.lower())
 
 
-@click.command("run-watchman")
-@click.argument("project-name", envvar="PROJECT_NAME", type=str)
-@click.argument("project-version", envvar="PROJECT_VERSION", type=str)
-@click.argument("target-names", envvar="TARGET_NAMES", type=yaml.safe_load)
-@click.option(
-    "--host", type=str, help="The host to run the server on.", default="0.0.0.0"
-)
-@click.option("--port", type=int, help="The port to run the server on.", default=5555)
-@click.option("--debug", type=bool, help="Run in debug mode.", default=False)
-@click.option(
-    "--namespace",
-    type=str,
-    help="Namespace watchman should make requests in for ML servers",
-    default="kubeflow",
-    envvar="NAMESPACE",
-)
-@click.option(
-    "--ambassador-namespace",
-    type=str,
-    help="Namespace watchman expects Ambassador to be in.",
-    default="ambassador",
-    envvar="AMBASSADOR_NAMESPACE",
-)
-@click.option(
-    "--ambassador-host",
-    type=str,
-    help="Full hostname of ambassador. If this is set then `--ambassador-namespace` is "
-    "ignored even if set explicitly.",
-    default=None,
-    envvar="AMBASSADOR_HOST",
-)
-def run_watchman_cli(
-    project_name,
-    project_version,
-    target_names,
-    host,
-    port,
-    debug,
-    namespace,
-    ambassador_namespace,
-    ambassador_host,
-):
-    """
-    Start the Gordo Watchman server for this project. Which is responsible
-    for dynamically comparing expected URLs derived from a project config fle
-    against those actually deployed to determine and report their health.
-
-    \b
-    Must have the following environment variables set:
-        PROJECT_NAME: project_name for the config file
-        TARGET_NAMES: A list of non-sanitized machine / target names
-    """
-    watchman.server.run_server(
-        host,
-        port,
-        debug,
-        project_name,
-        project_version,
-        target_names,
-        namespace=namespace,
-        ambassador_host=ambassador_host
-        if ambassador_host
-        else f"ambassador.{ambassador_namespace}",
-    )
-
-
 gordo.add_command(workflow_cli)
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
-gordo.add_command(run_watchman_cli)
 gordo.add_command(gordo_client)
 
 if __name__ == "__main__":

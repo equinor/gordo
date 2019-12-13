@@ -24,8 +24,8 @@ from gordo_components.serializer import serializer
 def get_random_data():
     data = {
         "type": "RandomDataset",
-        "from_ts": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
-        "to_ts": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
+        "train_start_date": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        "train_end_date": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
         "target_tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
     }
@@ -36,14 +36,23 @@ def metadata_check(metadata, check_history):
     """Helper to verify model builder metadata creation"""
     assert "name" in metadata
     assert "model" in metadata
-    assert "cross-validation" in metadata["model"]
-    assert "scores" in metadata["model"]["cross-validation"]
-    assert "model-offset" in metadata["model"]
-    assert isinstance(metadata["model"]["model-offset"], int)
+    assert "metadata" in metadata
+    assert "dataset" in metadata
+    assert "cross-validation" in metadata["metadata"]["build-metadata"]["model"]
+    assert (
+        "scores" in metadata["metadata"]["build-metadata"]["model"]["cross-validation"]
+    )
+    assert "model-offset" in metadata["metadata"]["build-metadata"]["model"]
+    assert isinstance(
+        metadata["metadata"]["build-metadata"]["model"]["model-offset"], int
+    )
 
     # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
     # doesn't implement a .score()
-    if metadata["model"]["cross-validation"]["scores"] != dict():
+    if (
+        metadata["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
+        != dict()
+    ):
         tag_list = [
             tag.name.replace(" ", "-") for tag in metadata["dataset"]["tag_list"]
         ]
@@ -56,14 +65,16 @@ def metadata_check(metadata, check_history):
         all_scores_list = [
             f"{score}-{tag}" for score in scores_list for tag in tag_list
         ] + scores_list
-        scores_metadata = metadata["model"]["cross-validation"]["scores"]
+        scores_metadata = metadata["metadata"]["build-metadata"]["model"][
+            "cross-validation"
+        ]["scores"]
 
         assert all(score in scores_metadata for score in all_scores_list)
 
     if check_history:
-        assert "history" in metadata["model"]
+        assert "history" in metadata["metadata"]["build-metadata"]["model"]
         assert all(
-            name in metadata["model"]["history"]
+            name in metadata["metadata"]["build-metadata"]["model"]["history"]
             for name in ("params", "loss", "accuracy")
         )
 
@@ -371,7 +382,9 @@ def test_output_scores_metadata():
     model, metadata = ModelBuilder(
         name="model-name", model_config=model_config, data_config=data_config
     ).build()
-    scores_metadata = metadata["model"]["cross-validation"]["scores"]
+    scores_metadata = metadata["metadata"]["build-metadata"]["model"][
+        "cross-validation"
+    ]["scores"]
     assert (
         scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
         + scores_metadata["explained-variance-score-Tag-2"]["fold-mean"]
@@ -456,7 +469,8 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     "should_be_equal,metadata,tag_list,replace_cache",
     [
         (True, None, None, False),
-        (False, {"metadata": "something"}, None, False),
+        (True, {"metadata": "something"}, None, False),
+        (False, {"metadata": "something"}, None, True),
         (False, None, [SensorTag("extra_tag", None)], False),
         (False, None, None, True),  # replace_cache gives a new model location
     ],
@@ -469,8 +483,7 @@ def test_provide_saved_model_caching(
     tmp_dir,
 ):
     """
-    Test provide_saved_model with caching and possible cache busting if metadata,
-    tag_list, or replace_cache is set.
+    Test provide_saved_model with caching and possible cache busting if tag_list, or replace_cache is set.
 
     Builds two models and checks if their model-creation-date's are the same,
     which will be if and only if there is caching.
@@ -519,45 +532,19 @@ def test_provide_saved_model_caching(
         replace_cache=replace_cache,
     )
 
-    model1_creation_date = first_metadata["model"]["model-creation-date"]
-    model2_creation_date = second_metadata["model"]["model-creation-date"]
+    model1_creation_date = first_metadata["metadata"]["build-metadata"]["model"][
+        "model-creation-date"
+    ]
+    model2_creation_date = second_metadata["metadata"]["build-metadata"]["model"][
+        "model-creation-date"
+    ]
     if should_be_equal:
         assert model1_creation_date == model2_creation_date
     else:
         assert model1_creation_date != model2_creation_date
 
-
-@pytest.mark.parametrize(
-    "should_be_equal,evaluation_config",
-    [(True, {"cv_mode": "full_build"}), (False, {"cv_mode": "cross_val_only"})],
-)
-def test_model_builder_cv_scores_only(should_be_equal: bool, evaluation_config: dict):
-    """
-    Test checks that the model is None if cross_val_only is used as the cv_mode.
-    If the default mode ('full_build') is used, the model should not be None.
-
-    Parameters
-    ----------
-    should_be_equal: bool
-        Refers to whether or not the cv_mode should be equal to full (default) or cross_val only.
-    evaluation_config: dict
-        The mode which is tested from within the evaluation_config, is either full or cross_val_only
-
-    """
-
-    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
-    data_config = get_random_data()
-
-    model, metadata = ModelBuilder(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        evaluation_config=evaluation_config,
-    ).build()
-    if should_be_equal:
-        assert model is not None
-    else:
-        assert model is None
+    if metadata is not None:
+        assert metadata == second_metadata["metadata"]["user-defined"]
 
 
 @pytest.mark.parametrize(
@@ -597,7 +584,7 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
 
     assert all(
         metric.split(".")[-1].replace("_", "-")
-        in metadata["model"]["cross-validation"]["scores"]
+        in metadata["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
         for metric in expected_metrics
     )
 
@@ -659,8 +646,12 @@ def test_setting_seed(seed, model_config):
         evaluation_config=evaluation_config,
     ).build()
 
-    df1 = pd.DataFrame.from_dict(metadata1["model"]["cross-validation"]["scores"])
-    df2 = pd.DataFrame.from_dict(metadata2["model"]["cross-validation"]["scores"])
+    df1 = pd.DataFrame.from_dict(
+        metadata1["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
+    )
+    df2 = pd.DataFrame.from_dict(
+        metadata2["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
+    )
 
     # Equality depends on the seed being set.
     if seed:

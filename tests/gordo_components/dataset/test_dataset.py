@@ -66,8 +66,8 @@ def test_random_dataset_attrs():
     end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
 
     dataset = RandomDataset(
-        from_ts=start,
-        to_ts=end,
+        train_start_date=start,
+        train_end_date=end,
         tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
     )
 
@@ -122,14 +122,13 @@ def test_join_timeseries_empty_series(value, n_rows, resolution, row_threshold, 
     """
     Test that empty data scenarios raise appropriate errors
     """
-
-    from_ts = dateutil.parser.isoparse("2018-01-01 00:00:00+00:00")
-    to_ts = dateutil.parser.isoparse("2018-01-05 00:00:00+00:00")
+    train_start_date = dateutil.parser.isoparse("2018-01-01 00:00:00+00:00")
+    train_end_date = dateutil.parser.isoparse("2018-01-05 00:00:00+00:00")
     tag_list = [SensorTag(name=n, asset=None) for n in ["Tag 1", "Tag 2", "Tag 3"]]
 
     kwargs = {
-        "from_ts": from_ts,
-        "to_ts": to_ts,
+        "train_start_date": train_start_date,
+        "train_end_date": train_end_date,
         "tag_list": tag_list,
         "resolution": resolution,
         "row_threshold": row_threshold,
@@ -188,8 +187,8 @@ def test_row_filter():
             SensorTag("Tag 2", None),
             SensorTag("Tag 3", None),
         ],
-        from_ts=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
-        to_ts=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
     )
     X, _ = TimeSeriesDataset(**kwargs).get_data()
     assert 577 == len(X)
@@ -213,8 +212,8 @@ def test_aggregation_methods():
             SensorTag("Tag 2", None),
             SensorTag("Tag 3", None),
         ],
-        from_ts=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
-        to_ts=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
     )
 
     # Default aggregation gives no extra columns
@@ -247,8 +246,8 @@ def test_time_series_no_resolution():
             SensorTag("Tag 2", None),
             SensorTag("Tag 3", None),
         ],
-        from_ts=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
-        to_ts=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
     )
 
     no_resolution, _ = TimeSeriesDataset(resolution=None, **kwargs).get_data()
@@ -312,13 +311,12 @@ class MockDataProvider(GordoBaseDataProvider):
 
     def load_series(
         self,
-        from_ts: datetime,
-        to_ts: datetime,
+        train_start_date: datetime,
+        train_end_date: datetime,
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
-
-        index = pd.date_range(from_ts, to_ts, freq="s")
+        index = pd.date_range(train_start_date, train_end_date, freq="s")
         for i, name in enumerate(sorted([tag.name for tag in tag_list])):
             # If value not passed, data for each tag are staggered integer ranges
             data = [self.value if self.value else i for i in range(i, len(index) + i)]
@@ -338,6 +336,6 @@ def test_timeseries_dataset_compat():
         train_end_date="2017-12-29 06:00:00Z",
         tags=[SensorTag("Tag 1", None)],
     )
-    assert dataset.from_ts == dateutil.parser.isoparse("2017-12-25 06:00:00Z")
-    assert dataset.to_ts == dateutil.parser.isoparse("2017-12-29 06:00:00Z")
+    assert dataset.train_start_date == dateutil.parser.isoparse("2017-12-25 06:00:00Z")
+    assert dataset.train_end_date == dateutil.parser.isoparse("2017-12-29 06:00:00Z")
     assert dataset.tag_list == [SensorTag("Tag 1", None)]

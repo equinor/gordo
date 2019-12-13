@@ -90,7 +90,6 @@ def _generate_test_workflow_str(
 
     if result.exception is not None:
         raise result.exception
-
     return result.output
 
 
@@ -227,7 +226,7 @@ def test_quotes_work(path_to_config_files):
     }
 
     machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["data-config"])
-    assert machine_1_dataset["tags"] == ["CT/1", 'CT"2', "CT'3"]
+    assert machine_1_dataset["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
 
 
 def test_overrides_builder_datasource(path_to_config_files):

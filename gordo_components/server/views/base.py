@@ -8,7 +8,6 @@ import timeit
 import typing
 
 import pandas as pd
-
 from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
 from flask_restplus import Resource, fields
 
@@ -233,6 +232,19 @@ class DownloadModel(Resource):
         return send_file(buff, attachment_filename="model.tar.gz")
 
 
+class ModelListView(Resource):
+    """
+    List the current models capable of being served by the model
+    """
+
+    @api.doc(description="List the metadata for all models capable of being served.")
+    def get(self, gordo_project: str):
+        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
+        available_models = os.listdir(collection_dir)
+        return jsonify(available_models)
+
+
+api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
 api.add_resource(
     MetaDataView,

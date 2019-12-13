@@ -8,39 +8,36 @@ import typing
 from typing import Optional
 
 import pandas as pd
+import numpy as np
 
-from gordo_components.client.utils import influx_client_from_uri, EndpointMetadata
-
-
-"""
-Module contains objects which can be made into generators which take
-and EndpointMetadata and metadata (dict) when instantiated and are sent
-prediction dataframes as the prediction client runs::
-
-    def my_forwarder(
-        predictions: pd.DataFrame = None,
-        endpoint: EndpointMetadata = None,
-        metadata: dict = dict(),
-        resampled_sensor_data: pd.DataFrame = None
-    ):
-        ...
-
-The gordo_components.client.utils.EndpointMetadata hold information about 
-what endpoint the coroutine should concern itself with, and metadata are 
-keyvalue pairs
-"""
+from gordo_components.client.utils import influx_client_from_uri
+from gordo_components.workflow.config_elements.machine import Machine
 
 
 logger = logging.getLogger(__name__)
 
 
 class PredictionForwarder(metaclass=abc.ABCMeta):
+
+    """
+    Definition of a callable which the :class:`gordo_components.client.Client`
+    will call after each successful prediction response::
+
+        def my_forwarder(
+            predictions: pd.DataFrame = None,
+            machine: Machine = None,
+            metadata: dict = dict(),
+            resampled_sensor_data: pd.DataFrame = None
+        ):
+            ...
+    """
+
     @abc.abstractmethod
     def __call__(
         self,
         *,
         predictions: pd.DataFrame = None,
-        endpoint: EndpointMetadata = None,
+        machine: Machine = None,
         metadata: dict = dict(),
         resampled_sensor_data: pd.DataFrame = None,
     ):
@@ -64,7 +61,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
     ):
         """
         Create an instance which, when called, is a coroutine capable of
-        being sent dataframes generated from the '/anomaly/prediction' endpoint
+        being sent dataframes generated from the '/anomaly/prediction' machine
 
         Parameters
         ----------
@@ -93,28 +90,46 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         self,
         *,
         predictions: pd.DataFrame = None,
-        endpoint: EndpointMetadata = None,
+        machine: Machine = None,
         metadata: dict = dict(),
         resampled_sensor_data: pd.DataFrame = None,
     ):
+        # clean predictions for possible inf, nan, which influx can't handle
+        if predictions is not None:
+            predictions = self._clean_df(predictions)
+        if resampled_sensor_data is not None:
+            resampled_sensor_data = self._clean_df(resampled_sensor_data)
+
         if resampled_sensor_data is None and predictions is None:
             raise ValueError(
                 "Argument `resampled_sensor_data` or `predictions` must be passed"
             )
         if predictions is not None:
-            if endpoint is None:
+            if machine is None:
                 raise ValueError(
-                    "Argument `endpoint`must be provided if `predictions` is provided"
+                    "Argument `machine`must be provided if `predictions` is provided"
                 )
-            self.forward_predictions(predictions, endpoint=endpoint, metadata=metadata)
+            self.forward_predictions(predictions, machine=machine, metadata=metadata)
         if resampled_sensor_data is not None:
             self.send_sensor_data(resampled_sensor_data)
 
+    @staticmethod
+    def _clean_df(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Ensure dataframe doesn't have inf / nan values which influx can't handle
+
+        Parameters
+        ----------
+        df: pandas.DataFrame
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return df.replace([np.inf, -np.inf], np.nan).dropna()
+
     def forward_predictions(
-        self,
-        predictions: pd.DataFrame,
-        endpoint: EndpointMetadata,
-        metadata: dict = dict(),
+        self, predictions: pd.DataFrame, machine: Machine, metadata: dict = dict()
     ):
         """
         Takes a multi-layed column dataframe and write points to influx where
@@ -132,7 +147,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         None
         """
         # Setup tags; metadata (if any) and other key value pairs.
-        tags = {"machine": f"{endpoint.name}"}
+        tags = {"machine": f"{machine.name}"}
         tags.update(metadata)
 
         # The measurements to be posted to Influx
@@ -153,8 +168,11 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
 
             # Set the sub df's column names equal to the name of the tags if
             # they match the length of the tag list.
-            if len(sub_df.columns) == len(endpoint.tag_list):
-                sub_df.columns = [tag.name for tag in endpoint.tag_list]
+            if len(sub_df.columns) == len(machine.dataset.tag_list):
+                sub_df.columns = [
+                    tag["name"] if isinstance(tag, dict) else tag
+                    for tag in machine.dataset.tag_list
+                ]
 
             self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
 

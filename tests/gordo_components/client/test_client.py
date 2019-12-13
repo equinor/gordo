@@ -17,7 +17,7 @@ from sklearn.base import BaseEstimator
 from mock import patch, call
 
 from gordo_components.client import Client, utils as client_utils
-from gordo_components.client.utils import EndpointMetadata
+from gordo_components.workflow.config_elements.machine import Machine
 from gordo_components.client.io import (
     _handle_response,
     HttpUnprocessableEntity,
@@ -34,7 +34,7 @@ from gordo_components.cli import custom_types
 from tests import utils as tu
 
 
-def test_client_get_metadata(watchman_service):
+def test_client_get_metadata(ml_server):
     """
     Test client's ability to get metadata from some target
     """
@@ -49,14 +49,14 @@ def test_client_get_metadata(watchman_service):
         client.get_metadata()
 
 
-def test_client_predict_specific_targets(watchman_service):
+def test_client_predict_specific_targets(ml_server):
     """
     Client.predict should filter any endpoints given to it.
     """
     client = Client(project=tu.GORDO_PROJECT)
     with mock.patch.object(
         Client,
-        "predict_single_endpoint",
+        "predict_single_machine",
         return_value=PredictionResult("test-name", [], []),
     ) as patched:
 
@@ -64,15 +64,15 @@ def test_client_predict_specific_targets(watchman_service):
         end = isoparse("2016-01-01T12:00:00+00:00")
 
         # Should not actually call any predictions because this machine name doesn't exist
-        client.predict(start=start, end=end, endpoint_names=["non-existant-machine"])
+        client.predict(start=start, end=end, machine_names=["non-existant-machine"])
         patched.assert_not_called()
 
         # Should be called once, for this machine.
-        client.predict(start=start, end=end, endpoint_names=[tu.GORDO_SINGLE_TARGET])
+        client.predict(start=start, end=end, machine_names=[tu.GORDO_SINGLE_TARGET])
         patched.assert_called_once()
 
 
-def test_client_download_model(watchman_service):
+def test_client_download_model(ml_server):
     """
     Test client's ability to download the model
     """
@@ -91,7 +91,7 @@ def test_client_download_model(watchman_service):
 @pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_predictions_diff_batch_sizes(
-    influxdb, watchman_service, batch_size: int, use_parquet: bool
+    influxdb, ml_server, batch_size: int, use_parquet: bool
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -136,11 +136,9 @@ def test_client_predictions_diff_batch_sizes(
         parallelism=10,
     )
 
-    # Should have discovered machine-1
-    assert len(prediction_client.endpoints) == 1
-
-    # All endpoints should be healthy
-    assert all(ep.healthy for ep in prediction_client.endpoints)
+    # Should have discovered machine-1 and machine-2
+    # defined in the example data of controller's response for /models/<project-name>
+    assert len(prediction_client.machines) == 1
 
     # Get predictions
     predictions = prediction_client.predict(start=start, end=end)
@@ -182,7 +180,7 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-def test_client_cli_metadata(watchman_service, tmp_dir):
+def test_client_cli_metadata(ml_server, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
@@ -225,7 +223,7 @@ def test_client_cli_metadata(watchman_service, tmp_dir):
         assert tu.GORDO_SINGLE_TARGET in metadata
 
 
-def test_client_cli_download_model(watchman_service, tmp_dir):
+def test_client_cli_download_model(ml_server, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
@@ -270,7 +268,7 @@ def test_client_cli_download_model(watchman_service, tmp_dir):
 def test_client_cli_predict(
     influxdb,
     gordo_name,
-    watchman_service,
+    ml_server,
     tmp_dir,
     forwarder_args,
     trained_model_directory,
@@ -321,7 +319,11 @@ def test_client_cli_predict(
     )
 
     # Run without any error
-    out = runner.invoke(cli.gordo, args=args)
+    with patch(
+        "gordo_components.dataset.sensor_tag._asset_from_tag_name",
+        side_effect=lambda *args, **kwargs: "default",
+    ):
+        out = runner.invoke(cli.gordo, args=args)
     assert out.exit_code == 0, f"{out.output}"
 
     # If we activated forwarder and we had any actual data then there should
@@ -345,7 +347,7 @@ def test_client_cli_predict(
     ],
 )
 def test_client_cli_predict_non_zero_exit(
-    should_fail, start_date, end_date, caplog, influxdb, watchman_service
+    should_fail, start_date, end_date, caplog, influxdb, ml_server
 ):
     """
     Test ability for client to get predictions via CLI
@@ -372,7 +374,11 @@ def test_client_cli_predict_non_zero_exit(
 
     # Run without any error
     with caplog.at_level(logging.CRITICAL):
-        out = runner.invoke(cli.gordo, args=args)
+        with patch(
+            "gordo_components.dataset.sensor_tag._asset_from_tag_name",
+            side_effect=lambda *args, **kwargs: "default",
+        ):
+            out = runner.invoke(cli.gordo, args=args)
 
     if should_fail:
         assert out.exit_code != 0, f"{out.output or out.exception}"
@@ -404,19 +410,6 @@ def test_data_provider_click_param(config):
         assert isinstance(provider, getattr(providers, expected_provider_type))
 
 
-def _endpoint_metadata(name: str, healthy: bool) -> EndpointMetadata:
-    """
-    Helper to build a basic EndpointMetadata with only name and healthy fields set
-    """
-    return EndpointMetadata(
-        data={
-            "endpoint-metadata": {"metadata": {"name": name}},
-            "healthy": healthy,
-            "endpoint": "/gordo/v0/test-project",
-        }
-    )
-
-
 @pytest.mark.parametrize("tags", [["C", "A", "B", "D"], tu.SENSORS_STR_LIST])
 def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
     """
@@ -443,90 +436,52 @@ def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
         assert np.allclose(df[top_lvl_name].values, df_clone[top_lvl_name].values)
 
 
+def _machine(name: str) -> Machine:
+    """
+    Helper to build a basic Machine, only defining its name
+    """
+    # TODO: Fix this from changes from EndpointMetadata being removed
+    return Machine.from_config(
+        config={
+            "name": name,
+            "dataset": {
+                "tags": ["tag-1", "tag-"],
+                "train_start_date": "2016-01-01T00:00:00Z",
+                "train_end_date": "2016-01-05T00:00:00Z",
+            },
+            "model": "sklearn.linear_model.LinearRegression",
+        },
+        project_name="test-project",
+    )
+
+
 @pytest.mark.parametrize(
-    "endpoints,target,ignore_unhealthy,expected",
+    "machines,target,expected",
     [
-        # One unhealthy + one healthy + no target + ignoring unhealthy = OK
-        (
-            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", True)],
-            None,
-            True,
-            [_endpoint_metadata("t2", True)],
-        ),
-        # One unhealthy + one healthy + no target + NOT ignoring unhealthy = ValueError
-        (
-            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", True)],
-            None,
-            False,
-            ValueError,
-        ),
-        # One unhealthy + one healthy + target (healthy) + do not ignore unhealthy = OK
-        # because the client doesn't care about the unhealthy endpoint with a set target
-        (
-            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", True)],
-            "t2",
-            False,
-            [_endpoint_metadata("t2", True)],
-        ),
-        # All unhealthy = ValueError
-        # ...even if we're suppose to ignore unhealthy endpoints, because Noen are healthy
-        (
-            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", False)],
-            None,
-            True,
-            ValueError,
-        ),
-        # All unhealthy + ignore unhealthy = ValueError
-        # ...because we end up with no endpoints
-        (
-            [_endpoint_metadata("t1", False), _endpoint_metadata("t2", False)],
-            None,
-            True,
-            ValueError,
-        ),
-        # All healthy = OK
-        (
-            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", True)],
-            None,
-            True,
-            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", True)],
-        ),
-        # All healthy + target = OK (should get back only that target)
-        (
-            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", True)],
-            "t2",
-            True,
-            [_endpoint_metadata("t2", True)],
-        ),
-        # Want to filter down to one target, but that target is not healthy, ValueError
-        (
-            [_endpoint_metadata("t1", True), _endpoint_metadata("t2", False)],
-            "t2",
-            True,
-            ValueError,
-        ),
+        # Two machines, no target, should give two machines
+        ([_machine("t1"), _machine("t2")], None, [_machine("t1"), _machine("t2")]),
+        # One machine target should filter down to that machine
+        ([_machine("t1"), _machine("t2")], "t2", [_machine("t2")]),
+        # Target which doesn't match any machines raises error
+        ([_machine("t1"), _machine("t2")], "t3", ValueError),
     ],
 )
-def test_client_endpoint_filtering(
-    endpoints: typing.List[EndpointMetadata],
+def test_client_machine_filtering(
+    machines: typing.List[Machine],
     target: typing.Optional[str],
-    ignore_unhealthy: typing.Optional[bool],
-    expected: typing.List[EndpointMetadata],
+    expected: typing.List[Machine],
 ):
     if not isinstance(expected, list):
         with pytest.raises(ValueError):
-            Client._filter_endpoints(endpoints, target, ignore_unhealthy)
+            Client._filter_machines(machines, target)
     else:
-        filtered_endpoints = Client._filter_endpoints(
-            endpoints, target, ignore_unhealthy
-        )
+        filtered_machines = Client._filter_machines(machines, target)
         assert (
-            expected == filtered_endpoints
-        ), f"Not equal: {expected} \n----\n {filtered_endpoints}"
+            expected == filtered_machines
+        ), f"Not equal: {expected} \n----\n {filtered_machines}"
 
 
-def test_exponential_sleep_time(caplog, watchman_service):
-    endpoint = _endpoint_metadata("t1", False)
+def test_exponential_sleep_time(caplog, ml_server):
 
     start, end = (
         isoparse("2016-01-01T00:00:00+00:00"),
@@ -543,7 +498,7 @@ def test_exponential_sleep_time(caplog, watchman_service):
                 X=pd.DataFrame([123]),
                 y=None,
                 chunk=slice(0, 1),
-                endpoint=endpoint,
+                machine=_machine("t1"),
                 start=start,
                 end=end,
             )
