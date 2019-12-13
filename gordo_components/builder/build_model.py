@@ -517,9 +517,6 @@ class ModelBuilder:
         >>> len(builder.cache_key)
         128
         """
-        if self.metadata is None:
-            self.metadata = {}
-
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)
