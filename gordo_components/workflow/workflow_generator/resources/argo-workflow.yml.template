@@ -369,7 +369,7 @@ spec:
               {% endif %}
             spec:
               containers:
-              - image: "grafana/grafana:6.1.4"
+              - image: "grafana/grafana:6.5.2"
                 env:
                 - name: GF_INSTALL_PLUGINS
                   value: "grafana-worldmap-panel,flant-statusmap-panel,vonage-status-panel"
