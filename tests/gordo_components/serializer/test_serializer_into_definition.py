@@ -11,12 +11,12 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 
-from gordo_components.model.models import KerasAutoEncoder
+from gordo_components.machine.model.models import KerasAutoEncoder
 from gordo_components.serializer import (
     pipeline_into_definition,
     pipeline_from_definition,
 )
-from gordo_components.model.register import register_model_builder
+from gordo_components.machine.model.register import register_model_builder
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +165,7 @@ def test_pipeline_into_definition(variations_of_same_pipeline):
                         verbose: false
                     transformer_weights: null
                     verbose: false
-                - gordo_components.model.models.KerasAutoEncoder:
+                - gordo_components.machine.model.models.KerasAutoEncoder:
                     kind: feedforward_hourglass
             verbose: false
         """
@@ -187,7 +187,7 @@ def test_into_from():
     """
     Pass Pipeline into definition, and then from that definition
     """
-    from gordo_components.model.transformer_funcs.general import multiply_by
+    from gordo_components.machine.model.transformer_funcs.general import multiply_by
 
     factories = register_model_builder.factories
     for model in factories.keys():
@@ -219,7 +219,7 @@ def test_into_from():
                     ),
                     (
                         "step_3",
-                        pydoc.locate(f"gordo_components.model.models.{model}")(
+                        pydoc.locate(f"gordo_components.machine.model.models.{model}")(
                             kind=model_kind
                         ),
                     ),
@@ -248,10 +248,10 @@ def test_from_into():
                             iterated_power: auto
                             random_state:
                         - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                            func: gordo_components.model.transformer_funcs.general.multiply_by
+                            func: gordo_components.machine.model.transformer_funcs.general.multiply_by
                             kw_args:
                                 factor: 1
-                            inverse_func: gordo_components.model.transformer_funcs.general.multiply_by
+                            inverse_func: gordo_components.machine.model.transformer_funcs.general.multiply_by
                             inv_kw_args:
                                 factor: 1
                         - sklearn.pipeline.FeatureUnion:
@@ -282,7 +282,7 @@ def test_from_into():
                             n_jobs: 1
                             transformer_weights:
                             verbose: false
-                        - gordo_components.model.models.{model}:
+                        - gordo_components.machine.model.models.{model}:
                             kind: {model_kind}
                     memory:
                     verbose: false

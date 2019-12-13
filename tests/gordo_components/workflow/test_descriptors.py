@@ -27,7 +27,7 @@ def test_valid_model():
 
     # All ok
     myclass.value = {
-        "gordo_components.model.models.KerasAutoEncoder": {
+        "gordo_components.machine.model.models.KerasAutoEncoder": {
             "kind": "feedforward_hourglass"
         }
     }

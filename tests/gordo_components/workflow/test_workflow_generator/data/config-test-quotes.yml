@@ -24,5 +24,5 @@ globals:
                 - drop
                 - CT'3 # Legal with weird quotes inside the model as well
             remainder: passthrough
-        - gordo_components.model.models.KerasAutoEncoder:
+        - gordo_components.machine.model.models.KerasAutoEncoder:
             kind: feedforward_hourglass

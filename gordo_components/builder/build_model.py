@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import copy
 import datetime
 import hashlib
 import json
@@ -23,90 +24,44 @@ from sklearn.pipeline import Pipeline
 
 from gordo_components.util import disk_registry
 from gordo_components import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
-from gordo_components.dataset.dataset import _get_dataset
-from gordo_components.dataset.base import GordoBaseDataset
-from gordo_components.model.base import GordoBase
-from gordo_components.model.utils import metric_wrapper
+from gordo_components.machine.dataset.dataset import _get_dataset
+from gordo_components.machine.model.base import GordoBase
+from gordo_components.machine.model.utils import metric_wrapper
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo_components.machine import Machine
 
 logger = logging.getLogger(__name__)
 
 
 class ModelBuilder:
-    def __init__(
-        self,
-        name: str,
-        model_config: dict,
-        data_config: dict,
-        metadata: dict = dict(),
-        evaluation_config: dict = {
-            "cv_mode": "full_build",
-            "scoring_scaler": "sklearn.preprocessing.RobustScaler",
-        },
-    ):
+    def __init__(self, machine: Machine):
         """
-        Use the raw data from Gordo config file keys: name, model, dataset,
-        metadata, and evalution to build the final ML model.
+        Build a model for a given :class:`gordo_components.workflow.config_elements.machine.Machine`
 
         Parameters
         ----------
-        name: str
-            Name of model to be built
-        model_config: dict
-            Mapping of Model to initialize and any additional kwargs which are
-            to be used in it's initialization.
-            Example::
-
-              {'type': 'KerasAutoEncoder',
-               'kind': 'feedforward_hourglass'}
-
-        data_config: dict
-            Mapping of the Dataset to initialize, following the same logic as model_config.
-        metadata: dict
-            Mapping of arbitrary metadata data.
-        evaluation_config: dict
-            Dict of parameters which are exposed to build_model.
-                - cv_mode: str
-                    String which enables three different modes, represented as a
-                    key value in evaluation_config:
-                    * cross_val_only: Only perform cross validation
-                    * build_only: Skip cross validation and only build the model
-                    * full_build: Cross validation and full build of the model, default value
-                - scoring_scaler: Optional[str]
-                    Optionally a string which gives the path to a scaler, which will be
-                    applied on `Y` and `Y-hat` before scoring. It will not be used for
-                    training or any other part of the model-building, only for the scoring.
-                    This is usefull if one has multi-dimensional output, where the different
-                    dimensions have different scale, and one wants to use a scorer which is
-                    sensitive to this (e.g. MSE).
-                    If None then no scaling will take place.
-
-                    Example::
-
-                        {"cv_mode": "cross_val_only",
-                        "scoring_scaler": "sklearn.preprocessing.RobustScaler"}
+        machine: Machine
 
         Example
         -------
-        >>> from gordo_components.dataset.sensor_tag import SensorTag
-        >>> builder = ModelBuilder(
+        >>> from gordo_components.machine.dataset.sensor_tag import SensorTag
+        >>> from gordo_components.machine import Machine
+        >>> machine = Machine(
         ...     name="special-model-name",
-        ...     model_config={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
-        ...     data_config={
+        ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+        ...     dataset={
         ...         "type": "RandomDataset",
         ...         "train_start_date": "2017-12-25 06:00:00Z",
         ...         "train_end_date": "2017-12-30 06:00:00Z",
         ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
         ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
-        ...     }
+        ...     },
+        ...     project_name='test-proj',
         ... )
+        >>> builder = ModelBuilder(machine=machine)
         >>> model, metadata = builder.build()
         """
-        self.name = name
-        self.model_config = model_config.copy()
-        self.data_config = data_config.copy()
-        self.evaluation_config = evaluation_config.copy()
-        self.metadata = metadata.copy()
+        self.machine = copy.copy(machine)
 
     @property
     def cached_model_path(self) -> Union[os.PathLike, str, None]:
@@ -145,8 +100,8 @@ class ModelBuilder:
 
         Returns
         -------
-        Tuple[Optional[sklearn.base.BaseEstimator], dict]
-            Built model and its metadata
+        Tuple[Optional[sklearn.base.BaseEstimator], Machine]
+            Built model and an updated ``Machine``
         """
         if not model_register_dir:
             model, metadata = self._build()
@@ -166,7 +121,7 @@ class ModelBuilder:
             if self.cached_model_path:
                 model = serializer.load(self.cached_model_path)
                 metadata = serializer.load_metadata(self.cached_model_path)
-                metadata["metadata"]["user-defined"] = self.metadata
+                metadata["metadata"]["user-defined"] = self.machine.metadata
 
             # Otherwise build and cache the model
             else:
@@ -184,7 +139,7 @@ class ModelBuilder:
 
         # Save model to disk, if we're not building for cv only purposes.
         if output_dir and (
-            self.evaluation_config.get("cv_mode", None) != "cross_val_only"
+            self.machine.evaluation.get("cv_mode", None) != "cross_val_only"
         ):
             self.cached_model_path = self._save_model(
                 model=model, metadata=metadata, output_dir=output_dir
@@ -199,17 +154,15 @@ class ModelBuilder:
         -------
             Tuple[Optional[sklearn.base.BaseEstimator], dict]
         """
-        if self.evaluation_config.get("seed"):
-            self.set_seed(seed=self.evaluation_config["seed"])
+        if self.machine.evaluation.get("seed"):
+            self.set_seed(seed=self.machine.evaluation["seed"])
 
         # Get the dataset from config
-        logger.debug(f"Initializing Dataset with config {self.data_config}")
-
-        dataset = (
-            self.data_config
-            if isinstance(self.data_config, GordoBaseDataset)
-            else _get_dataset(self.data_config)
+        logger.debug(
+            f"Initializing Dataset with config {self.machine.dataset.to_dict()}"
         )
+
+        dataset = _get_dataset(self.machine.dataset.to_dict())
 
         logger.debug("Fetching training data")
         start = time.time()
@@ -219,33 +172,37 @@ class ModelBuilder:
         time_elapsed_data = time.time() - start
 
         # Get the model and dataset
-        logger.debug(f"Initializing Model with config: {self.model_config}")
-        model = serializer.pipeline_from_definition(self.model_config)
+        logger.debug(f"Initializing Model with config: {self.machine.model}")
+        model = serializer.pipeline_from_definition(self.machine.model)
 
         cv_duration_sec = None
 
-        metadata: Dict[Any, Any] = dict(
-            name=self.name,
-            dataset=dataset.get_metadata(),
-            metadata={"user-defined": self.metadata},
-            model=self.model_config,
+        machine: Machine = Machine(
+            name=self.machine.name,
+            dataset=self.machine.dataset.to_dict(),
+            metadata={"user-defined": self.machine.metadata},
+            model=self.machine.model,
+            project_name=self.machine.project_name,
+            evaluation=self.machine.evaluation,
         )
 
         scores: Dict[str, Any] = dict()
-        if self.evaluation_config["cv_mode"].lower() in (
+        if self.machine.evaluation["cv_mode"].lower() in (
             "cross_val_only",
             "full_build",
         ):
 
             # Build up a metrics list.
-            metrics_list = self.metrics_from_list(self.evaluation_config.get("metrics"))
+            metrics_list = self.metrics_from_list(
+                self.machine.evaluation.get("metrics")
+            )
 
             # Cross validate
             if hasattr(model, "predict"):
                 logger.debug("Starting cross validation")
                 start = time.time()
 
-                scaler = self.evaluation_config.get("scoring_scaler")
+                scaler = self.machine.evaluation.get("scoring_scaler")
                 metrics_dict = self.build_metrics_dict(metrics_list, y, scaler=scaler)
 
                 cv_kwargs = dict(
@@ -282,8 +239,8 @@ class ModelBuilder:
                 logger.debug("Unable to score model, has no attribute 'predict'.")
 
             # If cross_val_only, return without fitting to the whole dataset
-            if self.evaluation_config["cv_mode"] == "cross_val_only":
-                metadata["metadata"]["build-metadata"] = {
+            if self.machine.evaluation["cv_mode"] == "cross_val_only":
+                machine.metadata["build-metadata"] = {
                     "model": {
                         "cross-validation": {
                             "cv-duration-sec": cv_duration_sec,
@@ -291,7 +248,7 @@ class ModelBuilder:
                         }
                     }
                 }
-                return model, metadata
+                return model, machine.to_dict()
 
         # Train
         logger.debug("Starting to train model.")
@@ -300,7 +257,7 @@ class ModelBuilder:
         time_elapsed_model = time.time() - start
 
         # Build specific metadata
-        metadata["metadata"]["build-metadata"] = dict(
+        machine.metadata["build-metadata"] = dict(
             model={
                 "model-offset": self._determine_offset(model, X),
                 "model-creation-date": str(
@@ -315,10 +272,10 @@ class ModelBuilder:
                 },
             }
         )
-        metadata["metadata"]["build-metadata"]["model"].update(
+        machine.metadata["build-metadata"]["model"].update(
             self._extract_metadata_from_model(model)
         )
-        return model, metadata
+        return model, machine.to_dict()
 
     def set_seed(self, seed: int):
         logger.info(f"Setting random seed: '{seed}'")
@@ -452,7 +409,7 @@ class ModelBuilder:
         model: BaseEstimator, metadata: dict = dict()
     ) -> dict:
         """
-        Recursively check for :class:`gordo_components.model.base.GordoBase` in a
+        Recursively check for :class:`gordo_components.machine.model.base.GordoBase` in a
         given ``model``. If such the model exists buried inside of a
         :class:`sklearn.pipeline.Pipeline` which is then part of another
         :class:`sklearn.base.BaseEstimator`, this function will return its metadata.
@@ -463,7 +420,7 @@ class ModelBuilder:
         metadata: dict
             Any initial starting metadata, but is mainly meant to be used during
             the recursive calls to accumulate any multiple
-            :class:`gordo_components.model.base.GordoBase` models found in this model
+            :class:`gordo_components.machine.model.base.GordoBase` models found in this model
 
         Notes
         -----
@@ -474,7 +431,7 @@ class ModelBuilder:
         -------
         dict
             Dictionary representing accumulated calls to
-            :meth:`gordo_components.model.base.GordoBase.get_metadata`
+            :meth:`gordo_components.machine.model.base.GordoBase.get_metadata`
         """
         metadata = metadata.copy()
 
@@ -512,8 +469,21 @@ class ModelBuilder:
 
         Examples
         -------
-        >>> builder = ModelBuilder(name="My-model", model_config={"model": "something"},
-        ... data_config={"tag_list": ["tag1", "tag 2"]}, evaluation_config={"cv_mode": "full_build"} )
+        >>> from gordo_components.machine import Machine
+        >>> from gordo_components.machine.dataset.sensor_tag import SensorTag
+        >>> machine = Machine(
+        ...     name="special-model-name",
+        ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+        ...     dataset={
+        ...         "type": "RandomDataset",
+        ...         "train_start_date": "2017-12-25 06:00:00Z",
+        ...         "train_end_date": "2017-12-30 06:00:00Z",
+        ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...     },
+        ...     project_name='test-proj'
+        ... )
+        >>> builder = ModelBuilder(machine)
         >>> len(builder.cache_key)
         128
         """
@@ -522,10 +492,10 @@ class ModelBuilder:
         # (and as such might generate different json which again gives different hash)
         json_rep = json.dumps(
             {
-                "name": self.name,
-                "model_config": self.model_config,
-                "data_config": self.data_config,
-                "evaluation_config": self.evaluation_config,
+                "name": self.machine.name,
+                "model_config": self.machine.model,
+                "data_config": self.machine.dataset.to_dict(),
+                "evaluation_config": self.machine.evaluation,
                 "gordo-major-version": MAJOR_VERSION,
                 "gordo-minor-version": MINOR_VERSION,
             },

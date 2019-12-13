@@ -9,7 +9,7 @@ import dateutil.parser
 import logging
 
 from gordo_components.serializer import pipeline_from_definition
-from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.machine.dataset.sensor_tag import SensorTag
 
 
 logger = logging.getLogger(__name__)
@@ -41,11 +41,11 @@ class ValidDataset(BaseDescriptor):
     def __set__(self, instance, value):
 
         # Avoid circular dependency imports
-        from gordo_components.workflow.config_elements.dataset import Dataset
+        from gordo_components.machine.dataset.base import GordoBaseDataset
 
-        if not isinstance(value, Dataset):
+        if not isinstance(value, GordoBaseDataset):
             raise TypeError(
-                f"Expected value to be an instance of Dataset config element, found {value}"
+                f"Expected value to be an instance of GordoBaseDataset, found {value}"
             )
         instance.__dict__[self.name] = value
 
@@ -110,11 +110,13 @@ class ValidDataProvider(BaseDescriptor):
     def __set__(self, instance, value):
 
         # Avoid circular dependency imports
-        from gordo_components.workflow.config_elements.data_provider import DataProvider
+        from gordo_components.machine.dataset.data_provider.base import (
+            GordoBaseDataProvider,
+        )
 
-        if not isinstance(value, DataProvider):
+        if not isinstance(value, GordoBaseDataProvider):
             raise TypeError(
-                f"Expected value to be an instance of DataProvider config element, "
+                f"Expected value to be an instance of GordoBaseDataProvider, "
                 f"found {value} "
             )
         instance.__dict__[self.name] = value

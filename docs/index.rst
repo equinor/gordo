@@ -25,10 +25,8 @@ and deployed as a REST API on Kubernetes.
     :maxdepth: 4
     :caption: Components:
 
-    ./components/model/model.rst
+    ./components/machine/machine.rst
     ./components/builder.rst
-    ./components/data_provider.rst
-    ./components/dataset.rst
     ./components/serializer.rst
     ./components/server/server.rst
     ./components/cli.rst

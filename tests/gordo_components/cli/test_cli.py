@@ -26,7 +26,9 @@ DATA_CONFIG = (
 
 MODEL_CONFIG = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
 MODEL_CONFIG_WITH_PREDICT = {
-    "gordo_components.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}
+    "gordo_components.machine.model.models.KerasAutoEncoder": {
+        "kind": "feedforward_hourglass"
+    }
 }
 
 logger = logging.getLogger(__name__)
@@ -209,14 +211,14 @@ def test_expand_model_default_works():
 
 def test_expand_model_expand_works():
     model_params = {"kind": "hourglass", "num": 5}
-    model_template = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
-    expected_model = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': 'hourglass', 'num': 5}} "
+    model_template = "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
+    expected_model = "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': 'hourglass', 'num': 5}} "
     assert expand_model(model_template, model_params) == expected_model
 
 
 def test_expand_model_complains_on_missing_vars():
     model_params = {"kind": "hourglass"}
-    model_template = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
+    model_template = "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
     with pytest.raises(ValueError):
         expand_model(model_template, model_params)
 

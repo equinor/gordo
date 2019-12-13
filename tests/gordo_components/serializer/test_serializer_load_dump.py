@@ -11,9 +11,9 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.compose import TransformedTargetRegressor
-from gordo_components.model.anomaly.diff import DiffBasedAnomalyDetector
+from gordo_components.machine.model.anomaly.diff import DiffBasedAnomalyDetector
 
-from gordo_components.model.models import KerasAutoEncoder
+from gordo_components.machine.model.models import KerasAutoEncoder
 from gordo_components import serializer
 
 

@@ -7,7 +7,7 @@ import pytest
 from pytz import UTC
 
 import gordo_components.builder.mlflow_utils as mlu
-from gordo_components.dataset.sensor_tag import SensorTag
+from gordo_components.machine.dataset.sensor_tag import SensorTag
 
 
 @pytest.fixture
@@ -44,7 +44,7 @@ def metadata():
                             "steps": [
                                 "sklearn.preprocessing.data.MinMaxScaler",
                                 {
-                                    "gordo_components.model.models.KerasAutoEncoder": {
+                                    "gordo_components.machine.model.models.KerasAutoEncoder": {
                                         "kind": "feedforward_hourglass",
                                         "compression_factor": 0.5,
                                         "encoding_layers": 2,

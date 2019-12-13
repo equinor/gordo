@@ -6,12 +6,14 @@ import os
 import docker
 import pytest
 import yaml
+from unittest.mock import patch
 
 from click.testing import CliRunner
 
 from gordo_components.workflow.workflow_generator import workflow_generator as wg
 from gordo_components import cli
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo_components.machine.dataset import sensor_tag
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +88,9 @@ def _generate_test_workflow_str(
         project_name,
     ]
     runner = CliRunner()
-    result = runner.invoke(cli.gordo, args)
+
+    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+        result = runner.invoke(cli.gordo, args)
 
     if result.exception is not None:
         raise result.exception
@@ -153,7 +157,7 @@ def test_basic_generation(path_to_config_files):
     """
 
     project_name = "some-fancy-project-name"
-    model_config = '{"sklearn.pipeline.Pipeline": {"steps": ["sklearn.preprocessing.data.MinMaxScaler", {"gordo_components.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}}]}}'
+    model_config = '{"sklearn.pipeline.Pipeline": {"steps": ["sklearn.preprocessing.data.MinMaxScaler", {"gordo_components.machine.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}}]}}'
 
     config_filename = "config-test-with-models.yml"
     expanded_template = _generate_test_workflow_str(
@@ -171,7 +175,9 @@ def test_basic_generation(path_to_config_files):
     yaml_content = wg.get_dict_from_yaml(
         os.path.join(path_to_config_files, config_filename)
     )
-    machines = NormalizedConfig(yaml_content, project_name=project_name).machines
+
+    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+        machines = NormalizedConfig(yaml_content, project_name=project_name).machines
 
     assert len(machines) == 2
 
@@ -201,7 +207,8 @@ def test_generation_to_file(tmp_dir, path_to_config_files):
         outfile,
     ]
     runner = CliRunner()
-    result = runner.invoke(cli.gordo, args)
+    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+        result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0
 
     # Open the file and ensure they are the same
@@ -246,18 +253,18 @@ def test_overrides_builder_datasource(path_to_config_files):
 
     # ct_23_0002 uses the global overriden requests, but default limits
     assert {"type": "DataLakeProvider", "threads": 20} == yaml.safe_load(
-        model_builder_machine_1_env["data-provider"]
-    )
+        model_builder_machine_1_env["data-config"]
+    )["data_provider"]
 
     # This value must be changed if we change the default values
-    assert {"type": "custom", "threads": 20} == yaml.safe_load(
-        model_builder_machine_2_env["data-provider"]
-    )
+    assert {"type": "RandomDataProvider", "threads": 15} == yaml.safe_load(
+        model_builder_machine_2_env["data-config"]
+    )["data_provider"]
 
     # ct_23_0003 uses locally overriden request memory
     assert {"type": "DataLakeProvider", "threads": 10} == yaml.safe_load(
-        model_builder_machine_3_env["data-provider"]
-    )
+        model_builder_machine_3_env["data-config"]
+    )["data_provider"]
 
 
 def test_runtime_overrides_builder(path_to_config_files):
@@ -398,7 +405,8 @@ def test_main_tag_list(output_to_file, path_to_config_files, tmp_dir):
         args.extend(["--output-file-tag-list", out_file])
 
     runner = CliRunner()
-    result = runner.invoke(cli.gordo, args)
+    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+        result = runner.invoke(cli.gordo, args)
 
     assert result.exit_code == 0
 

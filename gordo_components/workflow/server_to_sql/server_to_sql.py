@@ -2,7 +2,7 @@ import logging
 from urllib.parse import urlparse, ParseResult
 from typing import List
 
-from gordo_components.workflow.config_elements.machine import Machine as MachineConfig
+from gordo_components.machine import Machine as MachineConfig
 from gordo_components.client import Client
 
 

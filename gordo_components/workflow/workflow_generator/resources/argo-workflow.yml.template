@@ -1166,7 +1166,7 @@ spec:
                 value: "{{ machine.name }}"
               - name: model-config
                 value: |
-                  {{ machine.model  | tojson }}
+                  {{ machine.model | tojson }}
               - name: metadata
                 value: |
                   {{ machine.metadata | tojson }}
@@ -1175,7 +1175,7 @@ spec:
                   {{ machine.dataset.to_dict() | tojson }}
               - name: data-provider
                 value: |
-                  {{ machine.data_provider.to_dict() | tojson }}
+                  {{ machine.dataset.data_provider.to_dict() | tojson }}
               - name: evaluation-config
                 value: |
                   {{ machine.evaluation | tojson}}
@@ -1227,7 +1227,7 @@ spec:
               - name: train-start-date
                 value: "{{ machine.dataset.train_start_date }}"
               - name: data-provider
-                value: "{{ machine.data_provider.to_dict() }}"
+                value: "{{ machine.dataset.data_provider.to_dict() }}"
           dependencies:
             - gordo-server
             - gordo-influx

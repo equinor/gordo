@@ -14,8 +14,8 @@ import numpy as np
 
 from nbconvert.exporters import PythonExporter
 
-from gordo_components.data_provider.providers import DataLakeProvider
-from gordo_components.dataset.datasets import TimeSeriesDataset
+from gordo_components.machine.dataset.data_provider.providers import DataLakeProvider
+from gordo_components.machine.dataset.datasets import TimeSeriesDataset
 
 logger = logging.getLogger(__name__)
 

@@ -37,7 +37,7 @@ def pipeline_into_definition(
     >>> import yaml
     >>> from sklearn.pipeline import Pipeline
     >>> from sklearn.decomposition import PCA
-    >>> from gordo_components.model.models import KerasAutoEncoder
+    >>> from gordo_components.machine.model.models import KerasAutoEncoder
     >>>
     >>> pipe = Pipeline([('pca', PCA(4)), ('ae', KerasAutoEncoder(kind='feedforward_model'))])
     >>> pipe_definition = pipeline_into_definition(pipe)  # It is now a standard python dict of primitives.
@@ -53,7 +53,7 @@ def pipeline_into_definition(
           svd_solver: auto
           tol: 0.0
           whiten: false
-      - gordo_components.model.models.KerasAutoEncoder:
+      - gordo_components.machine.model.models.KerasAutoEncoder:
           kind: feedforward_model
       verbose: false
     <BLANKLINE>

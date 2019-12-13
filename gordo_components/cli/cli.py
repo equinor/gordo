@@ -9,9 +9,11 @@ import logging
 import sys
 import traceback
 
-from gordo_components.data_provider.providers import NoSuitableDataProviderError
-from gordo_components.dataset.sensor_tag import SensorTagNormalizationError
-from gordo_components.dataset.datasets import InsufficientDataError
+from gordo_components.machine.dataset.data_provider.providers import (
+    NoSuitableDataProviderError,
+)
+from gordo_components.machine.dataset.sensor_tag import SensorTagNormalizationError
+from gordo_components.machine.dataset.datasets import InsufficientDataError
 from gordo_components.builder.mlflow_utils import MlflowLoggingError
 from gunicorn.glogging import Logger
 
@@ -25,6 +27,7 @@ from gordo_components import serializer
 from gordo_components.builder import mlflow_utils
 from gordo_components.server import server
 from gordo_components import __version__
+from gordo_components.machine import Machine
 from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
 from gordo_components.cli.custom_types import key_value_par, HostIP, DataProviderParam
@@ -58,7 +61,7 @@ def gordo():
 
 
 DEFAULT_MODEL_CONFIG = (
-    "{'gordo_components.model.models.KerasAutoEncoder': {'kind': "
+    "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': "
     "'feedforward_hourglass'}} "
 )
 
@@ -212,13 +215,15 @@ def build(
     )
     logger.info(f"Fully expanded model config: {model_config}")
 
-    builder = ModelBuilder(
+    machine = Machine(
         name=name,
-        model_config=model_config,
-        data_config=data_config,
+        project_name=project_name,
+        model=model_config,
+        dataset=data_config,
         metadata=metadata,
-        evaluation_config=evaluation_config,
+        evaluation=evaluation_config,
     )
+    builder = ModelBuilder(machine=machine)
 
     try:
         model, metadata = builder.build(output_dir, model_register_dir)

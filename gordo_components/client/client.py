@@ -21,10 +21,10 @@ from gordo_components import serializer
 from gordo_components.client.io import _handle_response
 from gordo_components.client.io import HttpUnprocessableEntity
 from gordo_components.client.utils import PredictionResult
-from gordo_components.dataset.datasets import TimeSeriesDataset
-from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.machine.dataset.datasets import TimeSeriesDataset
+from gordo_components.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo_components.server import utils as server_utils
-from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.machine import Machine
 
 
 logger = logging.getLogger(__name__)
