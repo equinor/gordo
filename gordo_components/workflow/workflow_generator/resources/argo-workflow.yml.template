@@ -603,13 +603,13 @@ spec:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Feeding sql with metadata for project {{project_name}} using source ur http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
-        && gordo-components workflow server-to-sql --server-address "http://$AMBASSADOR_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME" --project-name $PROJECT_NAME
+        echo "Feeding sql with metadata for project {{project_name}} using source ur http://$SERVER_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
+        && gordo-components workflow server-to-sql --server-address "http://$SERVER_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME" --project-name $PROJECT_NAME
       env:
         - name: PROJECT_NAME
           value: "{{project_name}}"
-        - name: AMBASSADOR_HOST
-          value: "ambassador.{{ambassador_namespace}}"
+        - name: SERVER_HOST
+          value: "gordo-srv-{{ project_name }}"
       resources:
         requests:
           memory: 50M
@@ -736,17 +736,6 @@ spec:
                   kind: Service
                   metadata:
                     name: "{{'{{inputs.parameters.host-name}}'}}"
-                    annotations:
-                      getambassador.io/config: |
-                        ---
-                        apiVersion: ambassador/v0
-                        kind:  Mapping
-                        name:  "{{'{{inputs.parameters.host-name}}'}}"
-                        prefix: "/gordo/v0/{{project_name}}/.+"
-                        prefix_regex: true
-                        rewrite: ""
-                        service: "{{'{{inputs.parameters.host-name}}'}}.{{namespace}}"
-                        timeout_ms: 600000  # 10 mins
                     labels:
                       app: "{{'{{inputs.parameters.host-name}}'}}"
                       app.kubernetes.io/name: model-server
@@ -1047,7 +1036,7 @@ spec:
       - name: GORDO_CLIENT_PROJECT
         value: "{{project_name}}"
       - name: GORDO_CLIENT_HOST
-        value: "ambassador.{{ambassador_namespace}}"
+        value: "gordo-srv-{{ project_name }}"
       - name: GORDO_CLIENT_PORT
         value: "80"
       - name: GORDO_CLIENT_SCHEME
