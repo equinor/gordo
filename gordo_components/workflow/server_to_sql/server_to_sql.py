@@ -58,23 +58,22 @@ def server_to_sql(
     project_name: str
         Name of the project to run against.
     server_address:
-        Address of the server to connect to. ie. https://myhost.com
+        Address of the server to connect to. e.g. "https://myhost.com".
     sql_host: str
-        Host where postgres resides, e.g. "localhost"
+        Host where postgres resides, e.g. "localhost".
     sql_port: int
-        Port for postgres
+        Port for postgres.
     sql_database: str
-        Database name the metadata storage
+        Database name the metadata storage.
     sql_username: str
-        Username to use for authenticating towards postgres
+        Username to use for authenticating towards postgres.
     sql_password: str
-        Password to use for authenticating towards postgres
+        Password to use for authenticating towards postgres.
 
     Returns
     -------
     bool
-        Returns True if we successfully got all metadata for all machines, False
-        otherwise
+        Returns True if we successfully got all metadata for all machines.
 
     """
     sql_parameters = {"host": sql_host, "port": sql_port, "user": sql_username}
@@ -102,9 +101,9 @@ def get_machines_from_server(
     Parameters
     ----------
     project_name: str
-        Project name to query machines for
+        Project name to query machines for.
     server_address: str
-        The address of the server ie. https://myhost.com
+        The address of the server e.g. "https://myhost.com".
 
     Returns
     -------
