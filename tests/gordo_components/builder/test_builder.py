@@ -544,7 +544,7 @@ def test_provide_saved_model_caching(
         assert model1_creation_date != model2_creation_date
 
     if metadata is not None:
-        assert str(metadata) in str(second_metadata)
+        assert metadata == second_metadata["metadata"]["user-defined"]
 
 
 @pytest.mark.parametrize(
