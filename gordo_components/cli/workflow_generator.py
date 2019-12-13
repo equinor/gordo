@@ -81,13 +81,6 @@ def workflow_cli():
     envvar=f"{PREFIX}_NAMESPACE",
 )
 @click.option(
-    "--ambassador-namespace",
-    type=str,
-    default="ambassador",
-    help="Namespace we should expect to find the Ambassador service in.",
-    envvar=f"{PREFIX}_AMBASSADOR_NAMESPACE",
-)
-@click.option(
     "--split-workflows",
     type=int,
     default=50,

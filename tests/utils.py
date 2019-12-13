@@ -90,11 +90,7 @@ def wait_for_influx(max_wait=120, influx_host="localhost:8086"):
 
 @contextmanager
 def ml_server_deployment(
-    host: str,
-    project: str,
-    targets: typing.List[str],
-    model_location: str,
-    namespace: str = "default",
+    host: str, project: str, targets: typing.List[str], model_location: str,
 ):
     """
     # TODO: This is bananas, make into a proper object with context support?
@@ -111,8 +107,6 @@ def ml_server_deployment(
         Targets controller should pretend to care about
     model_location: str
         Directory of the model to use in the target(s)
-    namespace: str
-        Namespace for controller to make requests in.
 
     Returns
     -------
@@ -161,24 +155,6 @@ def ml_server_deployment(
                 )
 
         with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
-
-            # Gordo ML Server requests
-            rsps.add_callback(
-                responses.GET,
-                re.compile(
-                    rf".*ambassador.{namespace}.*\/gordo\/v0\/{project}\/.*.\/.*"
-                ),
-                callback=gordo_ml_server_callback,
-                content_type="application/json",
-            )
-            rsps.add_callback(
-                responses.POST,
-                re.compile(
-                    rf".*ambassador.{namespace}.*\/gordo\/v0\/{project}\/.*.\/.*"
-                ),
-                callback=gordo_ml_server_callback,
-                content_type="application/json",
-            )
             rsps.add_callback(
                 responses.GET,
                 re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.+"),
