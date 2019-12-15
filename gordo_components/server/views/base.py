@@ -98,12 +98,20 @@ class BaseModelView(Resource):
 
     @property
     def tags(self) -> typing.List[SensorTag]:
-        return normalize_sensor_tags(g.metadata["dataset"]["tag_list"])
+        return normalize_sensor_tags(
+            g.metadata["dataset"]["tag_list"],
+            asset=g.metadata["dataset"].get("asset"),
+            default_asset=g.metadata["dataset"].get("default_asset"),
+        )
 
     @property
     def target_tags(self) -> typing.List[SensorTag]:
         if "target_tag_list" in g.metadata["dataset"]:
-            return normalize_sensor_tags(g.metadata["dataset"]["target_tag_list"])
+            return normalize_sensor_tags(
+                g.metadata["dataset"]["target_tag_list"],
+                asset=g.metadata["dataset"].get("asset"),
+                default_asset=g.metadata["dataset"].get("default_asset"),
+            )
         else:
             return []
 

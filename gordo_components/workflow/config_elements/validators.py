@@ -83,11 +83,11 @@ class ValidModel(BaseDescriptor):
     """
 
     def __set__(self, instance, value):
-        try:
-            pipeline_from_definition(value)
-        except Exception as e:
-            raise ValueError(f"Pipeline from definition failed: {e}")
-
+        if getattr(instance, "_strict", True):
+            try:
+                pipeline_from_definition(value)
+            except Exception as e:
+                raise ValueError(f"Pipeline from definition failed: {e}")
         instance.__dict__[self.name] = value
 
 

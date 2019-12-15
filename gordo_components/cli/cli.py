@@ -30,7 +30,7 @@ from gordo_components import __version__
 from gordo_components.machine import Machine
 from gordo_components.cli.workflow_generator import workflow_cli
 from gordo_components.cli.client import client as gordo_client
-from gordo_components.cli.custom_types import key_value_par, HostIP, DataProviderParam
+from gordo_components.cli.custom_types import key_value_par, HostIP
 
 EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     PermissionError: 20,
@@ -60,34 +60,9 @@ def gordo():
     )
 
 
-DEFAULT_MODEL_CONFIG = (
-    "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': "
-    "'feedforward_hourglass'}} "
-)
-
-
 @click.command()
-@click.argument("project-name", envvar="PROJECT_NAME", type=str)
-@click.argument("name", envvar="MODEL_NAME", type=str)
+@click.argument("machine", envvar="MACHINE", type=yaml.safe_load)
 @click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
-@click.argument(
-    "model-config", envvar="MODEL_CONFIG", default=DEFAULT_MODEL_CONFIG, type=str
-)
-@click.argument(
-    "data-config",
-    envvar="DATA_CONFIG",
-    default='{"type": "TimeSeriesDataset"}',
-    type=yaml.safe_load,
-)
-@click.option(
-    "--data-provider",
-    type=DataProviderParam(),
-    envvar="DATA_PROVIDER",
-    default=None,
-    help="DataProvider dict encoded as json. Must contain a 'type' key with the name of"
-    " a DataProvider as value.",
-)
-@click.option("--metadata", envvar="METADATA", default="{}", type=yaml.safe_load)
 @click.option(
     "--model-register-dir",
     default=None,
@@ -108,34 +83,7 @@ DEFAULT_MODEL_CONFIG = (
     "multiple times. Separate key,valye by a comma. ie: --model-parameter key,val "
     "--model-parameter some_key,some_value",
 )
-@click.option(
-    "--evaluation-config",
-    envvar="EVALUATION_CONFIG",
-    default=yaml.safe_dump(
-        {
-            "cv_mode": "full_build",
-            "scoring_scaler": "sklearn.preprocessing.RobustScaler",
-        }
-    ),
-    type=yaml.safe_load,
-)
-@click.option(
-    "--enable-remote-logging", envvar="ENABLE_REMOTE_LOGGING", type=bool, default=False
-)
-def build(
-    project_name,
-    name,
-    output_dir,
-    model_config,
-    data_config,
-    data_provider,
-    metadata,
-    model_register_dir,
-    print_cv_scores,
-    model_parameter,
-    evaluation_config,
-    enable_remote_logging,
-):
+def build(machine, output_dir, model_register_dir, print_cv_scores, model_parameter):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
@@ -143,29 +91,10 @@ def build(
     \b
     Parameters
     ----------
-    project_name: str
-        Project name for collection of builds.
-    name: str
-        Name given to the model to build
+    machine: dict
+        A dict loadable by :class:`gordo_components.machine.Machine.from_dict`
     output_dir: str
         Directory to save model & metadata to.
-    model_config: str
-        String containing a yaml which will be parsed to a dict which will be used in
-        initializing the model. Should also contain key 'type' which references the
-        model to use. ie. KerasAutoEncoder
-    data_config: dict
-        kwargs to be used in intializing the dataset. Should also
-        contain kwarg 'type' which references the dataset to use. ie. InfluxBackedDataset
-    data_provider: str
-        A quoted data provider configuration in  JSON/YAML format.
-        Should also contain key 'type' which references the data provider to use.
-
-        Example::
-
-          '{"type": "DataLakeProvider", "storename" : "example_store"}'
-
-    metadata: dict
-        Any additional metadata to save under the key 'user-defined'
     model_register_dir: path
         Path to a directory which will index existing models and their locations, used
         for re-using old models instead of rebuilding them. If omitted then always
@@ -175,54 +104,24 @@ def build(
     model_parameter: List[Tuple]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
-
-    evaluation_config: dict
-        Dict of parameters which are exposed to ModelBuilder.build.
-            - cv_mode: str
-                String which enables three different modes, represented as a key value in evaluation_config:
-                * cross_val_only: Only perform cross validation
-                * build_only: Skip cross validation and only build the model
-                * full_build: Cross validation and full build of the model, default value
-                Example::
-
-                    {"cv_mode": "cross_val_only"}
-    enable_remote_logging: bool
-        Flag to enable logging of model building metadata to a remote backend.  By
-        default remote logging is disabled and the MlFlow client logs to a local
-        `mlruns/` directory.
     """
+    if model_parameter and isinstance(machine["model"], str):
+        model_parameter = dict(model_parameter)
+        machine["model"] = expand_model(machine["model"], model_parameter)
 
-    # Set default data provider for data config
-    # TODO: This is for backwards compatibility, as the `data_provider` param should
-    # TODO: be provided in the `data_config` itself
-    if data_provider is not None:
-        data_config["data_provider"] = data_provider
+    machine = Machine.from_config(machine, project_name=machine["project_name"])
 
     logger.info(f"Building, output will be at: {output_dir}")
-    logger.info(f"Raw model config: {model_config}")
-    logger.info(f"Data config: {data_config}")
     logger.info(f"Register dir: {model_register_dir}")
-
-    model_parameter = dict(model_parameter)
-    model_config = expand_model(model_config, model_parameter)
-    model_config = yaml.full_load(model_config)
 
     # Convert the config into a pipeline, and back into definition to ensure
     # all default parameters are part of the config.
     logger.debug(f"Ensuring the passed model config is fully expanded.")
-    model_config = serializer.pipeline_into_definition(
-        serializer.pipeline_from_definition(model_config)
+    machine.model = serializer.pipeline_into_definition(
+        serializer.pipeline_from_definition(machine.model)
     )
-    logger.info(f"Fully expanded model config: {model_config}")
+    logger.info(f"Fully expanded model config: {machine.model}")
 
-    machine = Machine(
-        name=name,
-        project_name=project_name,
-        model=model_config,
-        dataset=data_config,
-        metadata=metadata,
-        evaluation=evaluation_config,
-    )
     builder = ModelBuilder(machine=machine)
 
     try:
@@ -231,14 +130,16 @@ def build(
         if print_cv_scores:
             for score in get_all_score_strings(metadata):
                 print(score)
-
         # If enabled, configure remote logging to AzureML, otherwise logs locally
-        if enable_remote_logging:
-            metadata.update({"project-name": project_name})
+        if machine.runtime and machine.runtime["builder"]["remote_logging"]["enable"]:
+            metadata.update({"project-name": machine.project_name})
             workspace_kwargs = mlflow_utils.get_workspace_kwargs()
             service_principal_kwargs = mlflow_utils.get_spauth_kwargs()
             with mlflow_utils.mlflow_context(
-                name, builder.cache_key, workspace_kwargs, service_principal_kwargs
+                machine.name,
+                builder.cache_key,
+                workspace_kwargs,
+                service_principal_kwargs,
             ) as (mlflow_client, run_id):
                 mlflow_utils.log_metadata(mlflow_client, run_id, metadata)
 
@@ -281,7 +182,7 @@ def expand_model(model_config: str, model_parameters: dict):
     except jinja2.exceptions.UndefinedError as e:
         raise ValueError("Model parameter missing value!") from e
     logger.info(f"Expanded model config: {model_config}")
-    return model_config
+    return yaml.safe_load(model_config)
 
 
 def get_all_score_strings(metadata):

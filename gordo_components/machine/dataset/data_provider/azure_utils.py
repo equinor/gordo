@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import collections
 import re
+import os
 import logging
 from typing import AnyStr
 
@@ -29,12 +30,16 @@ def get_datalake_token(
     lib.DataLakeCredential
         A lib.DataLakeCredential which can be used to authenticate towards the datalake
     """
-
+    dl_service_auth_str = (
+        os.environ.get("DL_SERVICE_AUTH_STR")
+        if str(dl_service_auth_str) == "None"
+        else dl_service_auth_str
+    )
     if interactive:
         logger.info("Attempting to use interactive azure authentication")
         return lib.auth()
     elif dl_service_auth_str:
-        logger.info("Attempting to use datalake service authentication")
+        logger.info(f"Attempting to use datalake service authentication")
         dl_service_auth_elems = dl_service_auth_str.split(":")
         tenant = dl_service_auth_elems[0]
         client_id = dl_service_auth_elems[1]

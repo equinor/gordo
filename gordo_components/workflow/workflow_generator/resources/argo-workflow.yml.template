@@ -631,47 +631,29 @@ spec:
         applications.gordo.equinor.com/project-version: "{{project_version}}"
     inputs:
       parameters:
-      - name: project-name
-      - name: model-name
-      - name: metadata
-      - name: model-config
-      - name: data-config
-      - name: data-provider
-      - name: evaluation-config
-      - name: enable-remote-logging
+      - name: machine-name
+      - name: machine
     container:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       env:
       - name: OUTPUT_DIR
-        value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.model-name}}'}}"
+        value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.machine-name}}'}}"
       - name: MODEL_REGISTER_DIR
         value: "/gordo/models/{{project_name}}/model_register"
       - name: PROJECT_NAME
         value: "{{ project_name }}"
-      - name: MODEL_NAME
-        value: {{ '"{{inputs.parameters.model-name}}" '}}
-      - name: METADATA
-        value: {{ '"{{inputs.parameters.metadata}}"' }}
-      - name: MODEL_CONFIG
-        value: {{ '"{{inputs.parameters.model-config}}"' }}
-      - name: DL_SERVICE_AUTH_STR
-        valueFrom:
-          secretKeyRef:
-            name: dlserviceauth
-            key: tenant_id_secret
-      - name: DATA_CONFIG
-        value: {{ '"{{inputs.parameters.data-config}}"' }}
-      - name: DATA_PROVIDER
-        value: {{ '"{{inputs.parameters.data-provider}}"' }}
-      - name: EVALUATION_CONFIG
-        value: {{ '"{{inputs.parameters.evaluation-config}}"' }}
-      - name: ENABLE_REMOTE_LOGGING
-        value: {{ '"{{inputs.parameters.enable-remote-logging}}"' | capitalize }}
+      - name: MACHINE
+        value: {{ '"{{inputs.parameters.machine}}" '}}
       - name: AZUREML_WORKSPACE_STR
         valueFrom:
           configMapKeyRef:
             name: gordo-components-config-map
             key: azureml_workspace_str
+      - name: DL_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dlserviceauth
+            key: tenant_id_secret
       volumeMounts:
       - name: azurefile
         mountPath: /gordo
@@ -1160,27 +1142,11 @@ spec:
           template: model-builder
           arguments:
             parameters:
-              - name: project-name
-                value: "{{ project_name }}"
-              - name: model-name
-                value: "{{ machine.name }}"
-              - name: model-config
+              - name: machine-name
+                value: {{ machine.name }}
+              - name: machine
                 value: |
-                  {{ machine.model | tojson }}
-              - name: metadata
-                value: |
-                  {{ machine.metadata | tojson }}
-              - name: data-config
-                value: |
-                  {{ machine.dataset.to_dict() | tojson }}
-              - name: data-provider
-                value: |
-                  {{ machine.dataset.data_provider.to_dict() | tojson }}
-              - name: evaluation-config
-                value: |
-                  {{ machine.evaluation | tojson}}
-              - name: enable-remote-logging
-                value: {{ machine.runtime.builder.remote_logging.enable }}
+                  {{ machine.to_dict() | tojson }}
           dependencies:
             - gordo-server
         - name: gordo-mdl-{{ machine.name }}

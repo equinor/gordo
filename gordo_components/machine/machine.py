@@ -27,6 +27,7 @@ class Machine:
     dataset = ValidDataset()
     metadata = ValidMetadata()
     runtime = ValidMachineRuntime()
+    _strict = True
 
     def __init__(
         self,

@@ -225,15 +225,16 @@ def test_quotes_work(path_to_config_files):
     model_builder_machine_1_env = _get_env_for_machine_build_serve_task(
         "machine-1", expanded_template
     )
-    machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["metadata"])
-    assert machine_1_metadata["machine-metadata"] == {
+
+    machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["machine"])
+    assert machine_1_metadata["metadata"]["machine-metadata"] == {
         "withSingle": "a string with ' in it",
         "withDouble": 'a string with " in it',
         "single'in'key": "why not",
     }
 
-    machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["data-config"])
-    assert machine_1_dataset["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
+    machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["machine"])
+    assert machine_1_dataset["dataset"]["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
 
 
 def test_overrides_builder_datasource(path_to_config_files):
@@ -253,18 +254,18 @@ def test_overrides_builder_datasource(path_to_config_files):
 
     # ct_23_0002 uses the global overriden requests, but default limits
     assert {"type": "DataLakeProvider", "threads": 20} == yaml.safe_load(
-        model_builder_machine_1_env["data-config"]
-    )["data_provider"]
+        model_builder_machine_1_env["machine"]
+    )["dataset"]["data_provider"]
 
     # This value must be changed if we change the default values
     assert {"type": "RandomDataProvider", "threads": 15} == yaml.safe_load(
-        model_builder_machine_2_env["data-config"]
-    )["data_provider"]
+        model_builder_machine_2_env["machine"]
+    )["dataset"]["data_provider"]
 
     # ct_23_0003 uses locally overriden request memory
     assert {"type": "DataLakeProvider", "threads": 10} == yaml.safe_load(
-        model_builder_machine_3_env["data-config"]
-    )["data_provider"]
+        model_builder_machine_3_env["machine"]
+    )["dataset"]["data_provider"]
 
 
 def test_runtime_overrides_builder(path_to_config_files):
