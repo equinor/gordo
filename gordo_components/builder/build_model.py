@@ -76,7 +76,7 @@ class ModelBuilder:
         output_dir: Optional[Union[os.PathLike, str]] = None,
         model_register_dir: Optional[Union[os.PathLike, str]] = None,
         replace_cache=False,
-    ) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
+    ) -> Tuple[sklearn.base.BaseEstimator, dict]:
         """
         Always return a model and its metadata.
 
@@ -100,7 +100,7 @@ class ModelBuilder:
 
         Returns
         -------
-        Tuple[Optional[sklearn.base.BaseEstimator], Machine]
+        Tuple[sklearn.base.BaseEstimator, Machine]
             Built model and an updated ``Machine``
         """
         if not model_register_dir:
@@ -146,13 +146,13 @@ class ModelBuilder:
             )
         return model, metadata
 
-    def _build(self) -> Tuple[Optional[sklearn.base.BaseEstimator], dict]:
+    def _build(self) -> Tuple[sklearn.base.BaseEstimator, dict]:
         """
         Build the model using the current state of the Builder
 
         Returns
         -------
-            Tuple[Optional[sklearn.base.BaseEstimator], dict]
+            Tuple[sklearn.base.BaseEstimator, dict]
         """
         if self.machine.evaluation.get("seed"):
             self.set_seed(seed=self.machine.evaluation["seed"])
