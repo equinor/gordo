@@ -75,57 +75,73 @@ def base_route(api_version, gordo_project, gordo_name):
 
 
 @pytest.fixture(scope="session")
+def model_collection_directory(gordo_project: str):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        collection_dir = os.path.join(tmp_dir, gordo_project)
+        os.makedirs(collection_dir, exist_ok=True)
+        yield collection_dir
+
+
+@pytest.fixture(scope="session")
+def config_str(gordo_name: str, sensors: List[SensorTag]):
+    """
+    Fixture: Default config for testing
+    """
+    return f"""
+            machines:
+              - dataset:
+                  tags:
+                    - {sensors[0].name}
+                    - {sensors[1].name}
+                    - {sensors[2].name}
+                    - {sensors[3].name}
+                  target_tag_list:
+                    - {sensors[0].name}
+                    - {sensors[1].name}
+                    - {sensors[2].name}
+                    - {sensors[3].name}
+                  train_start_date: '2019-01-01T00:00:00+00:00'
+                  train_end_date: '2019-10-01T00:00:00+00:00'
+                  asset: asgb
+                  data_provider:
+                    type: RandomDataProvider
+                metadata:
+                  information: Some sweet information about the model
+                model:
+                  gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+                    require_thresholds: false
+                    base_estimator:
+                      sklearn.pipeline.Pipeline:
+                        steps:
+                        - sklearn.preprocessing.data.MinMaxScaler
+                        - gordo_components.machine.model.models.KerasAutoEncoder:
+                            kind: feedforward_hourglass
+                name: {gordo_name}
+             """
+
+
+@pytest.fixture(scope="session")
 def trained_model_directory(
-    gordo_project: str, gordo_name: str, sensors: List[SensorTag]
+    model_collection_directory: str, config_str: str, gordo_name: str
 ):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
     """
-    with tempfile.TemporaryDirectory() as model_dir:
 
-        # This is a model collection directory
-        collection_dir = os.path.join(model_dir, gordo_project)
+    # Model specific to the model being trained here
+    model_dir = os.path.join(model_collection_directory, gordo_name)
+    os.makedirs(model_dir, exist_ok=True)
 
-        # Model specific to the model being trained here
-        model_dir = os.path.join(collection_dir, gordo_name)
-        os.makedirs(model_dir, exist_ok=True)
+    builder = local_build(config_str=config_str, enable_mlflow=False)
+    model, metadata = next(builder)  # type: ignore
+    serializer.dump(model, model_dir, metadata=metadata)
+    yield model_dir
 
-        config = f"""
-                machines:
-                  - dataset:
-                      tag_list:
-                        - {tu.SENSORS_STR_LIST[0]}
-                        - {tu.SENSORS_STR_LIST[1]}
-                        - {tu.SENSORS_STR_LIST[2]}
-                        - {tu.SENSORS_STR_LIST[3]}
-                      target_tag_list:
-                        - {tu.SENSORS_STR_LIST[0]}
-                        - {tu.SENSORS_STR_LIST[1]}
-                        - {tu.SENSORS_STR_LIST[2]}
-                        - {tu.SENSORS_STR_LIST[3]}
-                      train_start_date: '2019-01-01T00:00:00+00:00'
-                      train_end_date: '2019-10-01T00:00:00+00:00'
-                      asset: asgb
-                      data_provider:
-                        type: RandomDataProvider
-                    metadata:
-                      information: Some sweet information about the model
-                    model:
-                      gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
-                        require_thresholds: false
-                        base_estimator:
-                          sklearn.pipeline.Pipeline:
-                            steps:
-                            - sklearn.preprocessing.data.MinMaxScaler
-                            - gordo_components.machine.model.models.KerasAutoEncoder:
-                                kind: feedforward_hourglass
-                    name: {tu.GORDO_SINGLE_TARGET}
-                 """
-        builder = local_build(config_str=config, enable_mlflow=False)
-        model, metadata = next(builder)  # type: ignore
-        serializer.dump(model, model_dir, metadata=metadata)
-        yield collection_dir
+
+@pytest.fixture
+def metadata(trained_model_directory):
+    return serializer.load_metadata(trained_model_directory)
 
 
 @pytest.fixture(
@@ -140,9 +156,11 @@ def trained_model_directory(
     ],
     scope="session",
 )
-def gordo_ml_server_client(request, trained_model_directory):
+def gordo_ml_server_client(
+    request, model_collection_directory, trained_model_directory
+):
 
-    with tu.temp_env_vars(MODEL_COLLECTION_DIR=trained_model_directory):
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=model_collection_directory):
 
         app = server.build_app()
         app.testing = True
@@ -186,6 +204,7 @@ def influxdb(base_influxdb):
 
 @pytest.fixture(scope="module")
 def ml_server(
+    model_collection_directory,
     trained_model_directory,
     host=tu.GORDO_HOST,
     project=tu.GORDO_PROJECT,
@@ -195,7 +214,7 @@ def ml_server(
         host=host,
         project=project,
         targets=targets,
-        model_location=trained_model_directory,
+        model_location=model_collection_directory,
     ):
         # always return a valid asset for any tag name
         with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
