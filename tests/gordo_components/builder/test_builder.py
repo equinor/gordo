@@ -352,7 +352,7 @@ def test_scores_metadata(raw_model_config):
     data_config = get_random_data()
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     machine = Machine(
-        dataset=data_config, model=model_config, name="test", project_name="test"
+        dataset=data_config, model=model_config, name="model-name", project_name="test"
     )
     model, metadata = ModelBuilder(machine).build()
     metadata_check(metadata, False)
