@@ -147,6 +147,7 @@ def gordo_ml_server_client(request, trained_model_directory):
         app = server.build_app()
         app.testing = True
 
+        # always return a valid asset for any tag name
         with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
             yield app.test_client()
 
@@ -196,6 +197,7 @@ def ml_server(
         targets=targets,
         model_location=trained_model_directory,
     ):
+        # always return a valid asset for any tag name
         with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
             yield
 
