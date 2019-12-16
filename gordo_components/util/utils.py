@@ -5,14 +5,14 @@ from typing import Callable
 
 def capture_args(method: Callable):
     """
-    Decorator to capture ``args`` and ``kwargs`` passed to a given method
-    Assumed there is a ``self`` to which it assigned the attribute to as ``_params``
-    as one dict of kwargs
+    Decorator that captures args and kwargs passed to a given method.
+    This assumes the decorated method has a self, which has a dict of
+    kwargs assigned as an attribute named _params.
 
     Parameters
     ----------
     method: Callable
-        Some method of an object, with 'self' as the first parameter
+        Some method of an object, with 'self' as the first parameter.
 
     Returns
     -------
@@ -22,10 +22,7 @@ def capture_args(method: Callable):
 
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        """
-        Need to map args to the parameters in the method and then update that
-        param dict with explicitly provided kwargs and assign that to _params
-        """
+
         sig_params = inspect.signature(method).parameters.items()
 
         # Get the default values for the method signature
