@@ -234,7 +234,7 @@ def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
     if output_file_tag_list:
         with open(output_file_tag_list, "w") as output_file:
             for tag in tag_list:
-                output_file.write("%s\n" % tag.name)
+                output_file.write(f"{tag.name}\n")
     else:
         for tag in tag_list:
             print(tag.name)
