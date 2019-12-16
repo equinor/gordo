@@ -131,17 +131,23 @@ def build(machine, output_dir, model_register_dir, print_cv_scores, model_parame
             for score in get_all_score_strings(metadata):
                 print(score)
         # If enabled, configure remote logging to AzureML, otherwise logs locally
-        if machine.runtime and machine.runtime["builder"]["remote_logging"]["enable"]:
-            metadata.update({"project-name": machine.project_name})
-            workspace_kwargs = mlflow_utils.get_workspace_kwargs()
-            service_principal_kwargs = mlflow_utils.get_spauth_kwargs()
-            with mlflow_utils.mlflow_context(
-                machine.name,
-                builder.cache_key,
-                workspace_kwargs,
-                service_principal_kwargs,
-            ) as (mlflow_client, run_id):
-                mlflow_utils.log_metadata(mlflow_client, run_id, metadata)
+        if machine.runtime:
+            try:
+                logging_enabled = machine.runtime["builder"]["remote_logging"]["enable"]
+            except KeyError:
+                logger.debug("Remote logging doesn't appear to be enabled.")
+            else:
+                if logging_enabled:
+                    metadata.update({"project-name": machine.project_name})
+                    workspace_kwargs = mlflow_utils.get_workspace_kwargs()
+                    service_principal_kwargs = mlflow_utils.get_spauth_kwargs()
+                    with mlflow_utils.mlflow_context(
+                        machine.name,
+                        builder.cache_key,
+                        workspace_kwargs,
+                        service_principal_kwargs,
+                    ) as (mlflow_client, run_id):
+                        mlflow_utils.log_metadata(mlflow_client, run_id, metadata)
 
     except Exception as e:
         exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
