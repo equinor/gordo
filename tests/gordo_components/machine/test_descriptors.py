@@ -4,7 +4,7 @@ import datetime
 
 import pytest
 
-from gordo_components.workflow.config_elements.validators import (
+from gordo_components.machine.validators import (
     ValidUrlString,
     ValidDatetime,
     ValidTagList,

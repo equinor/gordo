@@ -5,7 +5,7 @@ from typing import Dict, Any, Union, Optional
 import yaml
 
 from gordo_components.machine.dataset.base import GordoBaseDataset
-from gordo_components.workflow.config_elements.validators import (
+from gordo_components.machine.validators import (
     ValidUrlString,
     ValidMetadata,
     ValidModel,

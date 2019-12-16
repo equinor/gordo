@@ -18,7 +18,7 @@ from gordo_components.machine.dataset.filter_rows import pandas_filter_rows
 from gordo_components.machine.dataset.sensor_tag import SensorTag
 from gordo_components.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo_components.util import capture_args
-from gordo_components.workflow.config_elements.validators import (
+from gordo_components.machine.validators import (
     ValidTagList,
     ValidDatetime,
     ValidDatasetKwargs,
