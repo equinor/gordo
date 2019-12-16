@@ -518,7 +518,7 @@ def test_provide_saved_model_caching(
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
-    _model, first_metadata = ModelBuilder(machine).build(
+    _, first_metadata = ModelBuilder(machine).build(
         output_dir=output_dir, model_register_dir=registry_dir
     )
 
@@ -526,7 +526,7 @@ def test_provide_saved_model_caching(
         data_config["tag_list"] = tag_list
 
     new_output_dir = os.path.join(tmp_dir, "model2")
-    _model, second_metadata = ModelBuilder(
+    _, second_metadata = ModelBuilder(
         machine=Machine(
             name="model-name",
             dataset=data_config,
