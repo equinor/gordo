@@ -245,7 +245,7 @@ def get_batch_kwargs(metadata: dict) -> dict:
     metric_list: List[Metric] = list()
     build_metadata = metadata["metadata"]["build-metadata"]
 
-    # Projecti/machine parameters
+    # Project/machine parameters
     param_list = get_params(metadata, ["project-name", "name"])
 
     # Dataset parameters
@@ -263,7 +263,9 @@ def get_batch_kwargs(metadata: dict) -> dict:
     param_list += get_params(build_metadata["model"], model_keys)
 
     # Parse cross-validation metrics
-    tag_list = normalize_sensor_tags(metadata["dataset"]["tag_list"])
+    tag_list = normalize_sensor_tags(
+        metadata["dataset"]["tag_list"], asset=metadata["dataset"]["asset"]
+    )
     if build_metadata["model"].get("cross-validation", {}).get("scores", None):
         scores = build_metadata["model"]["cross-validation"]["scores"]
         keys = sorted(list(scores.keys()))
@@ -489,7 +491,8 @@ def log_metadata(mlflow_client, run_id, metadata: dict):
                 ),
             ]:
                 fp = os.path.join(tmp_dir, f"{name}.json")
-                json.dump(obj, open(fp, "w"), cls=DatetimeEncoder)
+                with open(fp, "w") as fh:
+                    json.dump(obj, fh, cls=DatetimeEncoder)
             mlflow_client.log_artifacts(run_id, local_dir=tmp_dir)
     # Log error without exiting the build
     # FIX: when a solution is found when logging artifacts wit azureml lib,
