@@ -202,7 +202,7 @@ jobs:
       - save-venv-cache
 
   # Specific collections of python tests
-  test-builder-server-formatting-serializer-dataset:
+  test-builder-server-formatting-serializer:
     executor: python-executor
     steps:
       - test-batch:
@@ -215,9 +215,7 @@ jobs:
                 for: formatting
             - test:
                 for: serializer
-            - test:
-                for: dataset
-  test-client-allelse-dataprovider-util:
+  test-client-allelse-util:
     executor: python-executor
     steps:
       - test-batch:
@@ -226,8 +224,6 @@ jobs:
                 for: client
             - test:
                 for: allelse
-            - test:
-                for: dataprovider
             - test:
                 for: util
   test-workflow-cli:
@@ -239,13 +235,13 @@ jobs:
                 for: workflow
             - test:
                 for: cli
-  test-model:
+  test-machine:
     executor: python-executor
     steps:
       - test-batch:
           tests:
             - test:
-                for: model
+                for: machine
 
   upload-coverage-reports:
     executor: python-executor
@@ -260,16 +256,16 @@ workflows:
     jobs:
       - make-docs
       - install
-      - test-builder-server-formatting-serializer-dataset:
+      - test-builder-server-formatting-serializer:
           requires:
             - install
-      - test-client-allelse-dataprovider-util:
+      - test-client-allelse-util:
           requires:
             - install
       - test-workflow-cli:
           requires:
             - install
-      - test-model:
+      - test-machine:
           requires:
             - install
       - make-images:
@@ -280,10 +276,10 @@ workflows:
               only: /.*/
       - upload-coverage-reports:
           requires:
-            - test-builder-server-formatting-serializer-dataset
-            - test-client-allelse-dataprovider-util
+            - test-builder-server-formatting-serializer
+            - test-client-allelse-util
             - test-workflow-cli
-            - test-model
+            - test-machine
           filters:
             branches:
               only: /.*/
