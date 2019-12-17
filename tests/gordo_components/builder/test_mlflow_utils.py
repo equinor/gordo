@@ -340,11 +340,11 @@ def test_get_batch_kwargs(metadata):
     _test_convert_metadata(metadata)
 
     # With cross validation, no scores
-    metadata["model"]["cross-validation"].pop("scores")
+    metadata["metadata"]["build-metadata"]["model"]["cross-validation"].pop("scores")
     _test_convert_metadata(metadata)
 
     # no cross validation or scores
-    metadata["model"].pop("cross-validation")
+    metadata["metadata"]["build-metadata"]["model"].pop("cross-validation")
     _test_convert_metadata(metadata)
 
 
