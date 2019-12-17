@@ -183,22 +183,22 @@ def test_get_batch_kwargs(metadata):
     Test that dicts are correctly converted to MLflow types or errors raised
     """
 
-    def _test_convert_metadata(metadata):
+    def _test_mlflow_batch_arg_types(metadata):
         batch_kwargs = mlu.get_batch_kwargs(metadata)
 
         assert all(type(m) == Metric for m in batch_kwargs["metrics"])
         assert all(type(p) == Param for p in batch_kwargs["params"])
 
     # With cross validation and metric scores
-    _test_convert_metadata(metadata)
+    _test_mlflow_batch_arg_types(metadata)
 
     # With cross validation, no scores
     metadata["metadata"]["build-metadata"]["model"]["cross-validation"].pop("scores")
-    _test_convert_metadata(metadata)
+    _test_mlflow_batch_arg_types(metadata)
 
     # no cross validation or scores
     metadata["metadata"]["build-metadata"]["model"].pop("cross-validation")
-    _test_convert_metadata(metadata)
+    _test_mlflow_batch_arg_types(metadata)
 
 
 @pytest.mark.parametrize(
