@@ -20,7 +20,7 @@ from gunicorn.glogging import Logger
 import jinja2
 import yaml
 import click
-from typing import Dict, Type
+from typing import Dict, Type, Tuple, List, Any
 
 from gordo_components.builder.build_model import ModelBuilder
 from gordo_components import serializer
@@ -61,7 +61,7 @@ def gordo():
 
 
 @click.command()
-@click.argument("machine", envvar="MACHINE", type=yaml.safe_load)
+@click.argument("machine-config", envvar="MACHINE", type=yaml.safe_load)
 @click.argument("output-dir", default="/data", envvar="OUTPUT_DIR")
 @click.option(
     "--model-register-dir",
@@ -83,7 +83,13 @@ def gordo():
     "multiple times. Separate key,valye by a comma. ie: --model-parameter key,val "
     "--model-parameter some_key,some_value",
 )
-def build(machine, output_dir, model_register_dir, print_cv_scores, model_parameter):
+def build(
+    machine_config: dict,
+    output_dir: str,
+    model_register_dir: click.Path,
+    print_cv_scores: bool,
+    model_parameter: List[Tuple[str, Any]],
+):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
@@ -91,8 +97,8 @@ def build(machine, output_dir, model_register_dir, print_cv_scores, model_parame
     \b
     Parameters
     ----------
-    machine: dict
-        A dict loadable by :class:`gordo_components.machine.Machine.from_dict`
+    machine_config: dict
+        A dict loadable by :class:`gordo_components.machine.Machine.from_config`
     output_dir: str
         Directory to save model & metadata to.
     model_register_dir: path
@@ -101,15 +107,17 @@ def build(machine, output_dir, model_register_dir, print_cv_scores, model_parame
         rebuild
     print_cv_scores: bool
         Print cross validation scores to stdout
-    model_parameter: List[Tuple]
+    model_parameter: List[Tuple[str, Any]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
     """
-    if model_parameter and isinstance(machine["model"], str):
-        model_parameter = dict(model_parameter)
-        machine["model"] = expand_model(machine["model"], model_parameter)
+    if model_parameter and isinstance(machine_config["model"], str):
+        parameters = dict(model_parameter)  # convert lib of tuples to dict
+        machine_config["model"] = expand_model(machine_config["model"], parameters)
 
-    machine = Machine.from_config(machine, project_name=machine["project_name"])
+    machine: Machine = Machine.from_config(
+        machine_config, project_name=machine_config["project_name"]
+    )
 
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Register dir: {model_register_dir}")
@@ -125,7 +133,7 @@ def build(machine, output_dir, model_register_dir, print_cv_scores, model_parame
     builder = ModelBuilder(machine=machine)
 
     try:
-        model, metadata = builder.build(output_dir, model_register_dir)
+        model, metadata = builder.build(output_dir, model_register_dir)  # type: ignore
 
         if print_cv_scores:
             for score in get_all_score_strings(metadata):
