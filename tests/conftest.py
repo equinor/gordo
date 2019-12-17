@@ -5,14 +5,16 @@ import os
 import logging
 import tempfile
 from typing import List
+from unittest.mock import patch
 
 import pytest
 
 from gordo_components import serializer
-from gordo_components.dataset.sensor_tag import SensorTag
-from gordo_components.data_provider.providers import InfluxDataProvider
+from gordo_components.machine.dataset.sensor_tag import SensorTag
+from gordo_components.machine.dataset.data_provider.providers import InfluxDataProvider
 from gordo_components.server import server
 from gordo_components.builder.local_build import local_build
+from gordo_components.machine.dataset import sensor_tag
 
 from tests import utils as tu
 
@@ -92,7 +94,7 @@ def trained_model_directory(
         config = f"""
                 machines:
                   - dataset:
-                      tags:
+                      tag_list:
                         - {tu.SENSORS_STR_LIST[0]}
                         - {tu.SENSORS_STR_LIST[1]}
                         - {tu.SENSORS_STR_LIST[2]}
@@ -110,13 +112,13 @@ def trained_model_directory(
                     metadata:
                       information: Some sweet information about the model
                     model:
-                      gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+                      gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                         require_thresholds: false
                         base_estimator:
                           sklearn.pipeline.Pipeline:
                             steps:
                             - sklearn.preprocessing.data.MinMaxScaler
-                            - gordo_components.model.models.KerasAutoEncoder:
+                            - gordo_components.machine.model.models.KerasAutoEncoder:
                                 kind: feedforward_hourglass
                     name: {tu.GORDO_SINGLE_TARGET}
                  """
@@ -145,7 +147,9 @@ def gordo_ml_server_client(request, trained_model_directory):
         app = server.build_app()
         app.testing = True
 
-        yield app.test_client()
+        # always return a valid asset for any tag name
+        with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+            yield app.test_client()
 
 
 @pytest.fixture(scope="session")
@@ -193,7 +197,9 @@ def ml_server(
         targets=targets,
         model_location=trained_model_directory,
     ):
-        yield
+        # always return a valid asset for any tag name
+        with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+            yield
 
 
 @pytest.fixture(scope="session")

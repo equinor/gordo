@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import pytest
+from unittest.mock import patch
 
 import pandas as pd
 import numpy as np
 
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.client.utils import influx_client_from_uri
-from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.machine import Machine
+from gordo_components.machine.dataset import sensor_tag
 import tests.utils as tu
 
 
@@ -16,20 +17,21 @@ def test_influx_forwarder(influxdb):
     Test that the forwarder creates correct points from a
     multi-indexed series
     """
-    machine = Machine.from_config(
-        config={
-            "name": "some-target-name",
-            "dataset": {
-                "tags": tu.SENSORS_STR_LIST,
-                "target_tag_list": tu.SENSORS_STR_LIST,
-                "train_start_date": "2016-01-01T00:00:00Z",
-                "train_end_date": "2016-01-05T00:00:00Z",
-                "resolution": "10T",
+    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+        machine = Machine.from_config(
+            config={
+                "name": "some-target-name",
+                "dataset": {
+                    "tags": tu.SENSORS_STR_LIST,
+                    "target_tag_list": tu.SENSORS_STR_LIST,
+                    "train_start_date": "2016-01-01T00:00:00Z",
+                    "train_end_date": "2016-01-05T00:00:00Z",
+                    "resolution": "10T",
+                },
+                "model": "sklearn.linear_model.LinearRegression",
             },
-            "model": "sklearn.linear_model.LinearRegression",
-        },
-        project_name="test-project",
-    )
+            project_name="test-project",
+        )
 
     # Feature outs which match length of tags
     # These should then be re-mapped to the sensor tag names

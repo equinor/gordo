@@ -16,9 +16,9 @@ from sklearn import metrics
 
 import gordo_components
 from gordo_components.builder import ModelBuilder
-from gordo_components.dataset.sensor_tag import SensorTag
-from gordo_components.model import models
-from gordo_components.serializer import serializer
+from gordo_components.machine.dataset.sensor_tag import SensorTag
+from gordo_components.machine.model import models
+from gordo_components.machine import Machine
 
 
 def get_random_data():
@@ -130,9 +130,10 @@ def test_output_dir(tmp_dir):
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "some", "sub", "directories")
-    builder = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
+    builder = ModelBuilder(machine)
     model, metadata = builder.build()
     metadata_check(metadata, False)
 
@@ -153,7 +154,7 @@ def test_output_dir(tmp_dir):
     """,
         # Saves history
         """
-    gordo_components.model.models.KerasAutoEncoder:
+    gordo_components.machine.model.models.KerasAutoEncoder:
         kind: feedforward_hourglass
     """,
         # With typical pipeline
@@ -183,7 +184,7 @@ def test_output_dir(tmp_dir):
                 sklearn.pipeline.Pipeline:
                     steps:
                     - sklearn.preprocessing.MinMaxScaler
-                    - gordo_components.model.models.KerasAutoEncoder:
+                    - gordo_components.machine.model.models.KerasAutoEncoder:
                         kind: feedforward_hourglass
                         compression_factor: 0.5
                         encoding_layers: 2
@@ -201,10 +202,10 @@ def test_builder_metadata(raw_model_config):
     """
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     data_config = get_random_data()
-
-    model, metadata = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    ).build()
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    )
+    model, metadata = ModelBuilder(machine).build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
     metadata_check(metadata, "Keras" in raw_model_config)
 
@@ -241,7 +242,7 @@ def test_builder_metadata(raw_model_config):
                         ("s1", sklearn.preprocessing.MinMaxScaler()),
                         (
                             "s2",
-                            gordo_components.model.models.KerasAutoEncoder(
+                            gordo_components.machine.model.models.KerasAutoEncoder(
                                 kind="feedforward_hourglass"
                             ),
                         ),
@@ -254,7 +255,7 @@ def test_builder_metadata(raw_model_config):
         # Model is not GordoBase but the first parameter is.
         (
             sklearn.compose.TransformedTargetRegressor(
-                regressor=gordo_components.model.models.KerasAutoEncoder(
+                regressor=gordo_components.machine.model.models.KerasAutoEncoder(
                     kind="feedforward_hourglass"
                 ),
                 transformer=sklearn.preprocessing.MinMaxScaler(),
@@ -265,7 +266,7 @@ def test_builder_metadata(raw_model_config):
         (sklearn.ensemble.RandomForestRegressor(), True),
         # GordoBase bare
         (
-            gordo_components.model.models.KerasAutoEncoder(
+            gordo_components.machine.model.models.KerasAutoEncoder(
                 kind="feedforward_hourglass"
             ),
             False,
@@ -298,7 +299,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
     "raw_model_config",
     (
         f"""
-    gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+    gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
         scaler: sklearn.preprocessing.MinMaxScaler
         base_estimator:
             sklearn.compose.TransformedTargetRegressor:
@@ -307,7 +308,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
                     sklearn.pipeline.Pipeline:
                         steps:
                         - sklearn.preprocessing.MinMaxScaler
-                        - gordo_components.model.models.KerasAutoEncoder:
+                        - gordo_components.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                             batch_size: 3
                             compression_factor: 0.5
@@ -323,7 +324,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
           sklearn.pipeline.Pipeline:
               steps:
               - sklearn.preprocessing.MinMaxScaler
-              - gordo_components.model.models.KerasAutoEncoder:
+              - gordo_components.machine.model.models.KerasAutoEncoder:
                   kind: feedforward_hourglass
                   batch_size: 2
                   compression_factor: 0.5
@@ -336,7 +337,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
   sklearn.pipeline.Pipeline:
       steps:
       - sklearn.preprocessing.MinMaxScaler
-      - gordo_components.model.models.KerasAutoEncoder:
+      - gordo_components.machine.model.models.KerasAutoEncoder:
           kind: feedforward_hourglass
           batch_size: 2
           compression_factor: 0.5
@@ -350,16 +351,17 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
 def test_scores_metadata(raw_model_config):
     data_config = get_random_data()
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    model, metadata = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    ).build()
+    machine = Machine(
+        dataset=data_config, model=model_config, name="model-name", project_name="test"
+    )
+    model, metadata = ModelBuilder(machine).build()
     metadata_check(metadata, False)
 
 
 def test_output_scores_metadata():
     data_config = get_random_data()
     raw_model_config = f"""
-            gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+            gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                 scaler: sklearn.preprocessing.MinMaxScaler
                 base_estimator:
                     sklearn.compose.TransformedTargetRegressor:
@@ -368,7 +370,7 @@ def test_output_scores_metadata():
                             sklearn.pipeline.Pipeline:
                                 steps:
                                 - sklearn.preprocessing.MinMaxScaler
-                                - gordo_components.model.models.KerasAutoEncoder:
+                                - gordo_components.machine.model.models.KerasAutoEncoder:
                                     kind: feedforward_hourglass
                                     batch_size: 3
                                     compression_factor: 0.5
@@ -379,9 +381,10 @@ def test_output_scores_metadata():
             """
 
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    model, metadata = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    ).build()
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    )
+    model, metadata = ModelBuilder(machine).build()
     scores_metadata = metadata["metadata"]["build-metadata"]["model"][
         "cross-validation"
     ]["scores"]
@@ -413,10 +416,10 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "model")
-
-    ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    ).build(output_dir=output_dir)
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    )
+    ModelBuilder(machine).build(output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -430,10 +433,10 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "model")
     registry_dir = os.path.join(tmp_dir, "registry")
-
-    builder = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
+    builder = ModelBuilder(machine)
     builder.build(output_dir=output_dir, model_register_dir=registry_dir)
     assert builder.cached_model_path == output_dir
 
@@ -452,10 +455,10 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     output_dir2 = os.path.join(tmp_dir, "model2")
 
     registry_dir = os.path.join(tmp_dir, "registry")
-
-    builder = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
+    builder = ModelBuilder(machine)
     builder.build(output_dir=output_dir1, model_register_dir=registry_dir)
 
     builder.build(output_dir=output_dir2, model_register_dir=registry_dir)
@@ -512,20 +515,25 @@ def test_provide_saved_model_caching(
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "model")
     registry_dir = os.path.join(tmp_dir, "registry")
-
-    _model, first_metadata = ModelBuilder(
-        name="model-name", model_config=model_config, data_config=data_config
-    ).build(output_dir=output_dir, model_register_dir=registry_dir)
+    machine = Machine(
+        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    )
+    _, first_metadata = ModelBuilder(machine).build(
+        output_dir=output_dir, model_register_dir=registry_dir
+    )
 
     if tag_list:
         data_config["tag_list"] = tag_list
 
     new_output_dir = os.path.join(tmp_dir, "model2")
-    _model, second_metadata = ModelBuilder(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        metadata=metadata,
+    _, second_metadata = ModelBuilder(
+        machine=Machine(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            metadata=metadata,
+            project_name="test",
+        )
     ).build(
         output_dir=new_output_dir,
         model_register_dir=registry_dir,
@@ -568,12 +576,14 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
     if metrics_:
         evaluation_config.update({"metrics": metrics_})
 
-    _model, metadata = ModelBuilder(
+    machine = Machine(
         name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        evaluation_config=evaluation_config,
-    ).build()
+        dataset=data_config,
+        model=model_config,
+        evaluation=evaluation_config,
+        project_name="test",
+    )
+    _model, metadata = ModelBuilder(machine).build()
 
     expected_metrics = metrics_ or [
         "sklearn.metrics.explained_variance_score",
@@ -617,7 +627,7 @@ def test_metrics_from_list():
             }
         },
         {
-            "gordo_components.model.models.KerasAutoEncoder": {
+            "gordo_components.machine.model.models.KerasAutoEncoder": {
                 "kind": "feedforward_hourglass"
             }
         },
@@ -633,18 +643,15 @@ def test_setting_seed(seed, model_config):
 
     # Training two instances, without a seed should result in different scores,
     # while doing it with a seed should result in the same scores.
-    _model, metadata1 = ModelBuilder(
+    machine = Machine(
         name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        evaluation_config=evaluation_config,
-    ).build()
-    _model, metadata2 = ModelBuilder(
-        name="model-name",
-        model_config=model_config,
-        data_config=data_config,
-        evaluation_config=evaluation_config,
-    ).build()
+        dataset=data_config,
+        model=model_config,
+        evaluation=evaluation_config,
+        project_name="test",
+    )
+    _model, metadata1 = ModelBuilder(machine).build()
+    _model, metadata2 = ModelBuilder(machine).build()
 
     df1 = pd.DataFrame.from_dict(
         metadata1["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]

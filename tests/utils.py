@@ -18,9 +18,9 @@ import requests
 from influxdb import InfluxDBClient
 from flask import Request
 
-from gordo_components.model import models
-from gordo_components.dataset.sensor_tag import SensorTag
-from gordo_components.dataset.sensor_tag import to_list_of_strings
+from gordo_components.machine.model import models
+from gordo_components.machine.dataset.sensor_tag import SensorTag
+from gordo_components.machine.dataset.sensor_tag import to_list_of_strings
 
 logger = logging.getLogger(__name__)
 

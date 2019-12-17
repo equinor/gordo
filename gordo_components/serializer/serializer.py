@@ -12,7 +12,7 @@ from typing import Union, Any  # pragma: no flakes
 from sklearn.pipeline import Pipeline
 from sklearn.base import TransformerMixin, BaseEstimator  # noqa
 
-from gordo_components.model.base import GordoBase
+from gordo_components.machine.model.base import GordoBase
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def dumps(model: Union[Pipeline, GordoBase]) -> bytes:
 
     Example
     -------
-    >>> from gordo_components.model.models import KerasAutoEncoder
+    >>> from gordo_components.machine.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
     >>>
     >>> model = KerasAutoEncoder('feedforward_symmetric')
@@ -154,7 +154,7 @@ def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
 
     >>> from sklearn.pipeline import Pipeline
     >>> from sklearn.decomposition import PCA
-    >>> from gordo_components.model.models import KerasAutoEncoder
+    >>> from gordo_components.machine.model.models import KerasAutoEncoder
     >>> from gordo_components import serializer
     >>> from tempfile import TemporaryDirectory
     >>> pipe = Pipeline([

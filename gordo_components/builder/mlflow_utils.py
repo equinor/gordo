@@ -16,7 +16,7 @@ from mlflow.entities import Metric, Param
 from mlflow.tracking import MlflowClient
 from pytz import UTC
 
-from gordo_components.dataset.sensor_tag import normalize_sensor_tags
+from gordo_components.machine.dataset.sensor_tag import normalize_sensor_tags
 
 logger = logging.getLogger(__name__)
 

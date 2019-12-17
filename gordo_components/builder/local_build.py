@@ -57,7 +57,7 @@ def local_build(
     ...         metadata:
     ...           information: Some sweet information about the model
     ...         model:
-    ...           gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+    ...           gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
     ...             base_estimator:
     ...               sklearn.pipeline.Pipeline:
     ...                 steps:
@@ -79,13 +79,7 @@ def local_build(
     config = get_dict_from_yaml(io.StringIO(config_str))
     normed = NormalizedConfig(config, project_name="local-build")
     for machine in normed.machines:
-        model, metadata = ModelBuilder(
-            name=machine.name,
-            model_config=machine.model,
-            data_config=machine.dataset.to_dict(),
-            metadata=machine.metadata,
-            evaluation_config=machine.evaluation,
-        ).build()
+        model, metadata = ModelBuilder(machine=machine).build()
 
         if enable_mlflow:
             # This will enforce a single interactive login and automatically

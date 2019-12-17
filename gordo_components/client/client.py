@@ -21,10 +21,9 @@ from gordo_components import serializer
 from gordo_components.client.io import _handle_response
 from gordo_components.client.io import HttpUnprocessableEntity
 from gordo_components.client.utils import PredictionResult
-from gordo_components.dataset.datasets import TimeSeriesDataset
-from gordo_components.data_provider.base import GordoBaseDataProvider
+from gordo_components.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo_components.server import utils as server_utils
-from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.machine import Machine
 
 
 logger = logging.getLogger(__name__)
@@ -502,14 +501,18 @@ class Client:
         start = self._adjust_for_offset(
             dt=start, resolution=resolution, n_intervals=n_intervals
         )
-        dataset = TimeSeriesDataset(
-            data_provider=self.data_provider,  # type: ignore
-            train_start_date=start,
-            train_end_date=end,
-            resolution=resolution,
-            tag_list=machine.dataset.tag_list,
-            target_tag_list=machine.dataset.target_tag_list,
+
+        # Re-create the machine's dataset but updating to use the client's
+        # data provider and changing the dates of data we want.
+        config = machine.dataset.to_dict()
+        config.update(
+            dict(
+                data_provider=self.data_provider,
+                train_start_date=start,
+                train_end_date=end,
+            )
         )
+        dataset = machine.dataset.from_dict(config)
         return dataset.get_data()
 
     @staticmethod

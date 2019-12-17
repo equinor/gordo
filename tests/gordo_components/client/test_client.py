@@ -17,7 +17,7 @@ from sklearn.base import BaseEstimator
 from mock import patch, call
 
 from gordo_components.client import Client, utils as client_utils
-from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.machine import Machine
 from gordo_components.client.io import (
     _handle_response,
     HttpUnprocessableEntity,
@@ -25,9 +25,9 @@ from gordo_components.client.io import (
 )
 from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.client.utils import PredictionResult
-from gordo_components.data_provider import providers
+from gordo_components.machine.dataset.data_provider import providers
 from gordo_components.server import utils as server_utils
-from gordo_components.model import utils as model_utils
+from gordo_components.machine.model import utils as model_utils
 from gordo_components import cli, serializer
 from gordo_components.cli import custom_types
 
@@ -320,7 +320,7 @@ def test_client_cli_predict(
 
     # Run without any error
     with patch(
-        "gordo_components.dataset.sensor_tag._asset_from_tag_name",
+        "gordo_components.machine.dataset.sensor_tag._asset_from_tag_name",
         side_effect=lambda *args, **kwargs: "default",
     ):
         out = runner.invoke(cli.gordo, args=args)
@@ -375,7 +375,7 @@ def test_client_cli_predict_non_zero_exit(
     # Run without any error
     with caplog.at_level(logging.CRITICAL):
         with patch(
-            "gordo_components.dataset.sensor_tag._asset_from_tag_name",
+            "gordo_components.machine.dataset.sensor_tag._asset_from_tag_name",
             side_effect=lambda *args, **kwargs: "default",
         ):
             out = runner.invoke(cli.gordo, args=args)
@@ -440,12 +440,13 @@ def _machine(name: str) -> Machine:
     """
     Helper to build a basic Machine, only defining its name
     """
-    # TODO: Fix this from changes from EndpointMetadata being removed
+    from gordo_components.machine.dataset.sensor_tag import SensorTag
+
     return Machine.from_config(
         config={
             "name": name,
             "dataset": {
-                "tags": ["tag-1", "tag-"],
+                "tag_list": [SensorTag("tag-1", "foo"), SensorTag("tag-2", "foo")],
                 "train_start_date": "2016-01-01T00:00:00Z",
                 "train_end_date": "2016-01-05T00:00:00Z",
             },

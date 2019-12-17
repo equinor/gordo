@@ -16,8 +16,8 @@ from sklearn.multioutput import MultiOutputRegressor
 
 from gordo_components import serializer
 from gordo_components.serializer import pipeline_from_definition
-import gordo_components.model.transformer_funcs.general
-from gordo_components.model.register import register_model_builder
+import gordo_components.machine.model.transformer_funcs.general
+from gordo_components.machine.model.register import register_model_builder
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                 iterated_power: auto
                                 random_state:
                             - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                func: gordo_components.machine.model.transformer_funcs.general.multiply_by
                                 kw_args:
                                     factor: 1
                             - sklearn.pipeline.FeatureUnion:
@@ -116,10 +116,10 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                     memory:
                                 n_jobs: 1
                                 transformer_weights:
-                            - gordo_components.model.models.{model}: 
+                            - gordo_components.machine.model.models.{model}: 
                                 kind: {model_kind}
                     """,
-                        pydoc.locate(f"gordo_components.model.models.{model}"),
+                        pydoc.locate(f"gordo_components.machine.model.models.{model}"),
                         model_kind,
                     ),
                     (
@@ -129,7 +129,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                             - sklearn.decomposition.pca.PCA:
                                 n_components: 2
                             - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                func: gordo_components.machine.model.transformer_funcs.general.multiply_by
                                 kw_args:
                                     factor: 1
                             - sklearn.pipeline.FeatureUnion:
@@ -140,10 +140,10 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                         feature_range: [0, 1]
                                     - sklearn.decomposition.truncated_svd.TruncatedSVD:
                                         n_components: 2
-                            - gordo_components.model.models.{model}:
+                            - gordo_components.machine.model.models.{model}:
                                 kind: {model_kind}
                     """,
-                        pydoc.locate(f"gordo_components.model.models.{model}"),
+                        pydoc.locate(f"gordo_components.machine.model.models.{model}"),
                         model_kind,
                     ),
                     # Define pipeline memory with something other than None w/o metadata
@@ -160,7 +160,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                             iterated_power: auto
                             random_state:
                         - sklearn.preprocessing._function_transformer.FunctionTransformer:
-                                func: gordo_components.model.transformer_funcs.general.multiply_by
+                                func: gordo_components.machine.model.transformer_funcs.general.multiply_by
                                 kw_args:
                                     factor: 1
                         - sklearn.pipeline.FeatureUnion:
@@ -189,10 +189,10 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                 memory: /tmp
                             n_jobs: 1
                             transformer_weights:
-                        - gordo_components.model.models.{model}:
+                        - gordo_components.machine.model.models.{model}:
                             kind: {model_kind}
                     """,
-                        pydoc.locate(f"gordo_components.model.models.{model}"),
+                        pydoc.locate(f"gordo_components.machine.model.models.{model}"),
                         model_kind,
                     ),
                 ]
@@ -202,7 +202,9 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
     def test_pydoc_locate_class(self):
         self.factories = register_model_builder.factories
         for model in self.factories.keys():
-            self.assertTrue(pydoc.locate(f"gordo_components.model.models.{model}"))
+            self.assertTrue(
+                pydoc.locate(f"gordo_components.machine.model.models.{model}")
+            )
 
     def test_pipeline_from_definition(self):
 
@@ -240,7 +242,8 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         step2 = pipe.steps[1][1]
         self.assertIsInstance(step2, FunctionTransformer)
         self.assertEqual(
-            step2.func, gordo_components.model.transformer_funcs.general.multiply_by
+            step2.func,
+            gordo_components.machine.model.transformer_funcs.general.multiply_by,
         )
 
         # STEP 3 TEST: Test expected FeatureUnion Step

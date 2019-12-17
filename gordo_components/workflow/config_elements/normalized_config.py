@@ -2,9 +2,9 @@
 
 from typing import List
 
-from gordo_components.workflow.config_elements.validators import fix_runtime
+from gordo_components.machine.validators import fix_runtime
 from gordo_components.workflow.workflow_generator.helpers import patch_dict
-from .machine import Machine
+from gordo_components.machine import Machine
 
 
 def _calculate_influx_resources(nr_of_machines):

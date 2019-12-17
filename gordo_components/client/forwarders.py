@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 
 from gordo_components.client.utils import influx_client_from_uri
-from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.machine import Machine
 
 
 logger = logging.getLogger(__name__)
@@ -169,10 +169,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             # Set the sub df's column names equal to the name of the tags if
             # they match the length of the tag list.
             if len(sub_df.columns) == len(machine.dataset.tag_list):
-                sub_df.columns = [
-                    tag["name"] if isinstance(tag, dict) else tag
-                    for tag in machine.dataset.tag_list
-                ]
+                sub_df.columns = [tag.name for tag in machine.dataset.tag_list]
 
             self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
 

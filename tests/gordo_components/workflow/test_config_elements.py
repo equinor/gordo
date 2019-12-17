@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 import pytest
 import yaml
 
-from gordo_components.workflow.config_elements.dataset import Dataset
-from gordo_components.workflow.config_elements.machine import Machine
+from gordo_components.machine.dataset.datasets import TimeSeriesDataset
+from gordo_components.machine import Machine
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo_components.workflow.workflow_generator.workflow_generator import (
     get_dict_from_yaml,
@@ -20,7 +20,7 @@ from gordo_components.workflow.workflow_generator.workflow_generator import (
 logger = logging.getLogger(__name__)
 
 
-def test_dataset_from_config():
+def test_dataset_from_dict():
     """
     Test ability to create a Dataset from a config element
     """
@@ -36,18 +36,16 @@ def test_dataset_from_config():
           train_end_date: 2018-05-10T15:05:50+02:00
     """
     dataset_config = get_dict_from_yaml(StringIO(element_str))["dataset"]
-    dataset = Dataset.from_config(dataset_config.copy())
-    dataset_config.update({"type": "TimeSeriesDataset"})
-    dataset_config["train_start_date"] = dataset_config["train_start_date"].isoformat()
-    dataset_config["train_end_date"] = dataset_config["train_end_date"].isoformat()
-
-    # target_tag_list wasn't specified, but should default to the 'tags'
-    dataset_config["target_tag_list"] = [
+    dataset = TimeSeriesDataset.from_dict(dataset_config.copy())
+    asdict = dataset.to_dict()
+    assert asdict["tag_list"] == [
         "GRA-YE  -23-0751X.PV",
         "GRA-TE  -23-0698.PV",
         "GRA-PIT -23-0619B.PV",
     ]
-    assert dataset.to_dict() == dataset_config
+    assert asdict["resolution"] == "2T"
+    assert asdict["train_start_date"] == "2011-05-20T01:00:04+02:00"
+    assert asdict["train_end_date"] == "2018-05-10T15:05:50+02:00"
 
 
 def test_dataset_from_config_checks_dates():
@@ -66,7 +64,7 @@ def test_dataset_from_config_checks_dates():
     """
     dataset_config = yaml.load(element_str, Loader=yaml.FullLoader)["dataset"]
     with pytest.raises(ValueError):
-        Dataset.from_config(dataset_config)
+        TimeSeriesDataset.from_dict(dataset_config)
 
 
 @pytest.fixture
@@ -104,7 +102,7 @@ def test_machine_from_config(default_globals: dict):
           sklearn.pipeline.Pipeline:
             steps:
               - sklearn.preprocessing.data.MinMaxScaler
-              - gordo_components.model.models.KerasAutoEncoder:
+              - gordo_components.machine.model.models.KerasAutoEncoder:
                   kind: feedforward_hourglass
         evaluation:
             scoring_scaler: Null
@@ -128,35 +126,40 @@ def test_machine_from_config(default_globals: dict):
         == machine.to_dict()["metadata"]
     )
     # dictionary representation of the machine expected:
-    assert machine.to_dict() == {
-        "name": "ct-23-0001-machine",
-        "data_provider": {"type": "DataLakeProvider", "threads": 10},
-        "project_name": "test-project-name",
+    expected = {
         "dataset": {
-            "type": "TimeSeriesDataset",
+            "aggregation_methods": "mean",
+            "asset": "global-asset",
+            "data_provider": {
+                "dl_service_auth_str": None,
+                "interactive": False,
+                "storename": "dataplatformdlsprod",
+                "type": "DataLakeProvider",
+            },
+            "default_asset": None,
+            "n_samples_threshold": 0,
+            "resolution": "10T",
+            "row_filter": "",
+            "row_filter_buffer_size": 0,
             "tag_list": [
                 "GRA-TE  -23-0733.PV",
                 "GRA-TT  -23-0719.PV",
                 "GRA-YE  -23-0751X.PV",
             ],
             "target_tag_list": ["GRA-TE -123-456"],
-            "train_start_date": datetime(
-                2018, 1, 1, 9, 0, 30, tzinfo=timezone.utc
-            ).isoformat(),
-            "train_end_date": datetime(
-                2018, 1, 2, 9, 0, 30, tzinfo=timezone.utc
-            ).isoformat(),
-            "asset": "global-asset",
+            "train_end_date": "2018-01-02T09:00:30+00:00",
+            "train_start_date": "2018-01-01T09:00:30+00:00",
+            "type": "TimeSeriesDataset",
         },
         "evaluation": {
             "cv_mode": "full_build",
-            "scoring_scaler": None,
             "metrics": [
                 "explained_variance_score",
                 "r2_score",
                 "mean_squared_error",
                 "mean_absolute_error",
             ],
+            "scoring_scaler": None,
         },
         "metadata": {"global-metadata": {}, "machine-metadata": {"id": "special-id"}},
         "model": {
@@ -164,22 +167,25 @@ def test_machine_from_config(default_globals: dict):
                 "steps": [
                     "sklearn.preprocessing.data.MinMaxScaler",
                     {
-                        "gordo_components.model.models.KerasAutoEncoder": {
+                        "gordo_components.machine.model.models.KerasAutoEncoder": {
                             "kind": "feedforward_hourglass"
                         }
                     },
                 ]
             }
         },
+        "name": "ct-23-0001-machine",
+        "project_name": "test-project-name",
         "runtime": {
             "server": {
                 "resources": {
-                    "requests": {"memory": 1, "cpu": 2},
-                    "limits": {"memory": 3, "cpu": 4},
+                    "limits": {"cpu": 4, "memory": 3},
+                    "requests": {"cpu": 2, "memory": 1},
                 }
             }
         },
     }
+    assert machine.to_dict() == expected
 
 
 def test_invalid_model(default_globals: dict):
@@ -199,7 +205,7 @@ def test_invalid_model(default_globals: dict):
           sklearn.pipeline.Pipeline:
             step:
               - sklearn.preprocessing.data.MinMaxScaler
-              - gordo_components.model.models.KerasAutoEncoder:
+              - gordo_components.machine.model.models.KerasAutoEncoder:
                   kind: feedforward_hourglass
         evaluation:
             scoring_scaler: Null

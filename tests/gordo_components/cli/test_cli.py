@@ -8,28 +8,46 @@ import mlflow
 
 
 from gordo_components import cli
-from gordo_components.cli.cli import expand_model, DEFAULT_MODEL_CONFIG
+from gordo_components.cli.cli import expand_model
 from gordo_components.serializer import serializer
+from gordo_components.machine import Machine
 from tests.utils import temp_env_vars
 
 import json
 
-DATA_CONFIG = (
-    "{"
-    ' "type": "RandomDataset",'
-    ' "train_start_date": "2015-01-01T00:00:00+00:00", '
-    ' "train_end_date": "2015-06-01T00:00:00+00:00",'
-    ' "tags": ["TRC1","TRC2"],'
-    ' "target_tag_list":["TRC1","TRC2"]'
-    "}"
-)
+DATA_CONFIG = {
+    "type": "RandomDataset",
+    "train_start_date": "2015-01-01T00:00:00+00:00",
+    "train_end_date": "2015-06-01T00:00:00+00:00",
+    "tags": ["TRC1", "TRC2"],
+    "target_tag_list": ["TRC1", "TRC2"],
+}
+
+DEFAULT_MODEL_CONFIG = {
+    "gordo_components.machine.model.models.KerasAutoEncoder": {
+        "kind": "feedforward_hourglass"
+    }
+}
+
 
 MODEL_CONFIG = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
 MODEL_CONFIG_WITH_PREDICT = {
-    "gordo_components.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}
+    "gordo_components.machine.model.models.KerasAutoEncoder": {
+        "kind": "feedforward_hourglass"
+    }
 }
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.fixture
+def machine():
+    return Machine(
+        name="test-model",
+        model=MODEL_CONFIG,
+        dataset=DATA_CONFIG,
+        project_name="project-name",
+    )
 
 
 @pytest.fixture
@@ -38,21 +56,14 @@ def runner(tmp_dir):
     yield CliRunner()
 
 
-def test_build_env_args(runner, tmp_dir):
+def test_build_env_args(runner, tmp_dir, machine):
     """
     Instead of passing OUTPUT_DIR directly to CLI, should be able to
     read environment variables
     """
-
     logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG)}")
 
-    with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
-    ):
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
         result = runner.invoke(cli.gordo, ["build"])
 
     assert result.exit_code == 0, f"Command failed: {result}, {result.exception}"
@@ -61,7 +72,7 @@ def test_build_env_args(runner, tmp_dir):
     ), "Building was supposed to create at least two files (model and metadata) in OUTPUT_DIR, but it did not!"
 
 
-def test_build_use_registry(runner, tmp_dir):
+def test_build_use_registry(runner, tmp_dir, machine):
     """
     Using a registry causes the second build of a model to copy the first to the
     new location.
@@ -71,11 +82,8 @@ def test_build_use_registry(runner, tmp_dir):
     output_dir_2 = os.path.join(tmp_dir, "dir2")
 
     with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
+        MACHINE=json.dumps(machine.to_dict()),
         OUTPUT_DIR=output_dir_1,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
         MODEL_REGISTER_DIR=tmp_dir + "/reg",
     ):
         result1 = runner.invoke(cli.gordo, ["build"])
@@ -83,11 +91,8 @@ def test_build_use_registry(runner, tmp_dir):
     assert result1.exit_code == 0, f"Command failed: {result1}"
     # OUTPUT_DIR is the only difference
     with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
+        MACHINE=json.dumps(machine.to_dict()),
         OUTPUT_DIR=output_dir_2,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
         MODEL_REGISTER_DIR=tmp_dir + "/reg",
     ):
         result2 = runner.invoke(cli.gordo, ["build"])
@@ -104,7 +109,7 @@ def test_build_use_registry(runner, tmp_dir):
     )
 
 
-def test_build_use_registry_bust_cache(runner, tmp_dir):
+def test_build_use_registry_bust_cache(runner, tmp_dir, machine):
     """
     Even using a registry we get separate model-paths when we ask for models for
     different configurations.
@@ -114,31 +119,26 @@ def test_build_use_registry_bust_cache(runner, tmp_dir):
     output_dir_2 = os.path.join(tmp_dir, "dir2")
 
     with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
+        MACHINE=json.dumps(machine.to_dict()),
         OUTPUT_DIR=output_dir_1,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
         MODEL_REGISTER_DIR=tmp_dir + "/reg",
     ):
         result1 = runner.invoke(cli.gordo, ["build"])
 
     assert result1.exit_code == 0, f"Command failed: {result1}"
 
+    # NOTE: Different train dates!
+    machine.dataset = machine.dataset.from_dict(
+        {
+            "type": "RandomDataset",
+            "train_start_date": "2019-01-01T00:00:00+00:00",
+            "train_end_date": "2019-06-01T00:00:00+00:00",
+            "tags": ["TRC1", "TRC2"],
+        }
+    )
     with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
+        MACHINE=json.dumps(machine.to_dict()),
         OUTPUT_DIR=output_dir_2,
-        # NOTE: Different train dates!
-        DATA_CONFIG=(
-            "{"
-            ' "type": "RandomDataset",'
-            ' "train_start_date": "2019-01-01T00:00:00+00:00", '
-            ' "train_end_date": "2019-06-01T00:00:00+00:00",'
-            ' "tags": ["TRC1", "TRC2"],'
-            "}"
-        ),
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
         MODEL_REGISTER_DIR=tmp_dir + "/reg",
     ):
         result2 = runner.invoke(cli.gordo, ["build"])
@@ -154,12 +154,12 @@ def test_build_use_registry_bust_cache(runner, tmp_dir):
     )
 
 
-def test_build_model_with_parameters(runner, tmp_dir):
+def test_build_model_with_parameters(runner, tmp_dir, machine):
     """
     It works to build a simple model with parameters set
     """
-
-    model = """
+    machine._strict = False
+    machine.model = """
     {
      "sklearn.decomposition.pca.PCA":
       {
@@ -172,15 +172,9 @@ def test_build_model_with_parameters(runner, tmp_dir):
     svd_solver = "auto"
     n_components = 0.5
 
-    logger.info(f"MODEL_CONFIG={json.dumps(model)}")
+    logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
 
-    with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=model,
-    ):
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
         args = [
             "build",
             "--model-parameter",
@@ -204,19 +198,24 @@ def test_build_model_with_parameters(runner, tmp_dir):
 
 
 def test_expand_model_default_works():
-    assert expand_model(DEFAULT_MODEL_CONFIG, {}) == DEFAULT_MODEL_CONFIG
+    assert expand_model(str(DEFAULT_MODEL_CONFIG), {}) == DEFAULT_MODEL_CONFIG
 
 
 def test_expand_model_expand_works():
     model_params = {"kind": "hourglass", "num": 5}
-    model_template = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
-    expected_model = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': 'hourglass', 'num': 5}} "
+    model_template = "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
+    expected_model = {
+        "gordo_components.machine.model.models.KerasAutoEncoder": {
+            "kind": "hourglass",
+            "num": 5,
+        }
+    }
     assert expand_model(model_template, model_params) == expected_model
 
 
 def test_expand_model_complains_on_missing_vars():
     model_params = {"kind": "hourglass"}
-    model_template = "{'gordo_components.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
+    model_template = "{'gordo_components.machine.model.models.KerasAutoEncoder': {'kind': '{{kind}}', 'num': {{num}}}} "
     with pytest.raises(ValueError):
         expand_model(model_template, model_params)
 
@@ -226,27 +225,20 @@ def test_expand_model_complains_on_missing_vars():
     # exit codes, so it should default to 1
     [(FileNotFoundError, 30), (Exception, 1), (ArithmeticError, 1)],
 )
-def test_build_exit_code(exception, exit_code, runner, tmp_dir):
+def test_build_exit_code(exception, exit_code, runner, tmp_dir, machine):
     """
     Test that cli build exists with different exit codes for different errors.
     """
+    machine.model = MODEL_CONFIG_WITH_PREDICT
+    machine.evaluation = {"cv_mode": "cross_val_only"}
 
-    logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG_WITH_PREDICT)}")
+    logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
     with mock.patch(
         "gordo_components.cli.cli.ModelBuilder.build",
         mock.MagicMock(side_effect=exception, autospec=True, return_value=None),
     ):
-        with temp_env_vars(
-            PROJECT_NAME="project-name",
-            MODEL_NAME="model-name",
-            OUTPUT_DIR=tmp_dir,
-            DATA_CONFIG=DATA_CONFIG,
-            MODEL_CONFIG=json.dumps(MODEL_CONFIG_WITH_PREDICT),
-        ):
-            result = runner.invoke(
-                cli.gordo,
-                ["build", '--evaluation-config={"cv_mode": "cross_val_only"}'],
-            )
+        with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
+            result = runner.invoke(cli.gordo, ["build"])
             assert result.exit_code == exit_code
 
 
@@ -255,27 +247,26 @@ def test_build_exit_code(exception, exit_code, runner, tmp_dir):
     [(True, {"cv_mode": "full_build"}), (False, {"cv_mode": "cross_val_only"})],
 )
 def test_build_cv_mode(
-    runner: CliRunner, should_save_model: bool, cv_mode: str, tmp_dir: str
+    runner: CliRunner,
+    should_save_model: bool,
+    cv_mode: str,
+    tmp_dir: str,
+    machine: Machine,
 ):
     """
     Testing build with cv_mode set to full and cross_val_only. Checks that cv_scores are
     printed and model are only saved when using the default (full) value.
     """
-    logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG_WITH_PREDICT)}")
+    machine.model = MODEL_CONFIG_WITH_PREDICT
+    machine.evaluation = cv_mode  # type: ignore
+
+    logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
 
     tmp_model_dir = os.path.join(tmp_dir, "tmp")
     os.makedirs(tmp_model_dir, exist_ok=True)
 
-    with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_model_dir,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG_WITH_PREDICT),
-    ):
-        result = runner.invoke(
-            cli.gordo, ["build", "--print-cv-scores", f"--evaluation-config={cv_mode}"]
-        )
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_model_dir):
+        result = runner.invoke(cli.gordo, ["build", "--print-cv-scores"])
         assert result.exit_code == 0
         # Checks that the file is empty or not depending on the mode.
         if should_save_model:
@@ -303,51 +294,42 @@ def test_build_cv_mode_cross_val_cache(
     cv_mode_2: str,
     runner: CliRunner,
     tmp_dir: str,
+    machine: Machine,
 ):
     """
     Checks that cv_scores uses cache if ran after a full build. Loads the same model, and can
     print the cv_scores from them.
     """
-    logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG)}")
+    logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
 
-    with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
-    ):
+    machine.evaluation = cv_mode_1  # type: ignore
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
+        runner.invoke(cli.gordo, ["build"])
 
-        runner.invoke(cli.gordo, ["build", f"--evaluation-config={cv_mode_1}"])
-        runner.invoke(cli.gordo, ["build", f"--evaluation-config={cv_mode_2}"])
+    machine.evaluation = cv_mode_2  # type: ignore
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
+        runner.invoke(cli.gordo, ["build"])
 
-        if should_save_model:
-            assert len(os.listdir(tmp_dir)) > 0
-        else:
-            assert len(os.listdir(tmp_dir)) == 0
+    if should_save_model:
+        assert len(os.listdir(tmp_dir)) > 0
+    else:
+        assert len(os.listdir(tmp_dir)) == 0
 
 
-def test_build_cv_mode_build_only(runner: CliRunner, tmp_dir: str):
+def test_build_cv_mode_build_only(runner: CliRunner, tmp_dir: str, machine: Machine):
     """
     Testing build with cv_mode set to build_only. Checks that OUTPUT_DIR gets a model
     saved to it. It also checks that the metadata contains cv-duration-sec=None and
     cv-scores={}
     """
 
-    logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG)}")
+    logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
+    machine.evaluation = {"cv_mode": "build_only"}
 
-    with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
-    ):
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
 
         metadata_file = f"{os.path.join(tmp_dir, 'metadata.json')}"
-        runner.invoke(
-            cli.gordo, ["build", '--evaluation-config={"cv_mode": "build_only"}']
-        )
+        runner.invoke(cli.gordo, ["build"])
 
         # A model has been saved
         assert len(os.listdir(tmp_dir)) != 0
@@ -377,22 +359,19 @@ def test_enable_remote_logging(
     monkeypatch,
     runner,
     tmp_dir,
+    machine,
 ):
     """
     Tests disabling MlFlow logging in cli, and missing env var when enabled
     """
 
     mlflow.set_tracking_uri(f"file:{tmp_dir}")
-    with temp_env_vars(
-        PROJECT_NAME="project-name",
-        MODEL_NAME="model-name",
-        OUTPUT_DIR=tmp_dir,
-        DATA_CONFIG=DATA_CONFIG,
-        MODEL_CONFIG=json.dumps(MODEL_CONFIG),
-    ):
+    machine.runtime = dict(builder=dict(remote_logging=dict(enable=True)))
+
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
         # Logging enabled, without env vars set:
         # Raise error
-        result = runner.invoke(cli.gordo, ["build", "--enable-remote-logging=True"])
+        result = runner.invoke(cli.gordo, ["build"])
         result.exit_code != 0
 
         # Logging enabled, with env vars set:
@@ -401,7 +380,7 @@ def test_enable_remote_logging(
             m.setenv("DL_SERVICE_AUTH_STR", "test:test:test")
             m.setenv("AZUREML_WORKSPACE_STR", "test:test:test")
 
-            result = runner.invoke(cli.gordo, ["build", "--enable-remote-logging=True"])
+            result = runner.invoke(cli.gordo, ["build"])
             result.exit_code == 1
             assert MockClient.called
             assert mock_get_workspace_kwargs.called
@@ -411,9 +390,11 @@ def test_enable_remote_logging(
         for m in [MockClient, mock_get_workspace_kwargs, mock_get_spauth_kwargs]:
             m.reset_mock()
 
-        # Logging not enabled:
-        # Build success, remote logging not executed
-        result = runner.invoke(cli.gordo, ["build", "--enable-remote-logging=False"])
+    # Logging not enabled:
+    # Build success, remote logging not executed
+    machine.runtime = dict(builder=dict(remote_logging=dict(enable=False)))
+    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_dir):
+        result = runner.invoke(cli.gordo, ["build"])
         result.exit_code == 0
         assert not MockClient.called
         assert not mock_get_workspace_kwargs.called

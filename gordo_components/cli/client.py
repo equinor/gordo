@@ -14,7 +14,7 @@ from requests import Session
 
 from gordo_components.client import Client
 from gordo_components import serializer
-from gordo_components.data_provider import providers
+from gordo_components.machine.dataset.data_provider import providers
 from gordo_components.cli.custom_types import (
     IsoFormatDateTime,
     DataProviderParam,

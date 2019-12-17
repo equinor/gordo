@@ -14,8 +14,8 @@ from flask_restplus import Resource, fields
 from gordo_components import __version__, serializer
 from gordo_components.server.rest_api import Api
 from gordo_components.server import utils as server_utils
-from gordo_components.model import utils as model_utils
-from gordo_components.dataset.sensor_tag import SensorTag, normalize_sensor_tags
+from gordo_components.machine.model import utils as model_utils
+from gordo_components.machine.dataset.sensor_tag import SensorTag, normalize_sensor_tags
 from gordo_components.server import model_io
 
 
@@ -98,12 +98,20 @@ class BaseModelView(Resource):
 
     @property
     def tags(self) -> typing.List[SensorTag]:
-        return normalize_sensor_tags(g.metadata["dataset"]["tag_list"])
+        return normalize_sensor_tags(
+            g.metadata["dataset"]["tag_list"],
+            asset=g.metadata["dataset"].get("asset"),
+            default_asset=g.metadata["dataset"].get("default_asset"),
+        )
 
     @property
     def target_tags(self) -> typing.List[SensorTag]:
         if "target_tag_list" in g.metadata["dataset"]:
-            return normalize_sensor_tags(g.metadata["dataset"]["target_tag_list"])
+            return normalize_sensor_tags(
+                g.metadata["dataset"]["target_tag_list"],
+                asset=g.metadata["dataset"].get("asset"),
+                default_asset=g.metadata["dataset"].get("default_asset"),
+            )
         else:
             return []
 

@@ -2,7 +2,6 @@
 
 import pytest
 import numpy as np
-
 from gordo_components.server import utils as server_utils
 import tests.utils as tu
 

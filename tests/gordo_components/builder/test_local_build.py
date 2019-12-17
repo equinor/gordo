@@ -26,7 +26,7 @@ from gordo_components.builder import local_build
         metadata:
           information: Some sweet information about the model
         model:
-          gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+          gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
             base_estimator:
               sklearn.pipeline.Pipeline:
                 steps:
@@ -49,7 +49,7 @@ from gordo_components.builder import local_build
         name: crazy-sweet-name
     globals:
         model:
-          gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+          gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
             base_estimator:
               sklearn.pipeline.Pipeline:
                 steps:
@@ -106,7 +106,7 @@ def test_local_builder_valid_configs(config):
             name: crazy-sweet-name-  ## <- Cannot end with ending hyphen
         globals:
             model:
-              gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+              gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                 base_estimator:
                   sklearn.pipeline.Pipeline:
                     steps:
@@ -152,7 +152,7 @@ def test_local_builder_mlflow(MockClient, enable_mlflow):
         name: crazy-sweet-name2
     globals:
         model:
-          gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector:
+          gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
             base_estimator:
               sklearn.pipeline.Pipeline:
                 steps:
