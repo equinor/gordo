@@ -252,6 +252,27 @@ class ModelListView(Resource):
         return jsonify(available_models)
 
 
+class RevisionListView(Resource):
+    """
+    List the available revisions the model can serve.
+    """
+
+    @api.doc(description="Available revisions of the project that can be served.")
+    def get(self, gordo_project: str):
+        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
+        try:
+            available_revisions = os.listdir(os.path.join(collection_dir, ".."))
+        except FileNotFoundError:
+            logger.error(
+                f"Attempted to list directories above {collection_dir} but failed with: {traceback.format_exc()}"
+            )
+            available_revisions = [collection_dir]
+
+        return jsonify(
+            {"latest": collection_dir, "available-revisions": available_revisions}
+        )
+
+
 api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
 api.add_resource(
@@ -260,3 +281,4 @@ api.add_resource(
     "/gordo/v0/<gordo_project>/<gordo_name>/healthcheck",
 )
 api.add_resource(DownloadModel, "/gordo/v0/<gordo_project>/<gordo_name>/download-model")
+api.add_resource(RevisionListView, "/gordo/v0/<gordo_project>/revisions")
