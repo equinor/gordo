@@ -6,6 +6,7 @@ import pytest
 import subprocess
 
 from typing import List
+from unittest.mock import patch
 
 from gordo_components.server.server import run_cmd
 from gordo_components import serializer
@@ -112,3 +113,29 @@ def test_list_revisions(tmpdir, revisions: List[str]):
     assert resp.json["latest"] == model_dir
     assert isinstance(resp.json["available-revisions"], list)
     assert set(resp.json["available-revisions"]) == set(revisions)
+
+
+def test_list_revisions_listdir_fail(caplog):
+    """
+    Verify the server will not fail if listing directories above the current
+    model collection directory it has, fails.
+    """
+
+    def listdir_fail(*args, **kwargs):
+        raise FileNotFoundError()
+
+    expected_revision = "some-project-revision-123"
+
+    with patch.object(os, "listdir", side_effect=listdir_fail) as mocked_listdir:
+        with caplog.at_level(logging.CRITICAL):
+            with tu.temp_env_vars(MODEL_COLLECTION_DIR=expected_revision):
+                app = server.build_app()
+                app.testing = True
+                client = app.test_client()
+                resp = client.get("/gordo/v0/test-project/revisions")
+
+    assert mocked_listdir.called_once()
+    assert set(resp.json.keys()) == {"latest", "available-revisions"}
+    assert resp.json["latest"] == expected_revision
+    assert isinstance(resp.json["available-revisions"], list)
+    assert resp.json["available-revisions"] == [expected_revision]
