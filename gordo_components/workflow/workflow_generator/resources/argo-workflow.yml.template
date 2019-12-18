@@ -1,6 +1,6 @@
 # Requires the following variables to render properly
 # project_name: Name of the project this workflow is linked up to (e.g. "Grane")
-# project_version: Current version of this project, e.g. the git commit-sha.
+# project_revision: Current revision of this project, e.g. the git commit-sha.
 # containing start and end dates (if tags are shared across machines the earliest train start date and latest train end date is taken)
 # model_builder_resources_requests_memory: Memory requests of the model builder in unit `M`
 # model_builder_resources_requests_cpu: CPU requests of the model builder in unit `m`
@@ -10,13 +10,13 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: {{project_name}}-{{project_version}}-
+  generateName: {{project_name}}-{{project_revision}}-
   annotations:
     gordo-models: '{{ machines|map(attribute="name")|list|tojson|safe }}'
   labels:
     app.kubernetes.io/managed-by: gordo
     applications.gordo.equinor.com/project-name: "{{project_name}}"
-    applications.gordo.equinor.com/project-version: "{{project_version}}"
+    applications.gordo.equinor.com/project-revision: "{{project_revision}}"
   {% if owner_references is defined %}
   ownerReferences: {{owner_references}}
   {% endif %}
@@ -41,19 +41,19 @@ spec:
       labels:
         app: ensure-single-workflow
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
         echo "Ensuring that no other versions of workflows for this project is running at the same time"
         # This fetches all the workflows of the same version as me, and finds the one of them with the earliest start-time
-        export MY_CREATION_TIME=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-version=="$GORDO_PROJECT_VERSION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate }] | sort_by(.startTime) |.[0]" | jq -r ".startTime")
+        export MY_CREATION_TIME=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision=="$GORDO_PROJECT_VERSION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate }] | sort_by(.startTime) |.[0]" | jq -r ".startTime")
 
         echo "Found that my creationTime was $MY_CREATION_TIME"
         # This function finds all running workflows of the same project but different version AND created earlier than $MY_CREATION_TIME
         function find_older_running_workflows {
-            export RUNNING_WORKFLOWS=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-version!="$GORDO_PROJECT_VERSION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate } | select(.startTime < $MY_CREATION_TIME)]" | jq -r ".[].name")
+            export RUNNING_WORKFLOWS=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision!="$GORDO_PROJECT_VERSION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate } | select(.startTime < $MY_CREATION_TIME)]" | jq -r ".[].name")
             echo "Running workflows:"
             echo "$RUNNING_WORKFLOWS"
         }
@@ -77,8 +77,8 @@ spec:
       env:
       - name: GORDO_PROJECT_NAME
         value: "{{project_name}}"
-      - name: GORDO_PROJECT_VERSION
-        value: "{{project_version}}"
+      - name: GORDO_PROJECT_REVISION
+        value: "{{project_revision}}"
 
   - name: apply-with-retries
     retryStrategy:
@@ -90,7 +90,7 @@ spec:
       labels:
         app: apply-with-retries
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -170,7 +170,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                    {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                   {% endif %}
@@ -200,7 +200,7 @@ spec:
             app.kubernetes.io/part-of: gordo
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
-            applications.gordo.equinor.com/project-version: "{{project_version}}"
+            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
         {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
         {% endif %}
@@ -208,15 +208,15 @@ spec:
           serviceName: gordo-influx-{{project_name}}
           volumeClaimTemplates:
             - metadata:
-                name: influx-storage-{{project_version}}
+                name: influx-storage-{{project_revision}}
                 labels:
                   applications.gordo.equinor.com/project-name: "{{project_name}}"
-                  applications.gordo.equinor.com/project-version: "{{project_version}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
                 annotations:
                   applications.gordo.equinor.com/project-name: "{{project_name}}"
-                  applications.gordo.equinor.com/project-version: "{{project_version}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                 {% if owner_references is defined %}
                 ownerReferences: {{owner_references}}
                 {% endif %}
@@ -243,7 +243,7 @@ spec:
                 imagePullPolicy: "IfNotPresent"
                 name: gordo-influx-{{project_name}}
                 volumeMounts:
-                  - name: influx-storage-{{project_version}}
+                  - name: influx-storage-{{project_revision}}
                     mountPath: /var/lib/influxdb
                 ports:
                   - name: api
@@ -275,7 +275,7 @@ spec:
       labels:
         app: gordo-influx-database-creator
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -320,7 +320,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -350,7 +350,7 @@ spec:
             app.kubernetes.io/part-of: gordo
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
-            applications.gordo.equinor.com/project-version: "{{project_version}}"
+            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
           {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
           {% endif %}
@@ -409,7 +409,7 @@ spec:
       labels:
         app: gordo-grafana-datasource-creator
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -457,7 +457,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -486,7 +486,7 @@ spec:
             app.kubernetes.io/part-of: gordo
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
-            applications.gordo.equinor.com/project-version: "{{project_version}}"
+            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
           {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
           {% endif %}
@@ -494,13 +494,13 @@ spec:
           serviceName: gordo-postgres-{{project_name}}
           volumeClaimTemplates:
             - metadata:
-                name: postgres-storage-{{project_version}}
+                name: postgres-storage-{{project_revision}}
                 annotations:
                   applications.gordo.equinor.com/project-name: "{{project_name}}"
-                  applications.gordo.equinor.com/project-version: "{{project_version}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                 labels:
                   applications.gordo.equinor.com/project-name: "{{project_name}}"
-                  applications.gordo.equinor.com/project-version: "{{project_version}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
                 {% if owner_references is defined %}
@@ -530,7 +530,7 @@ spec:
                 imagePullPolicy: "IfNotPresent"
                 name: gordo-postgres-{{project_name}}
                 volumeMounts:
-                  - name: postgres-storage-{{project_version}}
+                  - name: postgres-storage-{{project_revision}}
                     mountPath: /var/lib/postgresql/data/pgdata
                     subPath: postgres-db
                 ports:
@@ -598,7 +598,7 @@ spec:
       labels:
         app: gordo-server-to-postgres
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
@@ -628,7 +628,7 @@ spec:
       labels:
         app: gordo-model-builder
         applications.gordo.equinor.com/project-name: {{project_name}}
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     inputs:
       parameters:
       - name: machine-name
@@ -637,7 +637,7 @@ spec:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       env:
       - name: OUTPUT_DIR
-        value: "/gordo/models/{{project_name}}/{{project_version}}/{{'{{inputs.parameters.machine-name}}'}}"
+        value: "/gordo/models/{{project_name}}/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
       - name: MODEL_REGISTER_DIR
         value: "/gordo/models/{{project_name}}/model_register"
       - name: PROJECT_NAME
@@ -688,7 +688,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -725,7 +725,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -761,7 +761,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -803,7 +803,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                       applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
@@ -835,7 +835,7 @@ spec:
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
-                      applications.gordo.equinor.com/project-version: "{{project_version}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -875,7 +875,7 @@ spec:
                                timeoutSeconds: 5
                              env:
                                - name: MODEL_COLLECTION_DIR
-                                 value: /gordo/models/{{project_name}}/{{project_version}}
+                                 value: /gordo/models/{{project_name}}/{{project_revision}}
 
                              resources:
                                requests:
@@ -936,14 +936,14 @@ spec:
       labels:
         app: gordo-client-waiter
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-version=$GORDO_PROJECT_VERSION"
+        echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-revision=$GORDO_PROJECT_VERSION"
         function find_running_pods {
-          export RUNNING_PODS=$(kubectl  get pods -l app=gordo-client,applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-version="$GORDO_PROJECT_VERSION" --field-selector status.phase!=Succeeded,status.phase!=Failed)
+          export RUNNING_PODS=$(kubectl  get pods -l app=gordo-client,applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision="$GORDO_PROJECT_VERSION" --field-selector status.phase!=Succeeded,status.phase!=Failed)
           export NR_OF_RUNNING_PODS=$(echo "$RUNNING_PODS" | wc -l)
           let NR_OF_RUNNING_PODS=$NR_OF_RUNNING_PODS-1 # remove the header from the count
         }
@@ -976,7 +976,7 @@ spec:
       - name: GORDO_PROJECT_NAME
         value: "{{project_name}}"
       - name: GORDO_PROJECT_VERSION
-        value: "{{project_version}}"
+        value: "{{project_revision}}"
       - name: GORDO_MAX_CLIENTS
         value: "{{client_max_instances}}"
       - name : GORDO_TOTAL_NR_OF_CLIENTS
@@ -994,7 +994,7 @@ spec:
       labels:
         app: gordo-client
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       command: [bash]
@@ -1028,7 +1028,7 @@ spec:
       - name: GORDO_CLIENT_INFLUX_RECREATE_DB
         value: "true"
       - name: GORDO_CLIENT_METADATA
-        value: "version,{{project_version}}"
+        value: "version,{{project_revision}}"
       - name: DL_SERVICE_AUTH_STR
         valueFrom:
           secretKeyRef:
@@ -1043,16 +1043,16 @@ spec:
       labels:
         app: gordo-influx-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Deleting influx, grafana and PVC for {{project_name}} different than {{project_version}}" \
-         && kubectl delete statefulset -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
-         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}},app.kubernetes.io/name=influx \
-         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}},app.kubernetes.io/name=grafana \
-         && kubectl delete $(kubectl get pvc -l app=gordo-influx-{{project_name}} -o name | grep -v influx-storage-{{project_version}}  ) || : \
+        echo "Deleting influx, grafana and PVC for {{project_name}} different than {{project_revision}}" \
+         && kubectl delete statefulset -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=influx \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=grafana \
+         && kubectl delete $(kubectl get pvc -l app=gordo-influx-{{project_name}} -o name | grep -v influx-storage-{{project_revision}}  ) || : \
          && sleep 5
       resources:
         requests:
@@ -1070,14 +1070,14 @@ spec:
       labels:
         app: gordo-postgres-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Deleting postgres PVC for {{project_name}} different than {{project_version}}" \
-         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}},app.kubernetes.io/name=postgres \
-         && kubectl delete $(kubectl get pvc -l app=gordo-postgres-{{project_name}} -o name | grep -v postgres-storage-{{project_version}} ) || : \
+        echo "Deleting postgres PVC for {{project_name}} different than {{project_revision}}" \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=postgres \
+         && kubectl delete $(kubectl get pvc -l app=gordo-postgres-{{project_name}} -o name | grep -v postgres-storage-{{project_revision}} ) || : \
          && sleep 5
       resources:
         requests:
@@ -1094,18 +1094,18 @@ spec:
       labels:
         app: gordo-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-version: "{{project_version}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Deleting gordo deployments, services, models, and hpa's for project {{project_name}} different than {{project_version}}" \
-         && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
-         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
-         && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
-         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version!={{project_version}} \
-         && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_version}}" \
-         && kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-version={{project_version}}
+        echo "Deleting gordo deployments, services, models, and hpa's for project {{project_name}} different than {{project_revision}}" \
+         && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_revision}}" \
+         && kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}
 
       resources:
         requests:

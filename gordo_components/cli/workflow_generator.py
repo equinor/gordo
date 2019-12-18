@@ -60,11 +60,11 @@ def workflow_cli():
     required=True,
 )
 @click.option(
-    "--project-version",
+    "--project-revision",
     type=str,
     default=int(time.time() * 1000),  # unix time milliseconds
-    help="Version of the project which own the workflow.",
-    envvar=f"{PREFIX}_PROJECT_VERSION",
+    help="Revision of the project which own the workflow.",
+    envvar=f"{PREFIX}_PROJECT_REVISION",
 )
 @click.option(
     "--output-file",
