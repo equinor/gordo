@@ -2,7 +2,7 @@
 # stored in the environment variable MACHINE_CONFIG, or if that is empty, the file
 # /code/config.yml, which is then the callers responsibility to mount in.
 
-FROM python:3.6.9 as builder
+FROM python:3.7.5 as builder
 
 # Copy source code
 COPY . /code
@@ -33,7 +33,7 @@ RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernete
 RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64 &&\
   chmod +x /usr/local/bin/argo
 
-FROM python:3.6.9-slim-stretch
+FROM python:3.7.5-slim-stretch
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \

@@ -147,7 +147,7 @@ jobs:
   # Make the Sphinx documentation for the project; without errors or warnings.
   make-docs:
     docker:
-      - image: circleci/python:3.6
+      - image: circleci/python:3.7.5
     steps:
       - checkout
       - restore_cache:
@@ -181,7 +181,7 @@ jobs:
           name: Set Python Version
           command: |
             pyenv versions
-            pyenv global 3.6.5
+            pyenv global 3.7.0
             pyenv versions
       - run:
           name: Virtual Environment
