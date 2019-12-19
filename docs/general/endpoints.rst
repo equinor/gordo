@@ -172,7 +172,7 @@ For example, the :class:`gordo_components.model.anomaly.diff.DiffBasedAnomalyDet
 
 - ``tag-anomaly-scaled`` & ``tag-anomaly-unscaled``:
     - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat),
-    using scaled and unscaled values.
+      using scaled and unscaled values.
 - ``total-anomaly-scaled`` & ``total-anomaly-unscaled``:
     - This is the total anomaly for the given point as calculated by the model, using scaled and unscaled values.
 
