@@ -10,7 +10,7 @@ import os
 import time
 import random
 from pathlib import Path
-from typing import Union, Optional, Dict, Any, Tuple, List, Callable
+from typing import Union, Optional, Dict, Any, Tuple, Type, List, Callable
 
 import pandas as pd
 import numpy as np
@@ -19,7 +19,7 @@ import tensorflow as tf
 import sklearn
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn import metrics
-from sklearn.model_selection import cross_validate, TimeSeriesSplit
+from sklearn.model_selection import BaseCrossValidator, cross_validate, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 
 from gordo_components.util import disk_registry
@@ -186,6 +186,7 @@ class ModelBuilder:
             evaluation=self.machine.evaluation,
         )
 
+        split_metadata: Dict[str, Any] = dict()
         scores: Dict[str, Any] = dict()
         if self.machine.evaluation["cv_mode"].lower() in (
             "cross_val_only",
@@ -205,12 +206,12 @@ class ModelBuilder:
                 scaler = self.machine.evaluation.get("scoring_scaler")
                 metrics_dict = self.build_metrics_dict(metrics_list, y, scaler=scaler)
 
+                # Generate metadata about CV train, test splits
+                split_obj = TimeSeriesSplit(n_splits=3)
+                split_metadata = ModelBuilder.build_split_dict(X, split_obj)
+
                 cv_kwargs = dict(
-                    X=X,
-                    y=y,
-                    scoring=metrics_dict,
-                    return_estimator=True,
-                    cv=TimeSeriesSplit(n_splits=3),
+                    X=X, y=y, scoring=metrics_dict, return_estimator=True, cv=split_obj
                 )
                 if hasattr(model, "cross_validate"):
                     cv = model.cross_validate(**cv_kwargs)
@@ -245,6 +246,7 @@ class ModelBuilder:
                         "cross-validation": {
                             "cv-duration-sec": cv_duration_sec,
                             "scores": scores,
+                            "splits": split_metadata,
                         }
                     }
                 }
@@ -269,6 +271,7 @@ class ModelBuilder:
                 "cross-validation": {
                     "cv-duration-sec": cv_duration_sec,
                     "scores": scores,
+                    "splits": split_metadata,
                 },
             }
         )
@@ -284,12 +287,42 @@ class ModelBuilder:
         random.seed(seed)
 
     @staticmethod
+    def build_split_dict(X: pd.DataFrame, split_obj: Type[BaseCrossValidator]) -> dict:
+        """
+        Get dictionary of cross-validation training dataset split metadata
+
+        Parameters
+        ----------
+        X: pd.DataFrame
+            The training dataset that will be split during cross-validation.
+        split_obj: Type[sklearn.model_selection.BaseCrossValidator]
+            The cross-validation object that returns train, test indices for splitting.
+
+        Returns
+        -------
+        split_metadata: Dict[str,Any]
+            Dictionary of cross-validation train/test split metadata
+        """
+        split_metadata: Dict[str, Any] = dict()
+        for i, (train_ind, test_ind) in enumerate(split_obj.split(X)):
+            split_metadata.update(
+                {
+                    f"fold-{i+1}-train-start": X.index[train_ind[0]],
+                    f"fold-{i+1}-train-end": X.index[train_ind[-1]],
+                    f"fold-{i+1}-test-start": X.index[test_ind[0]],
+                    f"fold-{i+1}-test-end": X.index[test_ind[-1]],
+                }
+            )
+            split_metadata.update({f"fold-{i+1}-n-train": len(train_ind)})
+            split_metadata.update({f"fold-{i+1}-n-test": len(test_ind)})
+        return split_metadata
+
+    @staticmethod
     def build_metrics_dict(
         metrics_list: list,
         y: pd.DataFrame,
         scaler: Optional[Union[TransformerMixin, str]] = None,
     ) -> dict:
-
         """
         Given a list of metrics that accept a true_y and pred_y as inputs this returns a
         dictionary with keys in the form '{score}-{tag_name}' for each given target tag
