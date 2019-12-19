@@ -242,8 +242,13 @@ def get_batch_kwargs(metadata: dict) -> dict:
         instances.
     """
 
+    metric_list: List[Metric] = list()
+    build_metadata = metadata["metadata"]["build-metadata"]
+
+    # Project/machine parameters
     param_list = get_params(metadata, ["project-name", "name"])
 
+    # Dataset parameters
     dataset_keys = [
         "train_start_date",
         "train_end_date",
@@ -251,20 +256,22 @@ def get_batch_kwargs(metadata: dict) -> dict:
         "filter",
         "row_filter_buffer_size",
     ]
-    model_keys = ["model-creation-date", "model-builder-version", "model-offset"]
-    for section, keys in zip(["dataset", "model"], [dataset_keys, model_keys]):
-        param_list += get_params(metadata[section], keys)
+    param_list += get_params(metadata["dataset"], dataset_keys)
 
-    metric_list: List[Metric] = list()
+    # Model parameters
+    model_keys = ["model-creation-date", "model-builder-version", "model-offset"]
+    param_list += get_params(build_metadata["model"], model_keys)
 
     # Parse cross-validation metrics
-    if metadata["model"].get("cross-validation", {}).get("scores", None):
-        scores = metadata["model"]["cross-validation"]["scores"]
+    tag_list = normalize_sensor_tags(
+        metadata["dataset"]["tag_list"], asset=metadata["dataset"]["asset"]
+    )
+    if build_metadata["model"].get("cross-validation", {}).get("scores", None):
+        scores = build_metadata["model"]["cross-validation"]["scores"]
         keys = sorted(list(scores.keys()))
         subkeys = ["mean", "max", "min", "std"]
 
         n_folds = len(scores[keys[0]]) - len(subkeys)
-        tag_list = normalize_sensor_tags(metadata["dataset"]["tag_list"])
         for k in keys:
             # Skip per tag data, produces too many params for MLflow
             if any([t.name in k for t in tag_list]):
@@ -282,18 +289,18 @@ def get_batch_kwargs(metadata: dict) -> dict:
             ]
 
     # Parse fit metrics
-    if metadata["model"].get("history", None):
-        meta_params = metadata["model"]["history"]["params"]
+    if build_metadata["model"].get("history", None):
+        meta_params = build_metadata["model"]["history"]["params"]
 
         metric_list += get_metrics(
-            metadata["model"],
+            build_metadata["model"],
             ["data-query-duration-sec", "model-training-duration-sec"],
         )
         param_list += get_params(
             meta_params, [p for p in meta_params if p != "metrics"]
         )
         for m in meta_params["metrics"]:
-            data = metadata["model"]["history"][m]
+            data = build_metadata["model"]["history"][m]
             metric_list += [
                 Metric(m, float(x), timestamp=epoch_now(), step=i)
                 for i, x in enumerate(data)
@@ -484,7 +491,8 @@ def log_metadata(mlflow_client, run_id, metadata: dict):
                 ),
             ]:
                 fp = os.path.join(tmp_dir, f"{name}.json")
-                json.dump(obj, open(fp, "w"), cls=DatetimeEncoder)
+                with open(fp, "w") as fh:
+                    json.dump(obj, fh, cls=DatetimeEncoder)
             mlflow_client.log_artifacts(run_id, local_dir=tmp_dir)
     # Log error without exiting the build
     # FIX: when a solution is found when logging artifacts wit azureml lib,
