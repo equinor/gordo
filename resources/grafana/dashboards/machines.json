@@ -938,7 +938,7 @@
                 "type": "fill"
               }
             ],
-            "measurement": "total-anomaly",
+            "measurement": "total-anomaly-scaled",
             "orderByTime": "ASC",
             "policy": "default",
             "query": "SELECT mean(/^$Sensor$/) as \"field\" FROM \"original-input\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
