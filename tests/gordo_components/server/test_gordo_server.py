@@ -139,3 +139,50 @@ def test_list_revisions_listdir_fail(caplog):
     assert resp.json["latest"] == expected_revision
     assert isinstance(resp.json["available-revisions"], list)
     assert resp.json["available-revisions"] == [expected_revision]
+
+
+@pytest.mark.parametrize(
+    "revision_to_models",
+    [
+        {"123": ("model-1", "model-2"), "456": ("model-3", "model-4")},
+        {"123": (), "456": ("model-1",)},
+        dict(),
+    ],
+)
+def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
+    """
+    Server returns expected models it can serve under specific revisions.
+
+    revision_to_models: Dict[str, Tuple[str, ...]]
+        Map revision codes to models belonging to that revision.
+        Simulate serving some revision, but having access to other
+        revisions and its models.
+    """
+
+    # Current collection dir for the server, order isn't important.
+    if revision_to_models:
+        collection_dir = os.path.join(tmpdir, list(revision_to_models.keys())[0])
+    else:
+        # This will cause a failure to look up a certain revision
+        collection_dir = str(tmpdir)
+
+    # Make all the revision and model subfolders
+    for revision in revision_to_models.keys():
+        os.mkdir(os.path.join(tmpdir, revision))
+        for model in revision_to_models[revision]:
+            os.makedirs(os.path.join(tmpdir, revision, model), exist_ok=True)
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
+        app = server.build_app()
+        app.testing = True
+        client = app.test_client()
+        for revision in revision_to_models:
+            resp = client.get(f"/gordo/v0/test-project/models/{revision}")
+            assert resp.status_code == 200
+            assert sorted(resp.json) == sorted(revision_to_models[revision])
+        else:
+            # revision_to_models is empty, so there is nothing on the server.
+            # Test that asking for some arbitrary revision will give a 404 and error message
+            resp = client.get(f"/gordo/v0/test-project/models/revision-does-not-exist")
+            assert resp.status_code == 404
+            assert resp.json == {"error": "No revision: 'revision-does-not-exist'"}

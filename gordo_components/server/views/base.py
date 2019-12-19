@@ -273,7 +273,27 @@ class RevisionListView(Resource):
         )
 
 
+class ModelsByRevisionListView(Resource):
+    """
+    List the models which can be served for a given revision
+    """
+
+    @api.doc(description="Available models for a given revision.")
+    def get(self, gordo_project: str, revision: str):
+        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
+        try:
+            available_models = os.listdir(os.path.join(collection_dir, "..", revision))
+        except FileNotFoundError:
+            logger.debug(f"Request for models under revision '{revision}' not found.")
+            return make_response(jsonify({"error": f"No revision: '{revision}'"}), 404)
+        else:
+            return jsonify(available_models)
+
+
 api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
+api.add_resource(
+    ModelsByRevisionListView, "/gordo/v0/<gordo_project>/models/<revision>"
+)
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
 api.add_resource(
     MetaDataView,
