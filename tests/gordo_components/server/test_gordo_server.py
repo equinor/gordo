@@ -4,6 +4,8 @@ import os
 import logging
 import pytest
 import subprocess
+import shutil
+import json
 
 from typing import List
 from unittest.mock import patch
@@ -109,8 +111,9 @@ def test_list_revisions(tmpdir, revisions: List[str]):
         client = app.test_client()
         resp = client.get("/gordo/v0/test-project/revisions")
 
-    assert set(resp.json.keys()) == {"latest", "available-revisions"}
-    assert resp.json["latest"] == model_dir
+    assert set(resp.json.keys()) == {"latest", "available-revisions", "revision"}
+    assert resp.json["latest"] == os.path.basename(model_dir)
+    assert resp.json["revision"] == os.path.basename(model_dir)
     assert isinstance(resp.json["available-revisions"], list)
     assert set(resp.json["available-revisions"]) == set(revisions)
 
@@ -135,7 +138,7 @@ def test_list_revisions_listdir_fail(caplog):
                 resp = client.get("/gordo/v0/test-project/revisions")
 
     assert mocked_listdir.called_once()
-    assert set(resp.json.keys()) == {"latest", "available-revisions"}
+    assert set(resp.json.keys()) == {"latest", "available-revisions", "revision"}
     assert resp.json["latest"] == expected_revision
     assert isinstance(resp.json["available-revisions"], list)
     assert resp.json["available-revisions"] == [expected_revision]
@@ -177,12 +180,66 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
         app.testing = True
         client = app.test_client()
         for revision in revision_to_models:
-            resp = client.get(f"/gordo/v0/test-project/models/{revision}")
+            resp = client.get(f"/gordo/v0/test-project/models?revision={revision}")
             assert resp.status_code == 200
-            assert sorted(resp.json) == sorted(revision_to_models[revision])
+            assert "models" in resp.json
+            assert sorted(resp.json["models"]) == sorted(revision_to_models[revision])
         else:
             # revision_to_models is empty, so there is nothing on the server.
             # Test that asking for some arbitrary revision will give a 404 and error message
-            resp = client.get(f"/gordo/v0/test-project/models/revision-does-not-exist")
-            assert resp.status_code == 404
-            assert resp.json == {"error": "No revision: 'revision-does-not-exist'"}
+            resp = client.get(
+                f"/gordo/v0/test-project/models?revision=revision-does-not-exist"
+            )
+            assert resp.status_code == 410
+            assert resp.json == {
+                "error": "Revision 'revision-does-not-exist' not found."
+            }
+
+
+@pytest.mark.parametrize("revisions", (("123", "456"), ("123",)))
+def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
+
+    model_name = "test-model"
+    current_revision = revisions[0]
+    collection_dir = os.path.join(tmpdir, current_revision)
+
+    # Copy trained model into revision model folders
+    for revision in revisions:
+        model_dir = os.path.join(tmpdir, revision, model_name)
+        shutil.copytree(trained_model_directory, model_dir)
+
+        # Now overwrite the metadata.json file to ensure the server actually reads
+        # the metadata for this specific revision
+        metadata_file = os.path.join(model_dir, "metadata.json")
+        assert os.path.isfile(metadata_file)
+        with open(metadata_file, "w") as fp:
+            json.dump({"revision": revision, "model": model_name}, fp)
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
+        app = server.build_app()
+        app.testing = True
+        client = app.test_client()
+        for revision in revisions:
+            resp = client.get(
+                f"/gordo/v0/test-project/{model_name}/metadata?revision={revision}"
+            )
+            assert resp.status_code == 200
+            assert resp.json["revision"] == revision
+
+            # Verify the server read the metadata.json file we had overwritten
+            assert resp.json["metadata"] == {"revision": revision, "model": model_name}
+
+        # Asking for a revision which doesn't exit gives a 410 Gone.
+        resp = client.get(
+            f"/gordo/v0/test-project/{model_name}/metadata?revision=does-not-exist"
+        )
+        assert resp.status_code == 410
+        assert resp.json == {"error": "Revision 'does-not-exist' not found."}
+
+        # Again but by setting header, to ensure we also check the header
+        resp = client.get(
+            f"/gordo/v0/test-project/{model_name}/metadata",
+            headers={"revision": "does-not-exist"},
+        )
+        assert resp.status_code == 410
+        assert resp.json == {"error": "Revision 'does-not-exist' not found."}

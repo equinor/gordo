@@ -15,7 +15,7 @@ from typing import Union, List
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from flask import request, g, jsonify, make_response, Response, current_app
+from flask import request, g, jsonify, make_response, Response
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
 
@@ -384,8 +384,7 @@ def metadata_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
-        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
-        g.metadata = load_metadata(directory=collection_dir, name=gordo_name)
+        g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
         return f(*args, **kwargs)
 
     return wrapper
@@ -400,9 +399,11 @@ def model_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
-        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
-        g.model = load_model(directory=collection_dir, name=gordo_name)
-        g.metadata = load_metadata(directory=collection_dir, name=gordo_name)
-        return f(*args, **kwargs)
+        g.model = load_model(directory=g.collection_dir, name=gordo_name)
+
+        # If the model was required, the metadata is also required.
+        return metadata_required(f)(
+            *args, gordo_project=gordo_project, gordo_name=gordo_name, **kwargs
+        )
 
     return wrapper

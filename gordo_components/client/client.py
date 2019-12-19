@@ -176,7 +176,7 @@ class Client:
         if not resp.ok:
             raise IOError(f"Failed to get machines: {repr(resp.content)}")
         else:
-            model_names = resp.json()
+            model_names = resp.json()["models"]
             with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
                 machines = executor.map(self._machine_from_server, model_names)
                 return list(machines)

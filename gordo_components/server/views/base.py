@@ -247,9 +247,8 @@ class ModelListView(Resource):
 
     @api.doc(description="List the metadata for all models capable of being served.")
     def get(self, gordo_project: str):
-        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
-        available_models = os.listdir(collection_dir)
-        return jsonify(available_models)
+        available_models = os.listdir(g.collection_dir)
+        return jsonify({"models": available_models})
 
 
 class RevisionListView(Resource):
@@ -259,41 +258,19 @@ class RevisionListView(Resource):
 
     @api.doc(description="Available revisions of the project that can be served.")
     def get(self, gordo_project: str):
-        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
         try:
-            available_revisions = os.listdir(os.path.join(collection_dir, ".."))
+            available_revisions = os.listdir(os.path.join(g.collection_dir, ".."))
         except FileNotFoundError:
             logger.error(
-                f"Attempted to list directories above {collection_dir} but failed with: {traceback.format_exc()}"
+                f"Attempted to list directories above {g.collection_dir} but failed with: {traceback.format_exc()}"
             )
-            available_revisions = [collection_dir]
-
+            available_revisions = [g.current_revision]
         return jsonify(
-            {"latest": collection_dir, "available-revisions": available_revisions}
+            {"latest": g.current_revision, "available-revisions": available_revisions}
         )
 
 
-class ModelsByRevisionListView(Resource):
-    """
-    List the models which can be served for a given revision
-    """
-
-    @api.doc(description="Available models for a given revision.")
-    def get(self, gordo_project: str, revision: str):
-        collection_dir = os.environ[current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]]
-        try:
-            available_models = os.listdir(os.path.join(collection_dir, "..", revision))
-        except FileNotFoundError:
-            logger.debug(f"Request for models under revision '{revision}' not found.")
-            return make_response(jsonify({"error": f"No revision: '{revision}'"}), 404)
-        else:
-            return jsonify(available_models)
-
-
 api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
-api.add_resource(
-    ModelsByRevisionListView, "/gordo/v0/<gordo_project>/models/<revision>"
-)
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
 api.add_resource(
     MetaDataView,

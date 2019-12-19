@@ -6,13 +6,16 @@ Running this module will run the application using Flask's development webserver
 Gunicorn can be used to run the application as `gevent` async workers by using the
 :func:`~gordo_components.server.server.run_server` function.
 """
+import os
+import json
 import logging
 import timeit
 import typing
-from functools import wraps
 import subprocess
+from functools import wraps
 
-from flask import Flask, g
+
+from flask import Flask, g, request, current_app, make_response, jsonify
 from gordo_components.server import views
 
 logger = logging.getLogger(__name__)
@@ -116,6 +119,36 @@ def build_app():
     @app.before_request
     def _start_timer():
         g.start_time = timeit.default_timer()
+
+    @app.before_request
+    def _set_revision_and_collection_dir():
+        g.collection_dir = os.environ[
+            current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]
+        ]
+        g.current_revision = os.path.basename(g.collection_dir)
+
+        # If a specific revision was requested, update collection_dir
+        g.revision = request.args.get("revision") or request.headers.get("revision")
+        if g.revision:
+            g.collection_dir = os.path.join(g.collection_dir, "..", g.revision)
+            try:
+                os.listdir(g.collection_dir)  # List dir to ensure it exists
+            except FileNotFoundError:
+                return make_response(
+                    jsonify({"error": f"Revision '{g.revision}' not found."}), 410
+                )
+        else:
+            g.revision = g.current_revision
+
+    @app.after_request
+    def _revision_used(response):
+        if 200 <= response.status_code <= 299:
+            if response.is_json:
+                data = response.get_json()
+                data["revision"] = g.revision
+                response.set_data(json.dumps(data).encode())
+            response.headers["revision"] = g.revision
+        return response
 
     @app.after_request
     def _log_time_taken(response):
