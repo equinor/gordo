@@ -170,10 +170,11 @@ By this restriction, additional _features_ are calculated and returned (dependin
 
 For example, the :class:`gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector` will return the following:
 
-- ``tag-anomaly``:
-    - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat)
-- ``total-anomaly``:
-    - This is the total anomaly for the given point as calculated by the model.
+- ``tag-anomaly-scaled`` & ``tag-anomaly-unscaled``:
+    - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat),
+    using scaled and unscaled values.
+- ``total-anomaly-scaled`` & ``total-anomaly-unscaled``:
+    - This is the total anomaly for the given point as calculated by the model, using scaled and unscaled values.
 
 Sample response:
 
@@ -215,23 +216,23 @@ Sample response:
                               '2019-01-01 08:00:00': '2019-01-01T08:00:00',
                               '2019-01-01 16:00:00': '2019-01-01T16:00:00',
                               '2019-01-02 00:00:00': '2019-01-02T00:00:00'}},
-          'tag-anomaly': {'TARGET-TAG-1': {'2019-01-01 00:00:00': 43.9791088965509,
-                                           '2019-01-01 08:00:00': 42.564846544761124,
-                                           '2019-01-01 16:00:00': 41.15033623847873,
-                                           '2019-01-02 00:00:00': 39.73552676971069},
-                          'TARGET-TAG-2': {'2019-01-01 00:00:00': 42.73147969197182,
-                                           '2019-01-01 08:00:00': 41.310514834943056,
-                                           '2019-01-01 16:00:00': 39.88905753340811,
-                                           '2019-01-02 00:00:00': 38.46702390945659},
-                          'TARGET-TAG-3': {'2019-01-01 00:00:00': 26.2922285259887,
-                                           '2019-01-01 08:00:00': 25.005235450434874,
-                                           '2019-01-01 16:00:00': 23.71884761692332,
-                                           '2019-01-02 00:00:00': 22.43317081979476}},
-          'total-anomaly': {'total-anomaly': {'2019-01-01 00:00:00': 66.71898273252445,
-                                              '2019-01-01 08:00:00': 64.37069672792737,
-                                              '2019-01-01 16:00:00': 62.024759698996235,
-                                              '2019-01-02 00:00:00': 59.68141393388054}}},
- 'time-seconds': '0.1623'}
+          'tag-anomaly-scaled': {'TARGET-TAG-1': {'2019-01-01 00:00:00': 43.9791088965509,
+                                                  '2019-01-01 08:00:00': 42.564846544761124,
+                                                  '2019-01-01 16:00:00': 41.15033623847873,
+                                                  '2019-01-02 00:00:00': 39.73552676971069},
+                                 'TARGET-TAG-2': {'2019-01-01 00:00:00': 42.73147969197182,
+                                                  '2019-01-01 08:00:00': 41.310514834943056,
+                                                  '2019-01-01 16:00:00': 39.88905753340811,
+                                                  '2019-01-02 00:00:00': 38.46702390945659},
+                                 'TARGET-TAG-3': {'2019-01-01 00:00:00': 26.2922285259887,
+                                                  '2019-01-01 08:00:00': 25.005235450434874,
+                                                  '2019-01-01 16:00:00': 23.71884761692332,
+                                                  '2019-01-02 00:00:00': 22.43317081979476}},
+          'total-anomaly-scaled': {'total-anomaly-scaled': {'2019-01-01 00:00:00': 66.71898273252445,
+                                                            '2019-01-01 08:00:00': 64.37069672792737,
+                                                            '2019-01-01 16:00:00': 62.024759698996235,
+                                                            '2019-01-02 00:00:00': 59.68141393388054}}},
+    'time-seconds': '0.1623'}
 
 
 
