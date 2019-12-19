@@ -151,7 +151,12 @@ def test_list_revisions_listdir_fail(caplog):
 )
 def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
     """
-    Server returns expected models it can serve under specific revisions
+    Server returns expected models it can serve under specific revisions.
+
+    revision_to_models: Dict[str, Tuple[str, ...]]
+        Map revision codes to models belonging to that revision.
+        Simulate serving some revision, but having access to other
+        revisions and its models.
     """
 
     # Current collection dir for the server, order isn't important.
