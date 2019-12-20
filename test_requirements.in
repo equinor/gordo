@@ -1,7 +1,7 @@
 -c requirements.txt
 docker~=4.0
 pytest~=5.3
-pytest-xdist~=1.26  # Parallelises the test-runs
+pytest-xdist~=1.31  # Parallelises the test-runs
 pytest-mock~=1.13
 pytest-mypy~=0.4
 pytest-timeout~=1.3
