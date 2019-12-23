@@ -104,8 +104,8 @@ def test_build_use_registry(runner, tmp_dir, machine):
     # The metadata contains the model build date, so if it got rebuilt these two
     # would be different
     assert (
-        first_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
-        == second_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
+        first_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
+        == second_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
     )
 
 
@@ -149,8 +149,8 @@ def test_build_use_registry_bust_cache(runner, tmp_dir, machine):
     # The metadata contains the model build date, so if it got rebuilt these two
     # would be different
     assert (
-        first_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
-        != second_metadata["metadata"]["build-metadata"]["model"]["model-creation-date"]
+        first_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
+        != second_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
     )
 
 
@@ -336,14 +336,14 @@ def test_build_cv_mode_build_only(runner: CliRunner, tmp_dir: str, machine: Mach
         with open(metadata_file) as f:
             metadata_json = json.loads(f.read())
             assert (
-                metadata_json["metadata"]["build-metadata"]["model"][
-                    "cross-validation"
-                ]["cv-duration-sec"]
+                metadata_json["metadata"]["build_metadata"]["model"][
+                    "cross_validation"
+                ]["cv_duration_sec"]
                 is None
             )
             assert (
-                metadata_json["metadata"]["build-metadata"]["model"][
-                    "cross-validation"
+                metadata_json["metadata"]["build_metadata"]["model"][
+                    "cross_validation"
                 ]["scores"]
                 == {}
             )

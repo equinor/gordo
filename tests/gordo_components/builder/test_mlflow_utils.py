@@ -7,6 +7,7 @@ import mock
 import pytest
 
 import gordo_components.builder.mlflow_utils as mlu
+from gordo_components.machine import Machine
 
 
 def test_validate_dict():
@@ -183,6 +184,7 @@ def test_get_batch_kwargs(metadata):
     """
     Test that dicts are correctly converted to MLflow types or errors raised
     """
+    metadata = Machine(**metadata)
 
     def _test_mlflow_batch_arg_types(metadata):
         batch_kwargs = mlu.get_batch_kwargs(metadata)
@@ -191,14 +193,6 @@ def test_get_batch_kwargs(metadata):
         assert all(type(p) == Param for p in batch_kwargs["params"])
 
     # With cross validation and metric scores
-    _test_mlflow_batch_arg_types(metadata)
-
-    # With cross validation, no scores
-    metadata["metadata"]["build-metadata"]["model"]["cross-validation"].pop("scores")
-    _test_mlflow_batch_arg_types(metadata)
-
-    # no cross validation or scores
-    metadata["metadata"]["build-metadata"]["model"].pop("cross-validation")
     _test_mlflow_batch_arg_types(metadata)
 
 
@@ -251,7 +245,7 @@ def test_mlflow_context_log_metadata(MockClient, tmp_dir, metadata):
     """
     Test that call to wrapped function initiates MLflow logging or throws warning
     """
-
+    metadata = Machine(**metadata)
     mlflow.set_tracking_uri(f"file:{tmp_dir}")
 
     mock_client = MockClient()

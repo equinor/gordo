@@ -176,7 +176,9 @@ def metadata(ctx: click.Context, output_file: typing.Optional[typing.IO[str]]):
     Get metadata from a given endpoint
     """
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
-    metadata = client.get_metadata()
+    metadata = {
+        k: v.to_dict() for k, v in client.get_metadata().items()  # type: ignore
+    }
     if output_file:
         json.dump(metadata, output_file)
         click.secho(f"Saved metadata json to file: '{output_file}'")

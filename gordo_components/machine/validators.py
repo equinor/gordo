@@ -97,8 +97,12 @@ class ValidMetadata(BaseDescriptor):
     """
 
     def __set__(self, instance, value):
-        if value is not None and not isinstance(value, dict):
-            raise ValueError(f"Can either be None or an instance of dict")
+        from gordo_components.machine.metadata import Metadata
+
+        if value is not None and not any(
+            isinstance(value, Obj) for Obj in (dict, Metadata)
+        ):
+            raise ValueError(f"Can either be None or an instance of dict or Metadata")
         instance.__dict__[self.name] = value
 
 

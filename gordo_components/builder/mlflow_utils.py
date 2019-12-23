@@ -18,6 +18,7 @@ from mlflow.tracking import MlflowClient
 import numpy as np
 from pytz import UTC
 
+from gordo_components.machine import Machine
 from gordo_components.machine.dataset.sensor_tag import normalize_sensor_tags
 
 logger = logging.getLogger(__name__)
@@ -181,51 +182,7 @@ def epoch_now() -> int:
     return _datetime_to_ms_since_epoch(datetime.now(tz=UTC))
 
 
-def get_params(d: dict, keys: List[str]) -> List[Param]:
-    """
-    Extract list of keys and their values from a dictionary as MLflow Params
-
-    Parameters
-    ----------
-    d: dict
-        Dictionary to extract key, value pairs from.
-    keys: List[str]
-        List of keys to extract.
-
-    Returns
-    -------
-    param_list: List[Param]
-        List of extracted key, value pairs stored as `mlflow.entities.Param`s.
-    """
-    param_list: List[Param] = list()
-    for k in keys:
-        if k in d:
-            param_list.append(
-                Param(k, d[k].isoformat() if type(d[k]) is datetime else str(d[k]))
-            )
-    return param_list
-
-
-def get_metrics(d: dict, keys: List[str]) -> List[Metric]:
-    """
-    Extract list of keys and their values from a dictionary as MLflow Metrics
-
-    Parameters
-    ----------
-    d: dict
-        Dictionary to extract key, value pairs from.
-    keys: List[str]
-        List of keys to extract.
-
-    Returns
-    -------
-    param_list: List[Metric]
-        List of extracted key, value pairs stored as `mlflow.entities.Metric`s.
-    """
-    return [Metric(k, float(d[k]), epoch_now(), 0) for k in keys if k in d]
-
-
-def get_batch_kwargs(metadata: dict) -> dict:
+def get_batch_kwargs(machine: Machine) -> dict:
     """
     Create flat lists of MLflow logging entities from multilevel dictionary
 
@@ -234,8 +191,7 @@ def get_batch_kwargs(metadata: dict) -> dict:
 
     Parameters
     ----------
-    metadata: dict
-        Multi-level dictionary with (key, value) loggables to parse.
+    machine: Machine
 
     Returns
     -------
@@ -247,87 +203,80 @@ def get_batch_kwargs(metadata: dict) -> dict:
     """
 
     metric_list: List[Metric] = list()
-    build_metadata = metadata["metadata"]["build-metadata"]
+    build_metadata = machine.metadata.build_metadata
 
     # Project/machine parameters
-    param_list = get_params(metadata, ["project-name", "name"])
+    keys = ["project_name", "name"]
+    param_list = [Param(attr, getattr(machine, attr)) for attr in keys]
 
     # Dataset parameters
     dataset_keys = [
         "train_start_date",
         "train_end_date",
         "resolution",
-        "filter",
+        "row_filter",
         "row_filter_buffer_size",
     ]
-    param_list += get_params(metadata["dataset"], dataset_keys)
+    param_list.extend(Param(k, str(getattr(machine.dataset, k))) for k in dataset_keys)
 
     # Model parameters
-    model_keys = ["model-creation-date", "model-builder-version", "model-offset"]
-    param_list += get_params(build_metadata["model"], model_keys)
+    model_keys = ["model_creation_date", "model_builder_version", "model_offset"]
+    param_list.extend(
+        Param(k, str(getattr(build_metadata.model, k))) for k in model_keys
+    )
 
     # Parse cross-validation split metadata
-    try:
-        splits = build_metadata["model"]["cross-validation"]["splits"]
-    except KeyError:
-        logger.debug(
-            "Key 'build-metadata.model.cross-validation.splits' not found found in metadata."
-        )
-    else:
-        param_list += get_params(splits, splits.keys())
+    splits = build_metadata.model.cross_validation.splits
+    param_list.extend(Param(k, str(v)) for k, v in splits.items())
 
     # Parse cross-validation metrics
-    try:
-        tag_list = normalize_sensor_tags(
-            metadata["dataset"]["tag_list"], asset=metadata["dataset"]["asset"]
-        )
-        scores = build_metadata["model"]["cross-validation"]["scores"]
-    except KeyError:
-        logger.debug(
-            "Key 'build-metadata.model.cross-validation.scores' not found found in metadata."
-        )
-    else:
-        keys = sorted(list(scores.keys()))
-        subkeys = ["mean", "max", "min", "std"]
 
-        n_folds = len(scores[keys[0]]) - len(subkeys)
-        for k in keys:
-            # Skip per tag data, produces too many params for MLflow
-            if any([t.name in k for t in tag_list]):
-                continue
+    tag_list = normalize_sensor_tags(
+        machine.dataset.tag_list, asset=machine.dataset.asset
+    )
+    scores = build_metadata.model.cross_validation.scores
 
-            # Summary stats per metric
-            for sk in subkeys:
-                metric_list.append(
-                    Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0)
-                )
-            # Append value for each fold with increasing steps
-            metric_list += [
-                Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i)
-                for i in range(n_folds)
-            ]
+    keys = sorted(list(scores.keys()))
+    subkeys = ["mean", "max", "min", "std"]
+
+    n_folds = len(scores[keys[0]]) - len(subkeys)
+    for k in keys:
+        # Skip per tag data, produces too many params for MLflow
+        if any([t.name in k for t in tag_list]):
+            continue
+
+        # Summary stats per metric
+        for sk in subkeys:
+            metric_list.append(
+                Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0)
+            )
+        # Append value for each fold with increasing steps
+        metric_list.extend(
+            Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i) for i in range(n_folds)
+        )
 
     # Parse fit metrics
     try:
-        meta_params = build_metadata["model"]["history"]["params"]
+        meta_params = build_metadata.model.model_meta["history"]["params"]
     except KeyError:
         logger.debug(
             "Key 'build-metadata.model.history.params' not found found in metadata."
         )
     else:
-        metric_list += get_metrics(
-            build_metadata["model"],
-            ["data-query-duration-sec", "model-training-duration-sec"],
-        )
-        param_list += get_params(
-            meta_params, [p for p in meta_params if p != "metrics"]
+        metric_list.extend(
+            Metric(k, float(getattr(build_metadata.model, k)), epoch_now(), 0)
+            for k in ["data_query_duration_sec", "model_training_duration_sec"]
         )
         for m in meta_params["metrics"]:
-            data = build_metadata["model"]["history"][m]
-            metric_list += [
+            data = build_metadata.model.model_meta["history"][m]
+            metric_list.extend(
                 Metric(m, float(x), timestamp=epoch_now(), step=i)
                 for i, x in enumerate(data)
-            ]
+            )
+        param_list.extend(
+            Param(k, str(meta_params[k]))
+            for k in (p for p in meta_params if p != "metrics")
+        )
 
     return {"metrics": metric_list, "params": param_list}
 
@@ -466,7 +415,7 @@ def mlflow_context(
     mlflow_client.set_terminated(run_id)
 
 
-def log_metadata(mlflow_client, run_id, metadata: dict):
+def log_metadata(mlflow_client, run_id, machine: Machine):
     """
     Send logs to configured MLflow backend
 
@@ -476,18 +425,18 @@ def log_metadata(mlflow_client, run_id, metadata: dict):
         Client instance to call logging methods from.
     run_id: str
         Unique ID off MLflow Run to log to.
-    metadata: dict
-        Dictionary to log with MlflowClient.
+    machine: Machine
+        Machine to log with MlflowClient.
     """
     # Log params and metrics
-    mlflow_client.log_batch(run_id, **get_batch_kwargs(metadata))
+    mlflow_client.log_batch(run_id, **get_batch_kwargs(machine))
 
     # Send configs as JSON artifacts
     try:
         with tempfile.TemporaryDirectory("./") as tmp_dir:
             fp = os.path.join(tmp_dir, f"metadata.json")
             with open(fp, "w") as fh:
-                json.dump(metadata, fh, cls=MetadataEncoder)
+                json.dump(machine.to_dict(), fh, cls=MetadataEncoder)
             mlflow_client.log_artifacts(run_id, local_dir=tmp_dir)
     # Map to MlflowLoggingError for coding errors in the model builder
     except Exception as e:

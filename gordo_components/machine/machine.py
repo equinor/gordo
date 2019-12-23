@@ -12,6 +12,7 @@ from gordo_components.machine.validators import (
     ValidDataset,
     ValidMachineRuntime,
 )
+from gordo_components.machine.metadata import Metadata
 from gordo_components.workflow.workflow_generator.helpers import patch_dict
 
 
@@ -36,16 +37,16 @@ class Machine:
         dataset: Union[GordoBaseDataset, dict],
         project_name: str,
         evaluation: Optional[dict] = None,
-        metadata=None,
+        metadata: Optional[Union[dict, Metadata]] = None,
         runtime=None,
     ):
 
         if runtime is None:
             runtime = dict()
-        if metadata is None:
-            metadata = dict()
         if evaluation is None:
             evaluation = dict(cv_mode="full_build")
+        if metadata is None:
+            metadata = dict()
         self.name = name
         self.model = model
         self.dataset = (
@@ -55,8 +56,11 @@ class Machine:
         )
         self.runtime = runtime
         self.evaluation = evaluation
-
-        self.metadata = metadata
+        self.metadata = (
+            metadata
+            if isinstance(metadata, Metadata)
+            else Metadata.from_dict(metadata)  # type: ignore
+        )
         self.project_name = project_name
 
         self.host = f"gordoserver-{self.project_name}-{self.name}"
@@ -82,10 +86,12 @@ class Machine:
             config_globals.get("evaluation", dict()), config.get("evaluation", dict())
         )
 
-        metadata = {
-            "global-metadata": config_globals.get("metadata", dict()),
-            "machine-metadata": config.get("metadata", dict()),
-        }
+        metadata = Metadata(
+            user_defined={
+                "global-metadata": config_globals.get("metadata", dict()),
+                "machine-metadata": config.get("metadata", dict()),
+            }
+        )
         return cls(
             name,
             model,
@@ -107,7 +113,7 @@ class Machine:
             "name": self.name,
             "dataset": self.dataset.to_dict(),
             "model": self.model,
-            "metadata": self.metadata,
+            "metadata": self.metadata.to_dict(),
             "runtime": self.runtime,
             "project_name": self.project_name,
             "evaluation": self.evaluation,

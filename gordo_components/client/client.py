@@ -25,6 +25,7 @@ from gordo_components.client.utils import PredictionResult
 from gordo_components.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo_components.server import utils as server_utils
 from gordo_components.machine import Machine
+from gordo_components.machine.metadata import Metadata
 
 
 logger = logging.getLogger(__name__)
@@ -274,7 +275,7 @@ class Client:
         )
         if resp.ok:
             metadata = resp.json()["metadata"]
-            return Machine.from_config(metadata, project_name=self.project_name)
+            return Machine(**metadata)
         else:
             raise IOError(
                 f"Unable to create machine '{name}': {resp.content.decode(errors='ignore')}"
@@ -292,7 +293,7 @@ class Client:
         models = dict()
         for machine in self.machines:
             resp = self.session.get(
-                f"{self.base_url}/gordo/v0/{machine.project_name}/{machine.name}/download-model"
+                f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}/download-model"
             )
             if resp.ok:
                 models[machine.name] = serializer.loads(resp.content)
@@ -300,7 +301,7 @@ class Client:
                 raise IOError(f"Failed to download model: '{repr(resp.content)}'")
         return models
 
-    def get_metadata(self, force_refresh: bool = False) -> typing.Dict[str, dict]:
+    def get_metadata(self, force_refresh: bool = False) -> typing.Dict[str, Metadata]:
         """
         Get the metadata for each target
 
@@ -311,7 +312,7 @@ class Client:
 
         Returns
         -------
-        Dict[str, dict]
+        Dict[str, Metadata]
             Mapping of target names to their metadata
         """
         if hasattr(self, "metadata_") and not force_refresh:
@@ -319,7 +320,9 @@ class Client:
 
         if force_refresh:
             self.machines = self.get_machines()  # Forced refresh if
-        self.metadata_: Dict[str, dict] = {ep.name: ep.metadata for ep in self.machines}
+        self.metadata_: Dict[str, Metadata] = {
+            ep.name: ep.metadata for ep in self.machines
+        }
         return self.metadata_.copy()
 
     def predict(
@@ -461,7 +464,7 @@ class Client:
         """
 
         kwargs: Dict[str, Any] = dict(
-            url=f"{self.base_url}/gordo/v0/{machine.project_name}/{machine.name}{self.prediction_path}{self.query}"
+            url=f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}{self.prediction_path}{self.query}"
         )
 
         # We're going to serialize the data as either JSON or Arrow
@@ -481,6 +484,7 @@ class Client:
             }
 
         # Start attempting to get predictions for this batch
+
         for current_attempt in itertools.count(start=1):
             try:
                 try:
@@ -489,7 +493,7 @@ class Client:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
-                    ] = f"{self.base_url}/gordo/v0/{machine.project_name}/{machine.name}{self.prediction_path}{self.query}"
+                    ] = f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}{self.prediction_path}{self.query}"
                     resp = _handle_response(self.session.post(**kwargs))
             # If it was an IO or TimeoutError, we can retry
             except (
@@ -565,13 +569,8 @@ class Client:
         # We want to adjust for any model offset. If the model outputs less than it got in, it requires
         # extra data than what we're being asked to get predictions for.
         # just to give us some buffer zone.
-        resolution = machine.dataset.to_dict().get("resolution", "10T")
-        n_intervals = (
-            machine.metadata["machine-metadata"]["build-metadata"]["model"].get(
-                "model-offset", 0
-            )
-            + 5
-        )
+        resolution = machine.dataset.resolution
+        n_intervals = machine.metadata.build_metadata.model.model_offset + 5
         start = self._adjust_for_offset(
             dt=start, resolution=resolution, n_intervals=n_intervals
         )

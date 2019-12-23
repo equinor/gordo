@@ -29,6 +29,11 @@ from gordo_components.machine.model.base import GordoBase
 from gordo_components.machine.model.utils import metric_wrapper
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo_components.machine import Machine
+from gordo_components.machine.metadata import (
+    BuildMetadata,
+    ModelBuildMetadata,
+    CrossValidationMetaData,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +66,7 @@ class ModelBuilder:
         >>> builder = ModelBuilder(machine=machine)
         >>> model, metadata = builder.build()
         """
-        self.machine = copy.copy(machine)
+        self.machine = copy.deepcopy(machine)
 
     @property
     def cached_model_path(self) -> Union[os.PathLike, str, None]:
@@ -76,7 +81,7 @@ class ModelBuilder:
         output_dir: Optional[Union[os.PathLike, str]] = None,
         model_register_dir: Optional[Union[os.PathLike, str]] = None,
         replace_cache=False,
-    ) -> Tuple[sklearn.base.BaseEstimator, dict]:
+    ) -> Tuple[sklearn.base.BaseEstimator, Machine]:
         """
         Always return a model and its metadata.
 
@@ -104,7 +109,7 @@ class ModelBuilder:
             Built model and an updated ``Machine``
         """
         if not model_register_dir:
-            model, metadata = self._build()
+            model, machine = self._build()
         else:
             logger.debug(
                 f"Model caching activated, attempting to read model-location with key "
@@ -121,15 +126,16 @@ class ModelBuilder:
             if self.cached_model_path:
                 model = serializer.load(self.cached_model_path)
                 metadata = serializer.load_metadata(self.cached_model_path)
-                metadata["metadata"]["user-defined"] = self.machine.metadata
+                metadata["metadata"][
+                    "user_defined"
+                ] = self.machine.metadata.user_defined
+                machine = Machine(**metadata)
 
             # Otherwise build and cache the model
             else:
-                model, metadata = self._build()
+                model, machine = self._build()
                 self.cached_model_path = self._save_model(
-                    model=model,
-                    metadata=metadata,
-                    output_dir=output_dir,  # type: ignore
+                    model=model, metadata=machine, output_dir=output_dir  # type: ignore
                 )
                 logger.info(f"Built model, and deposited at {self.cached_model_path}")
                 logger.info(f"Writing model-location to model registry")
@@ -138,15 +144,13 @@ class ModelBuilder:
                 )
 
         # Save model to disk, if we're not building for cv only purposes.
-        if output_dir and (
-            self.machine.evaluation.get("cv_mode", None) != "cross_val_only"
-        ):
+        if output_dir and (self.machine.evaluation.get("cv_mode") != "cross_val_only"):
             self.cached_model_path = self._save_model(
-                model=model, metadata=metadata, output_dir=output_dir
+                model=model, metadata=machine, output_dir=output_dir
             )
-        return model, metadata
+        return model, machine
 
-    def _build(self) -> Tuple[sklearn.base.BaseEstimator, dict]:
+    def _build(self) -> Tuple[sklearn.base.BaseEstimator, Machine]:
         """
         Build the model using the current state of the Builder
 
@@ -180,7 +184,7 @@ class ModelBuilder:
         machine: Machine = Machine(
             name=self.machine.name,
             dataset=self.machine.dataset.to_dict(),
-            metadata={"user-defined": self.machine.metadata},
+            metadata=self.machine.metadata,
             model=self.machine.model,
             project_name=self.machine.project_name,
             evaluation=self.machine.evaluation,
@@ -241,16 +245,16 @@ class ModelBuilder:
 
             # If cross_val_only, return without fitting to the whole dataset
             if self.machine.evaluation["cv_mode"] == "cross_val_only":
-                machine.metadata["build-metadata"] = {
-                    "model": {
-                        "cross-validation": {
-                            "cv-duration-sec": cv_duration_sec,
-                            "scores": scores,
-                            "splits": split_metadata,
-                        }
-                    }
-                }
-                return model, machine.to_dict()
+                machine.metadata.build_metadata = BuildMetadata(
+                    model=ModelBuildMetadata(
+                        cross_validation=CrossValidationMetaData(
+                            cv_duration_sec=cv_duration_sec,
+                            scores=scores,
+                            splits=split_metadata,
+                        )
+                    )
+                )
+                return model, machine
 
         # Train
         logger.debug("Starting to train model.")
@@ -259,26 +263,24 @@ class ModelBuilder:
         time_elapsed_model = time.time() - start
 
         # Build specific metadata
-        machine.metadata["build-metadata"] = dict(
-            model={
-                "model-offset": self._determine_offset(model, X),
-                "model-creation-date": str(
+        machine.metadata.build_metadata = BuildMetadata(
+            model=ModelBuildMetadata(
+                model_offset=self._determine_offset(model, X),
+                model_creation_date=str(
                     datetime.datetime.now(datetime.timezone.utc).astimezone()
                 ),
-                "model-builder-version": __version__,
-                "data-query-duration-sec": time_elapsed_data,
-                "model-training-duration-sec": time_elapsed_model,
-                "cross-validation": {
-                    "cv-duration-sec": cv_duration_sec,
-                    "scores": scores,
-                    "splits": split_metadata,
-                },
-            }
+                model_builder_version=__version__,
+                data_query_duration_sec=time_elapsed_data,
+                model_training_duration_sec=time_elapsed_model,
+                cross_validation=CrossValidationMetaData(
+                    cv_duration_sec=cv_duration_sec,
+                    scores=scores,
+                    splits=split_metadata,
+                ),
+                model_meta=self._extract_metadata_from_model(model),
+            )
         )
-        machine.metadata["build-metadata"]["model"].update(
-            self._extract_metadata_from_model(model)
-        )
-        return model, machine.to_dict()
+        return model, machine
 
     def set_seed(self, seed: int):
         logger.info(f"Setting random seed: '{seed}'")
@@ -414,7 +416,9 @@ class ModelBuilder:
 
     @staticmethod
     def _save_model(
-        model: BaseEstimator, metadata: dict, output_dir: Union[os.PathLike, str]
+        model: BaseEstimator,
+        metadata: Union[Machine, dict],
+        output_dir: Union[os.PathLike, str],
     ):
         """
         Save the model according to the expected Argo workflow procedure.
@@ -423,8 +427,8 @@ class ModelBuilder:
         ----------
         model: BaseEstimator
             The model to save to the directory with gordo serializer.
-        metadata: dict
-            Various mappings of metadata to save alongside model.
+        machine: Union[Machine, dict]
+            Machine instance used to build this model.
         output_dir: Union[os.PathLike, str]
             The directory where to save the model, will create directories if needed.
 
@@ -434,7 +438,11 @@ class ModelBuilder:
             Path to the saved model
         """
         os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
-        serializer.dump(model, output_dir, metadata=metadata)
+        serializer.dump(
+            model,
+            output_dir,
+            metadata=metadata.to_dict() if isinstance(metadata, Machine) else metadata,
+        )
         return output_dir
 
     @staticmethod

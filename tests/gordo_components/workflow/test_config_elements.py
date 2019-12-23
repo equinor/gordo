@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import pytest
 import yaml
 
+from gordo_components import __version__
 from gordo_components.machine.dataset.datasets import TimeSeriesDataset
 from gordo_components.machine import Machine
 from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
@@ -161,7 +162,27 @@ def test_machine_from_config(default_globals: dict):
             ],
             "scoring_scaler": None,
         },
-        "metadata": {"global-metadata": {}, "machine-metadata": {"id": "special-id"}},
+        "metadata": {
+            "build_metadata": {
+                "model": {
+                    "cross_validation": {
+                        "cv_duration_sec": None,
+                        "scores": {},
+                        "splits": {},
+                    },
+                    "data_query_duration_sec": None,
+                    "model_builder_version": __version__,
+                    "model_creation_date": None,
+                    "model_meta": {},
+                    "model_offset": 0,
+                    "model_training_duration_sec": None,
+                }
+            },
+            "user_defined": {
+                "global-metadata": {},
+                "machine-metadata": {"id": "special-id"},
+            },
+        },
         "model": {
             "sklearn.pipeline.Pipeline": {
                 "steps": [

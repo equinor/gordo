@@ -133,10 +133,10 @@ def build(
     builder = ModelBuilder(machine=machine)
 
     try:
-        model, metadata = builder.build(output_dir, model_register_dir)  # type: ignore
+        _, machine_out = builder.build(output_dir, model_register_dir)  # type: ignore
 
         if print_cv_scores:
-            for score in get_all_score_strings(metadata):
+            for score in get_all_score_strings(machine_out):
                 print(score)
         # If enabled, configure remote logging to AzureML, otherwise logs locally
         if machine.runtime:
@@ -146,7 +146,6 @@ def build(
                 logger.debug("Remote logging doesn't appear to be enabled.")
             else:
                 if logging_enabled:
-                    metadata.update({"project-name": machine.project_name})
                     workspace_kwargs = mlflow_utils.get_workspace_kwargs()
                     service_principal_kwargs = mlflow_utils.get_spauth_kwargs()
                     with mlflow_utils.mlflow_context(
@@ -155,7 +154,7 @@ def build(
                         workspace_kwargs,
                         service_principal_kwargs,
                     ) as (mlflow_client, run_id):
-                        mlflow_utils.log_metadata(mlflow_client, run_id, metadata)
+                        mlflow_utils.log_metadata(mlflow_client, run_id, machine_out)
 
     except Exception as e:
         exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
@@ -199,7 +198,7 @@ def expand_model(model_config: str, model_parameters: dict):
     return yaml.safe_load(model_config)
 
 
-def get_all_score_strings(metadata):
+def get_all_score_strings(machine):
     """Given metadata from the model builder this function returns a list of
     strings of the following format:
     {metric_name}-{tag_name}_{fold-fold-number} = {score_val}.  This computes the score for the given tag and
@@ -220,48 +219,13 @@ def get_all_score_strings(metadata):
 
     Parameters
     ----------
-    metadata : dict
-        Metadata dictionary. Must contain a dictionary in
-        metadata.model.cross-validation.scores with at least one metric as key and
-        value being another map with score key/values. See example
-
-    Examples
-    --------
-    >>> score_strings = get_all_score_strings(
-    ...  {
-    ...     "metadata": {
-    ...         "build-metadata": {
-    ...             "model": {
-    ...                 "cross-validation": {
-    ...                     "scores": {
-    ...                         "explained variance tag 0": {"fold_1": 0, "fold_2": 0.9, "fold_3": 0.1,"min": 0.1, "max": 0.9, "mean": 1/3},
-    ...                         "explained variance tag 1": {"fold_1": 0.2, "fold_2": 0.3, "fold_3": 0.6, "min": 0.2, "max": 0.6, "mean": 0.3666666666666667},
-    ...                         "explained variance" : {"min": 0.1, "max": 0.6, "mean": 0.3499999999999999},
-    ...                         "r2 score tag 0" : {"fold_1": 0.8, "fold_2": 0.5, "fold_3": 0.6, "min": 0.5, "max": 0.8, "mean": 0.6333333333333333},
-    ...                         "r2 score tag 1" : {"fold_1": 0.4, "fold_2": 0.3, "fold_3": 0.5, "min": 0.3, "max": 0.5, "mean": 0.39999999999999997},
-    ...                         "r2 score"  : {"min": 0.4,"max": 0.6, "mean": 0.5166666666666666}
-    ...                     }
-    ...                 }
-    ...             }
-    ...         }
-    ...     }
-    ... }
-    ... )
-    >>> len(score_strings)
-    30
-    >>> score_strings
-    ['explained-variance-tag-0_fold_1=0', 'explained-variance-tag-0_fold_2=0.9', 'explained-variance-tag-0_fold_3=0.1', 'explained-variance-tag-0_min=0.1', 'explained-variance-tag-0_max=0.9', 'explained-variance-tag-0_mean=0.3333333333333333', 'explained-variance-tag-1_fold_1=0.2', 'explained-variance-tag-1_fold_2=0.3', 'explained-variance-tag-1_fold_3=0.6', 'explained-variance-tag-1_min=0.2', 'explained-variance-tag-1_max=0.6', 'explained-variance-tag-1_mean=0.3666666666666667', 'explained-variance_min=0.1', 'explained-variance_max=0.6', 'explained-variance_mean=0.3499999999999999', 'r2-score-tag-0_fold_1=0.8', 'r2-score-tag-0_fold_2=0.5', 'r2-score-tag-0_fold_3=0.6', 'r2-score-tag-0_min=0.5', 'r2-score-tag-0_max=0.8', 'r2-score-tag-0_mean=0.6333333333333333', 'r2-score-tag-1_fold_1=0.4', 'r2-score-tag-1_fold_2=0.3', 'r2-score-tag-1_fold_3=0.5', 'r2-score-tag-1_min=0.3', 'r2-score-tag-1_max=0.5', 'r2-score-tag-1_mean=0.39999999999999997', 'r2-score_min=0.4', 'r2-score_max=0.6', 'r2-score_mean=0.5166666666666666']
-
+    machine : Machine
     """
     all_scores = []
-    for metric_name, scores in (
-        metadata.get("metadata", dict())
-        .get("build-metadata", dict())
-        .get("model", dict())
-        .get("cross-validation", dict())
-        .get("scores", dict())
-        .items()
-    ):
+    for (
+        metric_name,
+        scores,
+    ) in machine.metadata.build_metadata.model.cross_validation.scores.items():
         metric_name = metric_name.replace(" ", "-")
         for score_name, score_val in scores.items():
             score_name = score_name.replace(" ", "-")
