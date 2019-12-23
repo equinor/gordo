@@ -566,6 +566,10 @@ def test_client_auto_update_revision(ml_server, gordo_project, gordo_revision):
     assert client.revision == "bad-revision"
 
     # Contacting the server with that revision will make the client update its revision
-    client.get_machines()
-    assert client.revision == gordo_revision
-    assert client.session.headers["revision"] == gordo_revision
+    with patch.object(client, "get_metadata") as get_metadata:
+        client.get_machines()
+        assert client.revision == gordo_revision
+        assert client.session.headers["revision"] == gordo_revision
+
+        # It should also make a call to update the metadata
+        assert get_metadata.called_once()

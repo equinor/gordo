@@ -114,8 +114,6 @@ class Client:
         self.data_provider = data_provider
         self.use_parquet = use_parquet
         self.project_name = project
-        self.session = session or requests.Session()
-        self.revision = revision
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -125,6 +123,9 @@ class Client:
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
         self.target = target
+        self.session = session or requests.Session()
+        self.revision = revision
+
         self.machines = self.get_machines()
 
     @property
@@ -187,6 +188,7 @@ class Client:
 
         # Update session headers, to send the revision we want.
         self.session.headers.update({"revision": self._revision})
+        self.get_metadata(force_refresh=True)
 
     def get_machines(self) -> List[Machine]:
         # Thread safe single access and updating of machines.
