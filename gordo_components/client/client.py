@@ -57,6 +57,7 @@ class Client:
         n_retries: int = 5,
         use_parquet: bool = False,
         session: requests.Session = requests.Session(),
+        revision: Optional[str] = None,
     ):
         """
 
@@ -100,6 +101,9 @@ class Client:
             is used for sending the data back and forth.
         session: requests.Session
             The http session object to use for making requests.
+        revision: Optional[str]
+            Specific project revision to use when connecting to the server.
+            Defaults to asking the server for the latest revision its capable of serving.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -110,6 +114,7 @@ class Client:
         self.use_parquet = use_parquet
         self.session = session
         self.project_name = project
+        self.revision = revision
 
         # Default, failing back to /prediction on http code 422
         self.prediction_path = "/anomaly/prediction"
@@ -120,6 +125,39 @@ class Client:
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
         self.target = target
         self.machines = self.get_machines()
+
+    @property
+    def revision(self):
+        """
+        Revision being used against the server
+        """
+        return self._revision
+
+    @revision.setter
+    def revision(self, revision: str):
+        """
+        Verifies the server can satisfy this revision
+        """
+        resp = self.session.get(
+            f"{self.base_url}/gordo/v0/{self.project_name}/revisions"
+        )
+        if resp.ok:
+            if revision:
+                supported_revisions = resp.json()["available-revisions"]
+                if revision not in supported_revisions:
+                    raise LookupError(
+                        f"Revision '{revision}' cannot be served "
+                        f"from revisions: {supported_revisions}"
+                    )
+                else:
+                    self._revision = revision
+            else:
+                self._revision = resp.json()["latest"]
+        else:
+            raise IOError(f"Failed to get revisions: {resp.content.decode()}")
+
+        # Update session headers, to send the revision we want.
+        self.session.headers.update({"revision": self.revision})
 
     def get_machines(self) -> List[Machine]:
         # Thread safe single access and updating of machines.

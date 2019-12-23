@@ -65,6 +65,11 @@ def gordo_project():
 
 
 @pytest.fixture(scope="session")
+def gordo_revision():
+    return tu.GORDO_REVISION
+
+
+@pytest.fixture(scope="session")
 def api_version():
     return "v0"
 
@@ -75,9 +80,9 @@ def base_route(api_version, gordo_project, gordo_name):
 
 
 @pytest.fixture(scope="session")
-def model_collection_directory(gordo_project: str):
+def model_collection_directory(gordo_revision: str):
     with tempfile.TemporaryDirectory() as tmp_dir:
-        collection_dir = os.path.join(tmp_dir, gordo_project)
+        collection_dir = os.path.join(tmp_dir, gordo_revision)
         os.makedirs(collection_dir, exist_ok=True)
         yield collection_dir
 

@@ -43,6 +43,7 @@ INFLUXDB_FIXTURE_ARGS = (
 
 GORDO_HOST = "localhost"
 GORDO_PROJECT = "gordo-test"
+GORDO_REVISION = "1234"
 GORDO_TARGETS = ["machine-1"]
 GORDO_SINGLE_TARGET = GORDO_TARGETS[0]
 TEST_SERVER_MUTEXT = Lock()
@@ -90,7 +91,7 @@ def wait_for_influx(max_wait=120, influx_host="localhost:8086"):
 
 @contextmanager
 def ml_server_deployment(
-    host: str, project: str, targets: typing.List[str], model_location: str,
+    host: str, project: str, targets: typing.List[str], model_location: str
 ):
     """
     # TODO: This is bananas, make into a proper object with context support?

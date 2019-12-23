@@ -526,3 +526,27 @@ def test__handle_response_errors():
     resp.status_code = 502
     with pytest.raises(IOError):
         _handle_response(resp)
+
+
+@pytest.mark.parametrize("revision", (None, tu.GORDO_REVISION, "does-not-exist"))
+def test_client_set_revision(ml_server, gordo_project, revision):
+    """
+    Client will auto set and verify revision
+    """
+
+    # Default behavior is to lookup the latest revision.
+    if revision is None:
+        client = Client(project=gordo_project, revision=revision)
+        assert client.revision == tu.GORDO_REVISION
+        assert client.session.headers["revision"] == tu.GORDO_REVISION
+
+    # If we ask for a specific one, it should result in tha one.
+    elif revision == tu.GORDO_REVISION:
+        client = Client(project=gordo_project, revision=revision)
+        assert client.revision == tu.GORDO_REVISION
+        assert client.session.headers["revision"] == tu.GORDO_REVISION
+
+    # Asking for that which doesn't exist will raise an error.
+    else:
+        with pytest.raises(LookupError):
+            Client(project=gordo_project, revision=revision)
