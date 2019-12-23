@@ -147,10 +147,10 @@ def ml_server_deployment(
 
                 with TEST_SERVER_MUTEXT:
                     resp = getattr(gordo_server_app, request.method.lower())(
-                        request.path_url, **kwargs
+                        request.path_url, headers=dict(request.headers), **kwargs
                     )
                 return (
-                    200,
+                    resp.status_code,
                     resp.headers,
                     json.dumps(resp.json) if resp.json is not None else resp.data,
                 )

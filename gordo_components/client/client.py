@@ -6,6 +6,7 @@ import requests
 import logging
 import itertools
 import typing
+from functools import wraps
 from time import sleep
 from threading import Lock
 from typing import Dict, Any, List, Callable, Optional
@@ -56,7 +57,7 @@ class Client:
         forward_resampled_sensors: bool = False,
         n_retries: int = 5,
         use_parquet: bool = False,
-        session: requests.Session = requests.Session(),
+        session: Optional[requests.Session] = None,
         revision: Optional[str] = None,
     ):
         """
@@ -99,7 +100,7 @@ class Client:
             Pass the data to the server using the parquet protocol. Default is True
             and recommended as it's more efficient for larger batch sizes. If False JSON
             is used for sending the data back and forth.
-        session: requests.Session
+        session: Optional[requests.Session]
             The http session object to use for making requests.
         revision: Optional[str]
             Specific project revision to use when connecting to the server.
@@ -112,8 +113,8 @@ class Client:
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
         self.use_parquet = use_parquet
-        self.session = session
         self.project_name = project
+        self.session = session or requests.Session()
         self.revision = revision
 
         # Default, failing back to /prediction on http code 422
@@ -127,6 +128,33 @@ class Client:
         self.machines = self.get_machines()
 
     @property
+    def session(self):
+        return self._session
+
+    @session.setter
+    def session(self, session: requests.Session):
+        session.get = self._expired_revision_check(session.get)  # type: ignore
+        session.post = self._expired_revision_check(session.post)  # type: ignore
+        self._session = session
+
+    def _expired_revision_check(self, f):
+        """
+        Wrap a request function to check for 410 status codes, and update
+        the current revision if so.
+        """
+
+        @wraps(f)
+        def _wrapper(*args, **kwargs):
+            resp = f(*args, **kwargs)
+            if resp.status_code == 410:
+                self.revision = None  # Trigger updating revision
+                return f(*args, **kwargs)
+            else:
+                return resp
+
+        return _wrapper
+
+    @property
     def revision(self):
         """
         Revision being used against the server
@@ -138,9 +166,10 @@ class Client:
         """
         Verifies the server can satisfy this revision
         """
-        resp = self.session.get(
-            f"{self.base_url}/gordo/v0/{self.project_name}/revisions"
+        req = requests.Request(
+            "GET", f"{self.base_url}/gordo/v0/{self.project_name}/revisions"
         )
+        resp = self.session.send(req.prepare())
         if resp.ok:
             if revision:
                 supported_revisions = resp.json()["available-revisions"]
@@ -157,7 +186,7 @@ class Client:
             raise IOError(f"Failed to get revisions: {resp.content.decode()}")
 
         # Update session headers, to send the revision we want.
-        self.session.headers.update({"revision": self.revision})
+        self.session.headers.update({"revision": self._revision})
 
     def get_machines(self) -> List[Machine]:
         # Thread safe single access and updating of machines.

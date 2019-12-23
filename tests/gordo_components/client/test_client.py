@@ -550,3 +550,22 @@ def test_client_set_revision(ml_server, gordo_project, revision):
     else:
         with pytest.raises(LookupError):
             Client(project=gordo_project, revision=revision)
+
+
+def test_client_auto_update_revision(ml_server, gordo_project, gordo_revision):
+    """
+    Given a client starts with a revision which is outdated, it will automatically update
+    itself to match the latest being served.
+    """
+    client = Client(project=gordo_project)
+    assert client.revision == gordo_revision  # by default it figures out the latest.
+
+    # Abuse the private variable to change it to something else.
+    client.session.headers["revision"] = "bad-revision"
+    client._revision = "bad-revision"
+    assert client.revision == "bad-revision"
+
+    # Contacting the server with that revision will make the client update its revision
+    client.get_machines()
+    assert client.revision == gordo_revision
+    assert client.session.headers["revision"] == gordo_revision
