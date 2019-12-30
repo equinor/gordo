@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        component: [builder, cli, client, machine, serializer, server, util, workflow]
+        python-version: [3.6, 3.7]
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }} # Version range or exact version of a Python version to use, using semvers version range syntax.
+          architecture: 'x64'
+      - name: Install
+        run: pip install -r requirements.txt -r test_requirements.txt
+      - name: Test ${{ matrix.component }}
+        run: python setup.py test${{ matrix.component }}
+      - name: Save Coverage
+        run: |
+          mkdir -p /tmp/coverage-reports
+          mv ./coverage.xml /tmp/coverage-reports/${{ matrix.component }}-coverage.xml
+          mv ./junit/junit.xml /tmp/coverage-reports/${{ matrix.component }}-junit.xml
+      - uses: actions/upload-artifact@master
+        with:
+          name: Coverage Reports
+          path: /tmp/coverage-reports
+
+  upload-coverage-reports:
+    needs: test
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/download-artifact@master
+        with:
+          name: Coverage Reports
+          path: /tmp/coverage-reports
+      - name: Upload Reports
+        run: |
+          cp /tmp/coverage-reports/*.xml .
+          bash <(curl -s https://codecov.io/bash)
+
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
+          architecture: 'x64'
+      - name: Install deps
+        run: pip install -r requirements.txt -r dev_requirements.txt
+      - name: Build Docs
+        run: make docs
+
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build Images
+        run: make images
