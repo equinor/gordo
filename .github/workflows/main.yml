@@ -22,7 +22,7 @@ jobs:
         if: startsWith(runner.os, 'Linux')
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/*requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
