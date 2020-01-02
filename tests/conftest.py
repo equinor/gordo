@@ -1,25 +1,35 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
-import os
+import io
+import json
 import logging
+import os
+import re
 import tempfile
+from threading import Lock
 from typing import List
 from unittest.mock import patch
 
+import docker
+from flask import Request
 import pytest
+import responses
 
 from gordo_components import serializer
 from gordo_components.machine.dataset.sensor_tag import SensorTag
-from gordo_components.machine.dataset.data_provider.providers import InfluxDataProvider
+
 from gordo_components.server import server
 from gordo_components.builder.local_build import local_build
 from gordo_components.machine.dataset import sensor_tag
+from gordo_components.machine.dataset.sensor_tag import to_list_of_strings
+from gordo_components.server import server as gordo_ml_server
 
 from tests import utils as tu
 
-
 logger = logging.getLogger(__name__)
+
+TEST_SERVER_MUTEXT = Lock()
 
 
 def pytest_collection_modifyitems(items):
@@ -40,8 +50,78 @@ def check_event_loop():
 
 
 @pytest.fixture(scope="session")
+def gordo_host():
+    return "localhost"
+
+
+@pytest.fixture(scope="session")
+def gordo_project():
+    return "gordo-test"
+
+
+@pytest.fixture(scope="session")
+def gordo_name():
+    return "machine-1"
+
+
+@pytest.fixture(scope="session")
+def gordo_single_target(gordo_name):
+    return gordo_name
+
+
+@pytest.fixture(scope="session")
+def gordo_targets(gordo_single_target):
+    return [gordo_single_target]
+
+
+@pytest.fixture(scope="session")
 def sensors():
-    return tu.SENSORTAG_LIST
+    return [SensorTag(f"tag-{i}", None) for i in range(4)]
+
+
+@pytest.fixture(scope="session")
+def sensors_str(sensors):
+    return to_list_of_strings(sensors)
+
+
+@pytest.fixture(scope="session")
+def influxdb_name():
+    return "testdb"
+
+
+@pytest.fixture(scope="session")
+def influxdb_user():
+    return "root"
+
+
+@pytest.fixture(scope="session")
+def influxdb_password():
+    return "root"
+
+
+@pytest.fixture(scope="session")
+def influxdb_measurement():
+    return "sensors"
+
+
+@pytest.fixture(scope="session")
+def influxdb_fixture_args(sensors_str, influxdb_name, influxdb_user, influxdb_password):
+    return (sensors_str, influxdb_name, influxdb_user, influxdb_password, sensors_str)
+
+
+@pytest.fixture(scope="session")
+def influxdb_uri(influxdb_user, influxdb_password, influxdb_name):
+    return f"{influxdb_user}:{influxdb_password}@localhost:8086/{influxdb_name}"
+
+
+@pytest.fixture(scope="session")
+def gordo_revision():
+    return "1234"
+
+
+@pytest.fixture(scope="session")
+def api_version():
+    return "v0"
 
 
 @pytest.fixture
@@ -51,27 +131,6 @@ def tmp_dir():
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         yield tmp_dir
-
-
-@pytest.fixture(scope="session")
-def gordo_name():
-    # One gordo-target name
-    return tu.GORDO_TARGETS[0]
-
-
-@pytest.fixture(scope="session")
-def gordo_project():
-    return tu.GORDO_PROJECT
-
-
-@pytest.fixture(scope="session")
-def gordo_revision():
-    return tu.GORDO_REVISION
-
-
-@pytest.fixture(scope="session")
-def api_version():
-    return "v0"
 
 
 @pytest.fixture(scope="session")
@@ -149,18 +208,7 @@ def metadata(trained_model_directory):
     return serializer.load_metadata(trained_model_directory)
 
 
-@pytest.fixture(
-    # Data Provider(s) per test requiring this client
-    params=[
-        InfluxDataProvider(
-            measurement="sensors",
-            value_name="Value",
-            proxies={"https": "", "http": ""},
-            uri=tu.INFLUXDB_URI,
-        )
-    ],
-    scope="session",
-)
+@pytest.fixture(scope="session")
 def gordo_ml_server_client(
     request, model_collection_directory, trained_model_directory
 ):
@@ -177,24 +225,50 @@ def gordo_ml_server_client(
 
 @pytest.fixture(scope="session")
 def base_influxdb(
-    sensors,
-    db_name=tu.INFLUXDB_NAME,
-    user=tu.INFLUXDB_USER,
-    password=tu.INFLUXDB_PASSWORD,
-    measurement=tu.INFLUXDB_MEASUREMENT,
+    sensors, influxdb_name, influxdb_user, influxdb_password, influxdb_measurement
 ):
     """
-    Fixture to yield a running influx container and pass a test.utils.InfluxDB
+    Fixture to yield a running influx container and pass a tests.utils.InfluxDB
     object which can be used to reset the db to it's original data state.
     """
-    with tu.influxdatabase(
-        sensors=sensors,
-        db_name=db_name,
-        user=user,
-        password=password,
-        measurement=measurement,
-    ) as db:
+    client = docker.from_env()
+
+    logger.info("Starting up influx!")
+    influx = None
+    try:
+        influx = client.containers.run(
+            image="influxdb:1.7-alpine",
+            environment={
+                "INFLUXDB_DB": influxdb_name,
+                "INFLUXDB_ADMIN_USER": influxdb_user,
+                "INFLUXDB_ADMIN_PASSWORD": influxdb_password,
+            },
+            ports={"8086/tcp": "8086"},
+            remove=True,
+            detach=True,
+        )
+        if not tu.wait_for_influx(influx_host="localhost:8086"):
+            raise TimeoutError("Influx failed to start")
+
+        logger.info(f"Started influx DB: {influx.name}")
+
+        # Create the interface to the running instance, set default state, and yield it.
+        db = tu.InfluxDB(
+            sensors,
+            influxdb_name,
+            influxdb_user,
+            influxdb_password,
+            influxdb_measurement,
+        )
+        db.reset()
+        logger.info("STARTED INFLUX INSTANCE")
         yield db
+
+    finally:
+        logger.info("Killing influx container")
+        if influx:
+            influx.kill()
+        logger.info("Killed influx container")
 
 
 @pytest.fixture
@@ -209,20 +283,84 @@ def influxdb(base_influxdb):
 
 @pytest.fixture(scope="module")
 def ml_server(
-    model_collection_directory,
-    trained_model_directory,
-    host=tu.GORDO_HOST,
-    project=tu.GORDO_PROJECT,
-    targets=tu.GORDO_TARGETS,
+    model_collection_directory, trained_model_directory, gordo_host, gordo_project
 ):
-    with tu.ml_server_deployment(
-        host=host,
-        project=project,
-        targets=targets,
-        model_location=model_collection_directory,
-    ):
-        # always return a valid asset for any tag name
-        with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
+    """
+    # TODO: This is bananas, make into a proper object with context support?
+
+    Mock a deployed controller deployment
+
+    Parameters
+    ----------
+    gordo_host: str
+        Host controller should pretend to run on
+    gordo_project: str
+        Project controller should pretend to care about
+    model_collection_directory: str
+        Directory of the model to use in the target(s)
+
+    Returns
+    -------
+    None
+    """
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=model_collection_directory):
+        # Create gordo ml servers
+        gordo_server_app = gordo_ml_server.build_app()
+        gordo_server_app.testing = True
+        gordo_server_app = gordo_server_app.test_client()
+
+        def gordo_ml_server_callback(request):
+            """
+            Redirect calls to a gordo server to reflect what the local testing app gives
+            will call the correct path (assuminng only single level paths) on the
+            gordo app.
+            """
+            if request.method in ("GET", "POST"):
+
+                kwargs = dict()
+                if request.body:
+                    flask_request = Request.from_values(
+                        content_length=len(request.body),
+                        input_stream=io.BytesIO(request.body),
+                        content_type=request.headers["Content-Type"],
+                        method=request.method,
+                    )
+                    if flask_request.json:
+                        kwargs["json"] = flask_request.json
+                    else:
+                        kwargs["data"] = {
+                            k: (io.BytesIO(f.read()), f.filename)
+                            for k, f in flask_request.files.items()
+                        }
+
+                with TEST_SERVER_MUTEXT:
+                    resp = getattr(gordo_server_app, request.method.lower())(
+                        request.path_url, headers=dict(request.headers), **kwargs
+                    )
+                return (
+                    resp.status_code,
+                    resp.headers,
+                    json.dumps(resp.json) if resp.json is not None else resp.data,
+                )
+
+        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
+            rsps.add_callback(
+                responses.GET,
+                re.compile(rf".*{gordo_host}.*\/gordo\/v0\/{gordo_project}\/.+"),
+                callback=gordo_ml_server_callback,
+                content_type="application/json",
+            )
+            rsps.add_callback(
+                responses.POST,
+                re.compile(rf".*{gordo_host}.*\/gordo\/v0\/{gordo_project}\/.*.\/.*"),
+                callback=gordo_ml_server_callback,
+                content_type="application/json",
+            )
+
+            rsps.add_passthru("http+docker://")  # Docker
+            rsps.add_passthru("http://localhost:8086")  # Local influx
+            rsps.add_passthru("http://localhost:8087")  # Local influx
+
             yield
 
 

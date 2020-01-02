@@ -46,7 +46,7 @@ def test_response_header_timing(base_route, gordo_ml_server_client):
     assert "request_walltime_s" in resp.headers["Server-Timing"]
 
 
-def test_metadata_endpoint(base_route, gordo_ml_server_client):
+def test_metadata_endpoint(base_route, gordo_single_target, gordo_ml_server_client):
     """
     Test the expected behavior of /metadata
     """
@@ -55,7 +55,7 @@ def test_metadata_endpoint(base_route, gordo_ml_server_client):
 
     data = resp.get_json()
     assert "metadata" in data
-    assert data["metadata"]["name"] == tu.GORDO_SINGLE_TARGET
+    assert data["metadata"]["name"] == gordo_single_target
 
 
 def test_download_model(base_route, gordo_ml_server_client):

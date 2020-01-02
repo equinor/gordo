@@ -1,51 +1,23 @@
 import os
-import io
-import json
-import typing
-import re
 import time
 import logging
 from contextlib import contextmanager
-from typing import List
 from threading import Lock
+from typing import List
 
-import docker
 import numpy as np
 import pandas as pd
 
-import responses
 import requests
 from influxdb import InfluxDBClient
-from flask import Request
+
 
 from gordo_components.machine.model import models
 from gordo_components.machine.dataset.sensor_tag import SensorTag
-from gordo_components.machine.dataset.sensor_tag import to_list_of_strings
 
 logger = logging.getLogger(__name__)
 
-SENSORTAG_LIST = [SensorTag(f"tag-{i}", None) for i in range(4)]
-SENSORS_STR_LIST = to_list_of_strings(SENSORTAG_LIST)
-INFLUXDB_NAME = "testdb"
-INFLUXDB_USER = "root"
-INFLUXDB_PASSWORD = "root"
-INFLUXDB_MEASUREMENT = "sensors"
 
-INFLUXDB_URI = f"{INFLUXDB_USER}:{INFLUXDB_PASSWORD}@localhost:8086/{INFLUXDB_NAME}"
-
-INFLUXDB_FIXTURE_ARGS = (
-    SENSORS_STR_LIST,
-    INFLUXDB_NAME,
-    INFLUXDB_USER,
-    INFLUXDB_PASSWORD,
-    SENSORS_STR_LIST,
-)
-
-GORDO_HOST = "localhost"
-GORDO_PROJECT = "gordo-test"
-GORDO_REVISION = "1234"
-GORDO_TARGETS = ["machine-1"]
-GORDO_SINGLE_TARGET = GORDO_TARGETS[0]
 TEST_SERVER_MUTEXT = Lock()
 
 
@@ -90,93 +62,6 @@ def wait_for_influx(max_wait=120, influx_host="localhost:8086"):
 
 
 @contextmanager
-def ml_server_deployment(
-    host: str, project: str, targets: typing.List[str], model_location: str
-):
-    """
-    # TODO: This is bananas, make into a proper object with context support?
-
-    Mock a deployed controller deployment
-
-    Parameters
-    ----------
-    host: str
-        Host controller should pretend to run on
-    project: str
-        Project controller should pretend to care about
-    targets:
-        Targets controller should pretend to care about
-    model_location: str
-        Directory of the model to use in the target(s)
-
-    Returns
-    -------
-    None
-    """
-    from gordo_components.server import server as gordo_ml_server
-
-    with temp_env_vars(MODEL_COLLECTION_DIR=model_location):
-        # Create gordo ml servers
-        gordo_server_app = gordo_ml_server.build_app()
-        gordo_server_app.testing = True
-        gordo_server_app = gordo_server_app.test_client()
-
-        def gordo_ml_server_callback(request):
-            """
-            Redirect calls to a gordo server to reflect what the local testing app gives
-            will call the correct path (assuminng only single level paths) on the
-            gordo app.
-            """
-            if request.method in ("GET", "POST"):
-
-                kwargs = dict()
-                if request.body:
-                    flask_request = Request.from_values(
-                        content_length=len(request.body),
-                        input_stream=io.BytesIO(request.body),
-                        content_type=request.headers["Content-Type"],
-                        method=request.method,
-                    )
-                    if flask_request.json:
-                        kwargs["json"] = flask_request.json
-                    else:
-                        kwargs["data"] = {
-                            k: (io.BytesIO(f.read()), f.filename)
-                            for k, f in flask_request.files.items()
-                        }
-
-                with TEST_SERVER_MUTEXT:
-                    resp = getattr(gordo_server_app, request.method.lower())(
-                        request.path_url, headers=dict(request.headers), **kwargs
-                    )
-                return (
-                    resp.status_code,
-                    resp.headers,
-                    json.dumps(resp.json) if resp.json is not None else resp.data,
-                )
-
-        with responses.RequestsMock(assert_all_requests_are_fired=False) as rsps:
-            rsps.add_callback(
-                responses.GET,
-                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.+"),
-                callback=gordo_ml_server_callback,
-                content_type="application/json",
-            )
-            rsps.add_callback(
-                responses.POST,
-                re.compile(rf".*{host}.*\/gordo\/v0\/{project}\/.*.\/.*"),
-                callback=gordo_ml_server_callback,
-                content_type="application/json",
-            )
-
-            rsps.add_passthru("http+docker://")  # Docker
-            rsps.add_passthru("http://localhost:8086")  # Local influx
-            rsps.add_passthru("http://localhost:8087")  # Local influx
-
-            yield
-
-
-@contextmanager
 def temp_env_vars(**kwargs):
     """
     Temporarily set the process environment variables
@@ -190,54 +75,6 @@ def temp_env_vars(**kwargs):
 
     os.environ.clear()
     os.environ.update(_env)
-
-
-@contextmanager
-def influxdatabase(
-    sensors: List[SensorTag], db_name: str, user: str, password: str, measurement: str
-):
-    """
-    Setup a docker based InfluxDB with data points from 2016-01-1 until 2016-01-02 by minute
-
-    Returns
-    -------
-    InfluxDB
-        An interface to the running db instance with .reset() for convenient resetting of the
-        db to it's default state, (with original sensors)
-    """
-
-    client = docker.from_env()
-
-    logger.info("Starting up influx!")
-    influx = None
-    try:
-        influx = client.containers.run(
-            image="influxdb:1.7-alpine",
-            environment={
-                "INFLUXDB_DB": db_name,
-                "INFLUXDB_ADMIN_USER": user,
-                "INFLUXDB_ADMIN_PASSWORD": password,
-            },
-            ports={"8086/tcp": "8086"},
-            remove=True,
-            detach=True,
-        )
-        if not wait_for_influx(influx_host="localhost:8086"):
-            raise TimeoutError("Influx failed to start")
-
-        logger.info(f"Started influx DB: {influx.name}")
-
-        # Create the interface to the running instance, set default state, and yield it.
-        db = InfluxDB(sensors, db_name, user, password, measurement)
-        db.reset()
-        logger.info("STARTED INFLUX INSTANCE")
-        yield db
-
-    finally:
-        logger.info("Killing influx container")
-        if influx:
-            influx.kill()
-        logger.info("Killed influx container")
 
 
 class InfluxDB:
