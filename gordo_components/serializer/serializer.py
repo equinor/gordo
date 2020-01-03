@@ -88,9 +88,11 @@ def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
         path.join(source_dir, "metadata.json"),
         path.join(source_dir, "..", "metadata.json"),
     ]:
-        if path.isfile(possible_path):
+        try:
             with open(possible_path, "r") as f:
                 return simplejson.load(f)
+        except FileNotFoundError:
+            continue
     logger.warning(
         f'Metadata file in source dir: "{source_dir}" not found'
         f" in or up one directory."
