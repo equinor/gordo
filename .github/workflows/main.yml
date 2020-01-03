@@ -41,7 +41,7 @@ jobs:
           mv ./coverage.xml /tmp/coverage-reports/${{ matrix.component }}-coverage.xml
           mv ./junit/junit.xml /tmp/coverage-reports/${{ matrix.component }}-junit.xml
 
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@v1
         with:
           name: Coverage Reports
           path: /tmp/coverage-reports
@@ -52,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - uses: actions/download-artifact@master
+      - uses: actions/download-artifact@v1
         with:
           name: Coverage Reports
           path: /tmp/coverage-reports
@@ -62,7 +62,7 @@ jobs:
 
       - uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: fc2844a2-5a6c-43ef-a758-05bc50562b14
           fail_ci_if_error: true
 
   build-docs:
