@@ -148,12 +148,16 @@ class Client:
         def _wrapper(*args, **kwargs):
             resp = f(*args, **kwargs)
             if resp.status_code == 410:
-                self.revision = None  # Trigger updating revision
+                # 410 Gone - Unable to serve this revision, update and try again.
+                self.update_revision()
                 return f(*args, **kwargs)
             else:
                 return resp
 
         return _wrapper
+
+    def update_revision(self):
+        self.revision = None  # Triggers fetching the latest revision
 
     @property
     def revision(self):
@@ -163,28 +167,29 @@ class Client:
         return self._revision
 
     @revision.setter
-    def revision(self, revision: str):
+    def revision(self, revision: Optional[str]):
         """
-        Verifies the server can satisfy this revision
+        Verifies the server can satisfy this revision.
+        If the supplied value is ``None`` it will get the latest revision
+        from the server.
         """
         req = requests.Request(
             "GET", f"{self.base_url}/gordo/v0/{self.project_name}/revisions"
         )
         resp = self.session.send(req.prepare())
-        if resp.ok:
-            if revision:
-                supported_revisions = resp.json()["available-revisions"]
-                if revision not in supported_revisions:
-                    raise LookupError(
-                        f"Revision '{revision}' cannot be served "
-                        f"from revisions: {supported_revisions}"
-                    )
-                else:
-                    self._revision = revision
-            else:
-                self._revision = resp.json()["latest"]
-        else:
+        if not resp.ok:
             raise IOError(f"Failed to get revisions: {resp.content.decode()}")
+
+        if revision:
+            supported_revisions = resp.json()["available-revisions"]
+            if revision not in supported_revisions:
+                raise LookupError(
+                    f"Revision '{revision}' cannot be served "
+                    f"from revisions: {supported_revisions}"
+                )
+            self._revision = revision
+        else:
+            self._revision = resp.json()["latest"]
 
         # Update session headers, to send the revision we want.
         self.session.headers.update({"revision": self._revision})
