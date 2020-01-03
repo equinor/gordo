@@ -2,6 +2,8 @@
 
 import unittest
 import logging
+import json
+import os
 
 from tempfile import TemporaryDirectory
 
@@ -111,3 +113,20 @@ def test_dump_load_models(model):
         model_clone_out = model_clone.predict(X.copy())
 
         assert np.allclose(model_out.flatten(), model_clone_out.flatten())
+
+
+@pytest.mark.parametrize("location", ("metadata.json", "../metadata.json", None))
+def test_load_metadata(tmpdir, location):
+    """
+    Test load_metadata can look in directory given as well as directory above that
+    along with dealing with 'FileNotFoundError' when a non-existent file is given.
+    """
+    model_dir = os.path.join(tmpdir, "some-model-dir")
+    os.mkdir(model_dir)
+    if location:
+        with open(os.path.join(model_dir, location), "w") as f:
+            json.dump(dict(key="value"), f)
+        assert serializer.load_metadata(model_dir) == dict(key="value")
+    else:
+        # Attempting to load a file which doesn't exist will return empty dict
+        assert serializer.load_metadata(tmpdir) == dict()
