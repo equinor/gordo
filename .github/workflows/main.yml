@@ -1,0 +1,140 @@
+name: CI
+
+on: [push, pull_request, release]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        component: [builder, cli, client, machine, serializer, server, util, workflow]
+        python-version: [3.7]
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+
+      - uses: actions/cache@v1
+        if: startsWith(runner.os, 'Linux')
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/*requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-
+
+      - name: Install
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r test_requirements.txt
+
+      - name: Test ${{ matrix.component }}
+        run: python setup.py test${{ matrix.component }}
+
+      - name: Save Coverage
+        run: |
+          mkdir -p /tmp/coverage-reports
+          mv ./coverage.xml /tmp/coverage-reports/${{ matrix.component }}-coverage.xml
+          mv ./junit/junit.xml /tmp/coverage-reports/${{ matrix.component }}-junit.xml
+
+      - uses: actions/upload-artifact@v1
+        with:
+          name: Coverage Reports
+          path: /tmp/coverage-reports
+
+  upload-coverage-reports:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/download-artifact@v1
+        with:
+          name: Coverage Reports
+          path: /tmp/coverage-reports
+
+      - name: Copy Coverage Reports
+        run: cp /tmp/coverage-reports/*.xml .
+
+      - uses: codecov/codecov-action@v1
+        with:
+          token: fc2844a2-5a6c-43ef-a758-05bc50562b14
+          fail_ci_if_error: true
+
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
+          architecture: 'x64'
+
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          pip install -r dev_requirements.txt
+
+      - name: Build Docs
+        run: make docs
+
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Build Images
+        run: make images
+
+  push-images:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    env:
+      GORDO_PROD_MODE: true
+      DOCKER_REGISTRY: docker.io
+      DOCKER_REPO: equinor
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Push Images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: make push-prod-images
+
+  publish-to-pypi:
+    if: github.action.event == 'release'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.7]
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build
+        run: |
+          python setup.py sdist
+          python setup.py bdist_wheel
+
+      - name: Publish
+        env:
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+        run: |
+          pip install twine
+          twine upload -u statoil-travis --skip-existing dist/*
