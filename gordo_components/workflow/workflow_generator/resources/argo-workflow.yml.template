@@ -48,12 +48,12 @@ spec:
       source: |
         echo "Ensuring that no other versions of workflows for this project is running at the same time"
         # This fetches all the workflows of the same version as me, and finds the one of them with the earliest start-time
-        export MY_CREATION_TIME=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision=="$GORDO_PROJECT_VERSION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate }] | sort_by(.startTime) |.[0]" | jq -r ".startTime")
+        export MY_CREATION_TIME=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision=="$GORDO_PROJECT_REVISION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate }] | sort_by(.startTime) |.[0]" | jq -r ".startTime")
 
         echo "Found that my creationTime was $MY_CREATION_TIME"
         # This function finds all running workflows of the same project but different version AND created earlier than $MY_CREATION_TIME
         function find_older_running_workflows {
-            export RUNNING_WORKFLOWS=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision!="$GORDO_PROJECT_VERSION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate } | select(.startTime < $MY_CREATION_TIME)]" | jq -r ".[].name")
+            export RUNNING_WORKFLOWS=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision!="$GORDO_PROJECT_REVISION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate } | select(.startTime < $MY_CREATION_TIME)]" | jq -r ".[].name")
             echo "Running workflows:"
             echo "$RUNNING_WORKFLOWS"
         }
@@ -941,9 +941,9 @@ spec:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
       command: [bash]
       source: |
-        echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-revision=$GORDO_PROJECT_VERSION"
+        echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-revision=$GORDO_PROJECT_REVISION"
         function find_running_pods {
-          export RUNNING_PODS=$(kubectl  get pods -l app=gordo-client,applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision="$GORDO_PROJECT_VERSION" --field-selector status.phase!=Succeeded,status.phase!=Failed)
+          export RUNNING_PODS=$(kubectl  get pods -l app=gordo-client,applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision="$GORDO_PROJECT_REVISION" --field-selector status.phase!=Succeeded,status.phase!=Failed)
           export NR_OF_RUNNING_PODS=$(echo "$RUNNING_PODS" | wc -l)
           let NR_OF_RUNNING_PODS=$NR_OF_RUNNING_PODS-1 # remove the header from the count
         }
@@ -975,7 +975,7 @@ spec:
       env:
       - name: GORDO_PROJECT_NAME
         value: "{{project_name}}"
-      - name: GORDO_PROJECT_VERSION
+      - name: GORDO_PROJECT_REVISION
         value: "{{project_revision}}"
       - name: GORDO_MAX_CLIENTS
         value: "{{client_max_instances}}"
