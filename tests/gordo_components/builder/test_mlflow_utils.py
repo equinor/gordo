@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import mlflow
 from mlflow.entities import Metric, Param
@@ -238,8 +239,15 @@ def test_workspace_spauth_kwargs():
         mlu.get_spauth_kwargs()
 
 
+def test_DatetimeEncoder(metadata):
+    """
+    Test that metadata can dump successfully with MetadataEncoder
+    """
+    assert json.dumps(metadata, cls=mlu.MetadataEncoder)
+
+
 @mock.patch("gordo_components.builder.mlflow_utils.MlflowClient", autospec=True)
-def test_mlflow_context_log_metadata(MockClient, tmp_dir, recwarn, metadata):
+def test_mlflow_context_log_metadata(MockClient, tmp_dir, metadata):
     """
     Test that call to wrapped function initiates MLflow logging or throws warning
     """
@@ -257,3 +265,20 @@ def test_mlflow_context_log_metadata(MockClient, tmp_dir, recwarn, metadata):
         mlu.log_metadata(mlflow_client, run_id, metadata)
 
     assert mock_client.log_batch.called
+
+
+@mock.patch("gordo_components.builder.mlflow_utils.MlflowClient", autospec=True)
+def test_mlflow_context_log_error(MockClient, metadata):
+    """
+    Test that an error while logging metadata as an artifact raises MlflowLoggingError
+    """
+
+    mock_client = MockClient()
+    mock_client.log_artifacts.side_effect = Exception("Some unknown exception!")
+
+    with pytest.raises(mlu.MlflowLoggingError):
+        with mlu.mlflow_context("returns metadata", "unique_key", {}, {}) as (
+            mlflow_client,
+            run_id,
+        ):
+            mlu.log_metadata(mlflow_client, run_id, metadata)

@@ -12,8 +12,10 @@ from azureml.core.authentication import (
     InteractiveLoginAuthentication,
     ServicePrincipalAuthentication,
 )
+import mlflow
 from mlflow.entities import Metric, Param
 from mlflow.tracking import MlflowClient
+import numpy as np
 from pytz import UTC
 
 from gordo_components.machine.dataset.sensor_tag import normalize_sensor_tags
@@ -103,6 +105,8 @@ def get_mlflow_client(
             workspace_kwargs["auth"] = InteractiveLoginAuthentication(force=True)
 
         tracking_uri = Workspace(**workspace_kwargs).get_mlflow_tracking_uri()
+
+    mlflow.set_tracking_uri(tracking_uri)
 
     return MlflowClient(tracking_uri)
 
@@ -398,46 +402,26 @@ def get_spauth_kwargs() -> dict:
     )
 
 
-class DatetimeEncoder(json.JSONEncoder):
+class MetadataEncoder(json.JSONEncoder):
     """
     Encode datetime.datetime objects as strings
 
     Example
     -------
-    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=DatetimeEncoder, indent=4)
+    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MetadataEncoder, indent=4)
     >>> s = '{"now": "2019-11-22 08:34:41.636356+"}'
     """
 
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.strftime("%Y-%m-%d %H:%M:%S.%f+%z")
+        # Typecast builtin and numpy ints and floats to builtin types
+        elif np.issubdtype(type(obj), np.floating):
+            return float(obj)
+        elif np.issubdtype(type(obj), np.integer):
+            return int(obj)
         else:
             return json.JSONEncoder.default(self, obj)
-
-
-def send_artifacts(client: MlflowClient, run_id: str, metadata: dict):
-    """
-    Send artifacts
-
-    Parameters
-    ----------
-    client: MlflowClient
-        MLflow tracking client.
-    run_id: str
-        MLflow Run ID.
-    metadata: dict
-        Metadata produced by :func:`~gordo_components.builder.build_model.build_model`
-        to extract configs from.
-    """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        for name, obj in [
-            ("model-config", metadata["model"]["model-config"]),
-            ("dataset-config", metadata["dataset"]),
-            ("user-config", metadata["user-defined"]),
-        ]:
-            fp = os.path.join(tmp_dir, f"{name}.json")
-            json.dump(obj, open(fp, "w"), cls=DatetimeEncoder)
-        client.log_artifacts(run_id, local_dir=tmp_dir)
 
 
 @contextmanager
@@ -500,21 +484,11 @@ def log_metadata(mlflow_client, run_id, metadata: dict):
 
     # Send configs as JSON artifacts
     try:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for name, obj in [
-                ("model-config", metadata["model"]),
-                ("dataset-config", metadata["dataset"]),
-                (
-                    "user-config",
-                    metadata.get("user-defined") or metadata.get("metadata"),
-                ),
-            ]:
-                fp = os.path.join(tmp_dir, f"{name}.json")
-                with open(fp, "w") as fh:
-                    json.dump(obj, fh, cls=DatetimeEncoder)
+        with tempfile.TemporaryDirectory("./") as tmp_dir:
+            fp = os.path.join(tmp_dir, f"metadata.json")
+            with open(fp, "w") as fh:
+                json.dump(metadata, fh, cls=MetadataEncoder)
             mlflow_client.log_artifacts(run_id, local_dir=tmp_dir)
-    # Log error without exiting the build
-    # FIX: when a solution is found when logging artifacts wit azureml lib,
-    # this can raise an error
+    # Map to MlflowLoggingError for coding errors in the model builder
     except Exception as e:
-        logger.error(e)
+        raise MlflowLoggingError(e)
