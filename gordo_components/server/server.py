@@ -142,12 +142,11 @@ def build_app():
 
     @app.after_request
     def _revision_used(response):
-        if 200 <= response.status_code <= 299:
-            if response.is_json:
-                data = response.get_json()
-                data["revision"] = g.revision
-                response.set_data(json.dumps(data).encode())
-            response.headers["revision"] = g.revision
+        if response.is_json:
+            data = response.get_json()
+            data["revision"] = g.revision
+            response.set_data(json.dumps(data).encode())
+        response.headers["revision"] = g.revision
         return response
 
     @app.after_request

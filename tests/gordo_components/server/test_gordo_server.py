@@ -192,7 +192,8 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
             )
             assert resp.status_code == 410
             assert resp.json == {
-                "error": "Revision 'revision-does-not-exist' not found."
+                "error": "Revision 'revision-does-not-exist' not found.",
+                "revision": "revision-does-not-exist",
             }
 
 
@@ -234,7 +235,10 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
             f"/gordo/v0/test-project/{model_name}/metadata?revision=does-not-exist"
         )
         assert resp.status_code == 410
-        assert resp.json == {"error": "Revision 'does-not-exist' not found."}
+        assert resp.json == {
+            "error": "Revision 'does-not-exist' not found.",
+            "revision": "does-not-exist",
+        }
 
         # Again but by setting header, to ensure we also check the header
         resp = client.get(
@@ -242,4 +246,7 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
             headers={"revision": "does-not-exist"},
         )
         assert resp.status_code == 410
-        assert resp.json == {"error": "Revision 'does-not-exist' not found."}
+        assert resp.json == {
+            "error": "Revision 'does-not-exist' not found.",
+            "revision": "does-not-exist",
+        }
