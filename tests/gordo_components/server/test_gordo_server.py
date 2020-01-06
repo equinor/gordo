@@ -110,12 +110,20 @@ def test_list_revisions(tmpdir, revisions: List[str]):
         app.testing = True
         client = app.test_client()
         resp = client.get("/gordo/v0/test-project/revisions")
+        resp_with_revision = client.get(
+            f"/gordo/v0/test-project/revisions?revision={revisions[-1]}"
+        )
 
     assert set(resp.json.keys()) == {"latest", "available-revisions", "revision"}
     assert resp.json["latest"] == os.path.basename(model_dir)
     assert resp.json["revision"] == os.path.basename(model_dir)
     assert isinstance(resp.json["available-revisions"], list)
     assert set(resp.json["available-revisions"]) == set(revisions)
+
+    # And the request asking to use a specific revision gives back that revision,
+    # but will return the expected latest available
+    assert resp_with_revision.json["latest"] == os.path.basename(model_dir)
+    assert resp_with_revision.json["revision"] == revisions[-1]
 
 
 def test_list_revisions_listdir_fail(caplog):
