@@ -484,7 +484,6 @@ class Client:
             }
 
         # Start attempting to get predictions for this batch
-
         for current_attempt in itertools.count(start=1):
             try:
                 try:
