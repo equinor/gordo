@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-import gordo_components
+import gordo
 
 
 # -- Project information -----------------------------------------------------
@@ -27,7 +27,7 @@ copyright = "2019, Equinor"
 author = "Erik Parmann, Kristian Flikka, Miles Granger, Natalie Caruana"
 
 # The short X.Y version
-version = gordo_components.__version__
+version = gordo.__version__
 # The full version, including alpha/beta/rc tags
 release = ""
 

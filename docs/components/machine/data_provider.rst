@@ -3,35 +3,35 @@ Data Providers & Readers
 
 Data Providers
 ==============
-.. automodule:: gordo_components.machine.dataset.data_provider.providers
+.. automodule:: gordo.machine.dataset.data_provider.providers
     :members:
     :undoc-members:
     :show-inheritance:
 
 IROC Reader
 ===========
-.. automodule:: gordo_components.machine.dataset.data_provider.iroc_reader
+.. automodule:: gordo.machine.dataset.data_provider.iroc_reader
     :members:
     :undoc-members:
     :show-inheritance:
 
 NCS Reader
 ==========
-.. automodule:: gordo_components.machine.dataset.data_provider.ncs_reader
+.. automodule:: gordo.machine.dataset.data_provider.ncs_reader
     :members:
     :undoc-members:
     :show-inheritance:
 
 Azure Utils
 ===========
-.. automodule:: gordo_components.machine.dataset.data_provider.azure_utils
+.. automodule:: gordo.machine.dataset.data_provider.azure_utils
     :members:
     :undoc-members:
     :show-inheritance:
 
 Base Data Provider
 ==================
-.. automodule:: gordo_components.machine.dataset.data_provider.base
+.. automodule:: gordo.machine.dataset.data_provider.base
     :members:
     :undoc-members:
     :show-inheritance:

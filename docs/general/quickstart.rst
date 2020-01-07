@@ -35,7 +35,7 @@ A typical config file might look like this:
               sklearn.pipeline.Pipeline:
                 steps:
                   - sklearn.preprocessing.data.MinMaxScaler
-                  - gordo_components.model.models.KerasAutoEncoder:
+                  - gordo.model.models.KerasAutoEncoder:
                       kind: feedforward_hourglass
             metadata:
               key1: some-value
@@ -61,7 +61,7 @@ A typical config file might look like this:
             sklearn.pipeline.Pipeline:
               steps:
                 - sklearn.preprocessing.data.MinMaxScaler
-                - gordo_components.model.models.KerasAutoEncoder:
+                - gordo.model.models.KerasAutoEncoder:
                     kind: feedforward_model
 
           metadata:
@@ -69,5 +69,5 @@ A typical config file might look like this:
 
 
 One can experiment locally with Gordo through the Jupyter Notebooks provided in
-the `examples <https://github.com/equinor/gordo-components/tree/master/examples>`_
+the `examples <https://github.com/equinor/gordo/tree/master/examples>`_
 directory of the repository.

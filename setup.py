@@ -20,23 +20,23 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     description="Train and build models for Argo / Kubernetes",
-    entry_points={"console_scripts": ["gordo-components=gordo_components.cli:gordo"]},
+    entry_points={"console_scripts": ["gordo=gordo.cli:gordo"]},
     install_requires=requirements("requirements.in"),  # Allow flexible deps for install
     license="AGPLv3",
-    name="gordo-components",
+    name="gordo",
     packages=find_packages(),
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=requirements("test_requirements.txt"),
-    url="https://github.com/equinor/gordo-components",
+    url="https://github.com/equinor/gordo",
     use_scm_version={
-        "write_to": "gordo_components/_version.py",
+        "write_to": "gordo/_version.py",
         "relative_to": __file__,
     },
     zip_safe=True,
     package_data={
         "": [
-            "python/gordo_components/workflow/workflow_generator/resources/argo-workflow.yml.template"
+            "python/gordo/workflow/workflow_generator/resources/argo-workflow.yml.template"
         ]
     },
     include_package_data=True,

@@ -1,0 +1,28 @@
+machines:
+  - name: machine-1
+    dataset:
+      tags:  # Quotes in the tag-names, because why not
+        - CT/1
+        - CT"2
+        - CT'3
+      train_start_date: 2016-11-07T09:11:30+01:00
+      train_end_date: 2018-09-15T03:01:00+01:00
+    metadata:
+      withSingle: "a string with ' in it"
+      withDouble: 'a string with " in it'
+      "single'in'key": "why not"
+
+
+globals:
+  model:
+    sklearn.pipeline.Pipeline:
+      steps:
+        - sklearn.preprocessing.data.MinMaxScaler
+        - sklearn.compose.ColumnTransformer:
+            transformers:
+              - - dropper
+                - drop
+                - CT'3 # Legal with weird quotes inside the model as well
+            remainder: passthrough
+        - gordo.machine.model.models.KerasAutoEncoder:
+            kind: feedforward_hourglass

@@ -1,6 +1,6 @@
 /venv
 /.eggs
-/gordo_components.egg-info
+/*.egg-info
 /htmlcov
 /.coverage
 /dist

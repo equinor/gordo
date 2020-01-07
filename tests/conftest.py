@@ -172,13 +172,13 @@ def config_str(gordo_name: str, sensors: List[SensorTag]):
                 metadata:
                   information: Some sweet information about the model
                 model:
-                  gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+                  gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                     require_thresholds: false
                     base_estimator:
                       sklearn.pipeline.Pipeline:
                         steps:
                         - sklearn.preprocessing.data.MinMaxScaler
-                        - gordo_components.machine.model.models.KerasAutoEncoder:
+                        - gordo.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                 name: {gordo_name}
              """

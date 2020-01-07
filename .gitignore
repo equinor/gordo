@@ -104,4 +104,4 @@ venv.bak/
 
 .vscode/
 *.pkl
-/gordo_components/_version.py
+/gordo/_version.py
