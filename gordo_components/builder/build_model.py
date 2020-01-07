@@ -66,7 +66,10 @@ class ModelBuilder:
         >>> builder = ModelBuilder(machine=machine)
         >>> model, metadata = builder.build()
         """
-        self.machine = copy.copy(machine)
+        # Avoid overwriting the passed machine, copy doesn't work if it holds
+        # reference to a loaded Tensorflow model; .to_dict() serializes it to
+        # a primitive dict representation.
+        self.machine = Machine(**machine.to_dict())
 
     @property
     def cached_model_path(self) -> Union[os.PathLike, str, None]:
