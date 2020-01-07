@@ -266,7 +266,7 @@ def test_mlflow_context_log_error(MockClient, metadata):
     """
     Test that an error while logging metadata as an artifact raises MlflowLoggingError
     """
-
+    metadata = Machine(**metadata)
     mock_client = MockClient()
     mock_client.log_artifacts.side_effect = Exception("Some unknown exception!")
 
