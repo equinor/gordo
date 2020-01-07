@@ -66,7 +66,7 @@ class ModelBuilder:
         >>> builder = ModelBuilder(machine=machine)
         >>> model, metadata = builder.build()
         """
-        self.machine = copy.deepcopy(machine)
+        self.machine = copy.copy(machine)
 
     @property
     def cached_model_path(self) -> Union[os.PathLike, str, None]:
