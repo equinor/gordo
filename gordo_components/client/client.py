@@ -6,6 +6,7 @@ import requests
 import logging
 import itertools
 import typing
+from functools import wraps
 from time import sleep
 from threading import Lock
 from typing import Dict, Any, List, Callable, Optional
@@ -56,7 +57,8 @@ class Client:
         forward_resampled_sensors: bool = False,
         n_retries: int = 5,
         use_parquet: bool = False,
-        session: requests.Session = requests.Session(),
+        session: Optional[requests.Session] = None,
+        revision: Optional[str] = None,
     ):
         """
 
@@ -98,8 +100,11 @@ class Client:
             Pass the data to the server using the parquet protocol. Default is True
             and recommended as it's more efficient for larger batch sizes. If False JSON
             is used for sending the data back and forth.
-        session: requests.Session
+        session: Optional[requests.Session]
             The http session object to use for making requests.
+        revision: Optional[str]
+            Specific project revision to use when connecting to the server.
+            Defaults to asking the server for the latest revision its capable of serving.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -108,7 +113,6 @@ class Client:
         self.prediction_forwarder = prediction_forwarder
         self.data_provider = data_provider
         self.use_parquet = use_parquet
-        self.session = session
         self.project_name = project
 
         # Default, failing back to /prediction on http code 422
@@ -119,7 +123,77 @@ class Client:
         self.n_retries = n_retries
         self.query = f"?format={'parquet' if use_parquet else 'json'}"
         self.target = target
+        self.session = session or requests.Session()
+        self.revision = revision
+
         self.machines = self.get_machines()
+
+    @property
+    def session(self):
+        return self._session
+
+    @session.setter
+    def session(self, session: requests.Session):
+        session.get = self._expired_revision_check(session.get)  # type: ignore
+        session.post = self._expired_revision_check(session.post)  # type: ignore
+        self._session = session
+
+    def _expired_revision_check(self, f):
+        """
+        Wrap a request function to check for 410 status codes, and update
+        the current revision if so.
+        """
+
+        @wraps(f)
+        def _wrapper(*args, **kwargs):
+            resp = f(*args, **kwargs)
+            if resp.status_code == 410:
+                # 410 Gone - Unable to serve this revision, update and try again.
+                self.update_revision()
+                return f(*args, **kwargs)
+            else:
+                return resp
+
+        return _wrapper
+
+    def update_revision(self):
+        self.revision = None  # Triggers fetching the latest revision
+
+    @property
+    def revision(self):
+        """
+        Revision being used against the server
+        """
+        return self._revision
+
+    @revision.setter
+    def revision(self, revision: Optional[str]):
+        """
+        Verifies the server can satisfy this revision.
+        If the supplied value is ``None`` it will get the latest revision
+        from the server.
+        """
+        req = requests.Request(
+            "GET", f"{self.base_url}/gordo/v0/{self.project_name}/revisions"
+        )
+        resp = self.session.send(req.prepare())
+        if not resp.ok:
+            raise IOError(f"Failed to get revisions: {resp.content.decode()}")
+
+        if revision:
+            supported_revisions = resp.json()["available-revisions"]
+            if revision not in supported_revisions:
+                raise LookupError(
+                    f"Revision '{revision}' cannot be served "
+                    f"from revisions: {supported_revisions}"
+                )
+            self._revision = revision
+        else:
+            self._revision = resp.json()["latest"]
+
+        # Update session headers, to send the revision we want.
+        self.session.headers.update({"revision": self._revision})
+        self.get_metadata(force_refresh=True)
 
     def get_machines(self) -> List[Machine]:
         # Thread safe single access and updating of machines.

@@ -238,7 +238,7 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
             # Verify the server read the metadata.json file we had overwritten
             assert resp.json["metadata"] == {"revision": revision, "model": model_name}
 
-        # Asking for a revision which doesn't exit gives a 410 Gone.
+        # Asking for a revision which doesn't exist gives a 410 Gone.
         resp = client.get(
             f"/gordo/v0/test-project/{model_name}/metadata?revision=does-not-exist"
         )

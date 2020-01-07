@@ -526,3 +526,50 @@ def test__handle_response_errors():
     resp.status_code = 502
     with pytest.raises(IOError):
         _handle_response(resp)
+
+
+@pytest.mark.parametrize("revision", (None, tu.GORDO_REVISION, "does-not-exist"))
+def test_client_set_revision(ml_server, gordo_project, revision):
+    """
+    Client will auto set and verify revision
+    """
+
+    # Default behavior is to lookup the latest revision.
+    if revision is None:
+        client = Client(project=gordo_project, revision=revision)
+        assert client.revision == tu.GORDO_REVISION
+        assert client.session.headers["revision"] == tu.GORDO_REVISION
+
+    # If we ask for a specific one, it should result in tha one.
+    elif revision == tu.GORDO_REVISION:
+        client = Client(project=gordo_project, revision=revision)
+        assert client.revision == tu.GORDO_REVISION
+        assert client.session.headers["revision"] == tu.GORDO_REVISION
+
+    # Asking for that which doesn't exist will raise an error.
+    else:
+        with pytest.raises(LookupError):
+            Client(project=gordo_project, revision=revision)
+
+
+def test_client_auto_update_revision(ml_server, gordo_project, gordo_revision):
+    """
+    Given a client starts with a revision which is outdated, it will automatically update
+    itself to match the latest being served.
+    """
+    client = Client(project=gordo_project)
+    assert client.revision == gordo_revision  # by default it figures out the latest.
+
+    # Abuse the private variable to change it to something else.
+    client.session.headers["revision"] = "bad-revision"
+    client._revision = "bad-revision"
+    assert client.revision == "bad-revision"
+
+    # Contacting the server with that revision will make the client update its revision
+    with patch.object(client, "get_metadata") as get_metadata:
+        client.get_machines()
+        assert client.revision == gordo_revision
+        assert client.session.headers["revision"] == gordo_revision
+
+        # It should also make a call to update the metadata
+        assert get_metadata.called_once()
