@@ -227,7 +227,7 @@ def test_quotes_work(path_to_config_files):
     )
 
     machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_metadata["metadata"]["machine-metadata"] == {
+    assert machine_1_metadata["metadata"]["user_defined"]["machine-metadata"] == {
         "withSingle": "a string with ' in it",
         "withDouble": 'a string with " in it',
         "single'in'key": "why not",

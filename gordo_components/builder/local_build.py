@@ -10,11 +10,12 @@ from gordo_components.workflow.workflow_generator.workflow_generator import (
     get_dict_from_yaml,
 )
 from gordo_components.builder import ModelBuilder
+from gordo_components.machine import Machine
 
 
 def local_build(
     config_str: str, enable_mlflow: bool = True, workspace_kwargs: dict = {}
-) -> Iterable[Tuple[Union[BaseEstimator, None], dict]]:
+) -> Iterable[Tuple[Union[BaseEstimator, None], Machine]]:
     """
     Build model(s) from a bare Gordo config file locally.
 
@@ -71,7 +72,7 @@ def local_build(
 
     Returns
     -------
-    Iterable[Tuple[Union[BaseEstimator, None], dict]]
+    Iterable[Tuple[Union[BaseEstimator, None], Machine]]
         A generator yielding tuples of models and their metadata.
     """
     from gordo_components.builder.mlflow_utils import mlflow_context, log_metadata

@@ -140,7 +140,7 @@ def trained_model_directory(
 
     builder = local_build(config_str=config_str, enable_mlflow=False)
     model, metadata = next(builder)  # type: ignore
-    serializer.dump(model, model_dir, metadata=metadata)
+    serializer.dump(model, model_dir, metadata=metadata.to_dict())
     yield model_dir
 
 

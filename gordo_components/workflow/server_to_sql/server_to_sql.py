@@ -37,7 +37,7 @@ def machine_config_to_machine_data(machine: MachineConfig):
         name=machine.name,
         dataset=machine.dataset.to_dict(),
         model=machine.model,
-        metadata=machine.metadata,
+        metadata=machine.metadata.to_dict(),
     )
 
 

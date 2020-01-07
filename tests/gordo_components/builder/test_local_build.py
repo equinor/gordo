@@ -4,6 +4,7 @@ import pytest
 import mock
 
 from gordo_components.builder import local_build
+from gordo_components.machine import Machine
 
 
 @pytest.mark.parametrize(
@@ -66,8 +67,10 @@ def test_local_builder_valid_configs(config):
     model_n_metadata = models_n_metadata.pop()
     assert isinstance(model_n_metadata, tuple)
     assert len(model_n_metadata) == 2
-    assert hasattr(model_n_metadata[0], "fit")
-    assert isinstance(model_n_metadata[1], dict)
+
+    model, machine = model_n_metadata
+    assert hasattr(model, "fit")
+    assert isinstance(machine, Machine)
 
 
 @pytest.mark.parametrize(

@@ -19,6 +19,7 @@ from gordo_components.builder import ModelBuilder
 from gordo_components.machine.dataset.sensor_tag import SensorTag
 from gordo_components.machine.model import models
 from gordo_components.machine import Machine
+from gordo_components.machine.metadata import Metadata
 
 
 def get_random_data():
@@ -32,30 +33,14 @@ def get_random_data():
     return data
 
 
-def metadata_check(metadata, check_history):
+def metadata_check(machine: Machine, check_history):
     """Helper to verify model builder metadata creation"""
-    assert "name" in metadata
-    assert "model" in metadata
-    assert "metadata" in metadata
-    assert "dataset" in metadata
-    assert "cross-validation" in metadata["metadata"]["build-metadata"]["model"]
-    assert (
-        "scores" in metadata["metadata"]["build-metadata"]["model"]["cross-validation"]
-    )
-    assert "model-offset" in metadata["metadata"]["build-metadata"]["model"]
-    assert isinstance(
-        metadata["metadata"]["build-metadata"]["model"]["model-offset"], int
-    )
+    assert isinstance(machine.metadata.build_metadata.model.model_offset, int)
 
     # Scores is allowed to be an empty dict. in a case where the pipeline/transformer
     # doesn't implement a .score()
-    if (
-        metadata["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
-        != dict()
-    ):
-        tag_list = [
-            tag.name.replace(" ", "-") for tag in metadata["dataset"]["tag_list"]
-        ]
+    if machine.metadata.build_metadata.model.cross_validation.scores != dict():
+        tag_list = [tag.name.replace(" ", "-") for tag in machine.dataset.tag_list]
         scores_list = [
             "r2-score",
             "explained-variance-score",
@@ -65,16 +50,14 @@ def metadata_check(metadata, check_history):
         all_scores_list = [
             f"{score}-{tag}" for score in scores_list for tag in tag_list
         ] + scores_list
-        scores_metadata = metadata["metadata"]["build-metadata"]["model"][
-            "cross-validation"
-        ]["scores"]
+        scores_metadata = machine.metadata.build_metadata.model.cross_validation.scores
 
         assert all(score in scores_metadata for score in all_scores_list)
 
     if check_history:
-        assert "history" in metadata["metadata"]["build-metadata"]["model"]
+        assert "history" in machine.metadata.build_metadata.model.model_meta
         assert all(
-            name in metadata["metadata"]["build-metadata"]["model"]["history"]
+            name in machine.metadata.build_metadata.model.model_meta["history"]
             for name in ("params", "loss", "accuracy")
         )
 
@@ -125,8 +108,6 @@ def test_output_dir(tmp_dir):
     """
     Test building of model will create subdirectories for model saving if needed.
     """
-    from gordo_components.builder import build_model
-
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmp_dir, "some", "sub", "directories")
@@ -385,9 +366,7 @@ def test_output_scores_metadata():
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
     model, metadata = ModelBuilder(machine).build()
-    scores_metadata = metadata["metadata"]["build-metadata"]["model"][
-        "cross-validation"
-    ]["scores"]
+    scores_metadata = metadata.metadata.build_metadata.model.cross_validation.scores
     assert (
         scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
         + scores_metadata["explained-variance-score-Tag-2"]["fold-mean"]
@@ -472,15 +451,15 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir)
     "should_be_equal,metadata,tag_list,replace_cache",
     [
         (True, None, None, False),
-        (True, {"metadata": "something"}, None, False),
-        (False, {"metadata": "something"}, None, True),
+        (True, Metadata(user_defined={"metadata": "something"}), None, False),
+        (False, Metadata(user_defined={"metadata": "something"}), None, True),
         (False, None, [SensorTag("extra_tag", None)], False),
         (False, None, None, True),  # replace_cache gives a new model location
     ],
 )
 def test_provide_saved_model_caching(
     should_be_equal: bool,
-    metadata: Optional[Dict],
+    metadata: Optional[Metadata],
     tag_list: Optional[List[SensorTag]],
     replace_cache,
     tmp_dir,
@@ -496,7 +475,7 @@ def test_provide_saved_model_caching(
     should_be_equal : bool
         Do we expect the two generated models to be at the same location or not? I.e. do
         we expect caching.
-    metadata
+    metadata: Metadata
         Optional metadata which will be used as metadata for the second model.
     tag_list
         Optional list of strings which be used as the taglist in the dataset for the
@@ -509,7 +488,7 @@ def test_provide_saved_model_caching(
     if tag_list is None:
         tag_list = []
     if metadata is None:
-        metadata = dict()
+        metadata = Metadata()
 
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
@@ -518,7 +497,7 @@ def test_provide_saved_model_caching(
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
-    _, first_metadata = ModelBuilder(machine).build(
+    _, first_machine = ModelBuilder(machine).build(
         output_dir=output_dir, model_register_dir=registry_dir
     )
 
@@ -526,7 +505,7 @@ def test_provide_saved_model_caching(
         data_config["tag_list"] = tag_list
 
     new_output_dir = os.path.join(tmp_dir, "model2")
-    _, second_metadata = ModelBuilder(
+    _, second_machine = ModelBuilder(
         machine=Machine(
             name="model-name",
             dataset=data_config,
@@ -540,19 +519,19 @@ def test_provide_saved_model_caching(
         replace_cache=replace_cache,
     )
 
-    model1_creation_date = first_metadata["metadata"]["build-metadata"]["model"][
-        "model-creation-date"
-    ]
-    model2_creation_date = second_metadata["metadata"]["build-metadata"]["model"][
-        "model-creation-date"
-    ]
+    model1_creation_date = (
+        first_machine.metadata.build_metadata.model.model_creation_date
+    )
+    model2_creation_date = (
+        second_machine.metadata.build_metadata.model.model_creation_date
+    )
     if should_be_equal:
         assert model1_creation_date == model2_creation_date
     else:
         assert model1_creation_date != model2_creation_date
 
     if metadata is not None:
-        assert metadata == second_metadata["metadata"]["user-defined"]
+        assert metadata.user_defined == second_machine.metadata.user_defined
 
 
 @pytest.mark.parametrize(
@@ -583,7 +562,7 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
         evaluation=evaluation_config,
         project_name="test",
     )
-    _model, metadata = ModelBuilder(machine).build()
+    _model, machine = ModelBuilder(machine).build()
 
     expected_metrics = metrics_ or [
         "sklearn.metrics.explained_variance_score",
@@ -594,7 +573,7 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
 
     assert all(
         metric.split(".")[-1].replace("_", "-")
-        in metadata["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
+        in machine.metadata.build_metadata.model.cross_validation.scores
         for metric in expected_metrics
     )
 
@@ -654,10 +633,10 @@ def test_setting_seed(seed, model_config):
     _model, metadata2 = ModelBuilder(machine).build()
 
     df1 = pd.DataFrame.from_dict(
-        metadata1["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
+        metadata1.metadata.build_metadata.model.cross_validation.scores
     )
     df2 = pd.DataFrame.from_dict(
-        metadata2["metadata"]["build-metadata"]["model"]["cross-validation"]["scores"]
+        metadata2.metadata.build_metadata.model.cross_validation.scores
     )
 
     # Equality depends on the seed being set.
