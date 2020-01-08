@@ -1,4 +1,4 @@
-from gordo_components.workflow.server_to_sql import server_to_sql as sts
+from gordo.workflow.server_to_sql import server_to_sql as sts
 
 
 def test_get_machines_from_server(gordo_project, gordo_targets, ml_server):

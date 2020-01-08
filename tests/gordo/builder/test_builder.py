@@ -14,12 +14,12 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
 
-import gordo_components
-from gordo_components.builder import ModelBuilder
-from gordo_components.machine.dataset.sensor_tag import SensorTag
-from gordo_components.machine.model import models
-from gordo_components.machine import Machine
-from gordo_components.machine.metadata import Metadata
+import gordo
+from gordo.builder import ModelBuilder
+from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.model import models
+from gordo.machine import Machine
+from gordo.machine.metadata import Metadata
 
 
 def get_random_data():

@@ -1,4 +1,4 @@
-from gordo_components.machine import metadata as m
+from gordo.machine import metadata as m
 
 
 def test_metadata_dataclass():

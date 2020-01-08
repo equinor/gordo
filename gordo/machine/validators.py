@@ -97,7 +97,7 @@ class ValidMetadata(BaseDescriptor):
     """
 
     def __set__(self, instance, value):
-        from gordo_components.machine.metadata import Metadata
+        from gordo.machine.metadata import Metadata
 
         if value is not None and not any(
             isinstance(value, Obj) for Obj in (dict, Metadata)

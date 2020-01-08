@@ -5,10 +5,10 @@ from unittest.mock import patch
 import pandas as pd
 import numpy as np
 
-from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
-from gordo_components.client.utils import influx_client_from_uri
-from gordo_components.machine import Machine
-from gordo_components.machine.dataset import sensor_tag
+from gordo.client.forwarders import ForwardPredictionsIntoInflux
+from gordo.client.utils import influx_client_from_uri
+from gordo.machine import Machine
+from gordo.machine.dataset import sensor_tag
 
 
 def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):

@@ -7,7 +7,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from gordo_components.server import utils as server_utils
+from gordo.server import utils as server_utils
 
 
 @pytest.mark.parametrize(

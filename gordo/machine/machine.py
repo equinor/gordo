@@ -12,8 +12,8 @@ from gordo.machine.validators import (
     ValidDataset,
     ValidMachineRuntime,
 )
-from gordo_components.machine.metadata import Metadata
-from gordo_components.workflow.workflow_generator.helpers import patch_dict
+from gordo.machine.metadata import Metadata
+from gordo.workflow.workflow_generator.helpers import patch_dict
 
 
 class Machine:

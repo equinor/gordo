@@ -6,8 +6,8 @@ from mlflow.entities import Metric, Param
 import mock
 import pytest
 
-import gordo_components.builder.mlflow_utils as mlu
-from gordo_components.machine import Machine
+import gordo.builder.mlflow_utils as mlu
+from gordo.machine import Machine
 
 
 def test_validate_dict():

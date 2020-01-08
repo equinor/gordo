@@ -9,11 +9,11 @@ from datetime import datetime, timezone
 import pytest
 import yaml
 
-from gordo_components import __version__
-from gordo_components.machine.dataset.datasets import TimeSeriesDataset
-from gordo_components.machine import Machine
-from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo_components.workflow.workflow_generator.workflow_generator import (
+from gordo import __version__
+from gordo.machine.dataset.datasets import TimeSeriesDataset
+from gordo.machine import Machine
+from gordo.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo.workflow.workflow_generator.workflow_generator import (
     get_dict_from_yaml,
 )
 

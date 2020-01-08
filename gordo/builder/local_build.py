@@ -5,12 +5,12 @@ from typing import Iterable, Tuple, Union
 
 from sklearn.base import BaseEstimator
 
-from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo_components.workflow.workflow_generator.workflow_generator import (
+from gordo.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo.workflow.workflow_generator.workflow_generator import (
     get_dict_from_yaml,
 )
-from gordo_components.builder import ModelBuilder
-from gordo_components.machine import Machine
+from gordo.builder import ModelBuilder
+from gordo.machine import Machine
 
 
 def local_build(

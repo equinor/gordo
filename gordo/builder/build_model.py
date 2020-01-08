@@ -22,14 +22,14 @@ from sklearn import metrics
 from sklearn.model_selection import BaseCrossValidator, cross_validate, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 
-from gordo_components.util import disk_registry
-from gordo_components import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
-from gordo_components.machine.dataset.dataset import _get_dataset
-from gordo_components.machine.model.base import GordoBase
-from gordo_components.machine.model.utils import metric_wrapper
-from gordo_components.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo_components.machine import Machine
-from gordo_components.machine.metadata import (
+from gordo.util import disk_registry
+from gordo import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
+from gordo.machine.dataset.dataset import _get_dataset
+from gordo.machine.model.base import GordoBase
+from gordo.machine.model.utils import metric_wrapper
+from gordo.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo.machine import Machine
+from gordo.machine.metadata import (
     BuildMetadata,
     ModelBuildMetadata,
     CrossValidationMetaData,

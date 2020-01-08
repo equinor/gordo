@@ -3,8 +3,8 @@
 import pytest
 import mock
 
-from gordo_components.builder import local_build
-from gordo_components.machine import Machine
+from gordo.builder import local_build
+from gordo.machine import Machine
 
 
 @pytest.mark.parametrize(
