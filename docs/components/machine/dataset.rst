@@ -3,14 +3,14 @@ Datasets
 
 Datasets
 ========
-.. automodule:: gordo_components.machine.dataset.datasets
+.. automodule:: gordo.machine.dataset.datasets
     :members:
     :undoc-members:
     :show-inheritance:
 
 Base Dataset
 ============
-.. automodule:: gordo_components.machine.dataset.base
+.. automodule:: gordo.machine.dataset.base
     :members:
     :undoc-members:
     :show-inheritance:

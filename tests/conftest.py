@@ -16,14 +16,14 @@ from flask import Request
 import pytest
 import responses
 
-from gordo_components import serializer
-from gordo_components.machine.dataset.sensor_tag import SensorTag
+from gordo import serializer
+from gordo.machine.dataset.sensor_tag import SensorTag
 
-from gordo_components.server import server
-from gordo_components.builder.local_build import local_build
-from gordo_components.machine.dataset import sensor_tag
-from gordo_components.machine.dataset.sensor_tag import to_list_of_strings
-from gordo_components.server import server as gordo_ml_server
+from gordo.server import server
+from gordo.builder.local_build import local_build
+from gordo.machine.dataset import sensor_tag
+from gordo.machine.dataset.sensor_tag import to_list_of_strings
+from gordo.server import server as gordo_ml_server
 
 from tests import utils as tu
 
@@ -172,13 +172,13 @@ def config_str(gordo_name: str, sensors: List[SensorTag]):
                 metadata:
                   information: Some sweet information about the model
                 model:
-                  gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+                  gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                     require_thresholds: false
                     base_estimator:
                       sklearn.pipeline.Pipeline:
                         steps:
                         - sklearn.preprocessing.data.MinMaxScaler
-                        - gordo_components.machine.model.models.KerasAutoEncoder:
+                        - gordo.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                 name: {gordo_name}
              """

@@ -60,7 +60,7 @@ fi
 
 # Ensure we're getting the latest version, including any dirty state of the repo
 # replacing any '+' development identifier with an underscore for docker compatibility
-export version=$(docker run --rm $DOCKER_IMAGE gordo-components --version | tr + _)
+export version=$(docker run --rm $DOCKER_IMAGE gordo --version | tr + _)
 
 
 if [[ -z "${GORDO_PROD_MODE}" ]]; then

@@ -7,7 +7,7 @@ A collection of functions which can be referenced within the
 General
 =======
 
-.. automodule:: gordo_components.machine.model.transformer_funcs.general
+.. automodule:: gordo.machine.model.transformer_funcs.general
     :members:
     :undoc-members:
     :show-inheritance:

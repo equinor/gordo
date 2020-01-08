@@ -12,7 +12,7 @@ COPY .git /code/
 WORKDIR /code
 RUN rm -rf /code/dist \
     && python setup.py sdist \
-    && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
+    && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-packed.tar.gz
 
 
 # Extract a few big dependencies which docker will cache even when other dependencies change
@@ -42,16 +42,16 @@ RUN groupadd -g 999 gordo && \
 ENV HOME "/home/gordo"
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
-# Install requirements and gordo-components packaged in intermediate image 'python setup.py sdist'
+# Install requirements and gordo packaged in intermediate image 'python setup.py sdist'
 COPY --from=builder /code/prereq.txt .
 RUN pip install --no-deps -r prereq.txt --no-cache-dir
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir
 
-# Install gordo-components, packaged from earlier 'python setup.py sdist'
-COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
-RUN pip install gordo-components-packed.tar.gz
+# Install gordo, packaged from earlier 'python setup.py sdist'
+COPY --from=builder /code/dist/gordo-packed.tar.gz .
+RUN pip install gordo-packed.tar.gz
 
 RUN apt-get update && apt-get install -y \
     curl \

@@ -8,7 +8,7 @@ inserted into ``Pipeline`` objects.
 Imputers
 ========
 
-.. automodule:: gordo_components.machine.model.transformers.imputer
+.. automodule:: gordo.machine.model.transformers.imputer
     :members:
     :undoc-members:
     :show-inheritance:

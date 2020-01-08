@@ -66,10 +66,10 @@ spec:
               memory: 2000 #Kill the server if it uses more than 2GB
               cpu: 2000 #Throttle the server to never using more than 2 cores
       model:
-        gordo_components.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+        gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
           base_estimator:
             sklearn.pipeline.Pipeline:
               steps:
                 - sklearn.preprocessing.data.MinMaxScaler
-                - gordo_components.machine.model.models.KerasAutoEncoder:
+                - gordo.machine.model.models.KerasAutoEncoder:
                     kind: feedforward_hourglass

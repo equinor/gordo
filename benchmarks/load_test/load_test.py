@@ -9,7 +9,7 @@ import jinja2
 import click
 from locust import HttpLocust
 
-from gordo_components.client.utils import EndpointMetadata
+from gordo.client.utils import EndpointMetadata
 
 TEMPLATE_FILE = "task_set.py.jinja2"
 Task = namedtuple("Task", "name path json")

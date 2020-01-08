@@ -89,13 +89,13 @@ The endpoint only accepts POST requests.
 **NOTE:** The client must provide the correct number of input features, ie. if the model was trained on 4 features,
 the client should provide 4 feature sample(s).
 
-You may also supply a dataframe using :func:`gordo_components.server.utils.dataframe_to_dict`:
+You may also supply a dataframe using :func:`gordo.server.utils.dataframe_to_dict`:
 
 .. code-block:: python
 
     >>> import requests
     >>> import pprint
-    >>> from gordo_components.server import utils
+    >>> from gordo.server import utils
     >>> import pandas as pd
     >>> X = pd.DataFrame({"TAG-1": range(4),
     ...                   "TAG-2": range(4),
@@ -164,11 +164,11 @@ Furthermore, you can increase efficiency by instead converting your data to parq
 ====================
 
 The ``/anomaly/prediction`` endpoint will return the data supplied by the ``/prediction`` endpoint
-but reserved for models which inherit from :class:`gordo_components.model.anomaly.base.AnomalyDetectorBase`
+but reserved for models which inherit from :class:`gordo.model.anomaly.base.AnomalyDetectorBase`
 
 By this restriction, additional _features_ are calculated and returned (depending on the `AnomalyDetector` model being served.
 
-For example, the :class:`gordo_components.model.anomaly.diff.DiffBasedAnomalyDetector` will return the following:
+For example, the :class:`gordo.model.anomaly.diff.DiffBasedAnomalyDetector` will return the following:
 
 - ``tag-anomaly-scaled`` & ``tag-anomaly-unscaled``:
     - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat),
@@ -245,7 +245,7 @@ against.
 /download-model/
 ================
 
-Returns the current model being served. Loadable via ``gordo_components.serializer.loads(downloaded_bytes)``
+Returns the current model being served. Loadable via ``gordo.serializer.loads(downloaded_bytes)``
 
 ----
 

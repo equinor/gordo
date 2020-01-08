@@ -16,7 +16,7 @@ The base model is designed to be inherited from any other models which need
 to be implemented within Gordo due to special model requirements. ie. PyTorch,
 Keras, etc.
 
-.. automodule:: gordo_components.machine.model.base
+.. automodule:: gordo.machine.model.base
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,10 +26,10 @@ Custom Gordo models
 
 This group of models are already implemented and ready to be used within
 config files, by simply specifying their full path. For example:
-``gordo_components.machine.model.models.KerasAutoEncoder``
+``gordo.machine.model.models.KerasAutoEncoder``
 
 
-.. automodule:: gordo_components.machine.model.models
+.. automodule:: gordo.machine.model.models
     :members:
     :undoc-members:
     :show-inheritance:
@@ -50,7 +50,7 @@ Utils
 Shared utility functions used by models and other components interacting
 with the model's.
 
-.. automodule:: gordo_components.machine.model.utils
+.. automodule:: gordo.machine.model.utils
     :members:
     :undoc-members:
     :show-inheritance:

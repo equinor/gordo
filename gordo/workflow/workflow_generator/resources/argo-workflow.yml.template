@@ -1,0 +1,1211 @@
+# Requires the following variables to render properly
+# project_name: Name of the project this workflow is linked up to (e.g. "Grane")
+# project_revision: Current revision of this project, e.g. the git commit-sha.
+# containing start and end dates (if tags are shared across machines the earliest train start date and latest train end date is taken)
+# model_builder_resources_requests_memory: Memory requests of the model builder in unit `M`
+# model_builder_resources_requests_cpu: CPU requests of the model builder in unit `m`
+# model_builder_resources_limits_memory: Memory limit of the model builder in unit `M`
+# model_builder_resources_limits_cpu: CPU limit of the model builder in unit `m`
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: {{project_name}}-{{project_revision}}-
+  annotations:
+    gordo-models: '{{ machines|map(attribute="name")|list|tojson|safe }}'
+  labels:
+    app.kubernetes.io/managed-by: gordo
+    applications.gordo.equinor.com/project-name: "{{project_name}}"
+    applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+  {% if owner_references is defined %}
+  ownerReferences: {{owner_references}}
+  {% endif %}
+spec:
+  ttlSecondsAfterFinished: 115200 # 32 hours
+  entrypoint: do-all
+  onExit: sql-and-cleanup
+  volumes:
+  - name: azurefile
+    persistentVolumeClaim:
+      claimName: azurefile
+  - name: datalake-access-token
+    secret:
+      secretName: datalake-access-token # Must be saved
+  templates:
+  - name: ensure-single-workflow
+    # Ensures that only one version of workflows for a given project runs at the same time.
+    # Deletes any workflows for the same project of different version
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: ensure-single-workflow
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Ensuring that no other versions of workflows for this project is running at the same time"
+        # This fetches all the workflows of the same version as me, and finds the one of them with the earliest start-time
+        export MY_CREATION_TIME=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision=="$GORDO_PROJECT_REVISION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate }] | sort_by(.startTime) |.[0]" | jq -r ".startTime")
+
+        echo "Found that my creationTime was $MY_CREATION_TIME"
+        # This function finds all running workflows of the same project but different version AND created earlier than $MY_CREATION_TIME
+        function find_older_running_workflows {
+            export RUNNING_WORKFLOWS=$(kubectl get workflows -l applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision!="$GORDO_PROJECT_REVISION",workflows.argoproj.io/phase=Running -o json | jq -r "[.items[] | {name: .metadata.name, startTime: .metadata.creationTimestamp | fromdate } | select(.startTime < $MY_CREATION_TIME)]" | jq -r ".[].name")
+            echo "Running workflows:"
+            echo "$RUNNING_WORKFLOWS"
+        }
+        find_older_running_workflows
+
+        while [[ $RUNNING_WORKFLOWS != "" ]]; do
+            echo "Deleting and checking again"
+            kubectl delete --wait=True workflows $RUNNING_WORKFLOWS
+            sleep 10
+            find_older_running_workflows
+        done
+        echo "No other versions of workflows for this project found, exiting successfully"
+
+      resources:
+        requests:
+          memory: "100M"
+          cpu: "2m"
+        limits:
+          memory: "200M"
+          cpu: "100m"
+      env:
+      - name: GORDO_PROJECT_NAME
+        value: "{{project_name}}"
+      - name: GORDO_PROJECT_REVISION
+        value: "{{project_revision}}"
+      - name: GORDO_LOG_LEVEL
+        value: "{{log_level}}"
+
+  - name: apply-with-retries
+    retryStrategy:
+      limit: 4
+    inputs:
+      parameters:
+        - name: resource
+    metadata:
+      labels:
+        app: apply-with-retries
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        # Retries a command a configurable number of times with backoff.
+        #
+        # The retry count is given by ATTEMPTS (default 6), the initial backoff
+        # timeout is given by TIMEOUT in seconds (default 15.)
+        #
+        # Successive backoffs double the timeout.
+        # Thanks to  `phs` from stackoverflow:
+        # https://stackoverflow.com/questions/8350942/how-to-re-run-the-curl-command-automatically-when-the-error-occurs/8351489#8351489
+        function with_backoff {
+            local max_attempts=${ATTEMPTS-6}
+            local timeout=${TIMEOUT-15}
+            local attempt=0
+            local exitCode=0
+
+            while (( $attempt < $max_attempts ))
+            do
+                if "$@"
+                then
+                    return 0
+                else
+                    exitCode=$?
+                fi
+                echo "Got exitcode $exitCode" 1>&2
+                echo "Failure! Retrying in $timeout.." 1>&2
+                sleep $timeout
+                attempt=$(( attempt + 1 ))
+                timeout=$(( timeout * 2 ))
+            done
+
+            if [[ $exitCode != 0 ]]
+            then
+                echo "Command failed too many times, exiting! ($@)" 1>&2
+            fi
+
+            return $exitCode
+        }
+
+        function apply_once {
+            echo "$K_RESOURCE" | kubectl apply -f -
+        }
+        echo "applying resource:" 1>&2
+        echo "$K_RESOURCE" 1>&2
+        with_backoff apply_once
+
+
+      resources:
+        requests:
+          memory: "150M"
+          cpu: "10m"
+        limits:
+          memory: "200M"
+          cpu: "100m"
+      env:
+      - name: K_RESOURCE
+        value: {{ '"{{inputs.parameters.resource}}" '}}
+
+  - name: gordo-influx-service
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value: |
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: gordo-influx-{{project_name}}
+                    labels:
+                      app: gordo-influx-{{project_name}}
+                      app.kubernetes.io/name: influx
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                   {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                  {% endif %}
+                  spec:
+                    selector:
+                      app: gordo-influx-{{project_name}}
+                    ports:
+                    - port: 8086
+                      name: api
+                      targetPort: 8086
+
+  - name: gordo-influx-statefulset
+    retryStrategy:
+      limit: 5
+    resource:
+      action: apply
+      successCondition: status.readyReplicas > 0
+      manifest: |
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata:
+          name: gordo-influx-{{project_name}}
+          labels:
+            app: gordo-influx-{{project_name}}
+            app.kubernetes.io/name: influxd-deployment
+            app.kubernetes.io/component: influxdb
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if owner_references is defined %}
+          ownerReferences: {{owner_references}}
+        {% endif %}
+        spec:
+          serviceName: gordo-influx-{{project_name}}
+          volumeClaimTemplates:
+            - metadata:
+                name: influx-storage-{{project_revision}}
+                labels:
+                  applications.gordo.equinor.com/project-name: "{{project_name}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                  app.kubernetes.io/part-of: gordo
+                  app.kubernetes.io/managed-by: gordo
+                annotations:
+                  applications.gordo.equinor.com/project-name: "{{project_name}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                {% if owner_references is defined %}
+                ownerReferences: {{owner_references}}
+                {% endif %}
+              spec:
+                accessModes: [ "ReadWriteOnce" ]
+                storageClassName: "managed-premium"
+                resources:
+                  requests:
+                    storage: 28Gi
+          selector:
+            matchLabels:
+              app: gordo-influx-{{project_name}}
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: gordo-influx-{{project_name}}
+              {% if owner_references is defined %}
+              ownerReferences: {{owner_references}}
+              {% endif %}
+            spec:
+              containers:
+              - image: "influxdb:1.7.9-alpine"
+                imagePullPolicy: "IfNotPresent"
+                name: gordo-influx-{{project_name}}
+                volumeMounts:
+                  - name: influx-storage-{{project_revision}}
+                    mountPath: /var/lib/influxdb
+                ports:
+                  - name: api
+                    containerPort: 8086
+                resources:
+                  requests:
+                    memory: "{{ influx_resources_requests_memory }}M"
+                    cpu: "{{ influx_resources_requests_cpu }}m"
+                  limits:
+                    memory: "{{ influx_resources_limits_memory }}M"
+                    cpu: "{{ influx_resources_limits_cpu }}m"
+                livenessProbe:
+                  httpGet:
+                    path: /ping
+                    port: api
+                  initialDelaySeconds: 30
+                  timeoutSeconds: 5
+                readinessProbe:
+                  httpGet:
+                    path: /ping
+                    port: api
+                  initialDelaySeconds: 5
+                  timeoutSeconds: 1
+
+  - name: gordo-influx-database-creator
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-influx-database-creator
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Creating feeder database for influx for project {{project_name}}" \
+        && curl -i -XPOST http://gordo-influx-{{project_name}}:8086/query --data-urlencode "q=CREATE DATABASE feeder"
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
+
+
+  - name: gordo-influx
+    steps:
+    - - name: gordo-influx-statefulset
+        template: gordo-influx-statefulset
+    - - name: gordo-influx-service
+        template: gordo-influx-service
+    - - name: gordo-influx-database-creator
+        template: gordo-influx-database-creator
+
+  - name: gordo-grafana-service
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: gordo-grafana-{{project_name}}
+                    labels:
+                      app: gordo-grafana-{{project_name}}
+                      app.kubernetes.io/name: grafana
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    selector:
+                      app: gordo-grafana-{{project_name}}
+                    ports:
+                    - port: 3000
+                      name: api
+                      targetPort: 3000
+
+  - name: gordo-grafana-statefulset
+    retryStrategy:
+      limit: 5
+    resource:
+      action: apply
+      successCondition: status.readyReplicas > 0
+      manifest: |
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata:
+          name: gordo-grafana-{{project_name}}
+          labels:
+            app: gordo-grafana-{{project_name}}
+            app.kubernetes.io/name: grafanad-deployment
+            app.kubernetes.io/component: grafanadb
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+          {% if owner_references is defined %}
+          ownerReferences: {{owner_references}}
+          {% endif %}
+        spec:
+          serviceName: gordo-grafana-{{project_name}}
+          selector:
+            matchLabels:
+              app: gordo-grafana-{{project_name}}
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: gordo-grafana-{{project_name}}
+              {% if owner_references is defined %}
+              ownerReferences: {{owner_references}}
+              {% endif %}
+            spec:
+              containers:
+              - image: "grafana/grafana:6.5.2"
+                env:
+                - name: GF_INSTALL_PLUGINS
+                  value: "grafana-worldmap-panel,flant-statusmap-panel,vonage-status-panel"
+                - name: GF_AUTH_ANONYMOUS_ENABLED
+                  value: "true"
+                - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+                  value: "Admin"
+                - name: GF_AUTH_DISABLE_LOGIN_FORM
+                  value: "true"
+                - name: GF_AUTH_BASIC_ENABLED
+                  value: "false"
+                - name: SERVER_ENABLE_GZIP
+                  value: "true"
+                imagePullPolicy: "IfNotPresent"
+                name: gordo-grafana-{{project_name}}
+                ports:
+                  - name: api
+                    containerPort: 3000
+                resources:
+                  requests:
+                    memory: 1G
+                    cpu: 500m
+                  limits:
+                    memory: 2G
+                    cpu: 1000m
+                readinessProbe:
+                  httpGet:
+                    path: /login
+                    port: api
+                  initialDelaySeconds: 5
+                  timeoutSeconds: 1
+
+  - name: gordo-grafana-datasource-creator
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-grafana-datasource-creator
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Creating grafana influxdb and postgres datasources for project {{project_name}}" \
+        && curl -XPOST -H 'Content-Type: application/json' -d '{"name":"InfluxDB", "type":"influxdb", "url":"http://gordo-influx-{{project_name}}:8086", "access":"proxy", "database": "feeder", "isDefault":true, "password": "", "user": "", "basicAuth": false}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
+        && curl -XPOST -H 'Content-Type: application/json' -d '{"name": "Postgres-metadata","type": "postgres","url": "gordo-postgres-{{project_name}}","access": "proxy","database": "postgres","isDefault": false,"user": "postgres","jsonData": {"sslmode": "disable","postgresVersion": 1000,"timescaledb": false}}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
+        && echo "Uploading grafana dashboard for project {{project_name}}" \
+        && curl -XPOST -d @/home/gordo/resources/grafana/dashboards/machines.json -H "Content-Type: application/json"  http://gordo-grafana-{{project_name}}:3000/api/dashboards/db
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
+
+
+  - name: gordo-grafana
+    steps:
+    - - name: gordo-grafana-service
+        template: gordo-grafana-service
+    - - name: gordo-grafana-statefulset
+        template: gordo-grafana-statefulset
+    - - name: gordo-grafana-datasource-creator
+        template: gordo-grafana-datasource-creator
+
+
+  - name: gordo-postgres-service
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value: |
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: gordo-postgres-{{project_name}}
+                    labels:
+                      app: gordo-postgres-{{project_name}}
+                      app.kubernetes.io/name: postgres
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    selector:
+                      app: gordo-postgres-{{project_name}}
+                    ports:
+                    - port: 5432
+                      name: api
+                      targetPort: 5432
+  - name: gordo-postgres-statefulset
+    retryStrategy:
+      limit: 5
+    resource:
+      action: apply
+      successCondition: status.readyReplicas > 0
+      manifest: |
+        apiVersion: apps/v1
+        kind: StatefulSet
+        metadata:
+          name: gordo-postgres-{{project_name}}
+          labels:
+            app: gordo-postgres-{{project_name}}
+            app.kubernetes.io/name: postgresd-deployment
+            app.kubernetes.io/component: postgresdb
+            app.kubernetes.io/part-of: gordo
+            app.kubernetes.io/managed-by: gordo
+            applications.gordo.equinor.com/project-name: "{{project_name}}"
+            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+          {% if owner_references is defined %}
+          ownerReferences: {{owner_references}}
+          {% endif %}
+        spec:
+          serviceName: gordo-postgres-{{project_name}}
+          volumeClaimTemplates:
+            - metadata:
+                name: postgres-storage-{{project_revision}}
+                annotations:
+                  applications.gordo.equinor.com/project-name: "{{project_name}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                labels:
+                  applications.gordo.equinor.com/project-name: "{{project_name}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                  app.kubernetes.io/part-of: gordo
+                  app.kubernetes.io/managed-by: gordo
+                {% if owner_references is defined %}
+                ownerReferences: {{owner_references}}
+                {% endif %}
+              spec:
+                accessModes: [ "ReadWriteOnce" ]
+                storageClassName: "default"
+                resources:
+                  requests:
+                    storage: 1Gi
+          selector:
+            matchLabels:
+              app: gordo-postgres-{{project_name}}
+          replicas: 1
+          template:
+            metadata:
+              labels:
+                app: gordo-postgres-{{project_name}}
+              {% if owner_references is defined %}
+              ownerReferences: {{owner_references}}
+              {% endif %}
+            spec:
+              terminationGracePeriodSeconds: 10
+              containers:
+              - image: "postgres:11.2"
+                imagePullPolicy: "IfNotPresent"
+                name: gordo-postgres-{{project_name}}
+                volumeMounts:
+                  - name: postgres-storage-{{project_revision}}
+                    mountPath: /var/lib/postgresql/data/pgdata
+                    subPath: postgres-db
+                ports:
+                  - name: api
+                    containerPort: 5432
+                resources:
+                  requests:
+                    memory: 256Mi
+                    cpu: 50m
+                  limits:
+                    memory: 500Mi
+                    cpu: 200m
+                env:
+                  - name: POSTGRES_USER
+                    value: postgres
+                  - name: PGUSER
+                    value: postgres
+                  - name: POSTGRES_DB
+                    value: postgres
+                  - name: PGDATA
+                    value: /var/lib/postgresql/data/pgdata
+                  - name: POD_IP
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: status.podIP
+                livenessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - exec pg_isready --host $POD_IP
+                  failureThreshold: 6
+                  initialDelaySeconds: 60
+                  periodSeconds: 10
+                  successThreshold: 1
+                  timeoutSeconds: 5
+                readinessProbe:
+                  exec:
+                    command:
+                      - sh
+                      - -c
+                      - exec pg_isready --host $POD_IP
+                  failureThreshold: 3
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+                  successThreshold: 1
+                  timeoutSeconds: 3
+
+
+  - name: gordo-postgres
+    steps:
+    - - name: gordo-postgres-statefulset
+        template: gordo-postgres-statefulset
+    - - name: gordo-postgres-service
+        template: gordo-postgres-service
+
+
+
+
+  - name: gordo-server-to-postgres
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-server-to-postgres
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Feeding sql with metadata for project {{project_name}} using source ur http://$SERVER_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
+        && gordo workflow server-to-sql --server-address "http://$SERVER_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME" --project-name $PROJECT_NAME
+      env:
+        - name: PROJECT_NAME
+          value: "{{project_name}}"
+        - name: SERVER_HOST
+          value: "gordo-srv-{{ project_name }}"
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
+
+
+
+
+  - name: model-builder
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-model-builder
+        applications.gordo.equinor.com/project-name: {{project_name}}
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    inputs:
+      parameters:
+      - name: machine-name
+      - name: machine
+    container:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
+      env:
+      - name: OUTPUT_DIR
+        value: "/gordo/models/{{project_name}}/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
+      - name: MODEL_REGISTER_DIR
+        value: "/gordo/models/{{project_name}}/model_register"
+      - name: PROJECT_NAME
+        value: "{{ project_name }}"
+      - name: MACHINE
+        value: {{ '"{{inputs.parameters.machine}}" '}}
+      - name: AZUREML_WORKSPACE_STR
+        valueFrom:
+          configMapKeyRef:
+            name: gordo-components-config-map  # TODO: Update in gordo-infrastructure
+            key: azureml_workspace_str
+      - name: DL_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dlserviceauth
+            key: tenant_id_secret
+      - name: GORDO_LOG_LEVEL
+        value: "{{log_level}}"
+      volumeMounts:
+      - name: azurefile
+        mountPath: /gordo
+      resources:
+        requests:
+          memory: "{{ model_builder_resources_requests_memory }}M"
+          cpu: "{{ model_builder_resources_requests_cpu }}m"
+        limits:
+          memory: "{{ model_builder_resources_limits_memory }}M"
+          cpu: "{{ model_builder_resources_limits_cpu }}m"
+
+  - name: gordo-server-hpa
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: autoscaling/v1
+                  kind: HorizontalPodAutoscaler
+                  metadata:
+                    name: "gordoserver-scaler-{{project_name}}"
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    scaleTargetRef:
+                      apiVersion: apps/v1
+                      kind: Deployment
+                      name: "{{'{{inputs.parameters.host-name}}'}}"
+                    minReplicas: 1
+                    maxReplicas: {{ max_server_replicas }}
+                    targetCPUUtilizationPercentage: 25
+
+
+  - name: gordo-server-svc
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: "{{'{{inputs.parameters.host-name}}'}}"
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    selector:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                    ports:
+                    - port: 80
+                      name: http-gordo
+                      targetPort: http-api
+
+  - name: gordo-server-istio
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value: |
+                  ---
+                  apiVersion: networking.istio.io/v1alpha3
+                  kind: VirtualService
+                  metadata:
+                    name: "{{'{{inputs.parameters.host-name}}'}}"
+                    annotations:
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server
+                      app.kubernetes.io/component: VirtualService
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    hosts:
+                    - "*"
+                    gateways:
+                    - istio-system/istio-gateway
+                    http:
+                    - match:
+                      - uri:
+                          regex: "/gordo/v0/{{project_name}}/.+"
+                      route:
+                      - destination:
+                          host: "{{'{{inputs.parameters.host-name}}'}}"
+
+  # Model resource to notify server that a model has been built and can be served by the ML Server
+  - name: gordo-model
+    inputs:
+      parameters:
+        - name: model-name
+        - name: config
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value: |
+                  ---
+                  apiVersion: equinor.com/v1
+                  kind: Model
+                  metadata:
+                    name: "{{project_name}}-{% raw %}{{inputs.parameters.model-name}}{% endraw %}"
+                    labels:
+                      app: "model-stache-{{'{{inputs.parameters.model-name}}'}}"
+                      app.kubernetes.io/name: model-server
+                      app.kubernetes.io/component: model
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    gordo-version: {{ gordo_version }}
+                    config: {% raw %}{{inputs.parameters.config}}{% endraw %}
+
+  - name: gordo-server-deployment
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: apps/v1
+                  kind: Deployment
+                  metadata:
+                    name: "{{'{{inputs.parameters.host-name}}'}}"
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server-deployment
+                      app.kubernetes.io/component: server
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    replicas: 1
+                    selector:
+                      matchLabels:
+                        app: "{{'{{inputs.parameters.host-name}}'}}"
+                    strategy:
+                      type: Recreate
+                    template:
+                      metadata:
+                        labels:
+                          app: "{{'{{inputs.parameters.host-name}}'}}"
+                      spec:
+                        containers:
+                           - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"
+                             imagePullPolicy: "IfNotPresent"
+                             name: "gordoserver-{{ project_name }}"
+                             volumeMounts:
+                               - mountPath: "/gordo"
+                                 name: gstor
+                             ports:
+                               - name: http-api
+                                 containerPort: 5555
+                             livenessProbe:
+                               httpGet:
+                                 path: /healthcheck
+                                 port: http-api
+                               initialDelaySeconds: 600 # We give it a lot of time to load the model and start up
+                               timeoutSeconds: 5
+                             readinessProbe:
+                               httpGet:
+                                 path: /healthcheck
+                                 port: http-api
+                               initialDelaySeconds: 5
+                               timeoutSeconds: 5
+                             env:
+                               - name: MODEL_COLLECTION_DIR
+                                 value: /gordo/models/{{project_name}}/{{project_revision}}
+                               - name: GORDO_LOG_LEVEL
+                                 value: "{{log_level}}"
+
+                             resources:
+                               requests:
+                                 memory: "{{ server_resources['requests']['memory'] }}M"
+                                 cpu: "{{ server_resources['requests']['cpu'] }}m"
+                               limits:
+                                 memory: "{{ server_resources['limits']['memory'] }}M"
+                                 cpu: "{{ server_resources['limits']['cpu'] }}m"
+                        terminationGracePeriodSeconds: 1
+                        volumes:
+                          - name: gstor
+                            persistentVolumeClaim:
+                              claimName: "azurefile"
+
+  - name: gordo-server
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+    - - name: gordo-server-deployment
+        template: gordo-server-deployment
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+    - - name: gordo-server-hpa
+        template: gordo-server-hpa
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+      - name: gordo-server-svc
+        template: gordo-server-svc
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+      - name: gordo-server-istio
+        template: gordo-server-istio
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+
+  - name: gordo-client-para-limited # Runs gordo client, but with limited parallelization
+    inputs:
+      parameters:
+      - name: model-name
+      - name: train-start-date
+      - name: data-provider
+    steps:
+    - - name: gordo-client-waiter
+        template: gordo-client-waiter
+    - - name: gordo-client
+        template: gordo-client
+        arguments:
+          parameters: [{name: model-name, value: {{ '"{{inputs.parameters.model-name}}"' }}  },
+                       {name: data-provider, value: {{ '"{{inputs.parameters.data-provider}}"' }}  },
+                       {name: train-start-date, value: {{ '"{{inputs.parameters.train-start-date}}"' }}}
+                      ]
+
+  - name: gordo-client-waiter
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-client-waiter
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-revision=$GORDO_PROJECT_REVISION"
+        function find_running_pods {
+          export RUNNING_PODS=$(kubectl  get pods -l app=gordo-client,applications.gordo.equinor.com/project-name="$GORDO_PROJECT_NAME",applications.gordo.equinor.com/project-revision="$GORDO_PROJECT_REVISION" --field-selector status.phase!=Succeeded,status.phase!=Failed)
+          export NR_OF_RUNNING_PODS=$(echo "$RUNNING_PODS" | wc -l)
+          let NR_OF_RUNNING_PODS=$NR_OF_RUNNING_PODS-1 # remove the header from the count
+        }
+
+        if [ $GORDO_MAX_CLIENTS -ge $GORDO_TOTAL_NR_OF_CLIENTS ]
+        then
+            echo "Found that total number of clients is less than the max number of parallel clients, so exiting successfully."
+            exit 0
+        fi
+        let CHECK_INTERVAL_LENGTH=($GORDO_TOTAL_NR_OF_CLIENTS*5)+30
+        sleep $[ ( $RANDOM % $CHECK_INTERVAL_LENGTH )  + 1 ]s
+        find_running_pods
+        echo "Found $NR_OF_RUNNING_PODS"
+        while [ $NR_OF_RUNNING_PODS -ge $GORDO_MAX_CLIENTS ]; do
+           sleep $CHECK_INTERVAL_LENGTH
+           echo "."
+           find_running_pods
+        done
+        echo "Found that there are now less than $GORDO_MAX_CLIENTS running pods, exiting successfully."
+
+
+      resources:
+        requests:
+          memory: "100M"
+          cpu: "2m"
+        limits:
+          memory: "200M"
+          cpu: "100m"
+      env:
+      - name: GORDO_PROJECT_NAME
+        value: "{{project_name}}"
+      - name: GORDO_PROJECT_REVISION
+        value: "{{project_revision}}"
+      - name: GORDO_MAX_CLIENTS
+        value: "{{client_max_instances}}"
+      - name : GORDO_TOTAL_NR_OF_CLIENTS
+        value: "{{client_total_instances}}"
+
+  - name: gordo-client
+    retryStrategy:
+      limit: 5 # Maybe the server is not up yet
+    inputs:
+      parameters:
+      - name: model-name
+      - name: train-start-date
+      - name: data-provider
+    metadata:
+      labels:
+        app: gordo-client
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Starting client prediction for machine $GORDO_CLIENT_TARGET" \
+        && gordo client --project $GORDO_CLIENT_PROJECT --parallelism 2 --target $GORDO_CLIENT_TARGET --host $GORDO_CLIENT_HOST --port $GORDO_CLIENT_PORT --scheme $GORDO_CLIENT_SCHEME --metadata $GORDO_CLIENT_METADATA predict --influx-uri $GORDO_CLIENT_PREDICT_INFLUX_URI "$GORDO_TRAIN_START_DATE" $(date --iso-8601=second) --forward-resampled-sensors
+      resources:
+        requests:
+          memory: "{{ client_resources_requests_memory }}M"
+          cpu: "{{ client_resources_requests_cpu }}m"
+        limits:
+          memory: "{{ client_resources_limits_memory }}M"
+          cpu: "{{ client_resources_limits_cpu }}m"
+      env:
+      - name: GORDO_CLIENT_TARGET
+        value: {{ '"{{inputs.parameters.model-name}}" '}}
+      - name: GORDO_TRAIN_START_DATE
+        value: {{ '"{{inputs.parameters.train-start-date}}" '}}
+      - name: DATA_PROVIDER # Environment variable read by the client
+        value: {{ '"{{inputs.parameters.data-provider}}"' }}
+      - name: GORDO_CLIENT_PROJECT
+        value: "{{project_name}}"
+      - name: GORDO_CLIENT_HOST
+        value: "gordo-srv-{{ project_name }}"
+      - name: GORDO_CLIENT_PORT
+        value: "80"
+      - name: GORDO_CLIENT_SCHEME
+        value: "http"
+      - name: GORDO_CLIENT_PREDICT_INFLUX_URI
+        value: ":@gordo-influx-{{project_name}}:8086//feeder"
+      - name: GORDO_CLIENT_INFLUX_RECREATE_DB
+        value: "true"
+      - name: GORDO_CLIENT_METADATA
+        value: "version,{{project_revision}}"
+      - name: DL_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dlserviceauth
+            key: tenant_id_secret
+      - name: GORDO_LOG_LEVEL
+        value: "{{log_level}}"
+
+  - name: influx-cleanup
+    activeDeadlineSeconds: 300
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-influx-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Deleting influx, grafana and PVC for {{project_name}} different than {{project_revision}}" \
+         && kubectl delete statefulset -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=influx \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=grafana \
+         && kubectl delete $(kubectl get pvc -l app=gordo-influx-{{project_name}} -o name | grep -v influx-storage-{{project_revision}}  ) || : \
+         && sleep 5
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
+
+  - name: postgres-cleanup
+    activeDeadlineSeconds: 300
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-postgres-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Deleting postgres PVC for {{project_name}} different than {{project_revision}}" \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=postgres \
+         && kubectl delete $(kubectl get pvc -l app=gordo-postgres-{{project_name}} -o name | grep -v postgres-storage-{{project_revision}} ) || : \
+         && sleep 5
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
+
+  - name: cleanup
+    retryStrategy:
+      limit: 5
+    metadata:
+      labels:
+        app: gordo-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
+      command: [bash]
+      source: |
+        echo "Deleting gordo deployments, services, models, and hpa's for project {{project_name}} different than {{project_revision}}" \
+         && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_revision}}" \
+         && kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}
+
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
+
+
+  - name: sql-and-cleanup
+    steps:
+    - - name: cleanup
+        template: cleanup
+        {%if enable_influx %}
+      - name: gordo-server-to-postgres
+        template: gordo-server-to-postgres
+        {% endif %}
+
+  - name: do-all
+    dag:
+      failFast: false
+      tasks:
+        - name: ensure-single-workflow
+          template: ensure-single-workflow
+        - name: gordo-server
+          template: gordo-server
+          arguments:
+            parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
+          dependencies:
+            - ensure-single-workflow
+        {% for machine in machines %}
+        - name: model-builder-{{ machine.name }}
+          template: model-builder
+          arguments:
+            parameters:
+              - name: machine-name
+                value: {{ machine.name }}
+              - name: machine
+                value: |
+                  {{ machine.to_dict() | tojson }}
+          dependencies:
+            - gordo-server
+        - name: gordo-mdl-{{ machine.name }}
+          template: gordo-model
+          arguments:
+            parameters:
+              - name: model-name
+                value: "{{ machine.name }}"
+              - name: config
+                value: |
+                  {{ machine.to_dict() | tojson }}
+          dependencies:
+            - model-builder-{{ machine.name }}
+        {% endfor %}
+        - name: postgres-cleanup
+          template: postgres-cleanup
+          dependencies:
+            - ensure-single-workflow
+        - name: influx-cleanup
+          template: influx-cleanup
+          dependencies:
+            - ensure-single-workflow
+        {%if enable_influx %}
+        - name: gordo-postgres
+          template: gordo-postgres
+          dependencies:
+            - postgres-cleanup
+        - name: gordo-influx
+          template: gordo-influx
+          dependencies:
+            - influx-cleanup
+        - name: gordo-grafana
+          template: gordo-grafana
+          dependencies:
+            - influx-cleanup
+        {% for machine in machines %}
+        {% if machine.runtime["influx"]["enable"] %}
+        - name: gordo-client-{{machine.name}}
+          template: gordo-client-para-limited
+          arguments:
+            parameters:
+              - name: model-name
+                value: "{{ machine.name}}"
+              - name: train-start-date
+                value: "{{ machine.dataset.train_start_date }}"
+              - name: data-provider
+                value: "{{ machine.dataset.data_provider.to_dict() }}"
+          dependencies:
+            - gordo-server
+            - gordo-influx
+            - gordo-mdl-{{ machine.name }}
+        {% endif %}
+        {% endfor %}
+        {% endif %}

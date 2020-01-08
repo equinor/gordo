@@ -14,9 +14,9 @@ import numpy as np
 
 from nbconvert.exporters import PythonExporter
 
-from gordo_components.machine.dataset.data_provider.providers import DataLakeProvider
-from gordo_components.machine.dataset.datasets import TimeSeriesDataset
-from gordo_components.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.data_provider.providers import DataLakeProvider
+from gordo.machine.dataset.datasets import TimeSeriesDataset
+from gordo.machine.dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 

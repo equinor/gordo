@@ -1,0 +1,44 @@
+machines:
+  - name: machine-1
+    dataset:
+      data_provider: # Should have DataLakeProvider datasource and 20 threads
+        type: DataLakeProvider
+        threads: 20
+      tags:
+        - Tag 1
+        - Tag 2
+        - Tag 4
+      train_start_date: 2016-11-07T08:10:30+00:00
+      train_end_date: 2017-11-07T10:10:01+00:00
+
+  - name: machine-2
+    dataset:
+      data_provider: #Should have RandomDataProvider datasource and 15 threads
+        type: RandomDataProvider
+        threads: 15
+      tags:
+        - Tag 1
+        - Tag 2
+        - Tag 3
+        - Tag 4
+      train_start_date: 2016-11-07T09:10:31+01:00
+      train_end_date: 2017-11-07T11:10:00+01:00
+
+  - name: machine-3
+    dataset:
+      data_provider: # Should default to DataLakeProvider datasource and 10 threads
+        type: DataLakeProvider
+        threads: 10
+      tags:
+        - Tag 3
+        - Tag 5
+      train_start_date: 2016-11-07T09:10:31+01:00
+      train_end_date: 2017-11-07T11:10:00+01:00
+
+globals:
+  model:
+    sklearn.pipeline.Pipeline:
+      steps:
+        - sklearn.preprocessing.data.MinMaxScaler
+        - gordo.machine.model.models.KerasAutoEncoder:
+            kind: feedforward_hourglass

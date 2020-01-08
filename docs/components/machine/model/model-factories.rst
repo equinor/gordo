@@ -14,7 +14,7 @@ that function will be used to create the underlying Keras model for
 feedforward factories
 =====================
 
-.. automodule:: gordo_components.machine.model.factories.feedforward_autoencoder
+.. automodule:: gordo.machine.model.factories.feedforward_autoencoder
     :members:
     :undoc-members:
     :show-inheritance:
@@ -22,7 +22,7 @@ feedforward factories
 lstm factories
 ==============
 
-.. automodule:: gordo_components.machine.model.factories.lstm_autoencoder
+.. automodule:: gordo.machine.model.factories.lstm_autoencoder
     :members:
     :undoc-members:
     :show-inheritance:

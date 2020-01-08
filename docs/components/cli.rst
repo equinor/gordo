@@ -1,11 +1,11 @@
 CLI
 ---
 
-gordo-components CLI
+gordo CLI
 ====================
 
 Available CLIs for Gordo:
 
-.. click:: gordo_components.cli:gordo
-    :prog: gordo-components
+.. click:: gordo.cli:gordo
+    :prog: gordo
     :show-nested:

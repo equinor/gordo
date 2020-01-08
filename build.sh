@@ -10,6 +10,6 @@ done
 
 ls -l /gordo
 
-gordo-components build 
+gordo build
 
 ls -l /gordo

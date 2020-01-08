@@ -8,7 +8,7 @@ COPY .git /code/
 WORKDIR /code
 RUN rm -rf /code/dist \
     && python setup.py sdist \
-    && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-components-packed.tar.gz
+    && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-packed.tar.gz
 
 # Extract a few big dependencies which docker will cache even when other dependencies change
 RUN cat /code/requirements.txt | grep tensorflow== > /code/prereq.txt \
@@ -33,9 +33,9 @@ RUN pip install --no-deps -r prereq.txt --no-cache-dir
 COPY requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir
 
-# Install gordo-components, packaged from earlier 'python setup.py sdist'
-COPY --from=builder /code/dist/gordo-components-packed.tar.gz .
-RUN pip install gordo-components-packed.tar.gz
+# Install gordo, packaged from earlier 'python setup.py sdist'
+COPY --from=builder /code/dist/gordo-packed.tar.gz .
+RUN pip install gordo-packed.tar.gz
 
 # Make gordo own all in its home
 RUN chown -R gordo:gordo ${HOME}
@@ -46,4 +46,4 @@ USER gordo
 # Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
 WORKDIR ${HOME}
 
-CMD ["gordo-components", "run-server"]
+CMD ["gordo", "run-server"]
