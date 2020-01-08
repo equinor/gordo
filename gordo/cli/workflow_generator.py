@@ -127,7 +127,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     except KeyError:
         log_level = os.getenv("GORDO_LOG_LEVEL", gordo_ctx.obj["log_level"])
 
-    logging.getLogger("gordo_components").setLevel(log_level.upper())
+    logging.getLogger("gordo").setLevel(log_level.upper())
     context["log_level"] = log_level.upper()
 
     # Create normalized config

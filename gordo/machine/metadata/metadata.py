@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
-from gordo_components import __version__
+from gordo import __version__
 
 
 __all__ = ["Metadata", "BuildMetadata", "ModelBuildMetadata", "CrossValidationMetaData"]
