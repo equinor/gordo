@@ -6,9 +6,7 @@ from typing import Iterable, Tuple, Union
 from sklearn.base import BaseEstimator
 
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo.workflow.workflow_generator.workflow_generator import (
-    get_dict_from_yaml,
-)
+from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
 from gordo.builder import ModelBuilder
 from gordo.machine import Machine
 
