@@ -15,7 +15,7 @@ os:
 env:
   global:
     - DOCKER_REGISTRY=auroradevacr.azurecr.io
-    - DOCKER_REPO=gordo-components
+    - DOCKER_REPO=gordo
 
 install: skip
 

@@ -45,7 +45,7 @@ push-dev-images:
 
 	# Push everything to auroradevacr.azurecr.io/gordo-components
 	export DOCKER_REGISTRY=auroradevacr.azurecr.io;\
-	export DOCKER_REPO=gordo-components;\
+	export DOCKER_REPO=gordo;\
 	$(MAKE) push-builder push-server push-client push-workflow-generator
 
 	# Also push workflow-generator to auroradevacr.azurecr.io/gordo-infrastructure
