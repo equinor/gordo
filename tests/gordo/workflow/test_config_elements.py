@@ -13,9 +13,7 @@ from gordo import __version__
 from gordo.machine.dataset.datasets import TimeSeriesDataset
 from gordo.machine import Machine
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo.workflow.workflow_generator.workflow_generator import (
-    get_dict_from_yaml,
-)
+from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
 
 
 logger = logging.getLogger(__name__)

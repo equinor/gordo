@@ -509,9 +509,7 @@ def test_exponential_sleep_time(caplog, gordo_project, ml_server):
     )
 
     with caplog.at_level(logging.CRITICAL):
-        with patch(
-            "gordo.client.client.sleep", return_value=None
-        ) as time_sleep:
+        with patch("gordo.client.client.sleep", return_value=None) as time_sleep:
             client = Client(project=gordo_project)
 
             client._send_prediction_request(
