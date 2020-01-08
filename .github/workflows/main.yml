@@ -92,19 +92,3 @@ jobs:
 
       - name: Build Images
         run: make images
-
-  push-images:
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    env:
-      GORDO_PROD_MODE: true
-      DOCKER_REGISTRY: docker.io
-      DOCKER_REPO: equinor
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Push Images
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: make push-prod-images

@@ -1,0 +1,27 @@
+# Run jobs on anything pushed or tagged on the master branch
+# PyPi is not here, because we only want that on releases/tags
+name: MasterCI
+
+on:
+  release: [published, prereleased, edited]
+  push:
+    branches:
+      - master
+    tags:
+      - "*"
+
+jobs:
+  push-images:
+    runs-on: ubuntu-latest
+    env:
+      GORDO_PROD_MODE: true
+      DOCKER_REGISTRY: docker.io
+      DOCKER_REPO: equinor
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Push Images
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: make push-prod-images
