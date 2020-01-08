@@ -30,9 +30,8 @@
 ---
 
 ## About:
-gordo is part of the common ML ops provided by `gordo`
 
-It fulfills the role of inhaling config files and supplying components to the pipeline of:
+Gordo fulfills the role of inhaling config files and supplying components to the pipeline of:
 
 1. Fetching data
 2. Training model
