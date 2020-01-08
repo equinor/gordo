@@ -4,7 +4,6 @@
 CLI interfaces
 """
 
-import os
 import logging
 import sys
 import traceback
@@ -46,18 +45,28 @@ logger = logging.getLogger(__name__)
 
 @click.group("gordo-components")
 @click.version_option(version=__version__, message=__version__)
-def gordo():
+@click.option(
+    "--log-level",
+    type=str,
+    default="INFO",
+    help="Run workflow with custom log-level.",
+    envvar="GORDO_LOG_LEVEL",
+)
+@click.pass_context
+def gordo(gordo_ctx: click.Context, **ctx):
     """
     The main entry point for the CLI interface
     """
-
     # Set log level, defaulting to INFO
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-
     logging.basicConfig(
-        level=getattr(logging, log_level),
+        level=getattr(logging, str(gordo_ctx.params.get("log_level")).upper()),
         format="[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
     )
+
+    # Set matplotlib log level to INFO to avoid noise
+    logging.getLogger("matplotlib").setLevel(logging.INFO)
+
+    gordo_ctx.obj = gordo_ctx.params
 
 
 @click.command()

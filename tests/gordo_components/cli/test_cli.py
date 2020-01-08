@@ -1,6 +1,7 @@
 import os
 import pytest
 import logging
+import re
 
 from click.testing import CliRunner
 from unittest import mock
@@ -441,3 +442,31 @@ def test_server_to_sql_cli():
     args = ["workflow", "server-to-sql", "--help"]
     result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0
+
+
+def test_log_level_cli():
+    """
+    Test that the --log-level option in the CLI sets the correct log-level in the genreated config file.
+    """
+
+    runner = CliRunner()
+    args = [
+        "--log-level",
+        "test_log_level",
+        "workflow",
+        "generate",
+        "--machine-config",
+        "examples/config_crd.yaml",
+        "--project-name",
+        "test",
+    ]
+
+    result = runner.invoke(cli.gordo, args)
+
+    # Find the value on the next line after the key GORDO_LOG_LEVEL
+    gordo_log_levels = re.findall(
+        r"(?<=GORDO_LOG_LEVEL\r|GORDO_LOG_LEVEL\n)[^\r\n]+", result.stdout
+    )
+
+    # Assert all the values to the GORDO_LOG_LEVEL key contains the correct log-level
+    assert all(["TEST_LOG_LEVEL" in value for value in gordo_log_levels])
