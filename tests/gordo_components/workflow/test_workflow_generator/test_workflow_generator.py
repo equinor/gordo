@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 
 import docker
 import pytest
@@ -491,3 +492,26 @@ def test_valid_owner_ref(owner_ref_str: str, valid: bool):
     else:
         with pytest.raises(TypeError):
             wg._valid_owner_ref(owner_ref_str)
+
+
+@pytest.mark.parametrize(
+    "test_file, log_level",
+    (
+        ("config-test-with-log-key.yml", "DEBUG"),
+        ("config-test-with-models.yml", "INFO"),
+    ),
+)
+def test_log_level_key(test_file: str, log_level: str, path_to_config_files: str):
+    """
+    Test that GORDO_LOG_LEVEL is set to the correct value if specified in the config file, or default to INFO if not
+    specified.
+    """
+    workflow_str = _generate_test_workflow_str(path_to_config_files, test_file)
+
+    # Find the value on the next line after the key GORDO_LOG_LEVEL
+    gordo_log_levels = re.findall(
+        r"(?<=GORDO_LOG_LEVEL\r|GORDO_LOG_LEVEL\n)[^\r\n]+", workflow_str
+    )
+
+    # Assert all the values to the GORDO_LOG_LEVEL key contains the correct log-level
+    assert all([log_level in value for value in gordo_log_levels])
