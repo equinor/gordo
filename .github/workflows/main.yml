@@ -64,7 +64,7 @@ jobs:
 
       - uses: codecov/codecov-action@v1
         with:
-          token: fc2844a2-5a6c-43ef-a758-05bc50562b14
+          token: 4d27c7df-480a-42ae-9a67-12408f06a109
           fail_ci_if_error: true
 
   build-docs:
