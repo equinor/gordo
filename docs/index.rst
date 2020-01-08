@@ -1,6 +1,6 @@
-.. Gordo Components Documentation
+.. Gordo Documentation
 
-Welcome to Gordo Components' documentation!
+Welcome to Gordo' documentation!
 ===========================================
 
 .. _overview:
@@ -8,7 +8,7 @@ Welcome to Gordo Components' documentation!
 Overview
 ^^^^^^^^
 
-Gordo Components is a collection of tools to create a distributed
+Gordo is a collection of tools to create a distributed
 ML service represented by a specific pipeline. Generally, any
 ``sklearn.pipeline.Pipeline`` object can be defined within a config file
 and deployed as a REST API on Kubernetes.

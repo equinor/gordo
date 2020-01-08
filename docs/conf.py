@@ -22,7 +22,7 @@ import gordo
 
 # -- Project information -----------------------------------------------------
 
-project = "Gordo Components"
+project = "Gordo"
 copyright = "2019, Equinor"
 author = "Erik Parmann, Kristian Flikka, Miles Granger, Natalie Caruana"
 
@@ -150,8 +150,8 @@ latex_elements = {
 latex_documents = [
     (
         master_doc,
-        "GordoComponents.tex",
-        "Gordo Components Documentation",
+        "Gordo.tex",
+        "Gordo Documentation",
         "Erik Parmann, Kristian Flikka, Miles Granger, Natalie Caruana",
         "manual",
     )
@@ -163,7 +163,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, "gordocomponents", "Gordo Components Documentation", [author], 1)
+    (master_doc, "gordo", "Gordo Documentation", [author], 1)
 ]
 
 
@@ -175,10 +175,10 @@ man_pages = [
 texinfo_documents = [
     (
         master_doc,
-        "GordoComponents",
-        "Gordo Components Documentation",
+        "Gordo",
+        "Gordo Documentation",
         author,
-        "GordoComponents",
+        "Gordo",
         "One line description of project.",
         "Miscellaneous",
     )
