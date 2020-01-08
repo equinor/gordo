@@ -3,29 +3,32 @@
 import pytest
 import numpy as np
 from gordo_components.server import utils as server_utils
-import tests.utils as tu
 
 
 @pytest.mark.parametrize(
-    "data_to_post",
-    [
-        {
-            "X": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist(),
-            "y": np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist(),
-        },  # Nested records
-        {
-            "X": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist(),
-            "y": np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist(),
-        },  # Single record
-    ],
+    # Nested records and single record
+    "data_size",
+    [10, 1],
 )
 @pytest.mark.parametrize("resp_format", ("json", "parquet", None))
 def test_anomaly_prediction_endpoint(
-    base_route, influxdb, gordo_ml_server_client, data_to_post, sensors, resp_format
+    base_route,
+    sensors_str,
+    influxdb,
+    gordo_ml_server_client,
+    data_size,
+    sensors,
+    resp_format,
 ):
     """
     Anomaly GET and POST responses are the same
     """
+
+    data_to_post = {
+        "X": np.random.random(size=(data_size, len(sensors_str))).tolist(),
+        "y": np.random.random(size=(data_size, len(sensors_str))).tolist(),
+    }
+
     endpoint = f"{base_route}/anomaly/prediction"
     if resp_format is not None:
         endpoint += f"?format={resp_format}"

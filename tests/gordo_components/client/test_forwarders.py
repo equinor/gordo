@@ -9,10 +9,9 @@ from gordo_components.client.forwarders import ForwardPredictionsIntoInflux
 from gordo_components.client.utils import influx_client_from_uri
 from gordo_components.machine import Machine
 from gordo_components.machine.dataset import sensor_tag
-import tests.utils as tu
 
 
-def test_influx_forwarder(influxdb):
+def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
     """
     Test that the forwarder creates correct points from a
     multi-indexed series
@@ -22,8 +21,8 @@ def test_influx_forwarder(influxdb):
             config={
                 "name": "some-target-name",
                 "dataset": {
-                    "tags": tu.SENSORS_STR_LIST,
-                    "target_tag_list": tu.SENSORS_STR_LIST,
+                    "tags": sensors_str,
+                    "target_tag_list": sensors_str,
                     "train_start_date": "2016-01-01T00:00:00Z",
                     "train_end_date": "2016-01-05T00:00:00Z",
                     "resolution": "10T",
@@ -35,11 +34,11 @@ def test_influx_forwarder(influxdb):
 
     # Feature outs which match length of tags
     # These should then be re-mapped to the sensor tag names
-    keys = [("name1", i) for i, _ in enumerate(tu.SENSORTAG_LIST)]
+    keys = [("name1", i) for i, _ in enumerate(sensors)]
 
     # Feature outs which don't match the length of the tags
     # These will be kept at 0..N as field names
-    keys.extend([("name2", i) for i in range(len(tu.SENSORTAG_LIST) * 2)])
+    keys.extend([("name2", i) for i in range(len(sensors) * 2)])
 
     # Assign all keys unique numbers
     columns = pd.MultiIndex.from_tuples(keys)
@@ -51,17 +50,17 @@ def test_influx_forwarder(influxdb):
         df[key] = range(i, i + 4)
 
     # Create the forwarder and forward the 'predictions' to influx.
-    forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=tu.INFLUXDB_URI)
+    forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=influxdb_uri)
     forwarder.forward_predictions(predictions=df, machine=machine)
 
     # Client to manually verify the points written
-    client = influx_client_from_uri(tu.INFLUXDB_URI, dataframe_client=True)
+    client = influx_client_from_uri(influxdb_uri, dataframe_client=True)
 
     name1_results = client.query("SELECT * FROM name1")["name1"]
 
     # Should have the tag names as column names since the shape matched
-    assert all(c in name1_results.columns for c in ["machine"] + tu.SENSORS_STR_LIST)
-    for i, tag in enumerate(tu.SENSORS_STR_LIST):
+    assert all(c in name1_results.columns for c in ["machine"] + sensors_str)
+    for i, tag in enumerate(sensors_str):
         assert np.allclose(df[("name1", i)].values, name1_results[tag].values)
 
     # Now check the other top level name "name2" is a measurement with the correct points written
@@ -71,7 +70,7 @@ def test_influx_forwarder(influxdb):
     assert all(
         [
             str(c) in name2_results.columns
-            for c in ["machine"] + list(range(len(tu.SENSORTAG_LIST) * 2))
+            for c in ["machine"] + list(range(len(sensors) * 2))
         ]
     )
     for key in filter(lambda k: k[0] == "name2", keys):

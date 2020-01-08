@@ -6,6 +6,8 @@ import logging
 import tempfile
 import typing
 from dateutil.parser import isoparse  # type: ignore
+import string
+
 
 import pytest
 import requests
@@ -31,29 +33,27 @@ from gordo_components.machine.model import utils as model_utils
 from gordo_components import cli, serializer
 from gordo_components.cli import custom_types
 
-from tests import utils as tu
 
-
-def test_client_get_metadata(ml_server):
+def test_client_get_metadata(gordo_project, ml_server):
     """
     Test client's ability to get metadata from some target
     """
-    client = Client(project=tu.GORDO_PROJECT)
+    client = Client(project=gordo_project)
 
     metadata = client.get_metadata()
     assert isinstance(metadata, dict)
 
     # Can't get metadata for non-existent target
     with pytest.raises(ValueError):
-        client = Client(project=tu.GORDO_PROJECT, target="no-such-target")
+        client = Client(project=gordo_project, target="no-such-target")
         client.get_metadata()
 
 
-def test_client_predict_specific_targets(ml_server):
+def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_server):
     """
     Client.predict should filter any endpoints given to it.
     """
-    client = Client(project=tu.GORDO_PROJECT)
+    client = Client(project=gordo_project)
     with mock.patch.object(
         Client,
         "predict_single_machine",
@@ -68,30 +68,37 @@ def test_client_predict_specific_targets(ml_server):
         patched.assert_not_called()
 
         # Should be called once, for this machine.
-        client.predict(start=start, end=end, machine_names=[tu.GORDO_SINGLE_TARGET])
+        client.predict(start=start, end=end, machine_names=[gordo_single_target])
         patched.assert_called_once()
 
 
-def test_client_download_model(ml_server):
+def test_client_download_model(gordo_project, gordo_single_target, ml_server):
     """
     Test client's ability to download the model
     """
-    client = Client(project=tu.GORDO_PROJECT, target=tu.GORDO_SINGLE_TARGET)
+    client = Client(project=gordo_project, target=gordo_single_target)
 
     models = client.download_model()
     assert isinstance(models, dict)
-    assert isinstance(models[tu.GORDO_SINGLE_TARGET], BaseEstimator)
+    assert isinstance(models[gordo_single_target], BaseEstimator)
 
     # Can't download model for non-existent target
     with pytest.raises(ValueError):
-        client = Client(project=tu.GORDO_PROJECT, target="non-existent-target")
+        client = Client(project=gordo_project, target="non-existent-target")
         client.download_model()
 
 
 @pytest.mark.parametrize("batch_size", (10, 100))
 @pytest.mark.parametrize("use_parquet", (True, False))
 def test_client_predictions_diff_batch_sizes(
-    influxdb, ml_server, batch_size: int, use_parquet: bool
+    gordo_project,
+    gordo_single_target,
+    influxdb,
+    influxdb_uri,
+    influxdb_measurement,
+    ml_server,
+    batch_size: int,
+    use_parquet: bool,
 ):
     """
     Run the prediction client with different batch-sizes and whether to use
@@ -104,13 +111,13 @@ def test_client_predictions_diff_batch_sizes(
     )
 
     # Client only used within the this test
-    test_client = client_utils.influx_client_from_uri(tu.INFLUXDB_URI)
+    test_client = client_utils.influx_client_from_uri(influxdb_uri)
 
     # Created measurements by prediction client with dest influx
     query = f"""
     SELECT *
     FROM "model-output"
-    WHERE("machine" =~ /^{tu.GORDO_SINGLE_TARGET}$/)
+    WHERE("machine" =~ /^{gordo_single_target}$/)
     """
 
     # Before predicting, influx destination db should be empty for 'predictions' measurement
@@ -118,18 +125,18 @@ def test_client_predictions_diff_batch_sizes(
     assert len(vals) == 0
 
     data_provider = providers.InfluxDataProvider(
-        measurement=tu.INFLUXDB_MEASUREMENT,
+        measurement=influxdb_measurement,
         value_name="Value",
         client=client_utils.influx_client_from_uri(
-            uri=tu.INFLUXDB_URI, dataframe_client=True
+            uri=influxdb_uri, dataframe_client=True
         ),
     )
 
     prediction_client = Client(
-        project=tu.GORDO_PROJECT,
+        project=gordo_project,
         data_provider=data_provider,
         prediction_forwarder=ForwardPredictionsIntoInflux(  # type: ignore
-            destination_influx_uri=tu.INFLUXDB_URI
+            destination_influx_uri=influxdb_uri
         ),
         batch_size=batch_size,
         use_parquet=use_parquet,
@@ -180,7 +187,7 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-def test_client_cli_metadata(ml_server, tmp_dir):
+def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmp_dir):
     """
     Test proper execution of client predict sub-command
     """
@@ -192,14 +199,14 @@ def test_client_cli_metadata(ml_server, tmp_dir):
         args=[
             "client",
             "--project",
-            tu.GORDO_PROJECT,
+            gordo_project,
             "--target",
-            tu.GORDO_SINGLE_TARGET,
+            gordo_single_target,
             "metadata",
         ],
     )
     assert out.exit_code == 0
-    assert tu.GORDO_SINGLE_TARGET in out.output
+    assert gordo_single_target in out.output
 
     # Save metadata to file
     output_file = os.path.join(tmp_dir, "metadata.json")
@@ -208,9 +215,9 @@ def test_client_cli_metadata(ml_server, tmp_dir):
         args=[
             "client",
             "--project",
-            tu.GORDO_PROJECT,
+            gordo_project,
             "--target",
-            tu.GORDO_SINGLE_TARGET,
+            gordo_single_target,
             "metadata",
             "--output-file",
             output_file,
@@ -220,10 +227,12 @@ def test_client_cli_metadata(ml_server, tmp_dir):
     assert os.path.exists(output_file)
     with open(output_file) as f:
         metadata = json.load(f)
-        assert tu.GORDO_SINGLE_TARGET in metadata
+        assert gordo_single_target in metadata
 
 
-def test_client_cli_download_model(ml_server, tmp_dir):
+def test_client_cli_download_model(
+    gordo_project, gordo_single_target, ml_server, tmp_dir
+):
     """
     Test proper execution of client predict sub-command
     """
@@ -237,9 +246,9 @@ def test_client_cli_download_model(ml_server, tmp_dir):
         args=[
             "client",
             "--project",
-            tu.GORDO_PROJECT,
+            gordo_project,
             "--target",
-            tu.GORDO_SINGLE_TARGET,
+            gordo_single_target,
             "download-model",
             tmp_dir,
         ],
@@ -251,26 +260,25 @@ def test_client_cli_download_model(ml_server, tmp_dir):
     # Output directory should not be empty any longer
     assert len(os.listdir(tmp_dir)) > 0
 
-    model_output_dir = os.path.join(tmp_dir, tu.GORDO_SINGLE_TARGET)
+    model_output_dir = os.path.join(tmp_dir, gordo_single_target)
     assert os.path.isdir(model_output_dir)
 
     model = serializer.load(model_output_dir)
     assert isinstance(model, BaseEstimator)
 
 
-@pytest.mark.parametrize(
-    "forwarder_args",
-    [["--influx-uri", tu.INFLUXDB_URI, "--forward-resampled-sensors"], None],
-)
+@pytest.mark.parametrize("use_forwarder", [True, False])
 @pytest.mark.parametrize("output_dir", [True, False])
 @pytest.mark.parametrize("use_parquet", (True, False))
 @pytest.mark.parametrize("session_config", ({}, {"headers": {}}))
 def test_client_cli_predict(
     influxdb,
-    gordo_name,
+    influxdb_uri,
+    gordo_project,
+    gordo_single_target,
     ml_server,
     tmp_dir,
-    forwarder_args,
+    use_forwarder,
     trained_model_directory,
     output_dir,
     use_parquet,
@@ -281,7 +289,7 @@ def test_client_cli_predict(
     """
     runner = CliRunner()
 
-    args = ["client", "--metadata", "key,value", "--project", tu.GORDO_PROJECT]
+    args = ["client", "--metadata", "key,value", "--project", gordo_project]
     if session_config:
         args.extend(["--session-config", json.dumps(session_config)])
 
@@ -295,7 +303,7 @@ def test_client_cli_predict(
     )
 
     influx_client = client_utils.influx_client_from_uri(
-        uri=tu.INFLUXDB_URI, dataframe_client=True
+        uri=influxdb_uri, dataframe_client=True
     )
     query = """
         SELECT *
@@ -303,8 +311,8 @@ def test_client_cli_predict(
         """
 
     # Do we have forwarder args?
-    if forwarder_args is not None:
-        args.extend(forwarder_args)
+    if use_forwarder:
+        args.extend(["--influx-uri", influxdb_uri, "--forward-resampled-sensors"])
         vals = influx_client.query(query)
         # There is no data there before we start doing things
         assert len(vals) == 0
@@ -328,7 +336,7 @@ def test_client_cli_predict(
 
     # If we activated forwarder and we had any actual data then there should
     # be resampled values in the influx
-    if forwarder_args:
+    if use_forwarder:
         vals = influx_client.query(query)
         assert len(vals) == 1
         assert len(vals["resampled"]) == 48
@@ -336,7 +344,7 @@ def test_client_cli_predict(
 
     # Did it save dataframes to output dir if specified?
     if output_dir:
-        assert os.path.exists(os.path.join(tmp_dir, f"{tu.GORDO_SINGLE_TARGET}.csv.gz"))
+        assert os.path.exists(os.path.join(tmp_dir, f"{gordo_single_target}.csv.gz"))
 
 
 @pytest.mark.parametrize(
@@ -347,7 +355,15 @@ def test_client_cli_predict(
     ],
 )
 def test_client_cli_predict_non_zero_exit(
-    should_fail, start_date, end_date, caplog, influxdb, ml_server
+    should_fail,
+    start_date,
+    end_date,
+    caplog,
+    gordo_project,
+    influxdb,
+    influxdb_uri,
+    influxdb_measurement,
+    ml_server,
 ):
     """
     Test ability for client to get predictions via CLI
@@ -360,14 +376,14 @@ def test_client_cli_predict_non_zero_exit(
         "--metadata",
         "key,value",
         "--project",
-        tu.GORDO_PROJECT,
+        gordo_project,
         "predict",
         start_date,
         end_date,
     ]
 
     data_provider = providers.InfluxDataProvider(
-        measurement=tu.INFLUXDB_MEASUREMENT, value_name="Value", uri=tu.INFLUXDB_URI
+        measurement=influxdb_measurement, value_name="Value", uri=influxdb_uri
     )
 
     args.extend(["--data-provider", json.dumps(data_provider.to_dict())])
@@ -393,7 +409,7 @@ def test_client_cli_predict_non_zero_exit(
         '{"type": "InfluxDataProvider", "measurement": "value"}',
     ),
 )
-def test_data_provider_click_param(config):
+def test_data_provider_click_param(config, sensors_str):
     """
     Test click custom param to load a provider from a string config representation
     """
@@ -410,13 +426,20 @@ def test_data_provider_click_param(config):
         assert isinstance(provider, getattr(providers, expected_provider_type))
 
 
-@pytest.mark.parametrize("tags", [["C", "A", "B", "D"], tu.SENSORS_STR_LIST])
-def test_ml_server_dataframe_to_dict_and_back(tags: typing.List[str]):
+@pytest.mark.parametrize("use_test_project_tags", [True, False])
+def test_ml_server_dataframe_to_dict_and_back(sensors_str, use_test_project_tags):
     """
     Tests the flow of the server creating a dataframe from the model's data, putting into
     a dict of string to df. lists of values, and the client being able to reconstruct it back
     to the original dataframe (less the second level names)
     """
+    # Run test with test project tag names
+    if use_test_project_tags:
+        tags = sensors_str
+    # Run project with random names
+    else:
+        tags = [string.ascii_uppercase[i] for i in range(len(sensors_str))]
+
     # Some synthetic data
     original_input = np.random.random((10, len(tags)))
     model_output = np.random.random((10, len(tags)))
@@ -482,7 +505,7 @@ def test_client_machine_filtering(
         ), f"Not equal: {expected} \n----\n {filtered_machines}"
 
 
-def test_exponential_sleep_time(caplog, ml_server):
+def test_exponential_sleep_time(caplog, gordo_project, ml_server):
 
     start, end = (
         isoparse("2016-01-01T00:00:00+00:00"),
@@ -493,7 +516,7 @@ def test_exponential_sleep_time(caplog, ml_server):
         with patch(
             "gordo_components.client.client.sleep", return_value=None
         ) as time_sleep:
-            client = Client(project=tu.GORDO_PROJECT)
+            client = Client(project=gordo_project)
 
             client._send_prediction_request(
                 X=pd.DataFrame([123]),
@@ -528,28 +551,27 @@ def test__handle_response_errors():
         _handle_response(resp)
 
 
-@pytest.mark.parametrize("revision", (None, tu.GORDO_REVISION, "does-not-exist"))
-def test_client_set_revision(ml_server, gordo_project, revision):
+@pytest.mark.parametrize("revision_specified", [True, False])
+def test_client_set_revision(
+    ml_server, gordo_project, gordo_revision, revision_specified
+):
     """
-    Client will auto set and verify revision
+    Client will auto-set to latest revision by default, else provide the requested revision
     """
 
-    # Default behavior is to lookup the latest revision.
-    if revision is None:
-        client = Client(project=gordo_project, revision=revision)
-        assert client.revision == tu.GORDO_REVISION
-        assert client.session.headers["revision"] == tu.GORDO_REVISION
+    client = Client(
+        project=gordo_project, revision=gordo_revision if revision_specified else None
+    )
+    assert client.revision == gordo_revision
+    assert client.session.headers["revision"] == gordo_revision
 
-    # If we ask for a specific one, it should result in tha one.
-    elif revision == tu.GORDO_REVISION:
-        client = Client(project=gordo_project, revision=revision)
-        assert client.revision == tu.GORDO_REVISION
-        assert client.session.headers["revision"] == tu.GORDO_REVISION
 
-    # Asking for that which doesn't exist will raise an error.
-    else:
-        with pytest.raises(LookupError):
-            Client(project=gordo_project, revision=revision)
+def test_client_set_revision_error(ml_server, gordo_project):
+    """
+    Client will raise an error if asking for a revision that doesn't exist
+    """
+    with pytest.raises(LookupError):
+        Client(project=gordo_project, revision="does-not-exist")
 
 
 def test_client_auto_update_revision(ml_server, gordo_project, gordo_revision):

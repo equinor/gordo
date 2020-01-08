@@ -8,35 +8,21 @@ import pandas as pd
 import numpy as np
 
 from gordo_components.server import utils as server_utils
-import tests.utils as tu
 
 
 @pytest.mark.parametrize(
-    "data_to_post",
-    [
-        np.random.random(size=(10, len(tu.SENSORS_STR_LIST))).tolist(),
-        np.random.random(size=(1, len(tu.SENSORS_STR_LIST))).tolist(),
-        pd.DataFrame(
-            np.random.random((10, len(tu.SENSORS_STR_LIST))),
-            columns=tu.SENSORS_STR_LIST,
-        ).to_dict("records"),
-        pd.DataFrame(
-            np.random.random((10, len(tu.SENSORS_STR_LIST))),
-            columns=tu.SENSORS_STR_LIST,
-        ).to_dict("list"),
-        pd.DataFrame(
-            np.random.random((10, len(tu.SENSORS_STR_LIST))),
-            columns=tu.SENSORS_STR_LIST,
-        ).to_dict("dict"),
-    ],
+    "data_size,to_dict_arg",
+    [(10, None), (1, None), (10, "records"), (10, "list"), (10, "dict")],
 )
 @pytest.mark.parametrize("resp_format", ("json", "parquet", None))
 @pytest.mark.parametrize("send_as_parquet", (True, False))
 def test_prediction_endpoint_post_ok(
     base_route,
     sensors,
+    sensors_str,
     gordo_ml_server_client,
-    data_to_post,
+    data_size,
+    to_dict_arg,
     resp_format,
     send_as_parquet,
 ):
@@ -44,6 +30,12 @@ def test_prediction_endpoint_post_ok(
     Test the expected successful data posts, by sending a variety of valid
     JSON formats of a dataframe, as well as parquet serializations.
     """
+    data_to_post = np.random.random(size=(data_size, len(sensors))).tolist()
+
+    if to_dict_arg is not None:
+        df = pd.DataFrame(data_to_post, columns=sensors_str)
+        data_to_post = df.to_dict(to_dict_arg)
+
     endpoint = f"{base_route}/prediction"
     if resp_format is not None:
         endpoint += f"?format={resp_format}"
@@ -68,22 +60,25 @@ def test_prediction_endpoint_post_ok(
     assert all(key in data for key in ("model-output", "model-input"))
 
 
-@pytest.mark.parametrize(
-    "data_to_post",
-    [
-        {"X": [list(range(len(tu.SENSORTAG_LIST) - 1))]},  # Not enough features
-        {"no-x-here": True},  # No X
-        {"X": [[1, 2, [1, 2]]]},  # Badly formatted data
-    ],
-)
 def test_prediction_endpoint_post_fail(
-    caplog, base_route, sensors, gordo_ml_server_client, data_to_post
+    caplog, base_route, sensors, gordo_ml_server_client
 ):
     """
     Test expected failures when posting certain types of data
     """
-    with caplog.at_level(logging.CRITICAL):
-        resp = gordo_ml_server_client.post(
-            f"{base_route}/prediction", json=data_to_post
-        )
-    assert resp.status_code == 400
+    erroneous_datasets = [
+        # Not enough features
+        {"X": [list(range(len(sensors) - 1))]},
+        # No X
+        {"no-X-here": True},
+        # Badly formatted data
+        {"X": [[1, 2, [1, 2]]]},
+    ]
+    for i, data_to_post in enumerate(erroneous_datasets):
+        with caplog.at_level(logging.CRITICAL):
+            resp = gordo_ml_server_client.post(
+                f"{base_route}/prediction", json=data_to_post
+            )
+        assert (
+            resp.status_code == 400
+        ), f"Prediction did not fail with data, {str(data_to_post)}."
