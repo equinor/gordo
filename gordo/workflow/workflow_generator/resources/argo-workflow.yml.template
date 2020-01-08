@@ -649,7 +649,7 @@ spec:
       - name: AZUREML_WORKSPACE_STR
         valueFrom:
           configMapKeyRef:
-            name: gordo-config-map
+            name: gordo-components-config-map  # TODO: Update in gordo-infrastructure
             key: azureml_workspace_str
       - name: DL_SERVICE_AUTH_STR
         valueFrom:
