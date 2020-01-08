@@ -3,7 +3,8 @@
 name: MasterCI
 
 on:
-  release: [published, prereleased, edited]
+  release:
+    types: [published, prereleased, edited]
   push:
     branches:
       - master
