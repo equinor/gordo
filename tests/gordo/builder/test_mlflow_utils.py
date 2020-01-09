@@ -111,7 +111,7 @@ def test_get_mlflow_client_config(MockClient, MockWorkspace, MockInteractiveLogi
 @mock.patch("gordo.builder.mlflow_utils.MlflowClient.create_experiment")
 @mock.patch("gordo.builder.mlflow_utils.MlflowClient.create_run")
 def test_get_run_id_external_calls(
-    mock_create_run, mock_create_experiment, mock_get_experiment, tmp_dir
+    mock_create_run, mock_create_experiment, mock_get_experiment, tmpdir
 ):
     """
     Test logic for creating an experiment if it does not exist to create new runs
@@ -143,7 +143,7 @@ def test_get_run_id_external_calls(
     test_run_id = "dummy_run_id"
     model_key = "dummy_model_key"
 
-    mlflow.set_tracking_uri(f"file:{tmp_dir}")
+    mlflow.set_tracking_uri(f"file:{tmpdir}")
     client = mlu.MlflowClient()
 
     # Experiment exists
@@ -241,12 +241,12 @@ def test_DatetimeEncoder(metadata):
 
 
 @mock.patch("gordo.builder.mlflow_utils.MlflowClient", autospec=True)
-def test_mlflow_context_log_metadata(MockClient, tmp_dir, metadata):
+def test_mlflow_context_log_metadata(MockClient, tmpdir, metadata):
     """
     Test that call to wrapped function initiates MLflow logging or throws warning
     """
     metadata = Machine(**metadata)
-    mlflow.set_tracking_uri(f"file:{tmp_dir}")
+    mlflow.set_tracking_uri(f"file:{tmpdir}")
 
     mock_client = MockClient()
     mock_client.log_batch.return_value = "test"
