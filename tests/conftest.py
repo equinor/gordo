@@ -131,8 +131,8 @@ def base_route(api_version, gordo_project, gordo_name):
 
 @pytest.fixture(scope="session")
 def model_collection_directory(gordo_revision: str):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        collection_dir = os.path.join(tmpdir, gordo_revision)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        collection_dir = os.path.join(tmp_dir, gordo_revision)
         os.makedirs(collection_dir, exist_ok=True)
         yield collection_dir
 
