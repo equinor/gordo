@@ -19,9 +19,9 @@ azure-mgmt-containerregistry==2.8.0  # via azureml-core
 azure-mgmt-keyvault==2.0.0  # via azureml-core
 azure-mgmt-resource==7.0.0  # via azureml-core
 azure-mgmt-storage==7.0.0  # via azureml-core
-azureml-contrib-run==1.0.81
-azureml-core==1.0.81.1    # via azureml-mlflow
-azureml-mlflow==1.0.81    # via azureml-contrib-run
+azureml-contrib-run==1.0.83
+azureml-core==1.0.83      # via azureml-mlflow
+azureml-mlflow==1.0.83    # via azureml-contrib-run
 backports.tempfile==1.0   # via azureml-core
 backports.weakref==1.0.post1  # via backports.tempfile
 cachetools==4.0.0
