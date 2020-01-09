@@ -1,12 +1,22 @@
+import os
 from setuptools import setup, find_packages
 
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]
 
 
-def requirements(fp: str):
-    with open(fp) as f:
-        return [r.strip() for r in f.readlines()]
+def requirements(*fps):
+    reqs = []
+    for fp in fps:
+        with open(os.path.join("requirements", fp)) as f:
+            reqs.extend(
+                [
+                    r.strip()
+                    for r in f.readlines()
+                    if ("==" in r or "~=" in r) and (not r.startswith("#"))
+                ]
+            )
+    return reqs
 
 
 setup(
@@ -21,23 +31,28 @@ setup(
     ],
     description="Train and build models for Argo / Kubernetes",
     entry_points={"console_scripts": ["gordo=gordo.cli:gordo"]},
-    install_requires=requirements("requirements.in"),  # Allow flexible deps for install
+    install_requires=["gordo[full]"],
     license="AGPLv3",
     name="gordo",
     packages=find_packages(),
     setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=requirements("test_requirements.txt"),
+    tests_require=["gordo[tests]"],
     url="https://github.com/equinor/gordo",
-    use_scm_version={
-        "write_to": "gordo/_version.py",
-        "relative_to": __file__,
-    },
+    use_scm_version={"write_to": "gordo/_version.py", "relative_to": __file__},
     zip_safe=True,
     package_data={
         "": [
             "python/gordo/workflow/workflow_generator/resources/argo-workflow.yml.template"
         ]
+    },
+    extras_require={
+        "docs": requirements("docs_requirements.in", "core_requirements.in"),
+        "core": requirements("core_requirements.in"),
+        "full": requirements("core_requirements.in", "full_requirements.in"),
+        "test": requirements(
+            "core_requirements.txt", "test_requirements.txt", "full_requirements.txt"
+        ),
     },
     include_package_data=True,
 )

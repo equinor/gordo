@@ -9,12 +9,18 @@ import pickle
 
 import dateutil
 import timeit
+import warnings
 from datetime import datetime
 from typing import Union, List
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
+
+try:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+except ImportError:
+    warnings.warn("pyarrow not found, parquet format will not be available.")
+
 from flask import request, g, jsonify, make_response, Response
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator

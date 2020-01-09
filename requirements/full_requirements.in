@@ -1,0 +1,4 @@
+catboost~=0.20
+mlflow~=1.5
+pyarrow~=0.15
+h5py~=2.8

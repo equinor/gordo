@@ -31,8 +31,7 @@ jobs:
       - name: Install
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r test_requirements.txt
+          pip install -e .[test]
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}
@@ -79,8 +78,7 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install -r requirements.txt
-          pip install -r dev_requirements.txt
+          pip install .[docs]
 
       - name: Build Docs
         run: make docs
