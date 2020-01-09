@@ -14,7 +14,7 @@ peewee~=3.13
 numexpr~=2.6
 psycopg2-binary==2.8.4
 python-dateutil~=2.8
-pyyaml~=5.1
+pyyaml~=5.3
 requests~=2.20
 scikit-learn~=0.22
 tensorflow~=2.0
