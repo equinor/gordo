@@ -11,7 +11,7 @@ pyarrow~=0.15
 numpy~=1.18
 pandas~=0.25
 peewee~=3.13
-numexpr~=2.6
+numexpr~=2.7
 psycopg2-binary==2.8.4
 python-dateutil~=2.8
 pyyaml~=5.3

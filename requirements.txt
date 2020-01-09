@@ -83,7 +83,7 @@ msrest==0.6.10            # via azure-graphrbac, azure-mgmt-authorization, azure
 msrestazure==0.6.2        # via azure-graphrbac, azure-mgmt-authorization, azure-mgmt-containerregistry, azure-mgmt-keyvault, azure-mgmt-resource, azure-mgmt-storage, azureml-core
 mypy-extensions==0.4.3    # via typing-inspect
 ndg-httpsclient==0.5.1    # via azureml-core
-numexpr==2.7.0
+numexpr==2.7.1
 numpy==1.18.1
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
