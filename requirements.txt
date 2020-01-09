@@ -84,7 +84,7 @@ msrestazure==0.6.2        # via azure-graphrbac, azure-mgmt-authorization, azure
 mypy-extensions==0.4.3    # via typing-inspect
 ndg-httpsclient==0.5.1    # via azureml-core
 numexpr==2.7.0
-numpy==1.18.0
+numpy==1.18.1
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
 pandas==0.25.3
