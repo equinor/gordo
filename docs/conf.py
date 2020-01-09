@@ -65,12 +65,7 @@ templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
-#
-from recommonmark.parser import CommonMarkParser
-
-source_parsers = {".md": CommonMarkParser}
-
-source_suffix = [".rst", ".md"]
+source_suffix = [".rst"]
 
 # The master toctree document.
 master_doc = "index"
@@ -162,9 +157,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, "gordo", "Gordo Documentation", [author], 1)
-]
+man_pages = [(master_doc, "gordo", "Gordo Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------------
