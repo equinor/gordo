@@ -435,9 +435,9 @@
         "valueName": "avg"
       },
       {
+        "datasource": "Postgres-metadata",
         "cacheTimeout": null,
         "columns": [],
-        "datasource": "Postgres-metadata",
         "fontSize": "100%",
         "gridPos": {
           "h": 6,
@@ -482,7 +482,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'machine-metadata'->'build-metadata'->'model'->'cross-validation'->'scores'->'explained-variance-score') where name='$Machine'",
+            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'cross_validation'->'scores'->'explained-variance-score') where name='$Machine'",
             "refId": "A",
             "select": [
               [
@@ -508,7 +508,8 @@
         "timeShift": null,
         "title": "Metric scores - Explained variance",
         "transform": "table",
-        "type": "table"
+        "type": "table",
+        "options": {}
       },
       {
         "aliasColors": {},
