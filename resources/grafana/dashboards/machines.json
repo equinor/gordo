@@ -885,12 +885,13 @@
         }
       },
       {
+        "datasource": "-- Mixed --",
         "aliasColors": {},
         "bars": false,
         "dashLength": 10,
         "dashes": false,
-        "datasource": "InfluxDB",
         "fill": 0,
+        "fillGradient": 0,
         "gridPos": {
           "h": 12,
           "w": 12,
@@ -912,6 +913,9 @@
         "linewidth": 1,
         "links": [],
         "nullPointMode": "connected",
+        "options": {
+          "dataLinks": []
+        },
         "paceLength": 10,
         "percentage": false,
         "pointradius": 1,
@@ -924,6 +928,7 @@
         "targets": [
           {
             "alias": "$col",
+            "datasource": "InfluxDB",
             "groupBy": [
               {
                 "params": [
@@ -941,8 +946,8 @@
             "measurement": "total-anomaly-scaled",
             "orderByTime": "ASC",
             "policy": "default",
-            "query": "SELECT mean(/^$Sensor$/) as \"field\" FROM \"original-input\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
-            "rawQuery": false,
+            "query": "SELECT mean(*) FROM \"total-anomaly-scaled\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": true,
             "refId": "B",
             "resultFormat": "time_series",
             "select": [
@@ -964,6 +969,33 @@
                 "key": "machine",
                 "operator": "=~",
                 "value": "/^$Machine$/"
+              }
+            ]
+          },
+          {
+            "datasource": "Postgres-metadata",
+            "format": "time_series",
+            "group": [],
+            "metricColumn": "none",
+            "rawQuery": true,
+            "rawSql": "select \n  cast (threashold.value as float) as threshold, \n  date(machine.dataset->>'train_start_date') as time \nfrom machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'model_meta') as threashold \nwhere name='$Machine' and key='aggregate-threshold'\n\nunion\n\nselect \n  cast (threashold.value as float) as threshold, \n  current_date as time \nfrom machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'model_meta') as threashold \nwhere name='$Machine' and key='aggregate-threshold'",
+            "refId": "A",
+            "select": [
+              [
+                {
+                  "params": [
+                    "value"
+                  ],
+                  "type": "column"
+                }
+              ]
+            ],
+            "timeColumn": "time",
+            "where": [
+              {
+                "name": "$__timeFilter",
+                "params": [],
+                "type": "macro"
               }
             ]
           }
