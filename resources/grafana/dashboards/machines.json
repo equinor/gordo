@@ -978,7 +978,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "select \n  cast (threashold.value as float) as threshold, \n  date(machine.dataset->>'train_start_date') as time \nfrom machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'model_meta') as threashold \nwhere name='$Machine' and key='aggregate-threshold'\n\nunion\n\nselect \n  cast (threashold.value as float) as threshold, \n  current_date as time \nfrom machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'model_meta') as threashold \nwhere name='$Machine' and key='aggregate-threshold'",
+            "rawSql": "select \n  cast (threshold.value as float) as threshold, \n  date(machine.dataset->>'train_start_date') as time \nfrom machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'model_meta') as threshold \nwhere name='$Machine' and key='aggregate-threshold'\n\nunion\n\nselect \n  cast (threshold.value as float) as threshold, \n  current_date as time \nfrom machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'model_meta') as threshold \nwhere name='$Machine' and key='aggregate-threshold'",
             "refId": "A",
             "select": [
               [
