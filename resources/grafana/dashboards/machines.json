@@ -451,7 +451,7 @@
         "scroll": true,
         "showHeader": true,
         "sort": {
-          "col": 0,
+          "col": null,
           "desc": false
         },
         "styles": [
@@ -482,7 +482,7 @@
             "group": [],
             "metricColumn": "none",
             "rawQuery": true,
-            "rawSql": "select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'cross_validation'->'scores'->'explained-variance-score') where name='$Machine'",
+            "rawSql": "select raw.metric, jsonb_each.key as label, jsonb_each.value as value \nfrom (\n  select jsonb_each.key as metric, jsonb_each.value as scores from machine, jsonb_each(machine.metadata->'build_metadata'->'model'->'cross_validation'->'scores') where name='$Machine'\n) as raw,\njsonb_each(scores)\n",
             "refId": "A",
             "select": [
               [
@@ -506,7 +506,7 @@
         ],
         "timeFrom": null,
         "timeShift": null,
-        "title": "Metric scores - Explained variance",
+        "title": "Metric scores",
         "transform": "table",
         "type": "table",
         "options": {}
