@@ -104,13 +104,13 @@ def test_determine_offset(model: BaseEstimator, expected_offset: int):
     assert offset == expected_offset
 
 
-def test_output_dir(tmp_dir):
+def test_output_dir(tmpdir):
     """
     Test building of model will create subdirectories for model saving if needed.
     """
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir, "some", "sub", "directories")
+    output_dir = os.path.join(tmpdir, "some", "sub", "directories")
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
@@ -386,13 +386,13 @@ def test_output_scores_metadata():
     ) / 2 == pytest.approx(scores_metadata["mean-absolute-error"]["fold-mean"])
 
 
-def test_provide_saved_model_simple_happy_path(tmp_dir):
+def test_provide_saved_model_simple_happy_path(tmpdir):
     """
     Test provide_saved_model with no caching
     """
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir, "model")
+    output_dir = os.path.join(tmpdir, "model")
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
@@ -403,13 +403,13 @@ def test_provide_saved_model_simple_happy_path(tmp_dir):
     assert len(os.listdir(output_dir)) == 2
 
 
-def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
+def test_provide_saved_model_caching_handle_existing_same_dir(tmpdir):
     """If the model exists in the model register, and the path there is the
     same as output_dir, output_dir is returned"""
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir, "model")
-    registry_dir = os.path.join(tmp_dir, "registry")
+    output_dir = os.path.join(tmpdir, "model")
+    registry_dir = os.path.join(tmpdir, "registry")
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
@@ -422,16 +422,16 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmp_dir):
     assert builder.cached_model_path == output_dir
 
 
-def test_provide_saved_model_caching_handle_existing_different_register(tmp_dir):
+def test_provide_saved_model_caching_handle_existing_different_register(tmpdir):
     """If the model exists in the model register, but the output_dir is not where
     the model is, the model is copied to the new location, unless the new location
     already exists. If it does then return it"""
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir1 = os.path.join(tmp_dir, "model1")
-    output_dir2 = os.path.join(tmp_dir, "model2")
+    output_dir1 = os.path.join(tmpdir, "model1")
+    output_dir2 = os.path.join(tmpdir, "model2")
 
-    registry_dir = os.path.join(tmp_dir, "registry")
+    registry_dir = os.path.join(tmpdir, "registry")
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
@@ -460,7 +460,7 @@ def test_provide_saved_model_caching(
     metadata: Optional[Metadata],
     tag_list: Optional[List[SensorTag]],
     replace_cache,
-    tmp_dir,
+    tmpdir,
 ):
     """
     Test provide_saved_model with caching and possible cache busting if tag_list, or replace_cache is set.
@@ -490,8 +490,8 @@ def test_provide_saved_model_caching(
 
     model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
-    output_dir = os.path.join(tmp_dir, "model")
-    registry_dir = os.path.join(tmp_dir, "registry")
+    output_dir = os.path.join(tmpdir, "model")
+    registry_dir = os.path.join(tmpdir, "registry")
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
@@ -502,7 +502,7 @@ def test_provide_saved_model_caching(
     if tag_list:
         data_config["tag_list"] = tag_list
 
-    new_output_dir = os.path.join(tmp_dir, "model2")
+    new_output_dir = os.path.join(tmpdir, "model2")
     _, second_machine = ModelBuilder(
         machine=Machine(
             name="model-name",

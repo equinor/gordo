@@ -183,7 +183,7 @@ def test_client_cli_basic(args):
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
 
-def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmp_dir):
+def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpdir):
     """
     Test proper execution of client predict sub-command
     """
@@ -205,7 +205,7 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmp_
     assert gordo_single_target in out.output
 
     # Save metadata to file
-    output_file = os.path.join(tmp_dir, "metadata.json")
+    output_file = os.path.join(tmpdir, "metadata.json")
     out = runner.invoke(
         cli.gordo,
         args=[
@@ -227,7 +227,7 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmp_
 
 
 def test_client_cli_download_model(
-    gordo_project, gordo_single_target, ml_server, tmp_dir
+    gordo_project, gordo_single_target, ml_server, tmpdir
 ):
     """
     Test proper execution of client predict sub-command
@@ -235,7 +235,7 @@ def test_client_cli_download_model(
     runner = CliRunner()
 
     # Empty output directory before downloading
-    assert len(os.listdir(tmp_dir)) == 0
+    assert len(os.listdir(tmpdir)) == 0
 
     out = runner.invoke(
         cli.gordo,
@@ -246,7 +246,7 @@ def test_client_cli_download_model(
             "--target",
             gordo_single_target,
             "download-model",
-            tmp_dir,
+            str(tmpdir),
         ],
     )
     assert (
@@ -254,9 +254,9 @@ def test_client_cli_download_model(
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
     # Output directory should not be empty any longer
-    assert len(os.listdir(tmp_dir)) > 0
+    assert len(os.listdir(tmpdir)) > 0
 
-    model_output_dir = os.path.join(tmp_dir, gordo_single_target)
+    model_output_dir = os.path.join(tmpdir, gordo_single_target)
     assert os.path.isdir(model_output_dir)
 
     model = serializer.load(model_output_dir)
@@ -273,7 +273,7 @@ def test_client_cli_predict(
     gordo_project,
     gordo_single_target,
     ml_server,
-    tmp_dir,
+    tmpdir,
     use_forwarder,
     trained_model_directory,
     output_dir,
@@ -315,7 +315,7 @@ def test_client_cli_predict(
 
     # Should it write out the predictions to dataframes in an output directory?
     if output_dir:
-        args.extend(["--output-dir", tmp_dir])
+        args.extend(["--output-dir", str(tmpdir)])
 
     # Do we have a data provider, POST else GET requests
     args.extend(
@@ -340,7 +340,7 @@ def test_client_cli_predict(
 
     # Did it save dataframes to output dir if specified?
     if output_dir:
-        assert os.path.exists(os.path.join(tmp_dir, f"{gordo_single_target}.csv.gz"))
+        assert os.path.exists(os.path.join(tmpdir, f"{gordo_single_target}.csv.gz"))
 
 
 @pytest.mark.parametrize(

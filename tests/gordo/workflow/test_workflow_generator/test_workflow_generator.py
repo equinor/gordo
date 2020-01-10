@@ -183,7 +183,7 @@ def test_basic_generation(path_to_config_files):
     assert len(machines) == 2
 
 
-def test_generation_to_file(tmp_dir, path_to_config_files):
+def test_generation_to_file(tmpdir, path_to_config_files):
     """
     Test that the workflow generator can output to a file, and it matches
     what would have been output to stdout.
@@ -196,7 +196,7 @@ def test_generation_to_file(tmp_dir, path_to_config_files):
 
     # Execute CLI by passing a file to write to.
     config_file = os.path.join(path_to_config_files, config_filename)
-    outfile = os.path.join(tmp_dir, "out.yml")
+    outfile = os.path.join(tmpdir, "out.yml")
     args = [
         "workflow",
         "generate",
@@ -397,11 +397,11 @@ def test_selective_influx(path_to_config_files):
 
 
 @pytest.mark.parametrize("output_to_file", (True, False))
-def test_main_tag_list(output_to_file, path_to_config_files, tmp_dir):
+def test_main_tag_list(output_to_file, path_to_config_files, tmpdir):
     config_file = os.path.join(path_to_config_files, "config-test-tag-list.yml")
     args = ["workflow", "unique-tags", "--machine-config", config_file]
 
-    out_file = os.path.join(tmp_dir, "out.txt")
+    out_file = os.path.join(tmpdir, "out.txt")
 
     if output_to_file:
         args.extend(["--output-file-tag-list", out_file])

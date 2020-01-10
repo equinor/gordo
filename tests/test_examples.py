@@ -48,7 +48,7 @@ def test_faked_DataLakeBackedDataset(MockDataset):
 
 
 @mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
-def test_notebooks(MockDataset, tmp_dir):
+def test_notebooks(MockDataset, tmpdir):
     """
     Ensures all notebooks will run without error
     """
@@ -66,15 +66,15 @@ def test_notebooks(MockDataset, tmp_dir):
             exporter = PythonExporter()
             source, _meta = exporter.from_notebook_node(nb)
 
-            with open(os.path.join(tmp_dir, "tmpmodule.py"), "w") as f:
+            with open(os.path.join(tmpdir, "tmpmodule.py"), "w") as f:
                 f.writelines(source)
-            with open(os.path.join(tmp_dir, "__init__.py"), "w") as f:
+            with open(os.path.join(tmpdir, "__init__.py"), "w") as f:
                 f.write("from .tmpmodule import *")
 
             # Import this module to 'run' the code
-            module_dir = os.path.join(tmp_dir, "..")
+            module_dir = os.path.join(tmpdir, "..")
             sys.path.insert(0, module_dir)
 
-            importlib.import_module(os.path.basename(tmp_dir), ".")
+            importlib.import_module(os.path.basename(tmpdir), ".")
 
             sys.path.remove(module_dir)

@@ -124,15 +124,6 @@ def api_version():
     return "v0"
 
 
-@pytest.fixture
-def tmp_dir():
-    """
-    Fixture: Temporary directory, removed after test completion
-    """
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        yield tmp_dir
-
-
 @pytest.fixture(scope="session")
 def base_route(api_version, gordo_project, gordo_name):
     return f"/gordo/{api_version}/{gordo_project}/{gordo_name}"
