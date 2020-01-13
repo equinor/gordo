@@ -141,7 +141,6 @@ def get_run_id(client: MlflowClient, experiment_name: str, model_key: str) -> st
         if experiment
         else client.create_experiment(experiment_name)
     )
-
     return client.create_run(experiment_id, tags={"model_key": model_key}).info.run_id
 
 
@@ -417,7 +416,7 @@ def mlflow_context(
     mlflow_client.set_terminated(run_id)
 
 
-def log_machine(mlflow_client, run_id, machine: Machine):
+def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
     """
     Send logs to configured MLflow backend
 
@@ -435,11 +434,11 @@ def log_machine(mlflow_client, run_id, machine: Machine):
 
     # Send configs as JSON artifacts
     try:
-        with tempfile.TemporaryDirectory("./") as tmp_dir:
+        with tempfile.TemporaryDirectory(dir="./") as tmp_dir:
             fp = os.path.join(tmp_dir, f"metadata.json")
             with open(fp, "w") as fh:
                 json.dump(machine.to_dict(), fh, cls=MachineEncoder)
-            mlflow_client.log_artifacts(run_id, local_dir=tmp_dir)
+            mlflow_client.log_artifacts(run_id=run_id, local_dir=tmp_dir)
     # Map to MlflowLoggingError for coding errors in the model builder
     except Exception as e:
         raise MlflowLoggingError(e)
