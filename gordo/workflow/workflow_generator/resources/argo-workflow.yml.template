@@ -855,6 +855,7 @@ spec:
                         labels:
                           app: "{{'{{inputs.parameters.host-name}}'}}"
                       spec:
+                        priorityClassName: high-priority
                         containers:
                            - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"
                              imagePullPolicy: "IfNotPresent"
