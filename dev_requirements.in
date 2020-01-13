@@ -5,4 +5,4 @@ pip-tools~=4.3
 sphinx-rtd-theme~=0.4
 sphinxcontrib-websupport~=1.1
 sphinx~=2.1
-sphinx-click~=2.0
+sphinx-click~=2.3
