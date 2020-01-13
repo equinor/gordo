@@ -63,7 +63,7 @@ class ModelBuilder:
         ...     project_name='test-proj',
         ... )
         >>> builder = ModelBuilder(machine=machine)
-        >>> model, metadata = builder.build()
+        >>> model, machine = builder.build()
         """
         # Avoid overwriting the passed machine, copy doesn't work if it holds
         # reference to a loaded Tensorflow model; .to_dict() serializes it to
@@ -137,7 +137,7 @@ class ModelBuilder:
             else:
                 model, machine = self._build()
                 self.cached_model_path = self._save_model(
-                    model=model, metadata=machine, output_dir=output_dir  # type: ignore
+                    model=model, machine=machine, output_dir=output_dir  # type: ignore
                 )
                 logger.info(f"Built model, and deposited at {self.cached_model_path}")
                 logger.info(f"Writing model-location to model registry")
@@ -148,7 +148,7 @@ class ModelBuilder:
         # Save model to disk, if we're not building for cv only purposes.
         if output_dir and (self.machine.evaluation.get("cv_mode") != "cross_val_only"):
             self.cached_model_path = self._save_model(
-                model=model, metadata=machine, output_dir=output_dir
+                model=model, machine=machine, output_dir=output_dir
             )
         return model, machine
 
@@ -419,7 +419,7 @@ class ModelBuilder:
     @staticmethod
     def _save_model(
         model: BaseEstimator,
-        metadata: Union[Machine, dict],
+        machine: Union[Machine, dict],
         output_dir: Union[os.PathLike, str],
     ):
         """
@@ -443,7 +443,7 @@ class ModelBuilder:
         serializer.dump(
             model,
             output_dir,
-            metadata=metadata.to_dict() if isinstance(metadata, Machine) else metadata,
+            metadata=machine.to_dict() if isinstance(machine, Machine) else machine,
         )
         return output_dir
 

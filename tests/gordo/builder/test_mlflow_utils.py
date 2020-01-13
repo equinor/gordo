@@ -233,11 +233,11 @@ def test_workspace_spauth_kwargs():
         mlu.get_spauth_kwargs()
 
 
-def test_DatetimeEncoder(metadata):
+def test_MachineEncoder(metadata):
     """
-    Test that metadata can dump successfully with MetadataEncoder
+    Test that metadata can dump successfully with MachineEncoder
     """
-    assert json.dumps(metadata, cls=mlu.MetadataEncoder)
+    assert json.dumps(metadata, cls=mlu.MachineEncoder)
 
 
 @mock.patch("gordo.builder.mlflow_utils.MlflowClient", autospec=True)
@@ -256,7 +256,7 @@ def test_mlflow_context_log_metadata(MockClient, tmpdir, metadata):
         mlflow_client,
         run_id,
     ):
-        mlu.log_metadata(mlflow_client, run_id, metadata)
+        mlu.log_machine(mlflow_client, run_id, metadata)
 
     assert mock_client.log_batch.called
 
@@ -275,4 +275,4 @@ def test_mlflow_context_log_error(MockClient, metadata):
             mlflow_client,
             run_id,
         ):
-            mlu.log_metadata(mlflow_client, run_id, metadata)
+            mlu.log_machine(mlflow_client, run_id, metadata)

@@ -33,7 +33,7 @@ def get_random_data():
     return data
 
 
-def metadata_check(machine: Machine, check_history):
+def machine_check(machine: Machine, check_history):
     """Helper to verify model builder metadata creation"""
     assert isinstance(machine.metadata.build_metadata.model.model_offset, int)
 
@@ -115,10 +115,10 @@ def test_output_dir(tmpdir):
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
     builder = ModelBuilder(machine)
-    model, metadata = builder.build()
-    metadata_check(metadata, False)
+    model, machine_out = builder.build()
+    machine_check(machine_out, False)
 
-    builder._save_model(model=model, metadata=metadata, output_dir=output_dir)
+    builder._save_model(model=model, machine=machine_out, output_dir=output_dir)
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
@@ -186,9 +186,9 @@ def test_builder_metadata(raw_model_config):
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
-    model, metadata = ModelBuilder(machine).build()
+    model, machine_out = ModelBuilder(machine).build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
-    metadata_check(metadata, "Keras" in raw_model_config)
+    machine_check(machine_out, "Keras" in raw_model_config)
 
 
 @pytest.mark.parametrize(
@@ -333,8 +333,8 @@ def test_scores_metadata(raw_model_config):
     machine = Machine(
         dataset=data_config, model=model_config, name="model-name", project_name="test"
     )
-    model, metadata = ModelBuilder(machine).build()
-    metadata_check(metadata, False)
+    model, machine_out = ModelBuilder(machine).build()
+    machine_check(machine_out, False)
 
 
 def test_output_scores_metadata():
@@ -363,8 +363,8 @@ def test_output_scores_metadata():
     machine = Machine(
         name="model-name", dataset=data_config, model=model_config, project_name="test"
     )
-    model, metadata = ModelBuilder(machine).build()
-    scores_metadata = metadata.metadata.build_metadata.model.cross_validation.scores
+    model, machine_out = ModelBuilder(machine).build()
+    scores_metadata = machine_out.metadata.build_metadata.model.cross_validation.scores
     assert (
         scores_metadata["explained-variance-score-Tag-1"]["fold-mean"]
         + scores_metadata["explained-variance-score-Tag-2"]["fold-mean"]
@@ -627,14 +627,14 @@ def test_setting_seed(seed, model_config):
         evaluation=evaluation_config,
         project_name="test",
     )
-    _model, metadata1 = ModelBuilder(machine).build()
-    _model, metadata2 = ModelBuilder(machine).build()
+    _model, machine1 = ModelBuilder(machine).build()
+    _model, machine2 = ModelBuilder(machine).build()
 
     df1 = pd.DataFrame.from_dict(
-        metadata1.metadata.build_metadata.model.cross_validation.scores
+        machine1.metadata.build_metadata.model.cross_validation.scores
     )
     df2 = pd.DataFrame.from_dict(
-        metadata2.metadata.build_metadata.model.cross_validation.scores
+        machine2.metadata.build_metadata.model.cross_validation.scores
     )
 
     # Equality depends on the seed being set.
