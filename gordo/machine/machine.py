@@ -118,3 +118,13 @@ class Machine:
             "project_name": self.project_name,
             "evaluation": self.evaluation,
         }
+
+    def report(self):
+        """ 
+        Run any reporters in the machine's runtime for the current state.
+        """
+        # Avoid circular dependency with reporters which import Machine
+        from gordo.reporters.base import BaseReporter
+
+        for reporter in map(BaseReporter.from_dict, self.runtime["reporters"]):
+            reporter.report(self)

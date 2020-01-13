@@ -428,13 +428,6 @@ def test_gunicorn_execution_hosts(runner, arg, value, exception_expected):
         assert m.called_once_with(value)
 
 
-def test_server_to_sql_cli():
-    runner = CliRunner()
-    args = ["workflow", "server-to-sql", "--help"]
-    result = runner.invoke(cli.gordo, args)
-    assert result.exit_code == 0
-
-
 def test_log_level_cli():
     """
     Test that the --log-level option in the CLI sets the correct log-level in the genreated config file.

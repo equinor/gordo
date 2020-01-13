@@ -34,6 +34,7 @@ from gordo.machine.metadata import (
     CrossValidationMetaData,
 )
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -287,6 +288,7 @@ class ModelBuilder:
                 model_meta=self._extract_metadata_from_model(model),
             )
         )
+        machine.report()
         return model, machine
 
     def set_seed(self, seed: int):

@@ -196,12 +196,13 @@ def test_machine_from_config(default_globals: dict):
         "name": "ct-23-0001-machine",
         "project_name": "test-project-name",
         "runtime": {
+            "reporters": [],
             "server": {
                 "resources": {
                     "limits": {"cpu": 4, "memory": 3},
                     "requests": {"cpu": 2, "memory": 1},
                 }
-            }
+            },
         },
     }
     assert machine.to_dict() == expected

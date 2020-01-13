@@ -25,6 +25,7 @@ class NormalizedConfig:
 
     DEFAULT_CONFIG_GLOBALS = {
         "runtime": {
+            "reporters": [],
             "server": {
                 "resources": {
                     "requests": {"memory": 3000, "cpu": 1000},
@@ -78,7 +79,7 @@ class NormalizedConfig:
         patched_globals = patch_dict(default_globals, passed_globals)
         if patched_globals.get("runtime"):
             patched_globals["runtime"] = fix_runtime(patched_globals.get("runtime"))
-
+        self.project_name = project_name
         self.machines = [
             Machine.from_config(
                 conf, project_name=project_name, config_globals=patched_globals
