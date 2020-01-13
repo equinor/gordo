@@ -122,6 +122,14 @@ def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
     Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
     """
 
+    # Verify doing a workflow generation on the config will generate valid yaml
+    # if it's not, running argo lint will generate wildly unhelpful error msgs.
+    config = _generate_test_workflow_yaml(
+        path_to_config_files=os.path.join(repo_dir, "examples"),
+        config_filename=os.path.basename(fp_config),
+    )
+    assert isinstance(config, dict)
+
     logger.info("Running workflow generator and argo lint on examples/config.yaml...")
     result = docker_client.containers.run(
         argo_docker_image.id,
