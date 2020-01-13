@@ -73,12 +73,12 @@ def local_build(
     Iterable[Tuple[Union[BaseEstimator, None], Machine]]
         A generator yielding tuples of models and their metadata.
     """
-    from gordo.builder.mlflow_utils import mlflow_context, log_metadata
+    from gordo.builder.mlflow_utils import mlflow_context, log_machine
 
     config = get_dict_from_yaml(io.StringIO(config_str))
     normed = NormalizedConfig(config, project_name="local-build")
     for machine in normed.machines:
-        model, metadata = ModelBuilder(machine=machine).build()
+        model, machine = ModelBuilder(machine=machine).build()
 
         if enable_mlflow:
             # This will enforce a single interactive login and automatically
@@ -86,6 +86,6 @@ def local_build(
             with mlflow_context(
                 name=machine.name, workspace_kwargs=workspace_kwargs
             ) as (mlflow_client, run_id):
-                log_metadata(mlflow_client, run_id, metadata)
+                log_machine(mlflow_client, run_id, machine)
 
-        yield model, metadata
+        yield model, machine

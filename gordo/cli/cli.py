@@ -161,7 +161,7 @@ def build(
                         workspace_kwargs,
                         service_principal_kwargs,
                     ) as (mlflow_client, run_id):
-                        mlflow_utils.log_metadata(mlflow_client, run_id, machine_out)
+                        mlflow_utils.log_machine(mlflow_client, run_id, machine_out)
 
     except Exception as e:
         exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)

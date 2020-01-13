@@ -351,13 +351,15 @@ def get_spauth_kwargs() -> dict:
     )
 
 
-class MetadataEncoder(json.JSONEncoder):
+class MachineEncoder(json.JSONEncoder):
     """
-    Encode datetime.datetime objects as strings
+    Encode datetime.datetime objects as strings and handles any
+    numpy numeric instances; both of which common in the ``dict`` representation
+    of a :class:`~gordo.machine.Machine`
 
     Example
     -------
-    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MetadataEncoder, indent=4)
+    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MachineEncoder, indent=4)
     >>> s = '{"now": "2019-11-22 08:34:41.636356+"}'
     """
 
@@ -401,7 +403,7 @@ def mlflow_context(
     >>> with tempfile.TemporaryDirectory as tmp_dir:
     ...     mlflow.set_tracking_uri(f"file:{tmp_dir}")
     ...     with mlflow_context("log_group", "unique_key", {}, {}) as (mlflow_client, run_id):
-    ...         log_metadata(metadata) # doctest: +SKIP
+    ...         log_machine(machine) # doctest: +SKIP
     """
     mlflow_client = get_mlflow_client(workspace_kwargs, service_principal_kwargs)
     run_id = get_run_id(mlflow_client, experiment_name=name, model_key=model_key)
@@ -415,7 +417,7 @@ def mlflow_context(
     mlflow_client.set_terminated(run_id)
 
 
-def log_metadata(mlflow_client, run_id, machine: Machine):
+def log_machine(mlflow_client, run_id, machine: Machine):
     """
     Send logs to configured MLflow backend
 
@@ -436,7 +438,7 @@ def log_metadata(mlflow_client, run_id, machine: Machine):
         with tempfile.TemporaryDirectory("./") as tmp_dir:
             fp = os.path.join(tmp_dir, f"metadata.json")
             with open(fp, "w") as fh:
-                json.dump(machine.to_dict(), fh, cls=MetadataEncoder)
+                json.dump(machine.to_dict(), fh, cls=MachineEncoder)
             mlflow_client.log_artifacts(run_id, local_dir=tmp_dir)
     # Map to MlflowLoggingError for coding errors in the model builder
     except Exception as e:
