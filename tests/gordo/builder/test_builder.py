@@ -13,6 +13,7 @@ import sklearn.ensemble
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
+from mock import patch
 
 import gordo
 from gordo.builder import ModelBuilder
@@ -642,3 +643,51 @@ def test_setting_seed(seed, model_config):
         assert df1.equals(df2)
     else:
         assert not df1.equals(df2)
+
+
+@pytest.mark.parametrize(
+    "cv",
+    (
+        {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 5}},
+        {
+            "sklearn.model_selection.TimeSeriesSplit": {
+                "n_splits": 5,
+                "max_train_size": 10,
+            }
+        },
+        {"sklearn.model_selection.ShuffleSplit": {"n_splits": 5}},
+        None,
+    ),
+)
+@patch("gordo.serializer.pipeline_from_definition")
+def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
+    """
+    Test that we can set arbitrary splitters and parameters in the config file which is called by the serializer.
+    """
+    data_config = get_random_data()
+    evaluation_config = {"cv_mode": "full_build"}
+    if cv:
+        evaluation_config["cv"] = cv
+
+    model_config = {
+        "sklearn.multioutput.MultiOutputRegressor": {
+            "estimator": "sklearn.ensemble.forest.RandomForestRegressor"
+        }
+    }
+
+    machine = Machine(
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        evaluation=evaluation_config,
+        project_name="test",
+    )
+
+    ModelBuilder(machine).build()
+
+    if cv:
+        mocked_pipeline_from_definition.assert_called_with(cv)
+    else:
+        mocked_pipeline_from_definition.assert_called_with(
+            {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 3}}
+        )
