@@ -358,6 +358,26 @@ spec:
           {% endif %}
         spec:
           serviceName: gordo-grafana-{{project_name}}
+          volumeClaimTemplates:
+            - metadata:
+                name: grafana-storage-{{project_revision}}
+                annotations:
+                  applications.gordo.equinor.com/project-name: "{{project_name}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                labels:
+                  applications.gordo.equinor.com/project-name: "{{project_name}}"
+                  applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                  app.kubernetes.io/part-of: gordo
+                  app.kubernetes.io/managed-by: gordo
+                {% if owner_references is defined %}
+                ownerReferences: {{owner_references}}
+                {% endif %}
+              spec:
+                accessModes: [ "ReadWriteOnce" ]
+                storageClassName: "default"
+                resources:
+                  requests:
+                    storage: 1Gi
           selector:
             matchLabels:
               app: gordo-grafana-{{project_name}}
@@ -387,6 +407,9 @@ spec:
                   value: "true"
                 imagePullPolicy: "IfNotPresent"
                 name: gordo-grafana-{{project_name}}
+                volumeMounts:
+                  - name: grafana-storage-{{project_revision}}
+                    mountPath: /var/lib/grafana
                 ports:
                   - name: api
                     containerPort: 3000
