@@ -18,7 +18,7 @@ import tensorflow as tf
 import sklearn
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn import metrics
-from sklearn.model_selection import BaseCrossValidator, cross_validate, TimeSeriesSplit
+from sklearn.model_selection import BaseCrossValidator, cross_validate
 from sklearn.pipeline import Pipeline
 
 from gordo.util import disk_registry
@@ -212,8 +212,13 @@ class ModelBuilder:
                 scaler = self.machine.evaluation.get("scoring_scaler")
                 metrics_dict = self.build_metrics_dict(metrics_list, y, scaler=scaler)
 
+                split_obj = serializer.pipeline_from_definition(
+                    self.machine.evaluation.get(
+                        "cv",
+                        {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 3}},
+                    )
+                )
                 # Generate metadata about CV train, test splits
-                split_obj = TimeSeriesSplit(n_splits=3)
                 split_metadata = ModelBuilder.build_split_dict(X, split_obj)
 
                 cv_kwargs = dict(
