@@ -120,9 +120,7 @@ def _build_step(
     if isinstance(step, dict):
 
         if len(step.keys()) != 1:
-            raise ValueError(
-                f"Step should have a single key, " f"found multiple: {step.keys()}"
-            )
+            return _load_param_classes(step)
 
         import_str = list(step.keys())[0]
         params = step.get(import_str, dict())
@@ -177,7 +175,7 @@ def _build_step(
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
         Step = pydoc.locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
-        return Step()
+        return Step() if Step is not None else step
 
     else:
         raise ValueError(

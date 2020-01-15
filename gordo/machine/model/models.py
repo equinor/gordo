@@ -312,7 +312,11 @@ class KerasRawModelRegressor(KerasAutoEncoder):
         logger.debug(f"Building model from spec: {self.kind}")
 
         model = serializer.pipeline_from_definition(self.kind["spec"])
-        model.compile(**self.kind["compile"])
+
+        # Load any compile kwargs as well, such as compile.optimizer which may map to class obj
+        kwargs = serializer.pipeline_from_definition(self.kind["compile"])
+
+        model.compile(**kwargs)
         return model
 
 

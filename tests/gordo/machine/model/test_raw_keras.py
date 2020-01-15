@@ -14,7 +14,9 @@ from gordo.machine.model.models import KerasRawModelRegressor
         """
         compile:
             loss: mse
-            optimizer: sgd
+            optimizer: 
+              tensorflow.keras.optimizers.SGD:
+                learning_rate: 0.001
         spec:
             tensorflow.keras.models.Sequential:
                 layers:
