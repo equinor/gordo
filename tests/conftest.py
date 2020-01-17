@@ -214,26 +214,21 @@ def gordo_ml_server_client(
             yield app.test_client()
 
 
-@pytest.fixture()
+@pytest.yield_fixture
 def postgresdb():
     client = docker.from_env()
+    postgres = client.containers.run(
+        image="postgres:11-alpine",
+        environment={"POSTGRES_USER": "postgres", "POSTGRES_PASSWORD": "postgres"},
+        ports={"5432/tcp": "5432"},
+        remove=True,
+        detach=True,
+    )
+    import time
 
-    postgres = None
-    try:
-        postgres = client.containers.run(
-            image="postgres:11-alpine",
-            environment={"POSTGRES_USER": "postgres", "POSTGRES_PASSWORD": "postgres"},
-            ports={"5432/tcp": "5432"},
-            remove=True,
-            detach=True,
-        )
-        import time
-
-        time.sleep(5)
-        yield
-    finally:
-        if postgres is not None:
-            postgres.kill()
+    time.sleep(5)
+    yield
+    postgres.kill()
 
 
 @pytest.fixture(scope="session")
