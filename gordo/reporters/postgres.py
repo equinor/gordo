@@ -19,6 +19,9 @@ db = PostgresqlExtDatabase(None)
 
 
 class PostgresReporter(BaseReporter):
+    """
+    Reporter storing the :class:`gordo.machine.Machine` into a Postgres database.
+    """
 
     db = db
 
