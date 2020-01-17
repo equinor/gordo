@@ -2,7 +2,6 @@
 import dateutil.parser
 import os
 import yaml
-from unittest.mock import patch
 from typing import List, Optional, Dict, Any
 
 import pytest
