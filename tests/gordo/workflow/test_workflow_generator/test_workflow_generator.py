@@ -20,41 +20,12 @@ from gordo.machine.dataset import sensor_tag
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture(scope="module")
-def docker_client():
-    """
-    Return a docker client
-    """
-    return docker.from_env()
-
-
 @pytest.fixture(scope="session")
 def path_to_config_files():
     """
     Return the data path containing workflow generator test configuration files
     """
     return os.path.join(os.path.dirname(__file__), "data")
-
-
-@pytest.fixture(scope="module")
-def argo_docker_image(docker_client, repo_dir):
-    """
-    Build the argo dockerfile
-    """
-    file = os.path.join(repo_dir, "Dockerfile-GordoDeploy")
-
-    logger.info("Building Argo docker image...")
-    img, _ = docker_client.images.build(
-        path=repo_dir,
-        dockerfile=file,
-        tag="temp-argo",
-        use_config_proxy=True,
-        buildargs={"HTTPS_PROXY": ""},
-    )
-
-    yield img
-
-    docker_client.images.remove(img.id, force=True)
 
 
 def _generate_test_workflow_yaml(
@@ -112,15 +83,13 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
     return model_builder_machine_env
 
 
-@pytest.mark.parametrize(
-    "fp_config",
-    ("/home/gordo/examples/config_legacy.yaml", "/home/gordo/examples/config_crd.yaml"),
-)
+@pytest.mark.parametrize("fp_config", ("config_legacy.yaml", "config_crd.yaml"))
 @pytest.mark.dockertest
-def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
+def test_argo_lint(fp_config, repo_dir, tmpdir):
     """
     Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
     """
+    docker_client = docker.from_env()
 
     # Verify doing a workflow generation on the config will generate valid yaml
     # if it's not, running argo lint will generate wildly unhelpful error msgs.
@@ -130,30 +99,19 @@ def test_argo_lint(argo_docker_image, fp_config, docker_client, repo_dir):
     )
     assert isinstance(config, dict)
 
+    workflow_output_path = os.path.join(tmpdir, "out.yml")
+    with open(workflow_output_path, "w") as f:
+        yaml.dump(config, f)
+
     logger.info("Running workflow generator and argo lint on examples/config.yaml...")
     result = docker_client.containers.run(
-        argo_docker_image.id,
-        # FIXME: Remove the kubectl stuff from this command
-        # We need this kubectl stuff here because argo lint has now started requiring a
-        # kubectl config to run. When that is changed we remove the "kubectl" lines
-        # below, and the "--username/--password" part of argo lint.
-        # Tracking issue:
-        # https://github.com/argoproj/argo/issues/1662
-        command="bash -c '"
-        "kubectl config set-cluster lame-cluster --server=https://lame.org:4443 && "
-        "kubectl config set-context lame-context --cluster=lame-cluster &&"
-        "kubectl config use-context lame-context &&"
-        "gordo "
-        "workflow "
-        "generate "
-        "--project-name some-project "
-        f"--machine-config {fp_config} "
-        "--output-file /home/gordo/out.yaml "
-        "&& argo lint /home/gordo/out.yaml --username lame --password lame'",
+        "argoproj/argocli:v2.4.3",
+        command="lint /tmp/out.yml",
         auto_remove=True,
         stderr=True,
         stdout=True,
         detach=False,
+        volumes={str(tmpdir): {"bind": "/tmp", "mode": "ro"}},
     )
     assert result.decode().strip().split("\n")[-1] == "Workflow manifests validated"
 
