@@ -1145,6 +1145,7 @@ spec:
                   {{ machine.to_dict() | tojson }}
           dependencies:
             - gordo-server
+            {% if enable_influx %}- gordo-postgres{% endif %}
         - name: gordo-mdl-{{ machine.name }}
           template: gordo-model
           arguments:
