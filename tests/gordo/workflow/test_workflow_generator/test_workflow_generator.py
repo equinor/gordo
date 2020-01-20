@@ -85,7 +85,7 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
 
 @pytest.mark.parametrize("fp_config", ("config_legacy.yaml", "config_crd.yaml"))
 @pytest.mark.dockertest
-def test_argo_lint(fp_config, repo_dir, tmpdir):
+def test_argo_lint(fp_config, repo_dir, tmpdir, argo_version):
     """
     Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
     """
@@ -105,7 +105,7 @@ def test_argo_lint(fp_config, repo_dir, tmpdir):
 
     logger.info("Running workflow generator and argo lint on examples/config.yaml...")
     result = docker_client.containers.run(
-        "argoproj/argocli:v2.4.3",
+        f"argoproj/argocli:{argo_version}",
         command="lint /tmp/out.yml",
         auto_remove=True,
         stderr=True,

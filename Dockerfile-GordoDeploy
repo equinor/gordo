@@ -23,7 +23,7 @@ RUN cat /code/requirements.txt | grep tensorflow== > /code/prereq.txt \
 
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.14.8"
-ARG ARGO_VERSION="v2.4.2"
+ARG ARGO_VERSION="v2.4.3"
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
