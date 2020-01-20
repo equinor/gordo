@@ -272,6 +272,17 @@ def influxdb(base_influxdb):
     base_influxdb.reset()
 
 
+@pytest.fixture(scope="session")
+def argo_version(repo_dir):
+    with open(os.path.join(repo_dir, "Dockerfile-GordoDeploy")) as f:
+        match = next(re.finditer(r'ARGO_VERSION="(\w\d+.\d+.\d+)"', f.read()), None)
+    if match is None:
+        raise LookupError(
+            "Failed to determine argo version from Dockerfile-GordoDeploy"
+        )
+    return match.groups()[0]
+
+
 @pytest.fixture(scope="module")
 def ml_server(
     model_collection_directory, trained_model_directory, gordo_host, gordo_project
