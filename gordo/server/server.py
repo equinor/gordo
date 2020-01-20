@@ -16,6 +16,7 @@ from functools import wraps
 
 import yaml
 from flask import Flask, g, request, current_app, make_response, jsonify
+
 from gordo.server import views
 from gordo import __version__
 

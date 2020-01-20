@@ -4,7 +4,6 @@ import os
 import json
 import logging
 import tempfile
-import typing
 from dateutil.parser import isoparse  # type: ignore
 import string
 
@@ -20,7 +19,13 @@ from mock import patch, call
 
 from gordo.client import Client, utils as client_utils
 from gordo.machine import Machine
-from gordo.client.io import _handle_response, HttpUnprocessableEntity, BadRequest
+from gordo.client.io import (
+    _handle_response,
+    HttpUnprocessableEntity,
+    BadGordoRequest,
+    NotFound,
+    ResourceGone,
+)
 from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import PredictionResult
 from gordo.machine.dataset.data_provider import providers
@@ -40,9 +45,7 @@ def test_client_get_metadata(gordo_project, ml_server):
     assert isinstance(metadata, dict)
 
     # Can't get metadata for non-existent target
-    with pytest.raises(ValueError):
-        client = Client(project=gordo_project, target="no-such-target")
-        client.get_metadata()
+    assert client.get_metadata().get("no-such-target", None) is None
 
 
 def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_server):
@@ -59,12 +62,13 @@ def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_
         start = (isoparse("2016-01-01T00:00:00+00:00"),)
         end = isoparse("2016-01-01T12:00:00+00:00")
 
-        # Should not actually call any predictions because this machine name doesn't exist
-        client.predict(start=start, end=end, machine_names=["non-existant-machine"])
-        patched.assert_not_called()
+        # Should not call any predictions because this machine name doesn't exist
+        with pytest.raises(NotFound):
+            client.predict(start=start, end=end, targets=["non-existent-machine"])
+            patched.assert_not_called()
 
         # Should be called once, for this machine.
-        client.predict(start=start, end=end, machine_names=[gordo_single_target])
+        client.predict(start=start, end=end, targets=[gordo_single_target])
         patched.assert_called_once()
 
 
@@ -72,16 +76,16 @@ def test_client_download_model(gordo_project, gordo_single_target, ml_server):
     """
     Test client's ability to download the model
     """
-    client = Client(project=gordo_project, target=gordo_single_target)
+    client = Client(project=gordo_project)
 
     models = client.download_model()
     assert isinstance(models, dict)
     assert isinstance(models[gordo_single_target], BaseEstimator)
 
     # Can't download model for non-existent target
-    with pytest.raises(ValueError):
-        client = Client(project=gordo_project, target="non-existent-target")
-        client.download_model()
+    with pytest.raises(NotFound):
+        client = Client(project=gordo_project)
+        client.download_model(targets=["non-existent-target"])
 
 
 @pytest.mark.parametrize("batch_size", (10, 100))
@@ -139,9 +143,7 @@ def test_client_predictions_diff_batch_sizes(
         parallelism=10,
     )
 
-    # Should have discovered machine-1 and machine-2
-    # defined in the example data of controller's response for /models/<project-name>
-    assert len(prediction_client.machines) == 1
+    assert len(prediction_client.get_machine_names()) == 1
 
     # Get predictions
     predictions = prediction_client.predict(start=start, end=end)
@@ -161,6 +163,13 @@ def test_client_predictions_diff_batch_sizes(
     assert (
         len(vals) > 0
     ), f"Expected new values in 'predictions' measurement, but found {vals}"
+
+
+def test_client_metadata_revision(
+    gordo_project, gordo_single_target, ml_server,
+):
+    prediction_client = Client(project=gordo_project,)
+    assert "revision" in prediction_client.get_available_machines()
 
 
 @pytest.mark.parametrize(
@@ -189,17 +198,24 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
     """
     runner = CliRunner()
 
-    # Simple metadata fetching
+    # Simple metadata fetching with single target
     out = runner.invoke(
         cli.gordo,
         args=[
             "client",
             "--project",
             gordo_project,
+            "metadata",
             "--target",
             gordo_single_target,
-            "metadata",
         ],
+    )
+    assert out.exit_code == 0
+    assert gordo_single_target in out.output
+
+    # Simple metadata fetching with all targets
+    out = runner.invoke(
+        cli.gordo, args=["client", "--project", gordo_project, "metadata",],
     )
     assert out.exit_code == 0
     assert gordo_single_target in out.output
@@ -212,11 +228,11 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
             "client",
             "--project",
             gordo_project,
-            "--target",
-            gordo_single_target,
             "metadata",
             "--output-file",
             output_file,
+            "--target",
+            gordo_single_target,
         ],
     )
     assert out.exit_code == 0, f"{out.exc_info}"
@@ -243,10 +259,10 @@ def test_client_cli_download_model(
             "client",
             "--project",
             gordo_project,
-            "--target",
-            gordo_single_target,
             "download-model",
             str(tmpdir),
+            "--target",
+            gordo_single_target,
         ],
     )
     assert (
@@ -475,32 +491,6 @@ def _machine(name: str) -> Machine:
     )
 
 
-@pytest.mark.parametrize(
-    "machines,target,expected",
-    [
-        # Two machines, no target, should give two machines
-        ([_machine("t1"), _machine("t2")], None, [_machine("t1"), _machine("t2")]),
-        # One machine target should filter down to that machine
-        ([_machine("t1"), _machine("t2")], "t2", [_machine("t2")]),
-        # Target which doesn't match any machines raises error
-        ([_machine("t1"), _machine("t2")], "t3", ValueError),
-    ],
-)
-def test_client_machine_filtering(
-    machines: typing.List[Machine],
-    target: typing.Optional[str],
-    expected: typing.List[Machine],
-):
-    if not isinstance(expected, list):
-        with pytest.raises(ValueError):
-            Client._filter_machines(machines, target)
-    else:
-        filtered_machines = Client._filter_machines(machines, target)
-        assert (
-            expected == filtered_machines
-        ), f"Not equal: {expected} \n----\n {filtered_machines}"
-
-
 def test_exponential_sleep_time(caplog, gordo_project, ml_server):
 
     start, end = (
@@ -510,19 +500,23 @@ def test_exponential_sleep_time(caplog, gordo_project, ml_server):
 
     with caplog.at_level(logging.CRITICAL):
         with patch("gordo.client.client.sleep", return_value=None) as time_sleep:
-            client = Client(project=gordo_project)
+            # We simulate repeating timeouts
+            with patch("gordo.client.client._handle_response") as handle_response_mock:
+                handle_response_mock.side_effect = TimeoutError()
+                client = Client(project=gordo_project)
 
-            client._send_prediction_request(
-                X=pd.DataFrame([123]),
-                y=None,
-                chunk=slice(0, 1),
-                machine=_machine("t1"),
-                start=start,
-                end=end,
-            )
+                client._send_prediction_request(
+                    X=pd.DataFrame([123]),
+                    y=None,
+                    chunk=slice(0, 1),
+                    machine=_machine("t1"),
+                    start=start,
+                    end=end,
+                    revision="1234",
+                )
 
-            expected_calls = [call(8), call(16), call(32), call(64), call(128)]
-            time_sleep.assert_has_calls(expected_calls)
+                expected_calls = [call(8), call(16), call(32), call(64), call(128)]
+                time_sleep.assert_has_calls(expected_calls)
 
 
 def test__handle_response_errors():
@@ -536,7 +530,7 @@ def test__handle_response_errors():
 
     resp = requests.Response()
     resp.status_code = 403
-    with pytest.raises(BadRequest):
+    with pytest.raises(BadGordoRequest):
         _handle_response(resp)
 
     resp = requests.Response()
@@ -545,47 +539,10 @@ def test__handle_response_errors():
         _handle_response(resp)
 
 
-@pytest.mark.parametrize("revision_specified", [True, False])
-def test_client_set_revision(
-    ml_server, gordo_project, gordo_revision, revision_specified
-):
-    """
-    Client will auto-set to latest revision by default, else provide the requested revision
-    """
-
-    client = Client(
-        project=gordo_project, revision=gordo_revision if revision_specified else None
-    )
-    assert client.revision == gordo_revision
-    assert client.session.headers["revision"] == gordo_revision
-
-
 def test_client_set_revision_error(ml_server, gordo_project):
     """
     Client will raise an error if asking for a revision that doesn't exist
     """
-    with pytest.raises(LookupError):
-        Client(project=gordo_project, revision="does-not-exist")
-
-
-def test_client_auto_update_revision(ml_server, gordo_project, gordo_revision):
-    """
-    Given a client starts with a revision which is outdated, it will automatically update
-    itself to match the latest being served.
-    """
-    client = Client(project=gordo_project)
-    assert client.revision == gordo_revision  # by default it figures out the latest.
-
-    # Abuse the private variable to change it to something else.
-    client.session.headers["revision"] = "bad-revision"
-    client._revision = "bad-revision"
-    assert client.revision == "bad-revision"
-
-    # Contacting the server with that revision will make the client update its revision
-    with patch.object(client, "get_metadata") as get_metadata:
-        client.get_machines()
-        assert client.revision == gordo_revision
-        assert client.session.headers["revision"] == gordo_revision
-
-        # It should also make a call to update the metadata
-        assert get_metadata.called_once()
+    with pytest.raises(ResourceGone):
+        client = Client(project=gordo_project)
+        client.get_machine_names(revision="does-not-exist")
