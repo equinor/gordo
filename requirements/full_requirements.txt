@@ -129,7 +129,7 @@ urllib3==1.25.7
 websocket-client==0.57.0  # via docker
 werkzeug==0.16.1
 wheel==0.33.6             # via tensorboard, tensorflow
-wrapt==1.11.2             # via tensorflow
+wrapt==1.11.2
 zipp==2.0.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:

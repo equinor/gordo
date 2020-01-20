@@ -1002,7 +1002,7 @@ spec:
       command: [bash]
       source: |
         echo "Starting client prediction for machine $GORDO_CLIENT_TARGET" \
-        && gordo client --project $GORDO_CLIENT_PROJECT --parallelism 2 --target $GORDO_CLIENT_TARGET --host $GORDO_CLIENT_HOST --port $GORDO_CLIENT_PORT --scheme $GORDO_CLIENT_SCHEME --metadata $GORDO_CLIENT_METADATA predict --influx-uri $GORDO_CLIENT_PREDICT_INFLUX_URI "$GORDO_TRAIN_START_DATE" $(date --iso-8601=second) --forward-resampled-sensors
+        && gordo client --project $GORDO_CLIENT_PROJECT --parallelism 2 --host $GORDO_CLIENT_HOST --port $GORDO_CLIENT_PORT --scheme $GORDO_CLIENT_SCHEME --metadata $GORDO_CLIENT_METADATA predict --target $GORDO_CLIENT_TARGET --influx-uri $GORDO_CLIENT_PREDICT_INFLUX_URI "$GORDO_TRAIN_START_DATE" $(date --iso-8601=second) --forward-resampled-sensors
       resources:
         requests:
           memory: "{{ client_resources_requests_memory }}M"

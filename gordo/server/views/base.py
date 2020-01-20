@@ -240,10 +240,10 @@ class DownloadModel(Resource):
 
 class ModelListView(Resource):
     """
-    List the current models capable of being served by the model
+    List the current models capable of being served by the server
     """
 
-    @api.doc(description="List the metadata for all models capable of being served.")
+    @api.doc(description="List the name of the models capable of being served.")
     def get(self, gordo_project: str):
         available_models = os.listdir(g.collection_dir)
         return jsonify({"models": available_models})

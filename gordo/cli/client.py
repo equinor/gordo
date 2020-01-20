@@ -21,7 +21,6 @@ from gordo.client.forwarders import ForwardPredictionsIntoInflux
 
 @click.group("client")
 @click.option("--project", help="The project to target")
-@click.option("--target", help="Single target, instead of all project targets")
 @click.option("--host", help="The host the server is running on", default="localhost")
 @click.option("--port", help="Port the server is running on", default=443)
 @click.option("--scheme", help="tcp/http/https", default="https")
@@ -61,6 +60,13 @@ def client(ctx: click.Context, *args, **kwargs):
 @click.command("predict")
 @click.argument("start", type=IsoFormatDateTime())
 @click.argument("end", type=IsoFormatDateTime())
+@click.option(
+    "--target",
+    help="A list of machines to target. If not provided then target all machines in the"
+    " project",
+    default=[],
+    multiple=True,
+)
 @click.option(
     "--data-provider",
     type=DataProviderParam(),
@@ -106,6 +112,7 @@ def predict(
     ctx: click.Context,
     start: datetime,
     end: datetime,
+    target: typing.List[str],
     data_provider: providers.GordoBaseDataProvider,
     output_dir: str,
     influx_uri: str,
@@ -139,7 +146,7 @@ def predict(
 
     # Fire off getting predictions
     predictions = client.predict(
-        start, end
+        start, end, targets=target,
     )  # type: typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]
 
     # Loop over all error messages for each result and log them
@@ -166,14 +173,25 @@ def predict(
     type=click.File(mode="w"),
     help="Optional output file to save metadata",
 )
+@click.option(
+    "--target",
+    help="A list of machines to target. If not provided then target all machines in the"
+    " project",
+    default=[],
+    multiple=True,
+)
 @click.pass_context
-def metadata(ctx: click.Context, output_file: typing.Optional[typing.IO[str]]):
+def metadata(
+    ctx: click.Context,
+    output_file: typing.Optional[typing.IO[str]],
+    target: typing.List[str],
+):
     """
     Get metadata from a given endpoint
     """
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
     metadata = {
-        k: v.to_dict() for k, v in client.get_metadata().items()  # type: ignore
+        k: v.to_dict() for k, v in client.get_metadata(targets=target).items()  # type: ignore
     }
     if output_file:
         json.dump(metadata, output_file)
@@ -185,20 +203,27 @@ def metadata(ctx: click.Context, output_file: typing.Optional[typing.IO[str]]):
 
 @click.command("download-model")
 @click.argument("output-dir", type=click.Path(exists=True))
+@click.option(
+    "--target",
+    help="A list of machines to target. If not provided then target all machines in the"
+    " project",
+    default=[],
+    multiple=True,
+)
 @click.pass_context
-def download_model(ctx: click.Context, output_dir: str):
+def download_model(ctx: click.Context, output_dir: str, target: typing.List[str]):
     """
     Download the actual model from the target and write to an output directory
     """
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
-    models = client.download_model()
+    models = client.download_model(targets=target)
 
     # Iterate over mapping of models and save into their own sub dirs of the output_dir
-    for target, model in models.items():
-        model_out_dir = os.path.join(output_dir, target)
+    for model_name, model in models.items():
+        model_out_dir = os.path.join(output_dir, model_name)
         os.mkdir(model_out_dir)
         click.secho(
-            f"Writing model '{target}' to directory: '{model_out_dir}'...", nl=False
+            f"Writing model '{model_name}' to directory: '{model_out_dir}'...", nl=False
         )
         serializer.dump(model, model_out_dir)
         click.secho(f"done")

@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 
 import sys  # noqa
-import copy
 import requests
 import logging
 import itertools
 import typing
-from functools import wraps
 from time import sleep
-from threading import Lock
 from typing import Dict, Any, List, Callable, Optional
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 
 
 import pandas as pd
+import wrapt
+from cachetools import TTLCache, LRUCache, cached
 from sklearn.base import BaseEstimator
-from werkzeug.exceptions import BadRequest
 
 from gordo import serializer
-from gordo.client.io import _handle_response
+from gordo.client.io import _handle_response, ResourceGone, NotFound, BadGordoRequest
 from gordo.client.io import HttpUnprocessableEntity
 from gordo.client.utils import PredictionResult
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
@@ -38,13 +36,9 @@ class Client:
     Enables some basic communication with a deployed Gordo project
     """
 
-    _mutex = Lock()
-    machines: List[Machine] = []
-
     def __init__(
         self,
         project: str,
-        target: typing.Optional[str] = None,
         host: str = "localhost",
         port: int = 443,
         scheme: str = "https",
@@ -59,7 +53,6 @@ class Client:
         n_retries: int = 5,
         use_parquet: bool = False,
         session: Optional[requests.Session] = None,
-        revision: Optional[str] = None,
     ):
         """
 
@@ -67,9 +60,6 @@ class Client:
         ----------
         project: str
             Name of the project.
-        target: Optional[str]
-            Target name if desired to only make predictions against one target.
-            Leave as None to run predictions against all targets in controller.
         host: str
             Host of where to find controller and other services.
         port: int
@@ -103,9 +93,6 @@ class Client:
             is used for sending the data back and forth.
         session: Optional[requests.Session]
             The http session object to use for making requests.
-        revision: Optional[str]
-            Specific project revision to use when connecting to the server.
-            Defaults to asking the server for the latest revision its capable of serving.
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -122,166 +109,123 @@ class Client:
         self.parallelism = parallelism
         self.forward_resampled_sensors = forward_resampled_sensors
         self.n_retries = n_retries
-        self.query = f"?format={'parquet' if use_parquet else 'json'}"
-        self.target = target
+        self.format = "parquet" if use_parquet else "json"
         self.session = session or requests.Session()
-        self.revision = revision
 
-        self.machines = self.get_machines()
-
-    @property
-    def session(self):
-        return self._session
-
-    @session.setter
-    def session(self, session: requests.Session):
-        session.get = self._expired_revision_check(session.get)  # type: ignore
-        session.post = self._expired_revision_check(session.post)  # type: ignore
-        self._session = session
-
-    def _expired_revision_check(self, f):
+    @wrapt.synchronized
+    @cached(TTLCache(maxsize=1, ttl=5))
+    def get_revisions(self):
         """
-        Wrap a request function to check for 410 status codes, and update
-        the current revision if so.
-        """
+        Gets the available revisions served by the server.
 
-        @wraps(f)
-        def _wrapper(*args, **kwargs):
-            resp = f(*args, **kwargs)
-            if resp.status_code == 410:
-                # 410 Gone - Unable to serve this revision, update and try again.
-                self.update_revision()
-                return f(*args, **kwargs)
-            else:
-                return resp
-
-        return _wrapper
-
-    def update_revision(self):
-        self.revision = None  # Triggers fetching the latest revision
-
-    @property
-    def revision(self):
-        """
-        Revision being used against the server
-        """
-        return self._revision
-
-    @revision.setter
-    def revision(self, revision: Optional[str]):
-        """
-        Verifies the server can satisfy this revision.
-        If the supplied value is ``None`` it will get the latest revision
-        from the server.
+        Returns
+        ------
+        dict
+            Dictionary with two keys, `available-revisions` and `latest`. The first is
+            a list of all available revisions, and `latest` is the latest and default
+            revision.
         """
         req = requests.Request(
             "GET", f"{self.base_url}/gordo/v0/{self.project_name}/revisions"
         )
         resp = self.session.send(req.prepare())
-        if not resp.ok:
-            raise IOError(f"Failed to get revisions: {resp.content.decode()}")
+        resp_json = _handle_response(
+            resp=resp, resource_name="List of available revisions from server"
+        )
+        return resp_json
 
-        if revision:
-            supported_revisions = resp.json()["available-revisions"]
-            if revision not in supported_revisions:
-                raise LookupError(
-                    f"Revision '{revision}' cannot be served "
-                    f"from revisions: {supported_revisions}"
-                )
-            self._revision = revision
-        else:
-            self._revision = resp.json()["latest"]
+    def _get_latest_revision(self) -> str:
+        return self.get_revisions()["latest"]
 
-        # Update session headers, to send the revision we want.
-        self.session.headers.update({"revision": self._revision})
-        self.get_metadata(force_refresh=True)
+    @wrapt.synchronized
+    @cached(TTLCache(maxsize=64, ttl=30))
+    def _get_available_machines(self, revision):
+        req = requests.Request(
+            "GET",
+            f"{self.base_url}/gordo/v0/{self.project_name}/models",
+            params={"revision": revision},
+        )
+        resp = self.session.send(req.prepare())
+        model_response = _handle_response(
+            resp=resp, resource_name=f"Model name listing for revision {revision}"
+        )
+        if "models" not in model_response:
+            raise ValueError(
+                f"Invalid response from server, key 'model' not found in: {model_response}"
+            )
+        model_response["revision"] = model_response.get("revision", revision)
+        return model_response
 
-    def get_machines(self) -> List[Machine]:
-        # Thread safe single access and updating of machines.
-        with self._mutex:
-            machines = self._machines_from_server()
-            return self._filter_machines(machines=machines, target=self.target)
+    def get_available_machines(self, revision: Optional[str] = None):
+        """Returns a dict representing the /models endpoint of the project for the given
+        revision.
 
-    @staticmethod
-    def _filter_machines(
-        machines: typing.List[Machine], target: typing.Optional[str] = None
-    ) -> typing.List[Machine]:
+        Contains at least a key `models` which contains the name of the models the
+        server can serve for that revision, and a key `revision` containing the
+        revision."""
+        return self._get_available_machines(
+            revision=revision or self._get_latest_revision()
+        )
+
+    def get_machine_names(self, revision: Optional[str] = None):
+        """Returns the list of machine names served by a given revision, or latest
+        revision if no revision is passed """
+        model_response = self._get_available_machines(
+            revision=revision or self._get_latest_revision()
+        )
+        return model_response.get("models")
+
+    def _get_machines(
+        self, revision: Optional[str] = None, machine_names: Optional[List[str]] = None
+    ) -> List[Machine]:
         """
-        Based on the current configuration, filter out machines which the client
-        should not care about.
+        Returns a list of :class:`gordo.workflow.config_elements.machine.Machine`
+        elements served by the server for the provided machine names.
 
         Parameters
         ----------
-        machines: List[Machine]
-            List of Machine objs
-        target: Optional[str] (None)
-            Name of the target/machine/machine we should filter down to
+        revision: Optional[str]
+            Revision to fetch machines for. If None then the latest revision is fetched
+            from the server.
+        machine_names: Optional[List[str]]
+            List of names of machines to fetch metadata for. If None then all machines
+            for the given revision is fetched.
+
 
         Returns
         -------
         List[Machine]
-            The filtered ``Machine``s
         """
-
-        original_machines = copy.copy(machines)
-
-        # Filter down to single machine if requested
-        if target:
-            machines = [ep for ep in machines if ep.name == target]
-
-            # And check for single result and that it's healthy
-            if len(machines) != 1:
-                raise ValueError(
-                    f"Found {'multiple' if len(machines) else 'no'} machines matching "
-                    f"target name '{target}' in {original_machines}"
-                )
-
-        # finally, raise an error if all this left us without any machines
-        if not machines:
-            raise ValueError(
-                f"Found no machines out of supplied machines: {original_machines} after filtering"
-            )
-        return machines
-
-    def _machines_from_server(self) -> typing.List[Machine]:
-        """
-        Get a list of machines by querying controller
-        """
-        resp = self.session.get(f"{self.server_endpoint}/models")
-        if not resp.ok:
-            raise IOError(f"Failed to get machines: {repr(resp.content)}")
-        else:
-            model_names = resp.json()["models"]
-            with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
-                machines = executor.map(self._machine_from_server, model_names)
-                return list(machines)
-
-    def _machine_from_server(self, name: str) -> Machine:
-        """
-        Create a :class:`gordo.workflow.config_elements.machine.Machine`
-        from this model's endpoint on the server
-
-        Parameters
-        ----------
-        name: str
-            Name of this machine
-
-        Returns
-        -------
-        Machine
-        """
-        resp = self.session.get(
-            f"{self.base_url}/gordo/v0/{self.project_name}/{name}/metadata"
+        _machine_names: List[str] = machine_names or self.get_machine_names(
+            revision=revision
         )
-        if resp.ok:
-            metadata = resp.json()["metadata"]
-            return Machine(**metadata)
-        else:
-            raise IOError(
-                f"Unable to create machine '{name}': {resp.content.decode(errors='ignore')}"
+        with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
+            machines = executor.map(
+                lambda machine: self._machine_from_server(
+                    name=machine, revision=revision or self._get_latest_revision()
+                ),
+                _machine_names,
             )
+            return list(machines)
 
-    def download_model(self) -> typing.Dict[str, BaseEstimator]:
+    @wrapt.synchronized
+    @cached(LRUCache(maxsize=25000))
+    def _machine_from_server(self, name: str, revision: str) -> Machine:
+        resp = self.session.get(
+            f"{self.base_url}/gordo/v0/{self.project_name}/{name}/metadata",
+            params={"revision": revision},
+        )
+        metadata = _handle_response(
+            resp=resp, resource_name=f"Machine metadata for {name}"
+        )
+        if isinstance(metadata, dict) and metadata.get("metadata", None):
+            return Machine(**metadata.get("metadata", None))
+        else:
+            raise NotFound(f"Machine {name} not found")
+
+    def download_model(
+        self, revision=None, targets: Optional[List[str]] = None
+    ) -> typing.Dict[str, BaseEstimator]:
         """
         Download the actual model(s) from the ML server /download-model
 
@@ -291,46 +235,53 @@ class Client:
             Mapping of target name to the model
         """
         models = dict()
-        for machine in self.machines:
+        for machine_name in targets or self.get_machine_names(revision=revision):
             resp = self.session.get(
-                f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}/download-model"
+                f"{self.base_url}/gordo/v0/{self.project_name}/{machine_name}/download-model"
             )
-            if resp.ok:
-                models[machine.name] = serializer.loads(resp.content)
+            content = _handle_response(
+                resp, resource_name=f"Model download for model {machine_name}"
+            )
+            if isinstance(content, bytes):
+                models[machine_name] = serializer.loads(content)
             else:
-                raise IOError(f"Failed to download model: '{repr(resp.content)}'")
+                raise ValueError(
+                    f"Got unexpected return type: {type(content)} when attempting to"
+                    f" download the model {machine_name}."
+                )
         return models
 
-    def get_metadata(self, force_refresh: bool = False) -> typing.Dict[str, Metadata]:
+    def get_metadata(
+        self, revision: Optional[str] = None, targets: Optional[List[str]] = None
+    ) -> typing.Dict[str, Metadata]:
         """
-        Get the metadata for each target
+        Get the machine metadata for provided machines, or all if no machine names are
+        provided.
 
         Parameters
         ----------
-        force_refresh : bool
-            Even if the previous request was cached, make a new request for metadata.
+        revision: Optional[str]
+            Revision to fetch machines for. If None then the latest revision is fetched
+            from the server.
+        targets: Optional[List[str]]
+            List of names of machines to fetch metadata for. If None then all machines
+            for the given revision is fetched.
 
         Returns
         -------
         Dict[str, Metadata]
             Mapping of target names to their metadata
         """
-        if hasattr(self, "metadata_") and not force_refresh:
-            return self.metadata_.copy()
 
-        if force_refresh:
-            self.machines = self.get_machines()  # Forced refresh if
-        self.metadata_: Dict[str, Metadata] = {
-            ep.name: ep.metadata for ep in self.machines
-        }
-        return self.metadata_.copy()
+        machines = self._get_machines(revision=revision, machine_names=targets)
+        return {ep.name: ep.metadata for ep in machines}
 
     def predict(
         self,
         start: datetime,
         end: datetime,
-        refresh_machines: bool = False,
-        machine_names: Optional[List[str]] = None,
+        targets: Optional[List[str]] = None,
+        revision: Optional[str] = None,
     ) -> typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]:
         """
         Start the prediction process.
@@ -339,11 +290,15 @@ class Client:
         ----------
         start: datetime
         end: datetime
-        refresh_machines : bool
-            Before running predictions, refresh the current machines. Default
-            ``False`` and will use the machines obtained during initialization.
-        machine_names: Optional[List[str]]
+        targets: Optional[List[str]]
             Optionally only target certain machines, referring to them by name.
+        revision: Optional[str]
+            Revision of the model to run predictions again, defaulting to latest.
+
+        Raises
+        -----
+        ResourceGone
+            If the sever returns a 410, most likely because the revision is too old
 
         Returns
         -------
@@ -353,24 +308,22 @@ class Client:
               1st element is the dataframe of the predictions; complete with a DateTime index.
               2nd element is a list of error messages (if any) for running the predictions
         """
-        if refresh_machines:
-            self.machines = self.get_machines()
 
-        # Select machines if the machine_names were provided.
-        if machine_names:
-            machines = [ep for ep in self.machines if ep.name in machine_names]
-        else:
-            machines = self.machines
+        _revision = revision or self._get_latest_revision()
+        machines = self._get_machines(revision=_revision, machine_names=targets)
 
         # For every machine, start making predictions for the time range
         with ThreadPoolExecutor(max_workers=self.parallelism) as executor:
             jobs = executor.map(
-                lambda ep: self.predict_single_machine(ep, start, end), machines
+                lambda ep: self.predict_single_machine(
+                    machine=ep, start=start, end=end, revision=_revision
+                ),
+                machines,
             )
             return [(j.name, j.predictions, j.error_messages) for j in jobs]
 
     def predict_single_machine(
-        self, machine: Machine, start: datetime, end: datetime
+        self, machine: Machine, start: datetime, end: datetime, revision: str
     ) -> PredictionResult:
         """
         Get predictions based on the /prediction POST machine of Gordo ML Servers
@@ -381,6 +334,8 @@ class Client:
             Named tuple which has 'machine' specifying the full url to the base ml server
         start: datetime
         end: datetime
+        revision: str
+            Revision of the model to use
 
         Returns
         -------
@@ -411,6 +366,7 @@ class Client:
                         if i + self.batch_size <= max_indx
                         else max_indx
                     ],
+                    revision=revision,
                 ),
                 range(0, X.shape[0], self.batch_size),
             )
@@ -440,6 +396,7 @@ class Client:
         machine: Machine,
         start: datetime,
         end: datetime,
+        revision: str,
     ):
         """
         Post a slice of data to the machine
@@ -461,10 +418,16 @@ class Client:
         Returns
         -------
         PredictionResult
+
+        Raises
+        -----
+        ResourceGone
+            If the sever returns a 410, most likely because the revision is too old
         """
 
         kwargs: Dict[str, Any] = dict(
-            url=f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}{self.prediction_path}{self.query}"
+            url=f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}{self.prediction_path}",
+            params={"format": self.format, "revision": revision},
         )
 
         # We're going to serialize the data as either JSON or Arrow
@@ -492,13 +455,12 @@ class Client:
                     self.prediction_path = "/prediction"
                     kwargs[
                         "url"
-                    ] = f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}{self.prediction_path}{self.query}"
+                    ] = f"{self.base_url}/gordo/v0/{self.project_name}/{machine.name}{self.prediction_path}"
                     resp = _handle_response(self.session.post(**kwargs))
             # If it was an IO or TimeoutError, we can retry
             except (
                 IOError,
                 TimeoutError,
-                BadRequest,
                 requests.ConnectionError,
                 requests.HTTPError,
             ) as exc:
@@ -520,16 +482,18 @@ class Client:
                         name=machine.name, predictions=None, error_messages=[msg]
                     )
 
-            # No point in retrying a BadRequest
-            except BadRequest as exc:
+            # No point in retrying a BadGordoRequest
+            except (BadGordoRequest, NotFound) as exc:
                 msg = (
-                    f"Failed with BadRequest error for dates {start} -> {end} "
+                    f"Failed with bad request or not found for dates {start} -> {end} "
                     f"for target: '{machine.name}' Error: {exc}"
                 )
                 logger.error(msg)
                 return PredictionResult(
                     name=machine.name, predictions=None, error_messages=[msg]
                 )
+            except ResourceGone:
+                raise
 
             # Process response and return if no exception
             else:
