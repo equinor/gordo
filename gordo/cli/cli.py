@@ -10,7 +10,10 @@ import traceback
 
 from gordo.machine.dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo.machine.dataset.sensor_tag import SensorTagNormalizationError
-from gordo.machine.dataset.datasets import InsufficientDataError
+from gordo.machine.dataset.datasets import (
+    InsufficientDataError,
+    InsufficientDataAfterRowFilteringError,
+)
 from gordo.builder.mlflow_utils import MlflowLoggingError
 from gunicorn.glogging import Logger
 
@@ -34,8 +37,9 @@ EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     FileNotFoundError: 30,
     SensorTagNormalizationError: 60,
     NoSuitableDataProviderError: 70,
-    InsufficientDataError: 71,
-    MlflowLoggingError: 80,
+    InsufficientDataError: 80,
+    InsufficientDataAfterRowFilteringError: 81,
+    MlflowLoggingError: 90,
 }
 
 logger = logging.getLogger(__name__)
