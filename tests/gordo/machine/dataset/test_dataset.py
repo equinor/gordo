@@ -13,6 +13,7 @@ from gordo.machine.dataset.datasets import (
     RandomDataset,
     TimeSeriesDataset,
     InsufficientDataError,
+    InsufficientDataAfterRowFilteringError,
 )
 from gordo.machine.dataset.base import GordoBaseDataset
 from gordo.machine.dataset.sensor_tag import SensorTag
@@ -340,3 +341,26 @@ def test_timeseries_dataset_compat():
     assert dataset.train_start_date == dateutil.parser.isoparse("2017-12-25 06:00:00Z")
     assert dataset.train_end_date == dateutil.parser.isoparse("2017-12-29 06:00:00Z")
     assert dataset.tag_list == [SensorTag("Tag 1", None)]
+
+
+@pytest.mark.parametrize("n_samples_threshold, filter_value", [(10, 5000), (0, 100)])
+def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value):
+    """
+    Test that dataframe after row_filter scenarios raise appropriate
+    InsufficientDataAfterRowFilteringError
+    """
+
+    kwargs = dict(
+        data_provider=MockDataProvider(),
+        tag_list=[
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ],
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        n_samples_threshold=n_samples_threshold,
+    )
+
+    with pytest.raises(InsufficientDataAfterRowFilteringError):
+        TimeSeriesDataset(row_filter=f"'Tag 1' < {filter_value}", **kwargs).get_data()

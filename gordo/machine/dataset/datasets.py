@@ -32,6 +32,10 @@ class InsufficientDataError(ValueError):
     pass
 
 
+class InsufficientDataAfterRowFilteringError(ValueError):
+    pass
+
+
 def compat(init):
     """
     __init__ decorator for compatibility where the Gordo config file's ``dataset`` keys have
@@ -219,6 +223,13 @@ class TimeSeriesDataset(GordoBaseDataset):
             data = pandas_filter_rows(
                 data, self.row_filter, buffer_size=self.row_filter_buffer_size
             )
+
+            if len(data) <= self.n_samples_threshold:
+                raise InsufficientDataAfterRowFilteringError(
+                    f"The length of the genrated DataFrame ({len(data)}) does not exceed the "
+                    f"specified required threshold for the number of rows ({self.n_samples_threshold}), "
+                    f" after applying the specified row-filter."
+                )
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
