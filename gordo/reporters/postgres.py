@@ -1,3 +1,4 @@
+import json
 import logging
 from playhouse.postgres_ext import (
     Model,
@@ -5,10 +6,12 @@ from playhouse.postgres_ext import (
     CharField,
     BinaryJSONField,
 )
+from playhouse.shortcuts import dict_to_model
 
 from .base import BaseReporter
 from gordo.util.utils import capture_args
 from gordo.machine import Machine as GordoMachine
+from gordo.builder.mlflow_utils import MachineEncoder
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -39,7 +42,6 @@ class PostgresReporter(BaseReporter):
         self.user = user
         self.password = password
         self.database = database
-
         sql_parameters = {"host": self.host, "port": self.port, "user": self.user}
         if self.password:
             sql_parameters.update({"password": self.password})
@@ -60,15 +62,11 @@ class PostgresReporter(BaseReporter):
         None
         """
         with self.db.atomic():
-            logger.debug(f"Inserting machine {machine.name} in sql")  # type: ignore
-            Machine.insert(
-                dict(
-                    name=machine.name,
-                    dataset=machine.dataset.to_dict(),
-                    model=machine.model,
-                    metadata=machine.metadata.to_dict(),
-                )
-            ).on_conflict_ignore().execute()
+            logger.info(f"Inserting machine {machine.name} in sql")  # type: ignore
+
+            # Ensure it's serializable using MachineEncoder
+            record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
+            dict_to_model(Machine, record, ignore_unknown=True).save()
 
 
 class Machine(Model):
