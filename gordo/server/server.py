@@ -210,7 +210,7 @@ def run_server(
         "--access-logfile",
         "-",
         "--worker-class",
-        "gevent",
+        "gthread",
         "--worker-tmp-dir",
         "/dev/shm",
         "--workers",
