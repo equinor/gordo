@@ -43,7 +43,6 @@ entrypoints==0.3          # via mlflow
 flask-restplus==0.13.0
 flask==1.1.1
 gast==0.2.2               # via tensorflow
-gevent==1.4.0             # via gunicorn
 gitdb2==2.0.6             # via gitpython
 gitpython==3.0.5          # via mlflow
 google-auth-oauthlib==0.4.1  # via tensorboard
@@ -51,9 +50,8 @@ google-auth==1.10.1       # via google-auth-oauthlib, tensorboard
 google-pasta==0.1.8       # via tensorflow
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
-greenlet==0.4.15          # via gevent
 grpcio==1.26.0            # via tensorboard, tensorflow
-gunicorn[gevent]==20.0.4
+gunicorn==20.0.4
 h5py==2.10.0
 idna==2.8                 # via requests
 importlib-metadata==1.4.0  # via jsonschema
@@ -135,4 +133,4 @@ wrapt==1.11.2             # via tensorflow
 zipp==2.0.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools
+# setuptools==45.1.0        # via google-auth, gunicorn, jsonschema, kiwisolver, markdown, protobuf, tensorboard
