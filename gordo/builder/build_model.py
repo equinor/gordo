@@ -34,6 +34,7 @@ from gordo.machine.metadata import (
     CrossValidationMetaData,
 )
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -190,6 +191,7 @@ class ModelBuilder:
             model=self.machine.model,
             project_name=self.machine.project_name,
             evaluation=self.machine.evaluation,
+            runtime=self.machine.runtime,
         )
 
         split_metadata: Dict[str, Any] = dict()

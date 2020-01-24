@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 import dateutil.parser
-from typing import List, Optional, Dict, Any
 import os
 import yaml
+from typing import List, Optional, Dict, Any
 
 import pytest
 import numpy as np
 import pandas as pd
-from sklearn.base import BaseEstimator
 import sklearn.compose
 import sklearn.ensemble
+from sklearn.base import BaseEstimator
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
@@ -691,3 +691,14 @@ def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
         mocked_pipeline_from_definition.assert_called_with(
             {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 3}}
         )
+
+
+@patch("gordo.machine.Machine.report")
+def test_builder_calls_machine_report(mocked_report_method, metadata):
+    """
+    When building a machine, the Modelbuilder.build should call Machine.report()
+    so that it can run any reporters in the Machine's runtime.
+    """
+    machine = Machine(**metadata)
+    ModelBuilder(machine).build()
+    assert mocked_report_method.called_once()

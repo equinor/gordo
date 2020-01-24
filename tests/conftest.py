@@ -214,6 +214,23 @@ def gordo_ml_server_client(
             yield app.test_client()
 
 
+@pytest.yield_fixture
+def postgresdb():
+    client = docker.from_env()
+    postgres = client.containers.run(
+        image="postgres:11-alpine",
+        environment={"POSTGRES_USER": "postgres", "POSTGRES_PASSWORD": "postgres"},
+        ports={"5432/tcp": "5432"},
+        remove=True,
+        detach=True,
+    )
+    import time
+
+    time.sleep(5)
+    yield
+    postgres.kill()
+
+
 @pytest.fixture(scope="session")
 def base_influxdb(
     sensors, influxdb_name, influxdb_user, influxdb_password, influxdb_measurement

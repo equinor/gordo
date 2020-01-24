@@ -23,7 +23,7 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 115200 # 32 hours
   entrypoint: do-all
-  onExit: sql-and-cleanup
+  onExit: workflow-cleanup
   volumes:
   - name: azurefile
     persistentVolumeClaim:
@@ -441,7 +441,7 @@ spec:
       source: |
         echo "Creating grafana influxdb and postgres datasources for project {{project_name}}" \
         && curl -XPOST -H 'Content-Type: application/json' -d '{"name":"InfluxDB", "type":"influxdb", "url":"http://gordo-influx-{{project_name}}:8086", "access":"proxy", "database": "feeder", "isDefault":true, "password": "", "user": "", "basicAuth": false}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
-        && curl -XPOST -H 'Content-Type: application/json' -d '{"name": "Postgres-metadata","type": "postgres","url": "gordo-postgres-{{project_name}}","access": "proxy","database": "postgres","isDefault": false,"user": "postgres","jsonData": {"sslmode": "disable","postgresVersion": 1000,"timescaledb": false}}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
+        && curl -XPOST -H 'Content-Type: application/json' -d '{"name": "Postgres-metadata","type": "postgres","url": "{{postgres_host}}","access": "proxy","database": "postgres","isDefault": false,"user": "postgres","jsonData": {"sslmode": "disable","postgresVersion": 1000,"timescaledb": false}}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
         && echo "Uploading grafana dashboard for project {{project_name}}" \
         && curl -XPOST -d @/home/gordo/resources/grafana/dashboards/machines.json -H "Content-Type: application/json"  http://gordo-grafana-{{project_name}}:3000/api/dashboards/db
       resources:
@@ -474,9 +474,9 @@ spec:
                   apiVersion: v1
                   kind: Service
                   metadata:
-                    name: gordo-postgres-{{project_name}}
+                    name: {{postgres_host}}
                     labels:
-                      app: gordo-postgres-{{project_name}}
+                      app: {{postgres_host}}
                       app.kubernetes.io/name: postgres
                       app.kubernetes.io/component: service
                       app.kubernetes.io/part-of: gordo
@@ -488,7 +488,7 @@ spec:
                     {% endif %}
                   spec:
                     selector:
-                      app: gordo-postgres-{{project_name}}
+                      app: {{postgres_host}}
                     ports:
                     - port: 5432
                       name: api
@@ -503,9 +503,9 @@ spec:
         apiVersion: apps/v1
         kind: StatefulSet
         metadata:
-          name: gordo-postgres-{{project_name}}
+          name: {{postgres_host}}
           labels:
-            app: gordo-postgres-{{project_name}}
+            app: {{postgres_host}}
             app.kubernetes.io/name: postgresd-deployment
             app.kubernetes.io/component: postgresdb
             app.kubernetes.io/part-of: gordo
@@ -516,7 +516,7 @@ spec:
           ownerReferences: {{owner_references}}
           {% endif %}
         spec:
-          serviceName: gordo-postgres-{{project_name}}
+          serviceName: {{postgres_host}}
           volumeClaimTemplates:
             - metadata:
                 name: postgres-storage-{{project_revision}}
@@ -539,12 +539,12 @@ spec:
                     storage: 1Gi
           selector:
             matchLabels:
-              app: gordo-postgres-{{project_name}}
+              app: {{postgres_host}}
           replicas: 1
           template:
             metadata:
               labels:
-                app: gordo-postgres-{{project_name}}
+                app: {{postgres_host}}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -553,7 +553,7 @@ spec:
               containers:
               - image: "postgres:11.2"
                 imagePullPolicy: "IfNotPresent"
-                name: gordo-postgres-{{project_name}}
+                name: {{postgres_host}}
                 volumeMounts:
                   - name: postgres-storage-{{project_revision}}
                     mountPath: /var/lib/postgresql/data/pgdata
@@ -612,38 +612,6 @@ spec:
         template: gordo-postgres-statefulset
     - - name: gordo-postgres-service
         template: gordo-postgres-service
-
-
-
-
-  - name: gordo-server-to-postgres
-    retryStrategy:
-      limit: 5
-    metadata:
-      labels:
-        app: gordo-server-to-postgres
-        applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
-    script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}
-      command: [bash]
-      source: |
-        echo "Feeding sql with metadata for project {{project_name}} using source ur http://$SERVER_HOST/gordo/v0/$PROJECT_NAME/ and postgres url gordo-postgres-$PROJECT_NAME " \
-        && gordo workflow server-to-sql --server-address "http://$SERVER_HOST/gordo/v0/$PROJECT_NAME/" --sql-host "gordo-postgres-$PROJECT_NAME" --project-name $PROJECT_NAME
-      env:
-        - name: PROJECT_NAME
-          value: "{{project_name}}"
-        - name: SERVER_HOST
-          value: "gordo-srv-{{ project_name }}"
-      resources:
-        requests:
-          memory: 50M
-          cpu: 10m
-        limits:
-          memory: 1G
-          cpu: 200m
-
-
 
 
   - name: model-builder
@@ -1109,7 +1077,7 @@ spec:
       source: |
         echo "Deleting postgres PVC for {{project_name}} different than {{project_revision}}" \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=postgres \
-         && kubectl delete $(kubectl get pvc -l app=gordo-postgres-{{project_name}} -o name | grep -v postgres-storage-{{project_revision}} ) || : \
+         && kubectl delete $(kubectl get pvc -l app={{postgres_host}} -o name | grep -v postgres-storage-{{project_revision}} ) || : \
          && sleep 5
       resources:
         requests:
@@ -1148,14 +1116,10 @@ spec:
           cpu: 200m
 
 
-  - name: sql-and-cleanup
+  - name: workflow-cleanup
     steps:
     - - name: cleanup
         template: cleanup
-        {%if enable_influx %}
-      - name: gordo-server-to-postgres
-        template: gordo-server-to-postgres
-        {% endif %}
 
   - name: do-all
     dag:
@@ -1181,6 +1145,7 @@ spec:
                   {{ machine.to_dict() | tojson }}
           dependencies:
             - gordo-server
+            {% if enable_influx %}- gordo-postgres{% endif %}
         - name: gordo-mdl-{{ machine.name }}
           template: gordo-model
           arguments:

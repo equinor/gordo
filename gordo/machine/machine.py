@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from typing import Dict, Any, Union, Optional
 
 import yaml
@@ -14,6 +15,9 @@ from gordo.machine.validators import (
 )
 from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
+
+
+logger = logging.getLogger(__name__)
 
 
 class Machine:
@@ -118,3 +122,14 @@ class Machine:
             "project_name": self.project_name,
             "evaluation": self.evaluation,
         }
+
+    def report(self):
+        """ 
+        Run any reporters in the machine's runtime for the current state.
+        """
+        # Avoid circular dependency with reporters which import Machine
+        from gordo.reporters.base import BaseReporter
+
+        for reporter in map(BaseReporter.from_dict, self.runtime["reporters"]):
+            logger.debug(f"Using reporter: {reporter}")
+            reporter.report(self)

@@ -146,6 +146,10 @@ def build(
     try:
         _, machine_out = builder.build(output_dir, model_register_dir)  # type: ignore
 
+        logger.debug("Reporting built machine.")
+        machine_out.report()
+        logger.debug("Finished reporting.")
+
         if print_cv_scores:
             for score in get_all_score_strings(machine_out):
                 print(score)

@@ -133,8 +133,24 @@ class ValidMachineRuntime(BaseDescriptor):
     def __set__(self, instance, value):
         if not isinstance(value, dict):
             raise ValueError(f"Runtime must be an instance of dict")
+        value = self._verify_reporters(value)
         value = fix_runtime(value)
         instance.__dict__[self.name] = value
+
+    @staticmethod
+    def _verify_reporters(value: dict):
+        """
+        Verify the expected existence and structure of runtime.reporters
+        """
+        runtime = copy.deepcopy(value)
+        if "reporters" not in runtime:
+            runtime["reporters"] = list()
+        else:
+            assert isinstance(runtime["reporters"], list), "reporters should be a list"
+        assert all(
+            isinstance(rptr, dict) for rptr in runtime["reporters"]
+        ), "All elements in 'reporters' should be a dict"
+        return runtime
 
 
 def fix_runtime(runtime_dict):

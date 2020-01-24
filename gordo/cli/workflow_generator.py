@@ -2,7 +2,6 @@ import logging
 import time
 import pkg_resources
 import json
-import sys
 import os
 
 from typing import Dict, Any
@@ -10,7 +9,6 @@ from typing import Dict, Any
 import click
 
 from gordo import __version__
-from gordo.workflow.server_to_sql.server_to_sql import server_to_sql
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
 
@@ -133,7 +131,6 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     # Create normalized config
     config = NormalizedConfig(yaml_content, project_name=context["project_name"])
 
-    context["machines"] = config.machines
     context["max_server_replicas"] = (
         context.pop("n_servers") or len(config.machines) * 10
     )
@@ -181,7 +178,23 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     # Should we start up influx/grafana at all, i.e. is there at least one request
     # for it?"
-    context["enable_influx"] = nr_of_models_with_clients > 0
+    enable_influx = nr_of_models_with_clients > 0
+    context["enable_influx"] = enable_influx
+
+    context["postgres_host"] = f"gordo-postgres-{config.project_name}"
+
+    # If enabling influx, we setup a postgres reporter to send metadata
+    # to allowing querying about the machine from grafana
+    if enable_influx:
+        pg_reporter = {
+            "gordo.reporters.postgres.PostgresReporter": {
+                "host": context["postgres_host"]
+            }
+        }
+        for machine in config.machines:
+            machine.runtime["reporters"].append(pg_reporter)
+
+    context["machines"] = config.machines
 
     # Context requiring pre-processing
     context["target_names"] = [machine.name for machine in config.machines]
@@ -249,64 +262,8 @@ def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
             print(tag.name)
 
 
-@click.command("server-to-sql")
-@click.option("--server-address", help="Address of server", required=True, type=str)
-@click.option("--sql-host", help="Host of the sql server", required=True, type=str)
-@click.option(
-    "--sql-port", help="Port of the sql server", required=False, type=int, default=5432
-)
-@click.option(
-    "--sql-database",
-    help="Username of the sql server",
-    required=False,
-    type=str,
-    default="postgres",
-)
-@click.option(
-    "--sql-username",
-    help="Username of the sql server",
-    required=False,
-    type=str,
-    default="postgres",
-)
-@click.option(
-    "--sql-password",
-    help="Port of the sql server",
-    required=False,
-    type=str,
-    default=None,
-)
-@click.option("--project-name", envvar="PROJECT_NAME", required=True)
-def server_to_sql_cli(
-    server_address,
-    sql_host,
-    sql_port,
-    sql_database,
-    sql_username,
-    sql_password,
-    project_name,
-):
-    """
-    Program to fetch metadata from server and push the metadata to a postgres sql
-    database. Pushes to the table `machine`.
-    """
-    if server_to_sql(
-        project_name,
-        server_address,
-        sql_host,
-        sql_port,
-        sql_database,
-        sql_username,
-        sql_password,
-    ):
-        sys.exit(0)
-    else:
-        sys.exit(1)
-
-
 workflow_cli.add_command(workflow_generator_cli)
 workflow_cli.add_command(unique_tag_list_cli)
-workflow_cli.add_command(server_to_sql_cli)
 
 if __name__ == "__main__":
     workflow_cli()
