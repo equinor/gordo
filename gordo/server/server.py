@@ -17,6 +17,7 @@ from functools import wraps
 
 from flask import Flask, g, request, current_app, make_response, jsonify
 from gordo.server import views
+from gordo import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +160,10 @@ def build_app():
     @app.route("/healthcheck")
     def base_healthcheck():
         return "", 200
+
+    @app.route("/server-version")
+    def server_version():
+        return jsonify({"version": __version__})
 
     return app
 

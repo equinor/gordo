@@ -11,7 +11,7 @@ from typing import List
 from unittest.mock import patch
 
 from gordo.server.server import run_cmd
-from gordo import serializer
+from gordo import serializer, __version__
 from gordo.server import server
 
 import tests.utils as tu
@@ -258,3 +258,17 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
             "error": "Revision 'does-not-exist' not found.",
             "revision": "does-not-exist",
         }
+
+
+def test_server_version_route(model_collection_directory, gordo_revision):
+    """
+    Simple route which returns the current version
+    """
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=model_collection_directory):
+        app = server.build_app()
+        app.testing = True
+        client = app.test_client()
+
+        resp = client.get("/server-version")
+        assert resp.status_code == 200
+        assert resp.json == {"revision": gordo_revision, "version": __version__}
