@@ -77,6 +77,7 @@ class Machine(Model):
 
     class Meta:
         database = db
+        table_name = "machine"
 
     def __repr__(self):
         return f"Machine {self.__data__} "
