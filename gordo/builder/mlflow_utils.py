@@ -15,11 +15,11 @@ from azureml.core.authentication import (
 import mlflow
 from mlflow.entities import Metric, Param
 from mlflow.tracking import MlflowClient
-import numpy as np
 from pytz import UTC
 
 from gordo.machine import Machine
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
+from gordo.machine.machine import MachineEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -348,30 +348,6 @@ def get_spauth_kwargs() -> dict:
         "DL_SERVICE_AUTH_STR",
         ["tenant_id", "service_principal_id", "service_principal_password"],
     )
-
-
-class MachineEncoder(json.JSONEncoder):
-    """
-    Encode datetime.datetime objects as strings and handles any
-    numpy numeric instances; both of which common in the ``dict`` representation
-    of a :class:`~gordo.machine.Machine`
-
-    Example
-    -------
-    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MachineEncoder, indent=4)
-    >>> s = '{"now": "2019-11-22 08:34:41.636356+"}'
-    """
-
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.strftime("%Y-%m-%d %H:%M:%S.%f+%z")
-        # Typecast builtin and numpy ints and floats to builtin types
-        elif np.issubdtype(type(obj), np.floating):
-            return float(obj)
-        elif np.issubdtype(type(obj), np.integer):
-            return int(obj)
-        else:
-            return json.JSONEncoder.default(self, obj)
 
 
 @contextmanager

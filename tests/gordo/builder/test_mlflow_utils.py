@@ -7,6 +7,7 @@ import mock
 import pytest
 
 import gordo.builder.mlflow_utils as mlu
+import gordo.machine.machine
 from gordo.machine import Machine
 
 
@@ -237,7 +238,7 @@ def test_MachineEncoder(metadata):
     """
     Test that metadata can dump successfully with MachineEncoder
     """
-    assert json.dumps(metadata, cls=mlu.MachineEncoder)
+    assert json.dumps(metadata, cls=gordo.machine.machine.MachineEncoder)
 
 
 @mock.patch("gordo.builder.mlflow_utils.MlflowClient", autospec=True)

@@ -11,8 +11,7 @@ from playhouse.shortcuts import dict_to_model
 from .base import BaseReporter
 from gordo.util.utils import capture_args
 from gordo.machine import Machine as GordoMachine
-from gordo.builder.mlflow_utils import MachineEncoder
-
+from gordo.machine.machine import MachineEncoder
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
