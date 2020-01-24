@@ -289,7 +289,6 @@ class ModelBuilder:
                 model_meta=self._extract_metadata_from_model(model),
             )
         )
-        machine.report()
         return model, machine
 
     def set_seed(self, seed: int):
