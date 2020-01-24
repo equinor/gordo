@@ -341,10 +341,10 @@ def test_build_cv_mode_build_only(tmpdir, runner: CliRunner, machine: Machine):
             )
 
 
-@mock.patch("gordo.builder.mlflow_utils.get_spauth_kwargs")
-@mock.patch("gordo.builder.mlflow_utils.get_workspace_kwargs")
-@mock.patch("gordo.builder.mlflow_utils.get_mlflow_client")
-def test_enable_remote_logging(
+@mock.patch("gordo.reporters.mlflow.get_spauth_kwargs")
+@mock.patch("gordo.reporters.mlflow.get_workspace_kwargs")
+@mock.patch("gordo.reporters.mlflow.get_mlflow_client")
+def test_mlflow_reporter_set_cli_build(
     MockClient,
     mock_get_workspace_kwargs,
     mock_get_spauth_kwargs,
@@ -358,7 +358,9 @@ def test_enable_remote_logging(
     """
 
     mlflow.set_tracking_uri(f"file:{tmpdir}")
-    machine.runtime = dict(builder=dict(remote_logging=dict(enable=True)))
+    machine.runtime = dict(
+        reporters=[{"gordo.reporters.mlflow.MlFlowReporter": dict()}]
+    )
 
     with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
         # Logging enabled, without env vars set:

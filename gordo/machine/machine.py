@@ -145,6 +145,7 @@ class MachineEncoder(json.JSONEncoder):
 
     Example
     -------
+    >>> from pytz import UTC
     >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MachineEncoder, indent=4)
     >>> s = '{"now": "2019-11-22 08:34:41.636356+"}'
     """

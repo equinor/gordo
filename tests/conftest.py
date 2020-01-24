@@ -188,7 +188,7 @@ def trained_model_directory(
     model_dir = os.path.join(model_collection_directory, gordo_name)
     os.makedirs(model_dir, exist_ok=True)
 
-    builder = local_build(config_str=config_str, enable_mlflow=False)
+    builder = local_build(config_str=config_str)
     model, metadata = next(builder)  # type: ignore
     serializer.dump(model, model_dir, metadata=metadata.to_dict())
     yield model_dir
