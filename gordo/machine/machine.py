@@ -139,9 +139,9 @@ class Machine:
 
 class MachineEncoder(json.JSONEncoder):
     """
-    Encode datetime.datetime objects as strings and handles any
-    numpy numeric instances; both of which common in the ``dict`` representation
-    of a :class:`~gordo.machine.Machine`
+    A JSONEncoder for machine objects, handling datetime.datetime objects as strings
+    and handles any numpy numeric instances; both of which common in the ``dict``
+    representation of a :class:`~gordo.machine.Machine`
 
     Example
     -------
