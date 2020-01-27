@@ -12,7 +12,7 @@ from gordo.machine.dataset.data_provider.providers import (
     RandomDataProvider,
     DataLakeProvider,
 )
-from gordo.machine.dataset.base import GordoBaseDataset
+from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.filter_rows import pandas_filter_rows
 from gordo.machine.dataset.sensor_tag import SensorTag
@@ -28,11 +28,7 @@ from gordo.machine.validators import (
 logger = logging.getLogger(__name__)
 
 
-class InsufficientDataError(ValueError):
-    pass
-
-
-class InsufficientDataAfterRowFilteringError(ValueError):
+class InsufficientDataAfterRowFilteringError(InsufficientDataError):
     pass
 
 
@@ -198,18 +194,13 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         # Resample if we have a resolution set, otherwise simply join the series.
         if self.resolution:
-            try:
-                data = self.join_timeseries(
-                    series_iter,
-                    self.train_start_date,
-                    self.train_end_date,
-                    self.resolution,
-                    aggregation_methods=self.aggregation_methods,
-                )
-            except IndexError:
-                raise InsufficientDataError(
-                    f"One or more series in the tag list is missing data for the specified period."
-                )
+            data = self.join_timeseries(
+                series_iter,
+                self.train_start_date,
+                self.train_end_date,
+                self.resolution,
+                aggregation_methods=self.aggregation_methods,
+            )
         else:
             data = pd.concat(series_iter, axis=1, join="inner")
 
