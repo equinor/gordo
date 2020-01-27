@@ -509,43 +509,47 @@ class ModelBuilder:
 
     @property
     def cache_key(self) -> str:
-        """
-        Calculates a hash-key from the model and data-config.
+        return self.calculate_cache_key(self.machine)
 
-        Returns
-        -------
-        str:
-            A 512 byte hex value as a string based on the content of the parameters.
-
-        Examples
-        -------
-        >>> from gordo.machine import Machine
-        >>> from gordo.machine.dataset.sensor_tag import SensorTag
-        >>> machine = Machine(
-        ...     name="special-model-name",
-        ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
-        ...     dataset={
-        ...         "type": "RandomDataset",
-        ...         "train_start_date": "2017-12-25 06:00:00Z",
-        ...         "train_end_date": "2017-12-30 06:00:00Z",
-        ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-        ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
-        ...     },
-        ...     project_name='test-proj'
-        ... )
-        >>> builder = ModelBuilder(machine)
-        >>> len(builder.cache_key)
-        128
+    @staticmethod
+    def calculate_cache_key(machine: Machine) -> str:
         """
+                Calculates a hash-key from the model and data-config.
+
+                Returns
+                -------
+                str:
+                    A 512 byte hex value as a string based on the content of the parameters.
+
+                Examples
+                -------
+                >>> from gordo.machine import Machine
+                >>> from gordo.machine.dataset.sensor_tag import SensorTag
+                >>> machine = Machine(
+                ...     name="special-model-name",
+                ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+                ...     dataset={
+                ...         "type": "RandomDataset",
+                ...         "train_start_date": "2017-12-25 06:00:00Z",
+                ...         "train_end_date": "2017-12-30 06:00:00Z",
+                ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+                ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+                ...     },
+                ...     project_name='test-proj'
+                ... )
+                >>> builder = ModelBuilder(machine)
+                >>> len(builder.cache_key)
+                128
+                """
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)
         json_rep = json.dumps(
             {
-                "name": self.machine.name,
-                "model_config": self.machine.model,
-                "data_config": self.machine.dataset.to_dict(),
-                "evaluation_config": self.machine.evaluation,
+                "name": machine.name,
+                "model_config": machine.model,
+                "data_config": machine.dataset.to_dict(),
+                "evaluation_config": machine.evaluation,
                 "gordo-major-version": MAJOR_VERSION,
                 "gordo-minor-version": MINOR_VERSION,
             },

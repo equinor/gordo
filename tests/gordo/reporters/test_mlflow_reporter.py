@@ -6,7 +6,8 @@ from mlflow.entities import Metric, Param
 import mock
 import pytest
 
-import gordo.builder.mlflow_utils as mlu
+import gordo.reporters.mlflow as mlu
+import gordo.machine.machine
 from gordo.machine import Machine
 
 
@@ -64,14 +65,12 @@ def test_get_mlflow_client(
     Test that external methods are called correctly given different configurations
     """
 
-    with mock.patch(
-        "gordo.builder.mlflow_utils.Workspace"
-    ) as MockWorkspace, mock.patch(
-        "gordo.builder.mlflow_utils.InteractiveLoginAuthentication"
+    with mock.patch("gordo.reporters.mlflow.Workspace") as MockWorkspace, mock.patch(
+        "gordo.reporters.mlflow.InteractiveLoginAuthentication"
     ) as MockInteractiveAuth, mock.patch(
-        "gordo.builder.mlflow_utils.ServicePrincipalAuthentication"
+        "gordo.reporters.mlflow.ServicePrincipalAuthentication"
     ) as MockSPAuth, mock.patch(
-        "gordo.builder.mlflow_utils.MlflowClient"
+        "gordo.reporters.mlflow.MlflowClient"
     ) as MockClient:
         MockInteractiveAuth.return_value = True
         MockWorkspace.return_value.get_mlflow_tracking_uri.return_value = "test_uri"
@@ -82,9 +81,9 @@ def test_get_mlflow_client(
         assert MockClient.called_once()
 
 
-@mock.patch("gordo.builder.mlflow_utils.InteractiveLoginAuthentication")
-@mock.patch("gordo.builder.mlflow_utils.Workspace")
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient")
+@mock.patch("gordo.reporters.mlflow.InteractiveLoginAuthentication")
+@mock.patch("gordo.reporters.mlflow.Workspace")
+@mock.patch("gordo.reporters.mlflow.MlflowClient")
 def test_get_mlflow_client_config(MockClient, MockWorkspace, MockInteractiveLogin):
     """
     Test that error is raised with incomplete kwargs
@@ -107,9 +106,9 @@ def test_get_mlflow_client_config(MockClient, MockWorkspace, MockInteractiveLogi
         )
 
 
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient.get_experiment_by_name")
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient.create_experiment")
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient.create_run")
+@mock.patch("gordo.reporters.mlflow.MlflowClient.get_experiment_by_name")
+@mock.patch("gordo.reporters.mlflow.MlflowClient.create_experiment")
+@mock.patch("gordo.reporters.mlflow.MlflowClient.create_run")
 def test_get_run_id_external_calls(
     mock_create_run, mock_create_experiment, mock_get_experiment, tmpdir
 ):
@@ -237,10 +236,10 @@ def test_MachineEncoder(metadata):
     """
     Test that metadata can dump successfully with MachineEncoder
     """
-    assert json.dumps(metadata, cls=mlu.MachineEncoder)
+    assert json.dumps(metadata, cls=gordo.machine.machine.MachineEncoder)
 
 
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient", autospec=True)
+@mock.patch("gordo.reporters.mlflow.MlflowClient", autospec=True)
 def test_mlflow_context_log_metadata(MockClient, tmpdir, metadata):
     """
     Test that call to wrapped function initiates MLflow logging or throws warning
@@ -261,7 +260,7 @@ def test_mlflow_context_log_metadata(MockClient, tmpdir, metadata):
     assert mock_client.log_batch.called
 
 
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient", autospec=True)
+@mock.patch("gordo.reporters.mlflow.MlflowClient", autospec=True)
 def test_mlflow_context_log_error(MockClient, metadata):
     """
     Test that an error while logging metadata as an artifact raises MlflowLoggingError

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import mock
 
 from gordo.builder import local_build
 from gordo.machine import Machine
@@ -61,7 +60,7 @@ from gordo.machine import Machine
     ),
 )
 def test_local_builder_valid_configs(config):
-    models_n_metadata = list(local_build(config, enable_mlflow=False))
+    models_n_metadata = list(local_build(config))
     assert len(models_n_metadata) == 1
 
     model_n_metadata = models_n_metadata.pop()
@@ -121,15 +120,4 @@ def test_local_builder_valid_configs(config):
 )
 def test_local_builder_invalid_configs(config):
     with pytest.raises(Exception):
-        list(local_build(config, enable_mlflow=False))
-
-
-@mock.patch("gordo.builder.mlflow_utils.MlflowClient", autospec=True)
-@pytest.mark.parametrize("enable_mlflow", [True, False])
-def test_local_builder_mlflow(MockClient, enable_mlflow, config_str):
-    """
-    Test that logging is called when mlflow flag is enabled
-    """
-
-    n_builds = len(list(local_build(config_str, enable_mlflow=enable_mlflow)))
-    assert MockClient.call_count == (n_builds if enable_mlflow else 0)
+        list(local_build(config))

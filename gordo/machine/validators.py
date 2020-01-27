@@ -148,8 +148,9 @@ class ValidMachineRuntime(BaseDescriptor):
         else:
             assert isinstance(runtime["reporters"], list), "reporters should be a list"
         assert all(
-            isinstance(rptr, dict) for rptr in runtime["reporters"]
-        ), "All elements in 'reporters' should be a dict"
+            isinstance(rptr, dict) or isinstance(rptr, str)
+            for rptr in runtime["reporters"]
+        ), "All elements in 'reporters' should be a dict or str instances."
         return runtime
 
 

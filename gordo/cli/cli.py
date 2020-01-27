@@ -14,7 +14,7 @@ from gordo.machine.dataset.datasets import (
     InsufficientDataError,
     InsufficientDataAfterRowFilteringError,
 )
-from gordo.builder.mlflow_utils import MlflowLoggingError
+from gordo.reporters.mlflow import MlflowLoggingError
 from gunicorn.glogging import Logger
 
 import jinja2
@@ -24,7 +24,6 @@ from typing import Dict, Type, Tuple, List, Any
 
 from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
-from gordo.builder import mlflow_utils
 from gordo.server import server
 from gordo import __version__
 from gordo.machine import Machine
@@ -153,23 +152,6 @@ def build(
         if print_cv_scores:
             for score in get_all_score_strings(machine_out):
                 print(score)
-        # If enabled, configure remote logging to AzureML, otherwise logs locally
-        if machine.runtime:
-            try:
-                logging_enabled = machine.runtime["builder"]["remote_logging"]["enable"]
-            except KeyError:
-                logger.debug("Remote logging doesn't appear to be enabled.")
-            else:
-                if logging_enabled:
-                    workspace_kwargs = mlflow_utils.get_workspace_kwargs()
-                    service_principal_kwargs = mlflow_utils.get_spauth_kwargs()
-                    with mlflow_utils.mlflow_context(
-                        machine.name,
-                        builder.cache_key,
-                        workspace_kwargs,
-                        service_principal_kwargs,
-                    ) as (mlflow_client, run_id):
-                        mlflow_utils.log_machine(mlflow_client, run_id, machine_out)
 
     except Exception as e:
         exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)

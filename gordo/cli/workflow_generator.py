@@ -194,6 +194,18 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         for machine in config.machines:
             machine.runtime["reporters"].append(pg_reporter)
 
+    # Determine if MlFlowReporter should be enabled per machine
+    for machine in config.machines:
+        try:
+            enabled = machine.runtime["builder"]["remote_logging"]["enable"]
+        except KeyError:
+            continue
+        else:
+            if enabled:
+                machine.runtime["reporters"].append(
+                    "gordo.reporters.mlflow.MlFlowReporter"
+                )
+
     context["machines"] = config.machines
 
     # Context requiring pre-processing

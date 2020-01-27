@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-
+import json
 import logging
+from datetime import datetime
 from typing import Dict, Any, Union, Optional
 
+import numpy as np
 import yaml
 
 from gordo.machine.dataset.base import GordoBaseDataset
@@ -133,3 +135,28 @@ class Machine:
         for reporter in map(BaseReporter.from_dict, self.runtime["reporters"]):
             logger.debug(f"Using reporter: {reporter}")
             reporter.report(self)
+
+
+class MachineEncoder(json.JSONEncoder):
+    """
+    A JSONEncoder for machine objects, handling datetime.datetime objects as strings
+    and handles any numpy numeric instances; both of which common in the ``dict``
+    representation of a :class:`~gordo.machine.Machine`
+
+    Example
+    -------
+    >>> from pytz import UTC
+    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MachineEncoder, indent=4)
+    >>> s = '{"now": "2019-11-22 08:34:41.636356+"}'
+    """
+
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.strftime("%Y-%m-%d %H:%M:%S.%f+%z")
+        # Typecast builtin and numpy ints and floats to builtin types
+        elif np.issubdtype(type(obj), np.floating):
+            return float(obj)
+        elif np.issubdtype(type(obj), np.integer):
+            return int(obj)
+        else:
+            return json.JSONEncoder.default(self, obj)
