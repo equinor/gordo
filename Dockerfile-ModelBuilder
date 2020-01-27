@@ -11,10 +11,10 @@ RUN rm -rf /code/dist \
     && mv /code/dist/$(ls /code/dist | head -1) /code/dist/gordo-packed.tar.gz
 
 # Extract a few big dependencies which docker will cache even when other dependencies change
-RUN cat /code/requirements.txt | grep tensorflow== > /code/prereq.txt \
-    && cat /code/requirements.txt | grep pyarrow== >> /code/prereq.txt \
-    && cat /code/requirements.txt | grep scipy== >> /code/prereq.txt \
-    && cat /code/requirements.txt | grep catboost== >> /code/prereq.txt
+RUN cat /code/requirements/requirements.txt | grep tensorflow== > /code/prereq.txt \
+    && cat /code/requirements/requirements.txt | grep pyarrow== >> /code/prereq.txt \
+    && cat /code/requirements/requirements.txt | grep scipy== >> /code/prereq.txt \
+    && cat /code/requirements/requirements.txt | grep catboost== >> /code/prereq.txt
 
 
 FROM python:3.7.5-slim-stretch
@@ -30,12 +30,12 @@ ENV PATH "${HOME}/.local/bin:${PATH}"
 COPY --from=builder /code/prereq.txt .
 RUN pip install --no-deps -r prereq.txt --no-cache-dir
 
-COPY requirements.txt .
+COPY requirements/requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir
 
 # Install gordo, packaged from earlier 'python setup.py sdist'
 COPY --from=builder /code/dist/gordo-packed.tar.gz .
-RUN pip install gordo-packed.tar.gz
+RUN pip install gordo-packed.tar.gz[full]
 
 ADD build.sh ${HOME}/build.sh
 

@@ -22,6 +22,7 @@ from gordo.machine import Machine
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
+from gordo.cli.cli import EXCEPTION_TO_EXITCODE
 from .base import BaseReporter
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 class MlflowLoggingError(ValueError):
     pass
+
+
+EXCEPTION_TO_EXITCODE.update({MlflowLoggingError: 90})
 
 
 def _validate_dict(d: dict, required_keys: List[str]):

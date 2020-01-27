@@ -1,12 +1,19 @@
+import os
+from typing import List
 from setuptools import setup, find_packages
 
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]
 
 
-def requirements(fp: str):
-    with open(fp) as f:
-        return [r.strip() for r in f.readlines()]
+def requirements(*fps: str):
+    req: List[str] = list()
+    for fp in fps:
+        with open(os.path.join(os.path.dirname(__file__), "requirements", fp)) as f:
+            req.extend(
+                r.strip() for r in f.readlines() if r.strip() and not r.startswith("#")
+            )
+    return req
 
 
 setup(
@@ -27,12 +34,23 @@ setup(
     packages=find_packages(),
     setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=requirements("test_requirements.txt"),
-    url="https://github.com/equinor/gordo",
-    use_scm_version={
-        "write_to": "gordo/_version.py",
-        "relative_to": __file__,
+    tests_require=requirements(
+        "test_requirements.txt", "mlflow_requirements.txt", "postgres_requirements.txt"
+    ),
+    extras_require={
+        "docs": requirements("docs_requirements.in"),
+        "mlflow": requirements("mlflow_requirements.in"),
+        "postgres": requirements("postgres_requirements.in"),
+        "full": requirements("postgres_requirements.in", "mlflow_requirements.in"),
+        "dev": requirements(
+            "docs_requirements.txt",
+            "test_requirements.txt",
+            "postgres_requirements.txt",
+            "mlflow_requirements.txt",
+        ),
     },
+    url="https://github.com/equinor/gordo",
+    use_scm_version={"write_to": "gordo/_version.py", "relative_to": __file__},
     zip_safe=True,
     package_data={
         "": [

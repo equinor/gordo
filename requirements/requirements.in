@@ -9,9 +9,7 @@ jinja2~=2.10
 pyarrow~=0.15
 numpy~=1.18
 pandas~=0.25
-peewee~=3.13
 numexpr~=2.7
-psycopg2-binary==2.8.4
 python-dateutil~=2.8
 pyyaml~=5.3
 requests~=2.20
@@ -25,5 +23,3 @@ urllib3~=1.24
 simplejson~=3.17
 catboost~=0.20
 typing_extensions~=3.7
-mlflow~=1.5
-azureml-contrib-run~=1.0
