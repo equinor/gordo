@@ -659,7 +659,7 @@ def test_setting_seed(seed, model_config):
         None,
     ),
 )
-@patch("gordo.serializer.pipeline_from_definition")
+@patch("gordo.serializer.from_definition")
 def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
     """
     Test that we can set arbitrary splitters and parameters in the config file which is called by the serializer.
