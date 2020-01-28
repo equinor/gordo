@@ -12,7 +12,7 @@ from sklearn.decomposition import TruncatedSVD, PCA
 from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 
 from gordo.machine.model.models import KerasAutoEncoder
-from gordo.serializer import pipeline_into_definition, pipeline_from_definition
+from gordo.serializer import into_definition, from_definition
 from gordo.machine.model.register import register_model_builder
 
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def variations_of_same_pipeline():
     ]
 
 
-def test_pipeline_into_definition(variations_of_same_pipeline):
+def test_into_definition(variations_of_same_pipeline):
 
     expected_definition = """
         sklearn.pipeline.Pipeline:
@@ -171,9 +171,7 @@ def test_pipeline_into_definition(variations_of_same_pipeline):
 
     for pipe in variations_of_same_pipeline:
 
-        definition = pipeline_into_definition(
-            pipeline_from_definition(pipeline_into_definition(pipe))
-        )
+        definition = into_definition(from_definition(into_definition(pipe)))
 
         assert json.dumps(definition) == json.dumps(
             expected_definition
@@ -223,7 +221,7 @@ def test_into_from():
                 ]
             )
 
-            pipeline_from_definition(pipeline_into_definition(pipe))
+            from_definition(into_definition(pipe))
 
 
 def test_from_into():
@@ -285,8 +283,8 @@ def test_from_into():
                     verbose: false
                 """
             definition = yaml.safe_load(definition)
-            pipe = pipeline_from_definition(definition)
-            pipeline_into_definition(pipe)
+            pipe = from_definition(definition)
+            into_definition(pipe)
 
 
 def test_captures_kwarg_to_init():
@@ -297,7 +295,7 @@ def test_captures_kwarg_to_init():
     parameters but not part of the __init__ signature
     """
     ae = KerasAutoEncoder(kind="feedforward_hourglass", some_fancy_param="Howdy!")
-    definition = pipeline_into_definition(ae)
+    definition = into_definition(ae)
     parameters = definition[
         f"{KerasAutoEncoder.__module__}.{KerasAutoEncoder.__name__}"
     ]

@@ -13,7 +13,7 @@ from tensorflow.keras.models import Sequential
 logger = logging.getLogger(__name__)
 
 
-def pipeline_from_definition(
+def from_definition(
     pipe_definition: Union[str, Dict[str, Dict[str, Any]]]
 ) -> Union[FeatureUnion, Pipeline]:
     """
@@ -39,7 +39,7 @@ def pipeline_from_definition(
     ...                 max_depth: 3
     ... '''
     >>> config = yaml.load(raw_config)
-    >>> scikit_learn_pipeline = serializer.pipeline_from_definition(config)
+    >>> scikit_learn_pipeline = serializer.from_definition(config)
 
 
     Parameters
@@ -259,7 +259,7 @@ def _load_param_classes(params: dict):
                 if issubclass(Model, Pipeline) or issubclass(Model, Sequential):
                     # Model is a Pipeline, so 'value' is the definition of that Pipeline
                     # Can can just re-use the entry to building a pipeline.
-                    params[key] = pipeline_from_definition(value)
+                    params[key] = from_definition(value)
                 else:
                     # Call this func again, incase there is nested occurances of this problem in these kwargs
                     sub_params = value[list(value.keys())[0]]

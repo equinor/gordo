@@ -23,7 +23,7 @@ class BaseReporter(abc.ABC):
         -------
         dict
         """
-        return serializer.pipeline_into_definition(self)
+        return serializer.into_definition(self)
 
     @classmethod
     def from_dict(cls, config: Dict[str, Any]) -> "BaseReporter":
@@ -31,4 +31,4 @@ class BaseReporter(abc.ABC):
         Reconstruct the reporter from a dict representation or a single
         import path if it doesn't require any init parameters.
         """
-        return serializer.pipeline_from_definition(config)
+        return serializer.from_definition(config)

@@ -84,7 +84,7 @@ def test_raw_keras_part_of_pipeline():
                                     units: 1
     """
     config = yaml.safe_load(config_str)
-    pipe = serializer.pipeline_from_definition(config)
+    pipe = serializer.from_definition(config)
     assert isinstance(pipe, Pipeline)
 
     pipe.fit(X, y)

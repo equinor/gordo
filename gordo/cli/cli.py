@@ -133,8 +133,8 @@ def build(
     # Convert the config into a pipeline, and back into definition to ensure
     # all default parameters are part of the config.
     logger.debug(f"Ensuring the passed model config is fully expanded.")
-    machine.model = serializer.pipeline_into_definition(
-        serializer.pipeline_from_definition(machine.model)
+    machine.model = serializer.into_definition(
+        serializer.from_definition(machine.model)
     )
     logger.info(f"Fully expanded model config: {machine.model}")
 
