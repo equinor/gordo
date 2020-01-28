@@ -12,10 +12,9 @@ from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.datasets import (
     RandomDataset,
     TimeSeriesDataset,
-    InsufficientDataError,
     InsufficientDataAfterRowFilteringError,
 )
-from gordo.machine.dataset.base import GordoBaseDataset
+from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.sensor_tag import SensorTag
 
 

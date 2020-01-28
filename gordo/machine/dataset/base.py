@@ -12,6 +12,10 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+class InsufficientDataError(ValueError):
+    pass
+
+
 class GordoBaseDataset:
 
     _params: Dict[Any, Any] = dict()  # provided by @capture_args on child's __init__
@@ -115,77 +119,99 @@ class GordoBaseDataset:
 
         """
         resampled_series = []
+        missing_data_series = []
 
         for series in series_iterable:
-            startpoint_sametz = resampling_startpoint.astimezone(
-                tz=series.index[0].tzinfo
+            try:
+                resampled = GordoBaseDataset._resample(
+                    series,
+                    resampling_startpoint=resampling_startpoint,
+                    resampling_endpoint=resampling_endpoint,
+                    resolution=resolution,
+                    aggregation_methods=aggregation_methods,
+                )
+            except IndexError:
+                missing_data_series.append(series.name)
+            else:
+                resampled_series.append(resampled)
+
+        if missing_data_series:
+            raise InsufficientDataError(
+                f"The following features are missing data: {missing_data_series}"
             )
-            endpoint_sametz = resampling_endpoint.astimezone(tz=series.index[0].tzinfo)
-
-            if series.index[0] > startpoint_sametz:
-                # Insert a NaN at the startpoint, to make sure that all resampled
-                # indexes are the same. This approach will "pad" most frames with
-                # NaNs, that will be removed at the end.
-                startpoint = pd.Series(
-                    [np.NaN], index=[startpoint_sametz], name=series.name
-                )
-                series = startpoint.append(series)
-                logging.debug(
-                    f"Appending NaN to {series.name} " f"at time {startpoint_sametz}"
-                )
-
-            elif series.index[0] < resampling_startpoint:
-                msg = (
-                    f"Error - for {series.name}, first timestamp "
-                    f"{series.index[0]} is before the resampling start point "
-                    f"{startpoint_sametz}"
-                )
-                logging.error(msg)
-                raise RuntimeError(msg)
-
-            if series.index[-1] < endpoint_sametz:
-                endpoint = pd.Series(
-                    [np.NaN], index=[endpoint_sametz], name=series.name
-                )
-                series = series.append(endpoint)
-                logging.debug(
-                    f"Appending NaN to {series.name} " f"at time {endpoint_sametz}"
-                )
-            elif series.index[-1] > endpoint_sametz:
-                msg = (
-                    f"Error - for {series.name}, last timestamp "
-                    f"{series.index[-1]} is later than the resampling end point "
-                    f"{endpoint_sametz}"
-                )
-                logging.error(msg)
-                raise RuntimeError(msg)
-
-            logging.debug("Head (3) and tail(3) of dataframe to be resampled:")
-            logging.debug(series.head(3))
-            logging.debug(series.tail(3))
-
-            resampled = series.resample(resolution, label="left").agg(
-                aggregation_methods
-            )
-            # If several aggregation methods are provided, agg returns a dataframe
-            # instead of a series. In this dataframe the column names are the
-            # aggregation methods, like "max" and "mean", so we have to make a
-            # multi-index with the series-name as the top-level and the
-            # aggregation-method as the lower-level index.
-            # For backwards-compatibility we *dont* return a multi-level index
-            # when we have a single resampling method.
-            if isinstance(
-                resampled, pd.DataFrame
-            ):  # Several aggregation methods provided
-                resampled.columns = pd.MultiIndex.from_product(
-                    [[series.name], resampled.columns],
-                    names=["tag", "aggregation_method"],
-                )
-            filled = resampled.fillna(method="ffill")
-            resampled_series.append(filled)
 
         new_series = pd.concat(resampled_series, axis=1, join="inner")
         # Before returning, delete all rows with NaN, they were introduced by the
         # insertion of NaNs in the beginning of all timeseries
 
         return new_series.dropna()
+
+    @staticmethod
+    def _resample(
+        series: pd.Series,
+        resampling_startpoint: datetime,
+        resampling_endpoint: datetime,
+        resolution: str,
+        aggregation_methods: Union[str, List[str], Callable] = "mean",
+    ):
+        """
+        Takes a single series and resamples it.
+        See :class:`gordo.machine.dataset.base.GordoBaseDataset.join_timeseries`
+        """
+
+        startpoint_sametz = resampling_startpoint.astimezone(tz=series.index[0].tzinfo)
+        endpoint_sametz = resampling_endpoint.astimezone(tz=series.index[0].tzinfo)
+
+        if series.index[0] > startpoint_sametz:
+            # Insert a NaN at the startpoint, to make sure that all resampled
+            # indexes are the same. This approach will "pad" most frames with
+            # NaNs, that will be removed at the end.
+            startpoint = pd.Series(
+                [np.NaN], index=[startpoint_sametz], name=series.name
+            )
+            series = startpoint.append(series)
+            logging.debug(
+                f"Appending NaN to {series.name} " f"at time {startpoint_sametz}"
+            )
+
+        elif series.index[0] < resampling_startpoint:
+            msg = (
+                f"Error - for {series.name}, first timestamp "
+                f"{series.index[0]} is before the resampling start point "
+                f"{startpoint_sametz}"
+            )
+            logging.error(msg)
+            raise RuntimeError(msg)
+
+        if series.index[-1] < endpoint_sametz:
+            endpoint = pd.Series([np.NaN], index=[endpoint_sametz], name=series.name)
+            series = series.append(endpoint)
+            logging.debug(
+                f"Appending NaN to {series.name} " f"at time {endpoint_sametz}"
+            )
+        elif series.index[-1] > endpoint_sametz:
+            msg = (
+                f"Error - for {series.name}, last timestamp "
+                f"{series.index[-1]} is later than the resampling end point "
+                f"{endpoint_sametz}"
+            )
+            logging.error(msg)
+            raise RuntimeError(msg)
+
+        logging.debug("Head (3) and tail(3) of dataframe to be resampled:")
+        logging.debug(series.head(3))
+        logging.debug(series.tail(3))
+
+        resampled = series.resample(resolution, label="left").agg(aggregation_methods)
+        # If several aggregation methods are provided, agg returns a dataframe
+        # instead of a series. In this dataframe the column names are the
+        # aggregation methods, like "max" and "mean", so we have to make a
+        # multi-index with the series-name as the top-level and the
+        # aggregation-method as the lower-level index.
+        # For backwards-compatibility we *dont* return a multi-level index
+        # when we have a single resampling method.
+        if isinstance(resampled, pd.DataFrame):  # Several aggregation methods provided
+            resampled.columns = pd.MultiIndex.from_product(
+                [[series.name], resampled.columns], names=["tag", "aggregation_method"]
+            )
+        return resampled.fillna(method="ffill")

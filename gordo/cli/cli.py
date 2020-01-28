@@ -10,10 +10,8 @@ import traceback
 
 from gordo.machine.dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo.machine.dataset.sensor_tag import SensorTagNormalizationError
-from gordo.machine.dataset.datasets import (
-    InsufficientDataError,
-    InsufficientDataAfterRowFilteringError,
-)
+from gordo.machine.dataset.datasets import InsufficientDataAfterRowFilteringError
+from gordo.machine.dataset.base import InsufficientDataError
 from gordo.reporters.mlflow import MlflowLoggingError
 from gunicorn.glogging import Logger
 
