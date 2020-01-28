@@ -83,9 +83,8 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
     return model_builder_machine_env
 
 
-@pytest.mark.parametrize("fp_config", ("config_legacy.yaml", "config_crd.yaml"))
 @pytest.mark.dockertest
-def test_argo_lint(fp_config, repo_dir, tmpdir, argo_version):
+def test_argo_lint(repo_dir, tmpdir, argo_version):
     """
     Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
     """
@@ -95,7 +94,7 @@ def test_argo_lint(fp_config, repo_dir, tmpdir, argo_version):
     # if it's not, running argo lint will generate wildly unhelpful error msgs.
     config = _generate_test_workflow_yaml(
         path_to_config_files=os.path.join(repo_dir, "examples"),
-        config_filename=os.path.basename(fp_config),
+        config_filename="config.yaml",
     )
     assert isinstance(config, dict)
 

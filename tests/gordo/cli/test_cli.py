@@ -442,7 +442,7 @@ def test_log_level_cli():
         "workflow",
         "generate",
         "--machine-config",
-        "examples/config_crd.yaml",
+        "examples/config.yaml",
         "--project-name",
         "test",
     ]
