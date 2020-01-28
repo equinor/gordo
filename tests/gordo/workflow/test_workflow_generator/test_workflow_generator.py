@@ -94,7 +94,7 @@ def test_argo_lint(repo_dir, tmpdir, argo_version):
     # if it's not, running argo lint will generate wildly unhelpful error msgs.
     config = _generate_test_workflow_yaml(
         path_to_config_files=os.path.join(repo_dir, "examples"),
-        config_filename=os.path.basename("config.yaml"),
+        config_filename="config.yaml",
     )
     assert isinstance(config, dict)
 
