@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-
+import random
 import pytest
 import pandas as pd
 import numpy as np
+import dateutil
 
 from gordo.server import utils as server_utils
 
@@ -83,3 +84,43 @@ def test_dataframe_to_from_dict(expect_multi_lvl: bool, data: dict):
         assert isinstance(df.columns, pd.MultiIndex)
     else:
         assert not isinstance(df.columns, pd.MultiIndex)
+
+
+@pytest.mark.parametrize(
+    "index",
+    (
+        range(10),
+        map(str, range(10)),
+        pd.date_range(start="2020-01-01", end="2020-01-02", periods=10),
+        pd.date_range(start="2020-01-01", end="2020-01-02", periods=10).astype(str),
+        random.sample(
+            pd.date_range(start="2020-01-01", end="2020-01-02", periods=10).tolist(), 10
+        ),
+        random.sample(
+            pd.date_range(start="2020-01-01", end="2020-01-02", periods=10)
+            .astype(str)
+            .tolist(),
+            10,
+        ),
+    ),
+)
+def test_dataframe_from_dict_ordering(index):
+    """
+    We expect that from_dict should order based on the index, and will parse the index
+    either as datetime or integers and sort in ascending order from there.
+    """
+    df = pd.DataFrame(range(10))
+    df.index = index
+    original = df.copy()
+
+    # What we expect
+    if isinstance(original.index[0], str):
+        # Parse as datetime or integers if index is string
+        try:
+            df.index = df.index.map(dateutil.parser.isoparse)
+        except ValueError:
+            df.index = df.index.map(int)
+
+    df.sort_index(inplace=True)
+
+    server_utils.dataframe_from_dict(server_utils.dataframe_to_dict(df))
