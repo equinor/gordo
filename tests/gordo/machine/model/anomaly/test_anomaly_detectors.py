@@ -134,8 +134,8 @@ def test_diff_detector_serializability(config):
     """
     config = yaml.load(config)
 
-    model = serializer.pipeline_from_definition(config)
-    serializer.pipeline_into_definition(model)
+    model = serializer.from_definition(config)
+    serializer.into_definition(model)
     serialized_bytes = serializer.dumps(model)
     serializer.loads(serialized_bytes)
 

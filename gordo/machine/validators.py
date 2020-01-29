@@ -8,7 +8,7 @@ import pandas as pd
 import dateutil.parser
 import logging
 
-from gordo.serializer import pipeline_from_definition
+from gordo.serializer import from_definition
 from gordo.machine.dataset.sensor_tag import SensorTag
 
 
@@ -85,7 +85,7 @@ class ValidModel(BaseDescriptor):
     def __set__(self, instance, value):
         if getattr(instance, "_strict", True):
             try:
-                pipeline_from_definition(value)
+                from_definition(value)
             except Exception as e:
                 raise ValueError(f"Pipeline from definition failed: {e}")
         instance.__dict__[self.name] = value

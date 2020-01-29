@@ -10,13 +10,11 @@ from sklearn.pipeline import Pipeline
 logger = logging.getLogger(__name__)
 
 
-def pipeline_into_definition(
-    pipeline: Pipeline, prune_default_params: bool = False
-) -> dict:
+def into_definition(pipeline: Pipeline, prune_default_params: bool = False) -> dict:
     """
     Convert an instance of ``sklearn.pipeline.Pipeline`` into a dict definition
     capable of being reconstructed with
-    ``gordo.serializer.pipeline_from_definition``
+    ``gordo.serializer.from_definition``
 
     Parameters
     ----------
@@ -30,7 +28,7 @@ def pipeline_into_definition(
     -------
     dict
         definitions for the pipeline, compatible to be reconstructed with
-        gordo.pipeline_translator.pipeline_from_definition
+        :func:`gordo.serializer.from_definition`
 
     Example
     -------
@@ -40,7 +38,7 @@ def pipeline_into_definition(
     >>> from gordo.machine.model.models import KerasAutoEncoder
     >>>
     >>> pipe = Pipeline([('pca', PCA(4)), ('ae', KerasAutoEncoder(kind='feedforward_model'))])
-    >>> pipe_definition = pipeline_into_definition(pipe)  # It is now a standard python dict of primitives.
+    >>> pipe_definition = into_definition(pipe)  # It is now a standard python dict of primitives.
     >>> print(yaml.dump(pipe_definition))
     sklearn.pipeline.Pipeline:
       memory: null

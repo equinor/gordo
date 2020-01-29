@@ -180,7 +180,7 @@ class ModelBuilder:
 
         # Get the model and dataset
         logger.debug(f"Initializing Model with config: {self.machine.model}")
-        model = serializer.pipeline_from_definition(self.machine.model)
+        model = serializer.from_definition(self.machine.model)
 
         cv_duration_sec = None
 
@@ -214,7 +214,7 @@ class ModelBuilder:
                 scaler = self.machine.evaluation.get("scoring_scaler")
                 metrics_dict = self.build_metrics_dict(metrics_list, y, scaler=scaler)
 
-                split_obj = serializer.pipeline_from_definition(
+                split_obj = serializer.from_definition(
                     self.machine.evaluation.get(
                         "cv",
                         {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 3}},
@@ -360,7 +360,7 @@ class ModelBuilder:
         """
         if scaler:
             if isinstance(scaler, str) or isinstance(scaler, dict):
-                scaler = serializer.pipeline_from_definition(scaler)
+                scaler = serializer.from_definition(scaler)
             logger.debug("Fitting scaler for scoring purpose")
             scaler.fit(y)
 

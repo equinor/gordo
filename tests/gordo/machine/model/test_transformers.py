@@ -170,11 +170,11 @@ def test_imputer_from_definition(config_str: str):
     Ensure it plays well with the gordo serializer
     """
     config = yaml.safe_load(config_str)
-    model = serializer.pipeline_from_definition(config)
+    model = serializer.from_definition(config)
 
     if isinstance(model, Pipeline):
         assert isinstance(model.steps[-1][1], InfImputer)
     else:
         assert isinstance(model, InfImputer)
 
-    serializer.pipeline_from_definition(serializer.pipeline_into_definition(model))
+    serializer.from_definition(serializer.into_definition(model))

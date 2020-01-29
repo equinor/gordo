@@ -15,7 +15,7 @@ from sklearn.preprocessing import MinMaxScaler, FunctionTransformer
 from sklearn.multioutput import MultiOutputRegressor
 
 from gordo import serializer
-from gordo.serializer import pipeline_from_definition
+from gordo.serializer import from_definition
 import gordo.machine.model.transformer_funcs.general
 from gordo.machine.model.register import register_model_builder
 
@@ -61,7 +61,7 @@ def test_load_from_definition(definition):
     """
     X, y = np.random.random((10, 10)), np.random.random((10, 2))
     definition = yaml.load(definition, Loader=yaml.SafeLoader)
-    model = serializer.pipeline_from_definition(definition)
+    model = serializer.from_definition(definition)
     assert isinstance(model, MultiOutputRegressor)
     model.fit(X, y)
     model.predict(X)
@@ -204,7 +204,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         for model in self.factories.keys():
             self.assertTrue(pydoc.locate(f"gordo.machine.model.models.{model}"))
 
-    def test_pipeline_from_definition(self):
+    def test_from_definition(self):
 
         for raw_yaml, model, model_kind in self.setup_gen():
             self.assertTrue(model)
@@ -213,7 +213,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
             logger.debug("{}".format(config))
 
             config_clone = copy.deepcopy(config)  # To ensure no mutation occurs
-            pipe = pipeline_from_definition(config)
+            pipe = from_definition(config)
 
             # Test that the original config matches the one passed; no mutation
             self.assertEqual(config, config_clone)
