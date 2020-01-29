@@ -110,7 +110,7 @@ def test_dataframe_from_dict_ordering(index):
     We expect that from_dict should order based on the index, and will parse the index
     either as datetime or integers and sort in ascending order from there.
     """
-    df = pd.DataFrame(range(10))
+    df = pd.DataFrame(np.random.random((10, 5)))
     df.index = index
     original = df.copy()
 
@@ -127,3 +127,4 @@ def test_dataframe_from_dict_ordering(index):
     df_out = server_utils.dataframe_from_dict(server_utils.dataframe_to_dict(df))
 
     assert np.alltrue(df_out.index == original.index)
+    assert np.alltrue(df_out.values == original.values)
