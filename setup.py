@@ -6,24 +6,20 @@ from setuptools import setup, find_packages
 setup_requirements = ["pytest-runner", "setuptools_scm"]
 
 
-def requirements(*fps: str):
-    req: List[str] = list()
-    for fp in fps:
-        with open(os.path.join(os.path.dirname(__file__), "requirements", fp)) as f:
-            req.extend(
-                r.strip()
-                for r in f.readlines()
-                if r.strip() and not r.startswith("#") and not r.startswith("-")
-            )
-    return req
+def requirements(fp: str):
+    with open(os.path.join(os.path.dirname(__file__), "requirements", fp)) as f:
+        return [
+            r.strip()
+            for r in f.readlines()
+            if r.strip() and not r.startswith("#") and not r.startswith("-")
+        ]
 
 
 extras_require = {
     "docs": requirements("docs_requirements.in"),
     "mlflow": requirements("mlflow_requirements.in"),
     "postgres": requirements("postgres_requirements.in"),
-    "tests": requirements("requirements.txt", "test_requirements.txt")
-
+    "tests": requirements("test_requirements.txt"),
 }
 extras_require["full"] = extras_require["mlflow"] + extras_require["postgres"]
 
