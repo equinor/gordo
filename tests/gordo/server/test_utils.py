@@ -91,6 +91,7 @@ def test_dataframe_to_from_dict(expect_multi_lvl: bool, data: dict):
     (
         range(10),
         map(str, range(10)),
+        map(str, random.sample(range(10), 10)),
         pd.date_range(start="2020-01-01", end="2020-01-02", periods=10),
         pd.date_range(start="2020-01-01", end="2020-01-02", periods=10).astype(str),
         random.sample(
