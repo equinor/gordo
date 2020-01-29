@@ -11,7 +11,9 @@ def requirements(*fps: str):
     for fp in fps:
         with open(os.path.join(os.path.dirname(__file__), "requirements", fp)) as f:
             req.extend(
-                r.strip() for r in f.readlines() if r.strip() and not r.startswith("#")
+                r.strip()
+                for r in f.readlines()
+                if r.strip() and not r.startswith("#") and not r.startswith("-")
             )
     return req
 
