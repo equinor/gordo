@@ -24,14 +24,14 @@ jobs:
         if: startsWith(runner.os, 'Linux')
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/*requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements/*requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
       - name: Install
         run: |
           pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -e .[tests]
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}

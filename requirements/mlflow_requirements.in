@@ -1,3 +1,2 @@
--c requirements.txt
 mlflow~=1.5
 azureml-contrib-run~=1.0

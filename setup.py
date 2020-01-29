@@ -22,12 +22,8 @@ extras_require = {
     "docs": requirements("docs_requirements.in"),
     "mlflow": requirements("mlflow_requirements.in"),
     "postgres": requirements("postgres_requirements.in"),
-    "dev": requirements(
-        "docs_requirements.txt",
-        "test_requirements.txt",
-        "postgres_requirements.txt",
-        "mlflow_requirements.txt",
-    ),
+    "tests": requirements("requirements.txt", "test_requirements.txt")
+
 }
 extras_require["full"] = extras_require["mlflow"] + extras_require["postgres"]
 
@@ -50,9 +46,7 @@ setup(
     packages=find_packages(),
     setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=requirements(
-        "test_requirements.txt", "mlflow_requirements.txt", "postgres_requirements.txt"
-    ),
+    tests_require=extras_require["tests"],
     extras_require=extras_require,
     url="https://github.com/equinor/gordo",
     use_scm_version={"write_to": "gordo/_version.py", "relative_to": __file__},
