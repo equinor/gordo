@@ -29,6 +29,8 @@ from gordo.machine import Machine
 from gordo.cli.workflow_generator import workflow_cli
 from gordo.cli.client import client as gordo_client
 from gordo.cli.custom_types import key_value_par, HostIP
+from gordo.reporters.exceptions import ReporterException
+
 
 EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     PermissionError: 20,
@@ -37,6 +39,7 @@ EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     NoSuitableDataProviderError: 70,
     InsufficientDataError: 80,
     InsufficientDataAfterRowFilteringError: 81,
+    ReporterException: 90,
 }
 
 logger = logging.getLogger(__name__)

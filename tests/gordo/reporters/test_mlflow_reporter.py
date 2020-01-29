@@ -9,6 +9,7 @@ import pytest
 import gordo.reporters.mlflow as mlu
 import gordo.machine.machine
 from gordo.machine import Machine
+from gordo.reporters.exceptions import ReporterException
 
 
 def test_validate_dict():
@@ -19,7 +20,7 @@ def test_validate_dict():
     # All keys present passes
     assert mlu._validate_dict({"a": 1, "b": 2, "c": 3}, required_keys) is None
     # Key missing fails
-    with pytest.raises(ValueError):
+    with pytest.raises(ReporterException):
         mlu._validate_dict({"a": 1, "b": 2}, required_keys)
 
 
@@ -89,13 +90,13 @@ def test_get_mlflow_client_config(MockClient, MockWorkspace, MockInteractiveLogi
     Test that error is raised with incomplete kwargs
     """
     # Incomplete workspace kwargs
-    with pytest.raises(ValueError):
+    with pytest.raises(ReporterException):
         mlu.get_mlflow_client(
             {"subscription_id": "dummy", "workspace_name": "dummy"}, {}
         )
 
     # Incomplete service principal kwargs
-    with pytest.raises(ValueError):
+    with pytest.raises(ReporterException):
         mlu.get_mlflow_client(
             {
                 "subscription_id": "dummy",
@@ -209,7 +210,7 @@ def test_get_kwargs_from_secret(monkeypatch, secret_str, keys, keys_valid):
     env_var_name = "TEST_SECRET"
 
     # TEST_SECRET doesn't exist as env var
-    with pytest.raises(ValueError):
+    with pytest.raises(ReporterException):
         mlu.get_kwargs_from_secret(env_var_name, keys)
 
     # TEST_SECRET exists as env var
@@ -219,16 +220,16 @@ def test_get_kwargs_from_secret(monkeypatch, secret_str, keys, keys_valid):
         for key, value in zip(keys, secret_str.split(":")):
             assert kwargs[key] == value
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(ReporterException):
             mlu.get_kwargs_from_secret(env_var_name, keys)
 
 
 def test_workspace_spauth_kwargs():
     """Make sure an error is thrown when env vars not set"""
-    with pytest.raises(ValueError):
+    with pytest.raises(ReporterException):
         mlu.get_workspace_kwargs()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ReporterException):
         mlu.get_spauth_kwargs()
 
 

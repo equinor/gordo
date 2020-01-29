@@ -12,12 +12,18 @@ from .base import BaseReporter
 from gordo.util.utils import capture_args
 from gordo.machine import Machine as GordoMachine
 from gordo.machine.machine import MachineEncoder
+from .exceptions import ReporterException
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 db = PostgresqlExtDatabase(None)
+
+
+class PostgresReporterException(ReporterException):
+    pass
 
 
 class PostgresReporter(BaseReporter):
@@ -44,8 +50,12 @@ class PostgresReporter(BaseReporter):
         sql_parameters = {"host": self.host, "port": self.port, "user": self.user}
         if self.password:
             sql_parameters.update({"password": self.password})
-        self.db.init(self.database, **sql_parameters)
-        Machine.create_table(safe=True)
+
+        try:
+            self.db.init(self.database, **sql_parameters)
+            Machine.create_table(safe=True)
+        except Exception as exc:
+            raise PostgresReporterException(exc)
 
     def report(self, machine: GordoMachine):
         """
@@ -60,12 +70,15 @@ class PostgresReporter(BaseReporter):
         -------
         None
         """
-        with self.db.atomic():
-            logger.info(f"Inserting machine {machine.name} in sql")  # type: ignore
+        try:
+            with self.db.atomic():
+                logger.info(f"Inserting machine {machine.name} in sql")  # type: ignore
 
-            # Ensure it's serializable using MachineEncoder
-            record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
-            dict_to_model(Machine, record, ignore_unknown=True).save()
+                # Ensure it's serializable using MachineEncoder
+                record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
+                dict_to_model(Machine, record, ignore_unknown=True).save()
+        except Exception as exc:
+            raise PostgresReporterException(exc)
 
 
 class Machine(Model):

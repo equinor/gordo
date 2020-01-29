@@ -24,15 +24,13 @@ from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
 from gordo.cli.cli import EXCEPTION_TO_EXITCODE
 from .base import BaseReporter
+from .exceptions import ReporterException
 
 logger = logging.getLogger(__name__)
 
 
-class MlflowLoggingError(ValueError):
+class MlflowLoggingError(ReporterException):
     pass
-
-
-EXCEPTION_TO_EXITCODE.update({MlflowLoggingError: 90})
 
 
 def _validate_dict(d: dict, required_keys: List[str]):
