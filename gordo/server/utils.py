@@ -179,8 +179,10 @@ def dataframe_from_dict(data: dict) -> pd.DataFrame:
     try:
         df.index = df.index.map(dateutil.parser.isoparse)  # type: ignore
     except (TypeError, ValueError):
-        logger.debug("Could not parse index to pandas.DatetimeIndex")
-        pass  # It wasn't a datetime index after all, no worries.
+        df.index = df.index.map(int)
+
+    df.sort_index(inplace=True)
+
     return df
 
 

@@ -113,14 +113,16 @@ def test_dataframe_from_dict_ordering(index):
     df.index = index
     original = df.copy()
 
-    # What we expect
+    # What we want
     if isinstance(original.index[0], str):
         # Parse as datetime or integers if index is string
         try:
-            df.index = df.index.map(dateutil.parser.isoparse)
+            original.index = original.index.map(dateutil.parser.isoparse)
         except ValueError:
-            df.index = df.index.map(int)
+            original.index = original.index.map(int)
+    original.sort_index(inplace=True)
 
-    df.sort_index(inplace=True)
+    # What we get
+    df_out = server_utils.dataframe_from_dict(server_utils.dataframe_to_dict(df))
 
-    server_utils.dataframe_from_dict(server_utils.dataframe_to_dict(df))
+    assert np.alltrue(df_out.index == original.index)
