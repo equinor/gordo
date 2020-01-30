@@ -24,15 +24,15 @@ jobs:
         if: startsWith(runner.os, 'Linux')
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/*requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements/*requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
       - name: Install
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r test_requirements.txt
+          pip install -r requirements/full_requirements.txt
+          pip install .[tests]
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}
@@ -79,8 +79,8 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install -r requirements.txt
-          pip install -r dev_requirements.txt
+          pip install --upgrade pip
+          pip install .[docs]
 
       - name: Build Docs
         run: make docs

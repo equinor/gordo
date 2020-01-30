@@ -2,6 +2,7 @@ import pytest
 import peewee
 from gordo.reporters.postgres import PostgresReporter, Machine as PostgresMachine
 from gordo.machine import Machine
+from gordo.reporters.exceptions import ReporterException
 
 
 def test_postgres_reporter(postgresdb, metadata):
@@ -34,3 +35,15 @@ def test_postgres_reporter(postgresdb, metadata):
     # And the second
     record = PostgresMachine.get(PostgresMachine.name == machine2.name)
     assert record.name == machine2.name
+
+
+def test_postgres_exceptions(metadata, postgresdb):
+
+    # No database to connect to
+    with pytest.raises(ReporterException):
+        PostgresReporter(host="does-not-exist")
+
+    # Bad machine to report
+    reporter = PostgresReporter(host="localhost")
+    with pytest.raises(ReporterException):
+        reporter.report("This it not a a machine instance.")  # type: ignore

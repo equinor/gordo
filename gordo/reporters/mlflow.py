@@ -23,11 +23,12 @@ from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
 from .base import BaseReporter
+from .exceptions import ReporterException
 
 logger = logging.getLogger(__name__)
 
 
-class MlflowLoggingError(ValueError):
+class MlflowLoggingError(ReporterException):
     pass
 
 

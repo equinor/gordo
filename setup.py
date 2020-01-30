@@ -1,3 +1,4 @@
+import os
 from setuptools import setup, find_packages
 
 
@@ -5,8 +6,21 @@ setup_requirements = ["pytest-runner", "setuptools_scm"]
 
 
 def requirements(fp: str):
-    with open(fp) as f:
-        return [r.strip() for r in f.readlines()]
+    with open(os.path.join(os.path.dirname(__file__), "requirements", fp)) as f:
+        return [
+            r.strip()
+            for r in f.readlines()
+            if r.strip() and not r.startswith("#") and not r.startswith("-")
+        ]
+
+
+extras_require = {
+    "docs": requirements("docs_requirements.in"),
+    "mlflow": requirements("mlflow_requirements.in"),
+    "postgres": requirements("postgres_requirements.in"),
+    "tests": requirements("test_requirements.txt"),
+}
+extras_require["full"] = extras_require["mlflow"] + extras_require["postgres"]
 
 
 setup(
@@ -27,12 +41,10 @@ setup(
     packages=find_packages(),
     setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=requirements("test_requirements.txt"),
+    tests_require=extras_require["tests"],
+    extras_require=extras_require,
     url="https://github.com/equinor/gordo",
-    use_scm_version={
-        "write_to": "gordo/_version.py",
-        "relative_to": __file__,
-    },
+    use_scm_version={"write_to": "gordo/_version.py", "relative_to": __file__},
     zip_safe=True,
     package_data={
         "": [

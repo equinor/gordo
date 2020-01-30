@@ -16,10 +16,10 @@ RUN rm -rf /code/dist \
 
 
 # Extract a few big dependencies which docker will cache even when other dependencies change
-RUN cat /code/requirements.txt | grep tensorflow== > /code/prereq.txt \
-    && cat /code/requirements.txt | grep pyarrow== >> /code/prereq.txt \
-    && cat /code/requirements.txt | grep scipy== >> /code/prereq.txt \
-    && cat /code/requirements.txt | grep catboost== >> /code/prereq.txt
+RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/prereq.txt \
+    && cat /code/requirements/full_requirements.txt | grep pyarrow== >> /code/prereq.txt \
+    && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
+    && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.14.8"
@@ -46,12 +46,12 @@ ENV PATH "${HOME}/.local/bin:${PATH}"
 COPY --from=builder /code/prereq.txt .
 RUN pip install --no-deps -r prereq.txt --no-cache-dir
 
-COPY requirements.txt .
-RUN pip install -r requirements.txt --no-cache-dir
+COPY requirements/full_requirements.txt .
+RUN pip install -r full_requirements.txt --no-cache-dir
 
 # Install gordo, packaged from earlier 'python setup.py sdist'
 COPY --from=builder /code/dist/gordo-packed.tar.gz .
-RUN pip install gordo-packed.tar.gz
+RUN pip install gordo-packed.tar.gz[full]
 
 RUN apt-get update && apt-get install -y \
     curl \

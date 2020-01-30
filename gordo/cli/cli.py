@@ -10,9 +10,10 @@ import traceback
 
 from gordo.machine.dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo.machine.dataset.sensor_tag import SensorTagNormalizationError
-from gordo.machine.dataset.datasets import InsufficientDataAfterRowFilteringError
-from gordo.machine.dataset.base import InsufficientDataError
-from gordo.reporters.mlflow import MlflowLoggingError
+from gordo.machine.dataset.datasets import (
+    InsufficientDataError,
+    InsufficientDataAfterRowFilteringError,
+)
 from gunicorn.glogging import Logger
 
 import jinja2
@@ -28,6 +29,8 @@ from gordo.machine import Machine
 from gordo.cli.workflow_generator import workflow_cli
 from gordo.cli.client import client as gordo_client
 from gordo.cli.custom_types import key_value_par, HostIP
+from gordo.reporters.exceptions import ReporterException
+
 
 EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     PermissionError: 20,
@@ -36,7 +39,7 @@ EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     NoSuitableDataProviderError: 70,
     InsufficientDataError: 80,
     InsufficientDataAfterRowFilteringError: 81,
-    MlflowLoggingError: 90,
+    ReporterException: 90,
 }
 
 logger = logging.getLogger(__name__)
