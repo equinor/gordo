@@ -31,6 +31,7 @@ from gordo.machine import Machine
 from gordo.machine.metadata import (
     BuildMetadata,
     ModelBuildMetadata,
+    DatasetBuildMetadata,
     CrossValidationMetaData,
 )
 
@@ -261,7 +262,11 @@ class ModelBuilder:
                             scores=scores,
                             splits=split_metadata,
                         )
-                    )
+                    ),
+                    dataset=DatasetBuildMetadata(
+                        query_duration_sec=time_elapsed_data,
+                        dataset_meta=dataset.get_metadata(),
+                    ),
                 )
                 return model, machine
 
@@ -279,7 +284,6 @@ class ModelBuilder:
                     datetime.datetime.now(datetime.timezone.utc).astimezone()
                 ),
                 model_builder_version=__version__,
-                data_query_duration_sec=time_elapsed_data,
                 model_training_duration_sec=time_elapsed_model,
                 cross_validation=CrossValidationMetaData(
                     cv_duration_sec=cv_duration_sec,
@@ -287,7 +291,11 @@ class ModelBuilder:
                     splits=split_metadata,
                 ),
                 model_meta=self._extract_metadata_from_model(model),
-            )
+            ),
+            dataset=DatasetBuildMetadata(
+                query_duration_sec=time_elapsed_data,
+                dataset_meta=dataset.get_metadata(),
+            ),
         )
         return model, machine
 

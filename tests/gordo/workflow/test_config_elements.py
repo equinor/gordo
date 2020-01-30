@@ -168,13 +168,13 @@ def test_machine_from_config(default_globals: dict):
                         "scores": {},
                         "splits": {},
                     },
-                    "data_query_duration_sec": None,
                     "model_builder_version": __version__,
                     "model_creation_date": None,
                     "model_meta": {},
                     "model_offset": 0,
                     "model_training_duration_sec": None,
-                }
+                },
+                "dataset": {"query_duration_sec": None, "dataset_meta": {}},
             },
             "user_defined": {
                 "global-metadata": {},
