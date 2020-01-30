@@ -268,7 +268,7 @@ def get_batch_kwargs(machine: Machine) -> dict:
     else:
         metric_list.extend(
             Metric(k, float(getattr(build_metadata.model, k)), epoch_now(), 0)
-            for k in ["data_query_duration_sec", "model_training_duration_sec"]
+            for k in ["model_training_duration_sec"]
         )
         for m in meta_params["metrics"]:
             data = build_metadata.model.model_meta["history"][m]
