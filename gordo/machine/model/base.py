@@ -6,16 +6,13 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 
+from gordo.base import GordoBase
 
-class GordoBase(abc.ABC):
+
+class GordoBaseModel(GordoBase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self, **kwargs):
         """Initialize the model"""
-        ...
-
-    @abc.abstractmethod
-    def get_params(self, deep=False):
-        """Return a dict containing all parameters used to initialized object"""
         ...
 
     @abc.abstractmethod

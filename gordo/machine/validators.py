@@ -85,9 +85,12 @@ class ValidModel(BaseDescriptor):
     def __set__(self, instance, value):
         if getattr(instance, "_strict", True):
             try:
-                from_definition(value)
+                model = from_definition(value)
             except Exception as e:
-                raise ValueError(f"Pipeline from definition failed: {e}")
+                raise AttributeError(f"Pipeline from definition failed: {e}")
+            else:
+                if not hasattr(model, "fit"):
+                    raise AttributeError("Model is not the expected fit attribute")
         instance.__dict__[self.name] = value
 
 

@@ -3,6 +3,7 @@
 import logging
 import os
 import re
+import io
 
 import docker
 import pytest
@@ -14,7 +15,9 @@ from click.testing import CliRunner
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo import cli
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo.machine import Machine
 from gordo.machine.dataset import sensor_tag
+from gordo.machine.dataset.sensor_tag import SensorTag
 
 
 logger = logging.getLogger(__name__)
@@ -193,14 +196,22 @@ def test_quotes_work(path_to_config_files):
     )
 
     machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_metadata["metadata"]["user_defined"]["machine-metadata"] == {
+    assert machine_1_metadata["gordo.machine.machine.Machine"]["metadata"][
+        "user_defined"
+    ]["machine-metadata"] == {
         "withSingle": "a string with ' in it",
         "withDouble": 'a string with " in it',
         "single'in'key": "why not",
     }
 
-    machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_dataset["dataset"]["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
+    machine1 = Machine.from_dict(
+        wg.get_dict_from_yaml(io.StringIO(model_builder_machine_1_env["machine"]))
+    )
+    assert machine1.dataset.tag_list == [
+        SensorTag(name="CT/1", asset="default"),
+        SensorTag(name='CT"2', asset="default"),
+        SensorTag(name="CT'3", asset="default"),
+    ]
 
 
 def test_overrides_builder_datasource(path_to_config_files):
@@ -219,19 +230,42 @@ def test_overrides_builder_datasource(path_to_config_files):
     )
 
     # ct_23_0002 uses the global overriden requests, but default limits
-    assert {"type": "DataLakeProvider", "threads": 20} == yaml.safe_load(
-        model_builder_machine_1_env["machine"]
-    )["dataset"]["data_provider"]
+    expected = yaml.safe_load(model_builder_machine_1_env["machine"])[
+        "gordo.machine.machine.Machine"
+    ]["dataset"]["gordo.machine.dataset.datasets.TimeSeriesDataset"]["data_provider"]
+    assert expected == {
+        "gordo.machine.dataset.data_provider.providers.DataLakeProvider": {
+            "storename": "dataplatformdlsprod",
+            "interactive": False,
+            "dl_service_auth_str": None,
+            "threads": 20,
+        }
+    }
 
     # This value must be changed if we change the default values
-    assert {"type": "RandomDataProvider", "threads": 15} == yaml.safe_load(
-        model_builder_machine_2_env["machine"]
-    )["dataset"]["data_provider"]
+    expected = yaml.safe_load(model_builder_machine_2_env["machine"])[
+        "gordo.machine.machine.Machine"
+    ]["dataset"]["gordo.machine.dataset.datasets.TimeSeriesDataset"]["data_provider"]
+    assert expected == {
+        "gordo.machine.dataset.data_provider.providers.RandomDataProvider": {
+            "min_size": 100,
+            "max_size": 300,
+            "threads": 15,
+        }
+    }
 
     # ct_23_0003 uses locally overriden request memory
-    assert {"type": "DataLakeProvider", "threads": 10} == yaml.safe_load(
-        model_builder_machine_3_env["machine"]
-    )["dataset"]["data_provider"]
+    expected = yaml.safe_load(model_builder_machine_3_env["machine"])[
+        "gordo.machine.machine.Machine"
+    ]["dataset"]["gordo.machine.dataset.datasets.TimeSeriesDataset"]["data_provider"]
+    assert expected == {
+        "gordo.machine.dataset.data_provider.providers.DataLakeProvider": {
+            "storename": "dataplatformdlsprod",
+            "interactive": False,
+            "dl_service_auth_str": None,
+            "threads": 10,
+        }
+    }
 
 
 def test_runtime_overrides_builder(path_to_config_files):

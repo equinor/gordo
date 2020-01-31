@@ -23,7 +23,6 @@ from sklearn.pipeline import Pipeline
 
 from gordo.util import disk_registry
 from gordo import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
-from gordo.machine.dataset.dataset import _get_dataset
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
@@ -56,11 +55,12 @@ class ModelBuilder:
         ...     name="special-model-name",
         ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
         ...     dataset={
-        ...         "type": "RandomDataset",
-        ...         "train_start_date": "2017-12-25 06:00:00Z",
-        ...         "train_end_date": "2017-12-30 06:00:00Z",
-        ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-        ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...         "gordo.machine.dataset.datasets.RandomDataset": {
+        ...             "train_start_date": "2017-12-25 06:00:00Z",
+        ...             "train_end_date": "2017-12-30 06:00:00Z",
+        ...             "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        ...             "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...         }
         ...     },
         ...     project_name='test-proj',
         ... )
@@ -70,7 +70,7 @@ class ModelBuilder:
         # Avoid overwriting the passed machine, copy doesn't work if it holds
         # reference to a loaded Tensorflow model; .to_dict() serializes it to
         # a primitive dict representation.
-        self.machine = Machine(**machine.to_dict())
+        self.machine = Machine.from_dict(machine.to_dict())
 
     @property
     def cached_model_path(self) -> Union[os.PathLike, str, None]:
@@ -129,11 +129,9 @@ class ModelBuilder:
             # Load the model from previous cached directory
             if self.cached_model_path:
                 model = serializer.load(self.cached_model_path)
-                metadata = serializer.load_metadata(self.cached_model_path)
-                metadata["metadata"][
-                    "user_defined"
-                ] = self.machine.metadata.user_defined
-                machine = Machine(**metadata)
+                machine_def = serializer.load_metadata(self.cached_model_path)
+                machine = Machine.from_dict(machine_def)
+                machine.metadata.user_defined = self.machine.metadata.user_defined
 
             # Otherwise build and cache the model
             else:
@@ -170,7 +168,7 @@ class ModelBuilder:
             f"Initializing Dataset with config {self.machine.dataset.to_dict()}"
         )
 
-        dataset = _get_dataset(self.machine.dataset.to_dict())
+        dataset = serializer.from_definition(self.machine.dataset.to_dict())
 
         logger.debug("Fetching training data")
         start = time.time()
@@ -455,10 +453,9 @@ class ModelBuilder:
             Path to the saved model
         """
         os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
+        metadata = machine.to_dict() if isinstance(machine, Machine) else machine
         serializer.dump(
-            model,
-            output_dir,
-            metadata=machine.to_dict() if isinstance(machine, Machine) else machine,
+            model, output_dir, metadata=metadata  # type: ignore
         )
         return output_dir
 
@@ -501,7 +498,7 @@ class ModelBuilder:
 
         # GordoBase is simple, having a .get_metadata()
         if isinstance(model, GordoBase):
-            metadata.update(model.get_metadata())
+            metadata.update(model.get_metadata())  # type: ignore
 
         # Continue to look at object values in case, we decided to have a GordoBase
         # which also had a GordoBase as a parameter/attribute, but will satisfy BaseEstimators
@@ -522,33 +519,34 @@ class ModelBuilder:
     @staticmethod
     def calculate_cache_key(machine: Machine) -> str:
         """
-                Calculates a hash-key from the model and data-config.
+        Calculates a hash-key from the model and data-config.
 
-                Returns
-                -------
-                str:
-                    A 512 byte hex value as a string based on the content of the parameters.
+        Returns
+        -------
+        str:
+            A 512 byte hex value as a string based on the content of the parameters.
 
-                Examples
-                -------
-                >>> from gordo.machine import Machine
-                >>> from gordo.machine.dataset.sensor_tag import SensorTag
-                >>> machine = Machine(
-                ...     name="special-model-name",
-                ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
-                ...     dataset={
-                ...         "type": "RandomDataset",
-                ...         "train_start_date": "2017-12-25 06:00:00Z",
-                ...         "train_end_date": "2017-12-30 06:00:00Z",
-                ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-                ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
-                ...     },
-                ...     project_name='test-proj'
-                ... )
-                >>> builder = ModelBuilder(machine)
-                >>> len(builder.cache_key)
-                128
-                """
+        Examples
+        -------
+        >>> from gordo.machine import Machine
+        >>> from gordo.machine.dataset.sensor_tag import SensorTag
+        >>> machine = Machine(
+        ...     name="special-model-name",
+        ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+        ...     dataset={
+        ...         "gordo.machine.dataset.datasets.RandomDataset": {
+        ...             "train_start_date": "2017-12-25 06:00:00Z",
+        ...             "train_end_date": "2017-12-30 06:00:00Z",
+        ...             "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        ...             "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...         }
+        ...     },
+        ...     project_name='test-proj'
+        ... )
+        >>> builder = ModelBuilder(machine)
+        >>> len(builder.cache_key)
+        128
+        """
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)

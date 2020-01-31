@@ -12,16 +12,19 @@ from gordo import cli
 from gordo.cli.cli import expand_model
 from gordo.serializer import serializer
 from gordo.machine import Machine
+from gordo.machine.machine import MachineEncoder
 from tests.utils import temp_env_vars
 
 import json
 
 DATA_CONFIG = {
-    "type": "RandomDataset",
-    "train_start_date": "2015-01-01T00:00:00+00:00",
-    "train_end_date": "2015-06-01T00:00:00+00:00",
-    "tags": ["TRC1", "TRC2"],
-    "target_tag_list": ["TRC1", "TRC2"],
+    "gordo.machine.dataset.datasets.RandomDataset": {
+        "train_start_date": "2015-01-01T00:00:00+00:00",
+        "train_end_date": "2015-06-01T00:00:00+00:00",
+        "tags": ["TRC1", "TRC2"],
+        "target_tag_list": ["TRC1", "TRC2"],
+        "default_asset": "foo",
+    }
 }
 
 DEFAULT_MODEL_CONFIG = {
@@ -60,7 +63,10 @@ def test_build_env_args(runner, tmpdir, machine):
     """
     logger.info(f"MODEL_CONFIG={json.dumps(MODEL_CONFIG)}")
 
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
         result = runner.invoke(cli.gordo, ["build"])
 
     assert result.exit_code == 0, f"Command failed: {result}, {result.exception}"
@@ -79,7 +85,7 @@ def test_build_use_registry(runner, tmpdir, machine):
     output_dir_2 = os.path.join(tmpdir, "dir2")
 
     with temp_env_vars(
-        MACHINE=json.dumps(machine.to_dict()),
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
         OUTPUT_DIR=output_dir_1,
         MODEL_REGISTER_DIR=os.path.join(tmpdir, "reg"),
     ):
@@ -88,21 +94,21 @@ def test_build_use_registry(runner, tmpdir, machine):
     assert result1.exit_code == 0, f"Command failed: {result1}"
     # OUTPUT_DIR is the only difference
     with temp_env_vars(
-        MACHINE=json.dumps(machine.to_dict()),
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
         OUTPUT_DIR=output_dir_2,
         MODEL_REGISTER_DIR=os.path.join(tmpdir, "reg"),
     ):
         result2 = runner.invoke(cli.gordo, ["build"])
     assert result2.exit_code == 0, f"Command failed: {result2}"
 
-    first_metadata = serializer.load_metadata(output_dir_1)
-    second_metadata = serializer.load_metadata(output_dir_2)
+    first_machine = Machine.from_dict(serializer.load_metadata(output_dir_1))
+    second_machine = Machine.from_dict(serializer.load_metadata(output_dir_2))
 
     # The metadata contains the model build date, so if it got rebuilt these two
     # would be different
     assert (
-        first_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
-        == second_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
+        first_machine.metadata.build_metadata.model.model_creation_date
+        == second_machine.metadata.build_metadata.model.model_creation_date
     )
 
 
@@ -116,7 +122,7 @@ def test_build_use_registry_bust_cache(runner, tmpdir, machine):
     output_dir_2 = os.path.join(tmpdir, "dir2")
 
     with temp_env_vars(
-        MACHINE=json.dumps(machine.to_dict()),
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
         OUTPUT_DIR=output_dir_1,
         MODEL_REGISTER_DIR=os.path.join(tmpdir, "reg"),
     ):
@@ -125,29 +131,33 @@ def test_build_use_registry_bust_cache(runner, tmpdir, machine):
     assert result1.exit_code == 0, f"Command failed: {result1}"
 
     # NOTE: Different train dates!
-    machine.dataset = machine.dataset.from_dict(
+    from gordo.serializer import from_definition
+
+    machine.dataset = from_definition(
         {
-            "type": "RandomDataset",
-            "train_start_date": "2019-01-01T00:00:00+00:00",
-            "train_end_date": "2019-06-01T00:00:00+00:00",
-            "tags": ["TRC1", "TRC2"],
+            "gordo.machine.dataset.datasets.RandomDataset": {
+                "train_start_date": "2019-01-01T00:00:00+00:00",
+                "train_end_date": "2019-06-01T00:00:00+00:00",
+                "tags": ["TRC1", "TRC2"],
+                "default_asset": "foo",
+            }
         }
     )
     with temp_env_vars(
-        MACHINE=json.dumps(machine.to_dict()),
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
         OUTPUT_DIR=output_dir_2,
         MODEL_REGISTER_DIR=os.path.join(tmpdir, "reg"),
     ):
         result2 = runner.invoke(cli.gordo, ["build"])
     assert result2.exit_code == 0, f"Command failed: {result2}"
 
-    first_metadata = serializer.load_metadata(output_dir_1)
-    second_metadata = serializer.load_metadata(output_dir_2)
+    first_machine = Machine.from_dict(serializer.load_metadata(output_dir_1))
+    second_machine = Machine.from_dict(serializer.load_metadata(output_dir_2))
     # The metadata contains the model build date, so if it got rebuilt these two
     # would be different
     assert (
-        first_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
-        != second_metadata["metadata"]["build_metadata"]["model"]["model_creation_date"]
+        first_machine.metadata.build_metadata.model.model_creation_date
+        != second_machine.metadata.build_metadata.model.model_creation_date
     )
 
 
@@ -171,7 +181,10 @@ def test_build_model_with_parameters(runner, tmpdir, machine):
 
     logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
 
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
         args = [
             "build",
             "--model-parameter",
@@ -232,7 +245,8 @@ def test_build_exit_code(exception, exit_code, runner, tmpdir, machine):
         mock.MagicMock(side_effect=exception, autospec=True, return_value=None),
     ):
         with temp_env_vars(
-            MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)
+            MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+            OUTPUT_DIR=str(tmpdir),
         ):
             result = runner.invoke(cli.gordo, ["build"])
             assert result.exit_code == exit_code
@@ -257,7 +271,10 @@ def test_build_cv_mode(
     tmp_model_dir = os.path.join(tmpdir, "tmp")
     os.makedirs(tmp_model_dir, exist_ok=True)
 
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=tmp_model_dir):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=tmp_model_dir,
+    ):
         result = runner.invoke(cli.gordo, ["build", "--print-cv-scores"])
         assert result.exit_code == 0
         # Checks that the file is empty or not depending on the mode.
@@ -295,11 +312,17 @@ def test_build_cv_mode_cross_val_cache(
     logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
 
     machine.evaluation = cv_mode_1  # type: ignore
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
         runner.invoke(cli.gordo, ["build"])
 
     machine.evaluation = cv_mode_2  # type: ignore
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
         runner.invoke(cli.gordo, ["build"])
 
     if should_save_model:
@@ -318,7 +341,10 @@ def test_build_cv_mode_build_only(tmpdir, runner: CliRunner, machine: Machine):
     logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
     machine.evaluation = {"cv_mode": "build_only"}
 
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
 
         metadata_file = f"{os.path.join(tmpdir, 'metadata.json')}"
         runner.invoke(cli.gordo, ["build"])
@@ -326,18 +352,13 @@ def test_build_cv_mode_build_only(tmpdir, runner: CliRunner, machine: Machine):
         # A model has been saved
         assert len(os.listdir(tmpdir)) != 0
         with open(metadata_file) as f:
-            metadata_json = json.loads(f.read())
+            machine_out = Machine.from_dict(json.loads(f.read()))
             assert (
-                metadata_json["metadata"]["build_metadata"]["model"][
-                    "cross_validation"
-                ]["cv_duration_sec"]
+                machine_out.metadata.build_metadata.model.cross_validation.cv_duration_sec
                 is None
             )
             assert (
-                metadata_json["metadata"]["build_metadata"]["model"][
-                    "cross_validation"
-                ]["scores"]
-                == {}
+                machine_out.metadata.build_metadata.model.cross_validation.scores == {}
             )
 
 
@@ -362,7 +383,10 @@ def test_mlflow_reporter_set_cli_build(
         reporters=[{"gordo.reporters.mlflow.MlFlowReporter": dict()}]
     )
 
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
         # Logging enabled, without env vars set:
         # Raise error
         result = runner.invoke(cli.gordo, ["build"])
@@ -387,7 +411,10 @@ def test_mlflow_reporter_set_cli_build(
     # Logging not enabled:
     # Build success, remote logging not executed
     machine.runtime = dict(builder=dict(remote_logging=dict(enable=False)))
-    with temp_env_vars(MACHINE=json.dumps(machine.to_dict()), OUTPUT_DIR=str(tmpdir)):
+    with temp_env_vars(
+        MACHINE=json.dumps(machine.to_dict(), cls=MachineEncoder),
+        OUTPUT_DIR=str(tmpdir),
+    ):
         result = runner.invoke(cli.gordo, ["build"])
         result.exit_code == 0
         assert not MockClient.called

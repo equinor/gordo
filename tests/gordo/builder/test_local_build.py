@@ -12,17 +12,18 @@ from gordo.machine import Machine
         """
     machines:
       - dataset:
-          tags:
-            - SOME-TAG1
-            - SOME-TAG2
-          target_tag_list:
-            - SOME-TAG3
-            - SOME-TAG4
-          train_end_date: '2019-03-01T00:00:00+00:00'
-          train_start_date: '2019-01-01T00:00:00+00:00'
-          asset: asgb
-          data_provider:
-            type: RandomDataProvider
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            tags:
+              - SOME-TAG1
+              - SOME-TAG2
+            target_tag_list:
+              - SOME-TAG3
+              - SOME-TAG4
+            train_end_date: '2019-03-01T00:00:00+00:00'
+            train_start_date: '2019-01-01T00:00:00+00:00'
+            asset: asgb
+            data_provider: 
+              gordo.machine.dataset.data_provider.providers.RandomDataProvider
         metadata:
           information: Some sweet information about the model
         model:
@@ -38,14 +39,15 @@ from gordo.machine import Machine
         """
     machines:
       - dataset:
-          tags:
-            - SOME-TAG1
-            - SOME-TAG2
-          train_end_date: '2019-03-01T00:00:00+00:00'
-          train_start_date: '2019-01-01T00:00:00+00:00'
-          asset: asgb
-          data_provider:
-            type: RandomDataProvider
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            tags:
+              - SOME-TAG1
+              - SOME-TAG2
+            train_end_date: '2019-03-01T00:00:00+00:00'
+            train_start_date: '2019-01-01T00:00:00+00:00'
+            asset: asgb
+            data_provider: 
+              gordo.machine.dataset.data_provider.providers.RandomDataProvider
         name: crazy-sweet-name
     globals:
         model:

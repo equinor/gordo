@@ -71,7 +71,7 @@ def _decompose_node(step: BaseEstimator, prune_default_params: bool = False):
         An instance of a Scikit-Learn transformer class
     prune_default_params
         Whether to output the default parameter values into the definition. If True,
-        only those parameters differing from the default params will be output.
+        only those parameters differing from |the default params will be output.
 
     Returns
     -------
@@ -80,12 +80,17 @@ def _decompose_node(step: BaseEstimator, prune_default_params: bool = False):
         is a dict of parameters for that class.
     """
 
-    import_str = f"{step.__module__}.{step.__class__.__name__}"
-    params = step.get_params(deep=False)
+    if hasattr(step, "get_params"):
+        import_str = f"{step.__module__}.{step.__class__.__name__}"
+        params = step.get_params(deep=False)
+    elif hasattr(step, "to_dict"):
+        return step.to_dict()
+    else:
+        raise ValueError(f"Cannot serialize: {step}")
 
     for param, param_val in params.items():
 
-        if hasattr(param_val, "get_params"):
+        if hasattr(param_val, "get_params") or hasattr(param_val, "to_dict"):
             params[param] = _decompose_node(param_val)
 
         # Handle parameter value that is a list
@@ -93,12 +98,17 @@ def _decompose_node(step: BaseEstimator, prune_default_params: bool = False):
 
             # Decompose second elements; these are tuples of (str, BaseEstimator)
             # or list of other types such as ints.
-            # TODO: Make this more robust, probably via another function to parse the iterable recursively
-            # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
-            params[param] = [
-                _decompose_node(leaf[1]) if isinstance(leaf, tuple) else leaf
+            if all(
+                isinstance(leaf, tuple)
+                and len(leaf) == 2
+                and isinstance(leaf[0], str)
+                and hasattr(leaf[1], "get_params")
                 for leaf in param_val
-            ]
+            ):
+                params[param] = [
+                    _decompose_node(leaf[1]) if isinstance(leaf, tuple) else leaf
+                    for leaf in param_val
+                ]
 
         # Handle FunctionTransformer function object type parameters
         elif callable(param_val):

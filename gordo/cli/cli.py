@@ -122,13 +122,14 @@ def build(
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
     """
-    if model_parameter and isinstance(machine_config["model"], str):
+    model_class_path = list(machine_config.keys())[0]
+    if model_parameter and isinstance(machine_config[model_class_path]["model"], str):
         parameters = dict(model_parameter)  # convert lib of tuples to dict
-        machine_config["model"] = expand_model(machine_config["model"], parameters)
+        machine_config[model_class_path]["model"] = expand_model(
+            machine_config[model_class_path]["model"], parameters
+        )
 
-    machine: Machine = Machine.from_config(
-        machine_config, project_name=machine_config["project_name"]
-    )
+    machine: Machine = Machine.from_dict(machine_config)
 
     logger.info(f"Building, output will be at: {output_dir}")
     logger.info(f"Register dir: {model_register_dir}")

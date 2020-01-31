@@ -1,7 +1,7 @@
 import logging
 import inspect
 from typing import Dict, Callable, Any  # pragma: no flakes
-from gordo.machine.model.models import GordoBase
+from gordo.machine.model.models import GordoBaseModel
 from tensorflow import keras
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class register_model_builder:
         return build_fn
 
     @classmethod
-    def _register(cls, type: str, build_fn: Callable[[int, Any], GordoBase]):
+    def _register(cls, type: str, build_fn: Callable[[int, Any], GordoBaseModel]):
         """
         Registers a given function as an available factory under
         this type.

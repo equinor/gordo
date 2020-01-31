@@ -6,6 +6,7 @@ import logging
 import traceback
 import timeit
 import typing
+import json
 
 import pandas as pd
 from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
@@ -16,6 +17,8 @@ from gordo.server.rest_api import Api
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
 from gordo.machine.dataset.sensor_tag import SensorTag, normalize_sensor_tags
+from gordo.machine import Machine
+from gordo.machine.machine import MachineEncoder
 from gordo.server import model_io
 
 
@@ -94,23 +97,23 @@ class BaseModelView(Resource):
         """
         The frequency the model was trained with in the dataset
         """
-        return pd.tseries.frequencies.to_offset(g.metadata["dataset"]["resolution"])
+        return pd.tseries.frequencies.to_offset(g.metadata.dataset.resolution)
 
     @property
     def tags(self) -> typing.List[SensorTag]:
         return normalize_sensor_tags(
-            g.metadata["dataset"]["tag_list"],
-            asset=g.metadata["dataset"].get("asset"),
-            default_asset=g.metadata["dataset"].get("default_asset"),
+            g.metadata.dataset.tag_list,
+            asset=getattr(g.metadata.dataset, "asset", None),
+            default_asset=getattr(g.metadata.dataset, "default_asset", None),
         )
 
     @property
     def target_tags(self) -> typing.List[SensorTag]:
-        if "target_tag_list" in g.metadata["dataset"]:
+        if hasattr(g.metadata.dataset, "target_tag_list"):
             return normalize_sensor_tags(
-                g.metadata["dataset"]["target_tag_list"],
-                asset=g.metadata["dataset"].get("asset"),
-                default_asset=g.metadata["dataset"].get("default_asset"),
+                g.metadata.dataset.target_tag_list,
+                asset=g.metadata.dataset.to_dict().get("asset"),
+                default_asset=g.metadata.dataset.to_dict().get("default_asset"),
             )
         else:
             return []
@@ -210,7 +213,14 @@ class MetaDataView(Resource):
         model_collection_env_var = current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]
         return {
             "gordo-server-version": __version__,
-            "metadata": g.metadata,
+            "metadata": json.loads(
+                json.dumps(
+                    g.metadata.to_dict()
+                    if isinstance(g.metadata, Machine)
+                    else g.metadata,
+                    cls=MachineEncoder,
+                )
+            ),
             "env": {model_collection_env_var: os.environ.get(model_collection_env_var)},
         }
 

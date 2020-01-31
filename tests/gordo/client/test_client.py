@@ -401,17 +401,20 @@ def test_client_cli_predict_non_zero_exit(
 @pytest.mark.parametrize(
     "config",
     (
-        '{"type": "RandomDataProvider", "max_size": 200}',
-        '{"type": "InfluxDataProvider", "measurement": "value"}',
+        '{ "gordo.machine.dataset.data_provider.providers.RandomDataProvider": {"max_size": 200} }',
+        '{ "gordo.machine.dataset.data_provider.providers.InfluxDataProvider": {"measurement": "value"} }',
     ),
 )
 def test_data_provider_click_param(config, sensors_str):
     """
     Test click custom param to load a provider from a string config representation
     """
-    expected_provider_type = json.loads(config)["type"]
+    import pydoc
+
+    parsed_config = json.loads(config)
+    expected_provider_type = pydoc.locate(list(parsed_config.keys())[0])
     provider = custom_types.DataProviderParam()(config)
-    assert isinstance(provider, getattr(providers, expected_provider_type))
+    assert isinstance(provider, expected_provider_type)
 
     # Should also be able to take a file path with the json
     with tempfile.NamedTemporaryFile(mode="w") as config_file:
@@ -419,7 +422,7 @@ def test_data_provider_click_param(config, sensors_str):
         config_file.flush()
 
         provider = custom_types.DataProviderParam()(config_file.name)
-        assert isinstance(provider, getattr(providers, expected_provider_type))
+        assert isinstance(provider, expected_provider_type)
 
 
 @pytest.mark.parametrize("use_test_project_tags", [True, False])
@@ -465,9 +468,11 @@ def _machine(name: str) -> Machine:
         config={
             "name": name,
             "dataset": {
-                "tag_list": [SensorTag("tag-1", "foo"), SensorTag("tag-2", "foo")],
-                "train_start_date": "2016-01-01T00:00:00Z",
-                "train_end_date": "2016-01-05T00:00:00Z",
+                "gordo.machine.dataset.datasets.TimeSeriesDataset": {
+                    "tag_list": [SensorTag("tag-1", "foo"), SensorTag("tag-2", "foo")],
+                    "train_start_date": "2016-01-01T00:00:00Z",
+                    "train_end_date": "2016-01-05T00:00:00Z",
+                }
             },
             "model": "sklearn.linear_model.LinearRegression",
         },

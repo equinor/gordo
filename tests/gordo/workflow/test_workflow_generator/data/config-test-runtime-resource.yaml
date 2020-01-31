@@ -2,22 +2,24 @@ machines:
 
   - name: ct-23-0002 #Uses defaults of everything
     dataset:
-      tags:
-        - CT/1
-        - CT/2
-        - CT/3
-      train_start_date: 2016-11-07T09:11:30+01:00
-      train_end_date: 2018-09-15T03:01:00+01:00
+      gordo.machine.dataset.datasets.TimeSeriesDataset:
+        tags:
+          - CT/1
+          - CT/2
+          - CT/3
+        train_start_date: 2016-11-07T09:11:30+01:00
+        train_end_date: 2018-09-15T03:01:00+01:00
 
 
   - name: ct-23-0003 #Modifies server.resources.requests.memory
     dataset:
-      tags:
-        - CT/1
-        - CT/2
-        - CT/3
-      train_start_date: 2016-11-07T09:11:30+01:00
-      train_end_date: 2018-09-15T03:01:00+01:00
+      gordo.machine.dataset.datasets.TimeSeriesDataset:
+        tags:
+          - CT/1
+          - CT/2
+          - CT/3
+        train_start_date: 2016-11-07T09:11:30+01:00
+        train_end_date: 2018-09-15T03:01:00+01:00
 
 globals:
   runtime: #We request some different resources for the server, but not change limit

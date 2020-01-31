@@ -20,7 +20,7 @@ from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
 
 from gordo import serializer
-from gordo.machine.model.base import GordoBase
+from gordo.machine.model.base import GordoBaseModel
 
 # This is required to run `register_model_builder` against registered factories
 from gordo.machine.model.factories import *  # pragma: no flakes
@@ -31,7 +31,7 @@ from gordo.machine.model.register import register_model_builder
 logger = logging.getLogger(__name__)
 
 
-class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
+class KerasBaseEstimator(BaseWrapper, GordoBaseModel, BaseEstimator):
     def __init__(
         self,
         kind: Union[

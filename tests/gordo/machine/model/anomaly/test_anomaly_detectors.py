@@ -44,7 +44,8 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 
     assert isinstance(model, AnomalyDetectorBase)
 
-    assert model.get_params() == dict(base_estimator=base_estimator, scaler=scaler)
+    assert model.get_params()["base_estimator"] == base_estimator
+    assert model.get_params()["scaler"] == scaler
 
     if with_thresholds:
         model.cross_validate(X=X, y=y)

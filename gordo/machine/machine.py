@@ -17,12 +17,14 @@ from gordo.machine.validators import (
 )
 from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
+from gordo.base import GordoBase
+from gordo.util import capture_args
 
 
 logger = logging.getLogger(__name__)
 
 
-class Machine:
+class Machine(GordoBase):
     """
     Represents a single machine in a config file
     """
@@ -36,6 +38,7 @@ class Machine:
     runtime = ValidMachineRuntime()
     _strict = True
 
+    @capture_args
     def __init__(
         self,
         name: str,
@@ -113,17 +116,6 @@ class Machine:
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
-
-    def to_dict(self):
-        return {
-            "name": self.name,
-            "dataset": self.dataset.to_dict(),
-            "model": self.model,
-            "metadata": self.metadata.to_dict(),
-            "runtime": self.runtime,
-            "project_name": self.project_name,
-            "evaluation": self.evaluation,
-        }
 
     def report(self):
         """ 

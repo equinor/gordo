@@ -3,6 +3,7 @@ import dateutil.parser
 import os
 import yaml
 from typing import List, Optional, Dict, Any
+from unittest import mock
 
 import pytest
 import numpy as np
@@ -25,11 +26,12 @@ from gordo.machine.metadata import Metadata
 
 def get_random_data():
     data = {
-        "type": "RandomDataset",
-        "train_start_date": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
-        "train_end_date": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
-        "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-        "target_tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        "gordo.machine.dataset.datasets.RandomDataset": {
+            "train_start_date": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+            "train_end_date": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
+            "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+            "target_tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        }
     }
     return data
 
@@ -113,7 +115,10 @@ def test_output_dir(tmpdir):
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "some", "sub", "directories")
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        project_name="test-project",
     )
     builder = ModelBuilder(machine)
     model, machine_out = builder.build()
@@ -185,7 +190,10 @@ def test_builder_metadata(raw_model_config):
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     data_config = get_random_data()
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        project_name="test-project",
     )
     model, machine_out = ModelBuilder(machine).build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
@@ -332,7 +340,10 @@ def test_scores_metadata(raw_model_config):
     data_config = get_random_data()
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     machine = Machine(
-        dataset=data_config, model=model_config, name="model-name", project_name="test"
+        dataset=data_config,
+        model=model_config,
+        name="model-name",
+        project_name="test-project",
     )
     model, machine_out = ModelBuilder(machine).build()
     machine_check(machine_out, False)
@@ -362,7 +373,10 @@ def test_output_scores_metadata():
 
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        project_name="test-project",
     )
     model, machine_out = ModelBuilder(machine).build()
     scores_metadata = machine_out.metadata.build_metadata.model.cross_validation.scores
@@ -395,7 +409,10 @@ def test_provide_saved_model_simple_happy_path(tmpdir):
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        project_name="test-project",
     )
     ModelBuilder(machine).build(output_dir=output_dir)
 
@@ -412,7 +429,10 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmpdir):
     output_dir = os.path.join(tmpdir, "model")
     registry_dir = os.path.join(tmpdir, "registry")
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        project_name="test-project",
     )
     builder = ModelBuilder(machine)
     builder.build(output_dir=output_dir, model_register_dir=registry_dir)
@@ -434,7 +454,10 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmpdir):
 
     registry_dir = os.path.join(tmpdir, "registry")
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config,
+        model=model_config,
+        project_name="test-project",
     )
     builder = ModelBuilder(machine)
     builder.build(output_dir=output_dir1, model_register_dir=registry_dir)
@@ -494,23 +517,27 @@ def test_provide_saved_model_caching(
     output_dir = os.path.join(tmpdir, "model")
     registry_dir = os.path.join(tmpdir, "registry")
     machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+        name="model-name",
+        dataset=data_config.copy(),
+        model=model_config,
+        project_name="test-project",
     )
     _, first_machine = ModelBuilder(machine).build(
         output_dir=output_dir, model_register_dir=registry_dir
     )
 
     if tag_list:
-        data_config["tag_list"] = tag_list
+        data_config[list(data_config.keys())[0]]["tag_list"] = tag_list
 
     new_output_dir = os.path.join(tmpdir, "model2")
+
     _, second_machine = ModelBuilder(
         machine=Machine(
             name="model-name",
             dataset=data_config,
             model=model_config,
             metadata=metadata,
-            project_name="test",
+            project_name="test-project",
         )
     ).build(
         output_dir=new_output_dir,
@@ -559,7 +586,7 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
         dataset=data_config,
         model=model_config,
         evaluation=evaluation_config,
-        project_name="test",
+        project_name="test-project",
     )
     _model, machine = ModelBuilder(machine).build()
 
@@ -626,7 +653,7 @@ def test_setting_seed(seed, model_config):
         dataset=data_config,
         model=model_config,
         evaluation=evaluation_config,
-        project_name="test",
+        project_name="test-project",
     )
     _model, machine1 = ModelBuilder(machine).build()
     _model, machine2 = ModelBuilder(machine).build()
@@ -645,6 +672,9 @@ def test_setting_seed(seed, model_config):
         assert not df1.equals(df2)
 
 
+from gordo import serializer
+
+
 @pytest.mark.parametrize(
     "cv",
     (
@@ -659,8 +689,10 @@ def test_setting_seed(seed, model_config):
         None,
     ),
 )
-@patch("gordo.serializer.from_definition")
-def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
+@mock.patch.object(
+    serializer, attribute="from_definition", side_effect=serializer.from_definition
+)
+def test_n_splits_from_config(mocked_from_definition, cv):
     """
     Test that we can set arbitrary splitters and parameters in the config file which is called by the serializer.
     """
@@ -680,15 +712,15 @@ def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
         dataset=data_config,
         model=model_config,
         evaluation=evaluation_config,
-        project_name="test",
+        project_name="test-project",
     )
 
     ModelBuilder(machine).build()
 
     if cv:
-        mocked_pipeline_from_definition.assert_called_with(cv)
+        mocked_from_definition.assert_called_with(cv)
     else:
-        mocked_pipeline_from_definition.assert_called_with(
+        mocked_from_definition.assert_called_with(
             {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 3}}
         )
 
@@ -699,6 +731,6 @@ def test_builder_calls_machine_report(mocked_report_method, metadata):
     When building a machine, the Modelbuilder.build should call Machine.report()
     so that it can run any reporters in the Machine's runtime.
     """
-    machine = Machine(**metadata)
+    machine = Machine.from_dict(metadata)
     ModelBuilder(machine).build()
     assert mocked_report_method.called_once()

@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import ast
 import json
 import logging
 from io import StringIO
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 import yaml
 
+from dateutil.tz import tzutc
+
 from gordo import __version__
-from gordo.machine.dataset.datasets import TimeSeriesDataset
+from gordo.machine.dataset.datasets import TimeSeriesDataset, SensorTag
 from gordo.machine import Machine
+from gordo.machine.machine import MachineEncoder
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
 
@@ -26,25 +28,29 @@ def test_dataset_from_dict():
     element_str = """
         name: ct-23-0002
         dataset:
-          resolution: 2T
-          tag_list:
-            - GRA-YE  -23-0751X.PV
-            - GRA-TE  -23-0698.PV
-            - GRA-PIT -23-0619B.PV
-          train_start_date: 2011-05-20T01:00:04+02:00
-          train_end_date: 2018-05-10T15:05:50+02:00
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            resolution: 2T
+            tag_list:
+              - GRA-YE  -23-0751X.PV
+              - GRA-TE  -23-0698.PV
+              - GRA-PIT -23-0619B.PV
+            asset: foo
+            train_start_date: 2011-05-20T01:00:04+02:00
+            train_end_date: 2018-05-10T15:05:50+02:00
     """
     dataset_config = get_dict_from_yaml(StringIO(element_str))["dataset"]
     dataset = TimeSeriesDataset.from_dict(dataset_config.copy())
     asdict = dataset.to_dict()
-    assert asdict["tag_list"] == [
-        "GRA-YE  -23-0751X.PV",
-        "GRA-TE  -23-0698.PV",
-        "GRA-PIT -23-0619B.PV",
+    path = "gordo.machine.dataset.datasets.TimeSeriesDataset"
+    assert asdict[path]["tag_list"] == [
+        SensorTag(name="GRA-YE  -23-0751X.PV", asset="foo"),
+        SensorTag(name="GRA-TE  -23-0698.PV", asset="foo"),
+        SensorTag(name="GRA-PIT -23-0619B.PV", asset="foo"),
     ]
-    assert asdict["resolution"] == "2T"
-    assert asdict["train_start_date"] == "2011-05-20T01:00:04+02:00"
-    assert asdict["train_end_date"] == "2018-05-10T15:05:50+02:00"
+
+    assert asdict[path]["resolution"] == "2T"
+    assert asdict[path]["train_start_date"] == "2011-05-20T01:00:04+02:00"
+    assert asdict[path]["train_end_date"] == "2018-05-10T15:05:50+02:00"
 
 
 def test_dataset_from_config_checks_dates():
@@ -53,13 +59,14 @@ def test_dataset_from_config_checks_dates():
     """
     element_str = """
         dataset:
-          resolution: 2T
-          tags:
-            - GRA-YE  -23-0751X.PV
-            - GRA-TE  -23-0698.PV
-            - GRA-PIT -23-0619B.PV
-          train_start_date: 2018-05-10T15:05:50+02:00
-          train_end_date: 2018-05-10T15:05:50+02:00
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            resolution: 2T
+            tags:
+              - GRA-YE  -23-0751X.PV
+              - GRA-TE  -23-0698.PV
+              - GRA-PIT -23-0619B.PV
+            train_start_date: 2018-05-10T15:05:50+02:00
+            train_end_date: 2018-05-10T15:05:50+02:00
     """
     dataset_config = yaml.load(element_str, Loader=yaml.FullLoader)["dataset"]
     with pytest.raises(ValueError):
@@ -79,7 +86,9 @@ def default_globals():
             }
         }
     }
-    default_globals["dataset"] = {"asset": "global-asset"}
+    default_globals["dataset"] = {
+        "gordo.machine.dataset.datasets.TimeSeriesDataset": {"asset": "global-asset"}
+    }
     return default_globals
 
 
@@ -93,10 +102,11 @@ def test_machine_from_config(default_globals: dict):
         data_provider:
           threads: 10
         dataset:
-          tags: [GRA-TE  -23-0733.PV, GRA-TT  -23-0719.PV, GRA-YE  -23-0751X.PV]
-          target_tag_list: [GRA-TE -123-456]
-          train_start_date: 2018-01-01T09:00:30Z
-          train_end_date: 2018-01-02T09:00:30Z
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+              tags: [GRA-TE  -23-0733.PV, GRA-TT  -23-0719.PV, GRA-YE  -23-0751X.PV]
+              target_tag_list: [GRA-TE -123-456]
+              train_start_date: 2018-01-01T09:00:30Z
+              train_end_date: 2018-01-02T09:00:30Z
         model:
           sklearn.pipeline.Pipeline:
             steps:
@@ -117,94 +127,96 @@ def test_machine_from_config(default_globals: dict):
     assert len(machine.dataset.tag_list) == 3
 
     # The metadata of machine should be json serializable
-    json.dumps(machine.to_dict()["metadata"])
+    json.dumps(machine.to_dict(), cls=MachineEncoder)
 
-    # The metadata of machine should be ast.literal_eval-able when cast as a str
-    assert (
-        ast.literal_eval(str(machine.to_dict()["metadata"]))
-        == machine.to_dict()["metadata"]
-    )
     # dictionary representation of the machine expected:
     expected = {
-        "dataset": {
-            "aggregation_methods": "mean",
-            "asset": "global-asset",
-            "data_provider": {
-                "dl_service_auth_str": None,
-                "interactive": False,
-                "storename": "dataplatformdlsprod",
-                "type": "DataLakeProvider",
+        "gordo.machine.machine.Machine": {
+            "evaluation": {
+                "cv_mode": "full_build",
+                "scoring_scaler": None,
+                "metrics": [
+                    "explained_variance_score",
+                    "r2_score",
+                    "mean_squared_error",
+                    "mean_absolute_error",
+                ],
             },
-            "default_asset": None,
-            "n_samples_threshold": 0,
-            "resolution": "10T",
-            "row_filter": "",
-            "row_filter_buffer_size": 0,
-            "tag_list": [
-                "GRA-TE  -23-0733.PV",
-                "GRA-TT  -23-0719.PV",
-                "GRA-YE  -23-0751X.PV",
-            ],
-            "target_tag_list": ["GRA-TE -123-456"],
-            "train_end_date": "2018-01-02T09:00:30+00:00",
-            "train_start_date": "2018-01-01T09:00:30+00:00",
-            "type": "TimeSeriesDataset",
-        },
-        "evaluation": {
-            "cv_mode": "full_build",
-            "metrics": [
-                "explained_variance_score",
-                "r2_score",
-                "mean_squared_error",
-                "mean_absolute_error",
-            ],
-            "scoring_scaler": None,
-        },
-        "metadata": {
-            "build_metadata": {
-                "model": {
-                    "cross_validation": {
-                        "cv_duration_sec": None,
-                        "scores": {},
-                        "splits": {},
-                    },
-                    "model_builder_version": __version__,
-                    "model_creation_date": None,
-                    "model_meta": {},
-                    "model_offset": 0,
-                    "model_training_duration_sec": None,
+            "metadata": {
+                "user_defined": {
+                    "global-metadata": {},
+                    "machine-metadata": {"id": "special-id"},
                 },
-                "dataset": {"query_duration_sec": None, "dataset_meta": {}},
-            },
-            "user_defined": {
-                "global-metadata": {},
-                "machine-metadata": {"id": "special-id"},
-            },
-        },
-        "model": {
-            "sklearn.pipeline.Pipeline": {
-                "steps": [
-                    "sklearn.preprocessing.data.MinMaxScaler",
-                    {
-                        "gordo.machine.model.models.KerasAutoEncoder": {
-                            "kind": "feedforward_hourglass"
-                        }
+                "build_metadata": {
+                    "model": {
+                        "model_offset": 0,
+                        "model_creation_date": None,
+                        "model_builder_version": __version__,
+                        "cross_validation": {
+                            "scores": {},
+                            "cv_duration_sec": None,
+                            "splits": {},
+                        },
+                        "model_training_duration_sec": None,
+                        "model_meta": {},
                     },
-                ]
-            }
-        },
-        "name": "ct-23-0001-machine",
-        "project_name": "test-project-name",
-        "runtime": {
-            "reporters": [],
-            "server": {
-                "resources": {
-                    "limits": {"cpu": 4, "memory": 3},
-                    "requests": {"cpu": 2, "memory": 1},
+                    "dataset": {"query_duration_sec": None, "dataset_meta": {}},
+                },
+            },
+            "runtime": {
+                "server": {
+                    "resources": {
+                        "requests": {"memory": 1, "cpu": 2},
+                        "limits": {"memory": 3, "cpu": 4},
+                    }
+                },
+                "reporters": [],
+            },
+            "name": "ct-23-0001-machine",
+            "model": {
+                "sklearn.pipeline.Pipeline": {
+                    "steps": [
+                        "sklearn.preprocessing.data.MinMaxScaler",
+                        {
+                            "gordo.machine.model.models.KerasAutoEncoder": {
+                                "kind": "feedforward_hourglass"
+                            }
+                        },
+                    ]
                 }
             },
-        },
+            "dataset": {
+                "gordo.machine.dataset.datasets.TimeSeriesDataset": {
+                    "target_tag_list": [
+                        SensorTag(name="GRA-TE -123-456", asset="global-asset")
+                    ],
+                    "data_provider": {
+                        "gordo.machine.dataset.data_provider.providers.DataLakeProvider": {
+                            "storename": "dataplatformdlsprod",
+                            "interactive": False,
+                            "dl_service_auth_str": None,
+                        }
+                    },
+                    "resolution": "10T",
+                    "row_filter": "",
+                    "aggregation_methods": "mean",
+                    "row_filter_buffer_size": 0,
+                    "asset": "global-asset",
+                    "default_asset": None,
+                    "n_samples_threshold": 0,
+                    "train_start_date": datetime(2018, 1, 1, 9, 0, 30, tzinfo=tzutc()),
+                    "train_end_date": datetime(2018, 1, 2, 9, 0, 30, tzinfo=tzutc()),
+                    "tag_list": [
+                        SensorTag(name="GRA-TE  -23-0733.PV", asset="global-asset"),
+                        SensorTag(name="GRA-TT  -23-0719.PV", asset="global-asset"),
+                        SensorTag(name="GRA-YE  -23-0751X.PV", asset="global-asset"),
+                    ],
+                }
+            },
+            "project_name": "test-project-name",
+        }
     }
+
     assert machine.to_dict() == expected
 
 
@@ -214,13 +226,12 @@ def test_invalid_model(default_globals: dict):
     """
     element_str = """
         name: ct-23-0001-machine
-        data_provider:
-          threads: 10
         dataset:
-          tags: [GRA-TE  -23-0733.PV, GRA-TT  -23-0719.PV, GRA-YE  -23-0751X.PV]
-          target_tag_list: [GRA-TE -123-456]
-          train_start_date: 2018-01-01T09:00:30Z
-          train_end_date: 2018-01-02T09:00:30Z
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            tags: [GRA-TE  -23-0733.PV, GRA-TT  -23-0719.PV, GRA-YE  -23-0751X.PV]
+            target_tag_list: [GRA-TE -123-456]
+            train_start_date: 2018-01-01T09:00:30Z
+            train_end_date: 2018-01-02T09:00:30Z
         model:
           sklearn.pipeline.Pipeline:
             step:
@@ -233,7 +244,7 @@ def test_invalid_model(default_globals: dict):
           id: special-id
     """
     element = get_dict_from_yaml(StringIO(element_str))
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         Machine.from_config(
             element, project_name="test-project-name", config_globals=default_globals
         )

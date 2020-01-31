@@ -275,7 +275,7 @@ class Client:
         )
         if resp.ok:
             metadata = resp.json()["metadata"]
-            return Machine(**metadata)
+            return Machine.from_dict(metadata)
         else:
             raise IOError(
                 f"Unable to create machine '{name}': {resp.content.decode(errors='ignore')}"
@@ -574,18 +574,12 @@ class Client:
             dt=start, resolution=resolution, n_intervals=n_intervals
         )
 
-        # Re-create the machine's dataset but updating to use the client's
+        # Update the machine's dataset to use the client's
         # data provider and changing the dates of data we want.
-        config = machine.dataset.to_dict()
-        config.update(
-            dict(
-                data_provider=self.data_provider,
-                train_start_date=start,
-                train_end_date=end,
-            )
-        )
-        dataset = machine.dataset.from_dict(config)
-        return dataset.get_data()
+        machine.dataset.train_start_date = start
+        machine.dataset.train_end_date = end
+        machine.dataset.data_provider = self.data_provider
+        return machine.dataset.get_data()
 
     @staticmethod
     def _adjust_for_offset(dt: datetime, resolution: str, n_intervals: int = 100):

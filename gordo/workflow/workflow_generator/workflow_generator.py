@@ -7,6 +7,9 @@ import io
 
 from typing import Union
 
+from gordo.machine.machine import MachineEncoder
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -115,4 +118,5 @@ def load_workflow_template(workflow_template: str) -> jinja2.Template:
     templateEnv = jinja2.Environment(
         loader=jinja2.FileSystemLoader(template_dir), undefined=jinja2.StrictUndefined
     )
+    templateEnv.policies["json.dumps_kwargs"] = {"cls": MachineEncoder}  # type: ignore
     return templateEnv.get_template(os.path.basename(workflow_template))

@@ -8,9 +8,10 @@ from typing import Iterable, List, Optional
 import pandas as pd
 
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.base import GordoBase
 
 
-class GordoBaseDataProvider(object):
+class GordoBaseDataProvider(GordoBase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def load_series(
         self,
@@ -57,33 +58,3 @@ class GordoBaseDataProvider(object):
 
         """
         ...
-
-    @abc.abstractmethod
-    def to_dict(self):
-        """
-        Serialize this object into a dict representation, which can be used to
-        initialize a new object after popping 'type' from the dict.
-
-        Returns
-        -------
-        dict
-        """
-        if not hasattr(self, "_params"):
-            raise AttributeError(
-                f"Failed to lookup init parameters, ensure the "
-                f"object's __init__ is decorated with 'capture_args'"
-            )
-        # Update dict with the class
-        params = self._params
-        params["type"] = self.__class__.__name__
-        return params
-
-    @classmethod
-    @abc.abstractmethod
-    def from_dict(cls, config: dict) -> "GordoBaseDataProvider":
-        from gordo.machine.dataset.data_provider import providers
-
-        Provider = getattr(providers, config.get("type", "DataLakeProvider"))
-        if Provider is None:
-            raise TypeError(f"No data provider of type '{config['type']}'")
-        return Provider(**config)

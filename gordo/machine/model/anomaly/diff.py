@@ -14,9 +14,11 @@ from gordo.machine.model.base import GordoBase
 from gordo.machine.model import utils as model_utils
 from gordo.machine.model.models import KerasAutoEncoder
 from gordo.machine.model.anomaly.base import AnomalyDetectorBase
+from gordo.util import capture_args
 
 
 class DiffBasedAnomalyDetector(AnomalyDetectorBase):
+    @capture_args
     def __init__(
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
@@ -91,9 +93,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         sample_weight: Optional[np.ndarray] = None,
     ) -> float:
         return self.base_estimator.score(X, y)
-
-    def get_params(self, deep=True):
-        return {"base_estimator": self.base_estimator, "scaler": self.scaler}
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.base_estimator.fit(X, y)

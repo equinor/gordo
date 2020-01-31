@@ -32,9 +32,9 @@ def test_valid_model():
     myclass.value = "sklearn.ensemble.forest.RandomForestRegressor"
 
     # Not ok
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         myclass.value = 1
-    with pytest.raises(ValueError):
+    with pytest.raises(AttributeError):
         myclass.value = None
 
 

@@ -145,21 +145,22 @@ def config_str(gordo_name: str, sensors: List[SensorTag]):
     return f"""
             machines:
               - dataset:
-                  tags:
-                    - {sensors[0].name}
-                    - {sensors[1].name}
-                    - {sensors[2].name}
-                    - {sensors[3].name}
-                  target_tag_list:
-                    - {sensors[0].name}
-                    - {sensors[1].name}
-                    - {sensors[2].name}
-                    - {sensors[3].name}
-                  train_start_date: '2019-01-01T00:00:00+00:00'
-                  train_end_date: '2019-10-01T00:00:00+00:00'
-                  asset: asgb
-                  data_provider:
-                    type: RandomDataProvider
+                  gordo.machine.dataset.datasets.TimeSeriesDataset:
+                      tags:
+                        - {sensors[0].name}
+                        - {sensors[1].name}
+                        - {sensors[2].name}
+                        - {sensors[3].name}
+                      target_tag_list:
+                        - {sensors[0].name}
+                        - {sensors[1].name}
+                        - {sensors[2].name}
+                        - {sensors[3].name}
+                      train_start_date: '2019-01-01T00:00:00+00:00'
+                      train_end_date: '2019-10-01T00:00:00+00:00'
+                      asset: asgb
+                      data_provider: 
+                        gordo.machine.dataset.data_provider.providers.RandomDataProvider
                 metadata:
                   information: Some sweet information about the model
                 model:

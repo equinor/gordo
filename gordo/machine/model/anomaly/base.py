@@ -4,10 +4,10 @@ from typing import Optional
 from datetime import timedelta
 from sklearn.base import BaseEstimator
 
-from gordo.machine.model.base import GordoBase
+from gordo.machine.model.base import GordoBaseModel
 
 
-class AnomalyDetectorBase(BaseEstimator, GordoBase, metaclass=abc.ABCMeta):
+class AnomalyDetectorBase(BaseEstimator, GordoBaseModel, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None

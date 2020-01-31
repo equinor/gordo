@@ -8,6 +8,8 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
+from gordo.base import GordoBase
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ class InsufficientDataError(ValueError):
     pass
 
 
-class GordoBaseDataset:
+class GordoBaseDataset(GordoBase, metaclass=abc.ABCMeta):
 
     _params: Dict[Any, Any] = dict()  # provided by @capture_args on child's __init__
     _metadata: Dict[Any, Any] = dict()
@@ -26,47 +28,6 @@ class GordoBaseDataset:
         """
         Using initialized params, returns X, y as numpy arrays.
         """
-
-    @abc.abstractmethod
-    def to_dict(self) -> dict:
-        """
-        Serialize this object into a dict representation, which can be used to
-        initialize a new object after popping 'type' from the dict.
-
-        Returns
-        -------
-        dict
-                """
-        if not hasattr(self, "_params"):
-            raise AttributeError(
-                f"Failed to lookup init parameters, ensure the "
-                f"object's __init__ is decorated with 'capture_args'"
-            )
-        # Update dict with the class
-        params = self._params
-        params["type"] = self.__class__.__name__
-        for key, value in params.items():
-            if hasattr(value, "to_dict"):
-                params[key] = value.to_dict()
-        return params
-
-    @classmethod
-    @abc.abstractmethod
-    def from_dict(cls, config: Dict[str, Any]) -> "GordoBaseDataset":
-        """
-        Construct the dataset from a config without doing any validation
-        """
-        from gordo.machine.dataset import datasets
-
-        Dataset = getattr(datasets, config.get("type", "TimeSeriesDataset"))
-        if Dataset is None:
-            raise TypeError(f"No dataset of type '{config['type']}'")
-
-        # TODO: Here for compatibility, but @compate should take care of it, remove later
-        if "tags" in config:
-            config["tag_list"] = config.pop("tags")
-        config.setdefault("target_tag_list", config["tag_list"])
-        return Dataset(**config)
 
     @abc.abstractmethod
     def get_metadata(self):

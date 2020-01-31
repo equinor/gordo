@@ -21,6 +21,7 @@ from sklearn.base import BaseEstimator
 from werkzeug.exceptions import NotFound
 
 from gordo import serializer
+from gordo.machine import Machine
 
 
 """
@@ -343,7 +344,7 @@ def load_model(directory: str, name: str) -> BaseEstimator:
     return model
 
 
-def load_metadata(directory: str, name: str) -> dict:
+def load_metadata(directory: str, name: str) -> Machine:
     """
     Load metadata from a directory for a given model by name.
 
@@ -357,10 +358,10 @@ def load_metadata(directory: str, name: str) -> dict:
 
     Returns
     -------
-    dict
+    Machine
     """
     compressed_metadata = _load_compressed_metadata(directory, name)
-    return pickle.loads(zlib.decompress(compressed_metadata))
+    return Machine.from_dict(pickle.loads(zlib.decompress(compressed_metadata)))
 
 
 @lru_cache(maxsize=25000)
@@ -388,10 +389,11 @@ def metadata_required(f):
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         try:
-            g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
+            metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
             raise NotFound(f"No model found for '{gordo_name}'")
         else:
+            g.metadata = Machine.from_dict(metadata)
             return f(*args, **kwargs)
 
     return wrapper

@@ -21,11 +21,13 @@ def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
             config={
                 "name": "some-target-name",
                 "dataset": {
-                    "tags": sensors_str,
-                    "target_tag_list": sensors_str,
-                    "train_start_date": "2016-01-01T00:00:00Z",
-                    "train_end_date": "2016-01-05T00:00:00Z",
-                    "resolution": "10T",
+                    "gordo.machine.dataset.datasets.TimeSeriesDataset": {
+                        "tags": sensors_str,
+                        "target_tag_list": sensors_str,
+                        "train_start_date": "2016-01-01T00:00:00Z",
+                        "train_end_date": "2016-01-05T00:00:00Z",
+                        "resolution": "10T",
+                    }
                 },
                 "model": "sklearn.linear_model.LinearRegression",
             },

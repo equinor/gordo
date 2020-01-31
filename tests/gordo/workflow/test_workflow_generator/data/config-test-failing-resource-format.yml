@@ -2,12 +2,13 @@ machines:
 
   - name: ct-23-0002
     dataset:
-      tags:
-        - CT/1
-        - CT/2
-        - CT/3
-      train_start_date: 2016-11-07T09:11:30+01:00
-      train_end_date: 2018-09-15T03:01:00+01:00
+      gordo.machine.dataset.datasets.TimeSeriesDataset:
+        tags:
+          - CT/1
+          - CT/2
+          - CT/3
+        train_start_date: 2016-11-07T09:11:30+01:00
+        train_end_date: 2018-09-15T03:01:00+01:00
 
 globals:
   runtime: #ERROR: This should fail because the resources should be ints, not strings

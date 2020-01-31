@@ -4,6 +4,7 @@ import logging
 import pydoc
 import copy
 import typing  # noqa
+import inspect
 from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
@@ -134,8 +135,8 @@ def _build_step(
             for param, value in params.items():
                 if isinstance(value, str):
                     possible_func = pydoc.locate(value)
-                    if callable(possible_func):
-                        params[param] = possible_func
+                    if possible_func:
+                        params[param] = _build_step(value)
 
         StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
             import_str
@@ -173,14 +174,15 @@ def _build_step(
 
     # If step is just a string, can initialize it without any params
     # ie. "sklearn.preprocessing.PCA"
-    elif isinstance(step, str):
+    elif isinstance(step, str) and step:
         Step = pydoc.locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
-        return Step() if Step is not None else step
+        if Step is None:
+            return step
+        else:
+            return Step() if inspect.isclass(Step) else Step
 
     else:
-        raise ValueError(
-            f"Expected step to be either a string or a dict," f"found: {type(step)}"
-        )
+        return step
 
 
 def _load_param_classes(params: dict):

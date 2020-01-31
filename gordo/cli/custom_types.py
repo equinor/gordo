@@ -8,7 +8,7 @@ import yaml
 import click
 from dateutil import parser
 
-from gordo.machine.dataset.data_provider import providers
+from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 
 
 class DataProviderParam(click.ParamType):
@@ -24,16 +24,7 @@ class DataProviderParam(click.ParamType):
                 kwargs = yaml.safe_load(f)
         else:
             kwargs = yaml.safe_load(value)
-
-        if "type" not in kwargs:
-            self.fail(f"Cannot create DataProvider without 'type' key defined")
-
-        kind = kwargs.pop("type")
-
-        Provider = getattr(providers, kind, None)
-        if Provider is None:
-            self.fail(f"No DataProvider named '{kind}'")
-        return Provider(**kwargs)
+        return GordoBaseDataProvider.from_dict(kwargs)
 
 
 class IsoFormatDateTime(click.ParamType):

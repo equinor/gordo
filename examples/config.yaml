@@ -12,22 +12,24 @@ spec:
 
       - name: ct-23-0001 #1st machine
         dataset:
-          tags: #list of tags for 1st machine
-            - GRA-TAG 1
-            - GRA-TAG 2
-            - GRA-TAG 3
-          train_start_date: 2016-11-07T09:11:30+01:00
-          train_end_date: 2018-09-15T03:01:00+01:00
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            tags: #list of tags for 1st machine
+              - GRA-TAG 1
+              - GRA-TAG 2
+              - GRA-TAG 3
+            train_start_date: 2016-11-07T09:11:30+01:00
+            train_end_date: 2018-09-15T03:01:00+01:00
 
       - name: ct-23-0002 #2nd machine
         dataset:
-          resolution: 2T
-          tags: #list of tags for 2nd machine
-            - GRA-TAG 1
-            - GRA-TAG 2
-            - GRA-TAG 3
-          train_start_date: 2018-05-20T01:00:04+02:00
-          train_end_date: 2019-05-10T15:05:50+02:00
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            resolution: 2T
+            tags: #list of tags for 2nd machine
+              - GRA-TAG 1
+              - GRA-TAG 2
+              - GRA-TAG 3
+            train_start_date: 2018-05-20T01:00:04+02:00
+            train_end_date: 2019-05-10T15:05:50+02:00
         runtime:
           builder: #one can override just a single resource request as well
             resources:
@@ -38,12 +40,13 @@ spec:
 
       - name: ct-23-0003 #3rd machine
         dataset:
-          tags: #list of tags for 3rd machine
-            - GRA-TAG 1
-            - GRA-TAG 2
-            - GRA-TAG 3
-          train_start_date: 2018-09-15T13:03:04+02:00
-          train_end_date: 2019-03-11T11:05:10+02:00
+          gordo.machine.dataset.datasets.TimeSeriesDataset:
+            tags: #list of tags for 3rd machine
+              - GRA-TAG 1
+              - GRA-TAG 2
+              - GRA-TAG 3
+            train_start_date: 2018-09-15T13:03:04+02:00
+            train_end_date: 2019-03-11T11:05:10+02:00
 
     globals:
       runtime:

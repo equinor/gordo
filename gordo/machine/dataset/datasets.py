@@ -171,8 +171,9 @@ class TimeSeriesDataset(GordoBaseDataset):
     def to_dict(self):
         params = super().to_dict()
         to_str = lambda dt: str(dt) if not hasattr(dt, "isoformat") else dt.isoformat()
-        params["train_start_date"] = to_str(params["train_start_date"])
-        params["train_end_date"] = to_str(params["train_end_date"])
+        path = f"{self.__module__}.{self.__class__.__name__}"
+        params[path]["train_start_date"] = to_str(params[path]["train_start_date"])
+        params[path]["train_end_date"] = to_str(params[path]["train_end_date"])
         return params
 
     @staticmethod

@@ -13,6 +13,7 @@ from unittest.mock import patch
 from gordo.server.server import run_cmd
 from gordo import serializer, __version__
 from gordo.server import server
+from gordo.machine import Machine
 
 import tests.utils as tu
 
@@ -55,7 +56,8 @@ def test_metadata_endpoint(base_route, gordo_single_target, gordo_ml_server_clie
 
     data = resp.get_json()
     assert "metadata" in data
-    assert data["metadata"]["name"] == gordo_single_target
+    machine = Machine.from_dict(data["metadata"])
+    assert machine.name == gordo_single_target
 
 
 def test_download_model(api_version, gordo_project, gordo_name, gordo_ml_server_client):

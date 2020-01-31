@@ -9,6 +9,7 @@ from playhouse.postgres_ext import (
 from playhouse.shortcuts import dict_to_model
 
 from .base import BaseReporter
+from gordo import serializer
 from gordo.util.utils import capture_args
 from gordo.machine import Machine as GordoMachine
 from gordo.machine.machine import MachineEncoder
@@ -75,7 +76,17 @@ class PostgresReporter(BaseReporter):
                 logger.info(f"Inserting machine {machine.name} in sql")  # type: ignore
 
                 # Ensure it's serializable using MachineEncoder
-                record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
+                record = json.loads(
+                    json.dumps(
+                        dict(
+                            name=machine.name,
+                            dataset=serializer.into_definition(machine.dataset),
+                            model=serializer.into_definition(machine.model),
+                            metadata=serializer.into_definition(machine.metadata),
+                        ),
+                        cls=MachineEncoder,
+                    )
+                )
                 dict_to_model(Machine, record, ignore_unknown=True).save()
         except Exception as exc:
             raise PostgresReporterException(exc)
