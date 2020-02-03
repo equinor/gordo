@@ -3,6 +3,7 @@ from setuptools import setup, find_packages
 
 
 setup_requirements = ["pytest-runner", "setuptools_scm"]
+on_rtd = os.environ.get("READTHEDOCS") == "True"
 
 
 def requirements(fp: str):
@@ -22,6 +23,13 @@ extras_require = {
 }
 extras_require["full"] = extras_require["mlflow"] + extras_require["postgres"]
 
+install_requires = requirements("requirements.in")  # Allow flexible deps for install
+
+# Read the docs have quite low memory limits on their build servers, so low
+# that pip crashes when downloading tensorflow. So we must remove it from the install
+# requirements, and set up autodoc_mock_imports in docs/conf.py
+if on_rtd:
+    install_requires = [req for req in install_requires if "tensorflow" not in req]
 
 setup(
     author="Equinor ASA",
@@ -35,7 +43,7 @@ setup(
     ],
     description="Train and build models for Argo / Kubernetes",
     entry_points={"console_scripts": ["gordo=gordo.cli:gordo"]},
-    install_requires=requirements("requirements.in"),  # Allow flexible deps for install
+    install_requires=install_requires,
     license="AGPLv3",
     name="gordo",
     packages=find_packages(),
