@@ -295,3 +295,20 @@ def test_non_existant_model_metadata(tmpdir, gordo_project, api_version):
             f"/gordo/{api_version}/{gordo_project}/model-does-not-exist/metadata"
         )
         assert resp.status_code == 404
+
+
+def test_expected_models_route(tmpdir):
+    """
+    Route that gives back the expected models names, which are just read from
+    the 'EXPECTED_MODELS' env var.
+    """
+    with tu.temp_env_vars(
+        MODEL_COLLECTION_DIR=str(tmpdir),
+        EXPECTED_MODELS=json.dumps(["model-a", "model-b"]),
+    ):
+        app = server.build_app()
+        app.testing = True
+        client = app.test_client()
+
+        resp = client.get("/gordo/v0/test-project/expected-models")
+        assert resp.json["expected-models"] == ["model-a", "model-b"]

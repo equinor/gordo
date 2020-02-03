@@ -480,3 +480,23 @@ def test_log_level_key(test_file: str, log_level: str, path_to_config_files: str
 
     # Assert all the values to the GORDO_LOG_LEVEL key contains the correct log-level
     assert all([log_level in value for value in gordo_log_levels])
+
+
+def test_expected_models_in_workflow(repo_dir):
+    """
+    Server deployment depends on EXPECTED_MODELS env var being set,
+    which is a list of strings, indicating the expected model names to be served.
+    """
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files=os.path.join(repo_dir, "examples"),
+        config_filename="config.yaml",
+    )
+    assert "name: EXPECTED_MODELS" in workflow_str
+
+    # Not the prettiest, but a whole lot prettier than digging down into the workflow yaml
+    # basically want to get to 'gordo-server-deployment' and ensure the EXPECTED_MODELS env var
+    # is set with a list (in string form) of model names which can be loaded.
+    expected_models_str = (
+        workflow_str.split("EXPECTED_MODELS")[1].split("value:")[1].split("\n")[0]
+    )
+    assert isinstance(yaml.safe_load(expected_models_str), list)
