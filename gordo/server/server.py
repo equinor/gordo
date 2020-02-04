@@ -25,8 +25,9 @@ logger = logging.getLogger(__name__)
 class Config:
     """Server config"""
 
-    MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
-    EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
+    def __init__(self):
+        self.MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
+        self.EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
