@@ -47,22 +47,6 @@ def test_init():
     ), f"Failed to create dataset object of type {config['type']}"
 
 
-def test_get_metadata():
-    dataset_config = _get_default_dataset_config()
-    dl_backed = dataset._get_dataset(dataset_config)
-    metadata = dl_backed.get_metadata()
-
-    assert metadata["train_start_date"] == dataset_config["train_start_date"]
-    assert metadata["train_end_date"] == dataset_config["train_end_date"]
-    assert metadata["tag_list"] == dataset_config["tag_list"]
-    assert metadata["resolution"] == "10T"
-
-    dataset_config["resolution"] = "10M"
-    dl_backed = dataset._get_dataset(dataset_config)
-    metadata = dl_backed.get_metadata()
-    assert metadata["resolution"] == dataset_config["resolution"]
-
-
 @pytest.mark.skipif(
     os.getenv("INTERACTIVE") is None,
     reason="Skipping test, INTERACTIVE not set in environment variable",

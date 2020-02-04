@@ -228,21 +228,14 @@ class TimeSeriesDataset(GordoBaseDataset):
         X = data[x_tag_names]
         y = data[y_tag_names] if self.target_tag_list else None
 
+        if X.first_valid_index():
+            self._metadata["train_start_date_actual"] = X.index[0]
+            self._metadata["train_end_date_actual"] = X.index[-1]
+
         return X, y
 
     def get_metadata(self):
-        metadata = {
-            "tag_list": self.tag_list,
-            "target_tag_list": self.target_tag_list,
-            "train_start_date": self.train_start_date,
-            "train_end_date": self.train_end_date,
-            "resolution": self.resolution,
-            "filter": self.row_filter,
-            "row_filter_buffer_size": self.row_filter_buffer_size,
-            "data_provider": self.data_provider.to_dict(),
-            "asset": self.asset,
-        }
-        return metadata
+        return self._metadata.copy()
 
 
 class RandomDataset(TimeSeriesDataset):
@@ -255,8 +248,8 @@ class RandomDataset(TimeSeriesDataset):
     @capture_args
     def __init__(
         self,
-        train_start_date: datetime,
-        train_end_date: datetime,
+        train_start_date: Union[datetime, str],
+        train_end_date: Union[datetime, str],
         tag_list: list,
         **kwargs,
     ):
