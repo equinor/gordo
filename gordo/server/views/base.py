@@ -7,7 +7,6 @@ import traceback
 import timeit
 import typing
 
-import yaml
 import pandas as pd
 from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
 from flask_restplus import Resource, fields
@@ -272,12 +271,11 @@ class RevisionListView(Resource):
 class ExpectedModels(Resource):
     @api.doc(description="Models that the server expects to be able to serve.")
     def get(self, gordo_project: str):
-        return jsonify(
-            {"expected-models": yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))}
-        )
+        return jsonify({"expected-models": current_app.config["EXPECTED_MODELS"]})
 
 
 api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
+api.add_resource(ExpectedModels, "/gordo/v0/<gordo_project>/expected-models")
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
 api.add_resource(
     MetaDataView,
@@ -286,4 +284,3 @@ api.add_resource(
 )
 api.add_resource(DownloadModel, "/gordo/v0/<gordo_project>/<gordo_name>/download-model")
 api.add_resource(RevisionListView, "/gordo/v0/<gordo_project>/revisions")
-api.add_resource(ExpectedModels, "/gordo/v0/<gordo_project>/expected-models")

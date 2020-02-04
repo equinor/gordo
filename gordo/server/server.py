@@ -14,7 +14,7 @@ import typing
 import subprocess
 from functools import wraps
 
-
+import yaml
 from flask import Flask, g, request, current_app, make_response, jsonify
 from gordo.server import views
 from gordo import __version__
@@ -26,6 +26,7 @@ class Config:
     """Server config"""
 
     MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
+    EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
