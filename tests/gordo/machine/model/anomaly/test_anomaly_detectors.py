@@ -160,12 +160,14 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     # When initialized it should not have a threshold calculated.
     assert not hasattr(model, "feature_thresholds_")
     assert not hasattr(model, "aggregate_threshold_")
+    assert not hasattr(model, "feature_thresholds_per_fold_")
 
     model.fit(X, y)
 
     # Until it has done cross validation, it has no threshold.
     assert not hasattr(model, "feature_thresholds_")
     assert not hasattr(model, "aggregate_threshold_")
+    assert not hasattr(model, "feature_thresholds_per_fold_")
 
     # Calling cross validate should set the threshold for it.
     model.cross_validate(X=X, y=y)
@@ -173,9 +175,11 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     # Now we have calculated thresholds based on cross validation folds
     assert hasattr(model, "feature_thresholds_")
     assert hasattr(model, "aggregate_threshold_")
+    assert hasattr(model, "feature_thresholds_per_fold_")
     assert isinstance(model.feature_thresholds_, pd.Series)
     assert len(model.feature_thresholds_) == y.shape[1]
     assert all(model.feature_thresholds_.notna())
+    assert isinstance(model.feature_thresholds_per_fold_, pd.DataFrame)
 
 
 @pytest.mark.parametrize("return_estimator", (True, False))
