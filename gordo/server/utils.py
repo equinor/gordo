@@ -387,8 +387,12 @@ def metadata_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
-        g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
-        return f(*args, **kwargs)
+        try:
+            g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
+        except FileNotFoundError:
+            raise NotFound(f"No model found for '{gordo_name}'")
+        else:
+            return f(*args, **kwargs)
 
     return wrapper
 

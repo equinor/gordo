@@ -128,5 +128,6 @@ def test_load_metadata(tmpdir, location):
             json.dump(dict(key="value"), f)
         assert serializer.load_metadata(model_dir) == dict(key="value")
     else:
-        # Attempting to load a file which doesn't exist will return empty dict
-        assert serializer.load_metadata(tmpdir) == dict()
+        # Attempting to load a file which doesn't exist will raise FileNotFoundError
+        with pytest.raises(FileNotFoundError):
+            assert serializer.load_metadata(tmpdir)
