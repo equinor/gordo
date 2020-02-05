@@ -6,7 +6,6 @@ import os
 import re
 import pickle
 
-from os import path
 from typing import Union, Any  # pragma: no flakes
 
 from sklearn.pipeline import Pipeline
@@ -81,23 +80,27 @@ def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
     Returns
     -------
     dict
+
+    Raises
+    ------
+    FileNotFoundError
+        If a 'metadata.json' file isn't found in or above the supplied ``source_dir``
     """
     # Since this function can take the top level dir, or a dir directly
     # into the first step of the pipeline, we need to check both for metadata
-    for possible_path in [
-        path.join(source_dir, "metadata.json"),
-        path.join(source_dir, "..", "metadata.json"),
-    ]:
-        try:
-            with open(possible_path, "r") as f:
-                return simplejson.load(f)
-        except FileNotFoundError:
-            continue
-    logger.warning(
-        f'Metadata file in source dir: "{source_dir}" not found'
-        f" in or up one directory."
-    )
-    return dict()
+    possible_paths = [
+        os.path.join(source_dir, "metadata.json"),
+        os.path.join(source_dir, "..", "metadata.json"),
+    ]
+    path = next((path for path in possible_paths if os.path.exists(path)), None)
+
+    if path:
+        with open(path, "r") as f:
+            return simplejson.load(f)
+    else:
+        raise FileNotFoundError(
+            f"Metadata file in source dir: '{source_dir}' not found in or up one directory."
+        )
 
 
 def load(source_dir: Union[os.PathLike, str]) -> Any:
