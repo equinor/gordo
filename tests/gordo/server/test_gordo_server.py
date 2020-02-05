@@ -272,3 +272,16 @@ def test_server_version_route(model_collection_directory, gordo_revision):
         resp = client.get("/server-version")
         assert resp.status_code == 200
         assert resp.json == {"revision": gordo_revision, "version": __version__}
+
+
+def test_download_invalid_model(tmpdir):
+    """
+    Simple route which returns the current version
+    """
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=str(tmpdir)):
+        app = server.build_app()
+        app.testing = True
+        client = app.test_client()
+
+        resp = client.get("/gordo/v0/test-project/model-does-not-exist/download-model")
+        assert resp.status_code == 404

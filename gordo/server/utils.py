@@ -18,6 +18,7 @@ import pyarrow.parquet as pq
 from flask import request, g, jsonify, make_response, Response
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
+from werkzeug.exceptions import NotFound
 
 from gordo import serializer
 
@@ -401,11 +402,14 @@ def model_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
-        g.model = load_model(directory=g.collection_dir, name=gordo_name)
-
-        # If the model was required, the metadata is also required.
-        return metadata_required(f)(
-            *args, gordo_project=gordo_project, gordo_name=gordo_name, **kwargs
-        )
+        try:
+            g.model = load_model(directory=g.collection_dir, name=gordo_name)
+        except FileNotFoundError:
+            raise NotFound(f"No such model found: '{gordo_name}'")
+        else:
+            # If the model was required, the metadata is also required.
+            return metadata_required(f)(
+                *args, gordo_project=gordo_project, gordo_name=gordo_name, **kwargs
+            )
 
     return wrapper
