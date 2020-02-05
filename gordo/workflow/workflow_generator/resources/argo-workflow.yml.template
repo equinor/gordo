@@ -390,6 +390,8 @@ spec:
               ownerReferences: {{owner_references}}
               {% endif %}
             spec:
+              securityContext:
+                fsGroup: 472
               containers:
               - image: "grafana/grafana:6.5.2"
                 env:
