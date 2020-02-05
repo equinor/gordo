@@ -58,11 +58,13 @@ def test_metadata_endpoint(base_route, gordo_single_target, gordo_ml_server_clie
     assert data["metadata"]["name"] == gordo_single_target
 
 
-def test_download_model(base_route, gordo_ml_server_client):
+def test_download_model(api_version, gordo_project, gordo_name, gordo_ml_server_client):
     """
     Test we can download a model, loadable via serializer.loads()
     """
-    resp = gordo_ml_server_client.get(f"{base_route}/download-model")
+    resp = gordo_ml_server_client.get(
+        f"/gordo/{api_version}/{gordo_project}/{gordo_name}/download-model"
+    )
 
     serialized_model = resp.get_data()
     model = serializer.loads(serialized_model)
@@ -72,6 +74,12 @@ def test_download_model(base_route, gordo_ml_server_client):
 
     # Models MUST have either predict or transform
     assert hasattr(model, "predict") or hasattr(model, "transform")
+
+    # Asking for a model that doesn't exist gives 404
+    resp = gordo_ml_server_client.get(
+        f"/gordo/{api_version}/{gordo_project}/invalid-model-name/download-model"
+    )
+    assert resp.status_code == 404
 
 
 def test_run_cmd(monkeypatch):
@@ -272,16 +280,3 @@ def test_server_version_route(model_collection_directory, gordo_revision):
         resp = client.get("/server-version")
         assert resp.status_code == 200
         assert resp.json == {"revision": gordo_revision, "version": __version__}
-
-
-def test_download_invalid_model(tmpdir):
-    """
-    Simple route which returns the current version
-    """
-    with tu.temp_env_vars(MODEL_COLLECTION_DIR=str(tmpdir)):
-        app = server.build_app()
-        app.testing = True
-        client = app.test_client()
-
-        resp = client.get("/gordo/v0/test-project/model-does-not-exist/download-model")
-        assert resp.status_code == 404
