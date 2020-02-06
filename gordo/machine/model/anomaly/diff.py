@@ -72,7 +72,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             metadata[
                 "feature-thresholds-per-fold"
             ] = self.feature_thresholds_per_fold_.to_dict()
-
+        if hasattr(self, "aggregate_thresholds_per_fold_"):
+            metadata[
+                "aggregate-thresholds-per-fold"
+            ] = self.aggregate_thresholds_per_fold_
         if isinstance(self.base_estimator, GordoBase):
             metadata.update(self.base_estimator.get_metadata())
         else:
@@ -128,7 +131,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         cv_output = cross_validate(self, X=X, y=y, **kwargs)
 
         self.feature_thresholds_per_fold_ = pd.DataFrame()
-        scaled_mse_per_timestep = pd.Series()
+        self.aggregate_thresholds_per_fold_ = {}
 
         for i, ((test_idxs, _train_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
@@ -143,21 +146,20 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
             # Model's timestep scaled mse
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
-            scaled_mse_per_timestep = pd.concat((scaled_mse_per_timestep, scaled_mse))
-
+            # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
+            aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
+            self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
             # Accumulate the rolling mins of diffs into common df
             tag_thresholds_fold = self._feature_fold_thresholds(y_true, y_pred, fold=i)
             self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
                 tag_thresholds_fold
             )
 
-        # Calculate the final thresholds per feature based on the previous fold calculations
-        self.feature_thresholds_ = self._final_thresholds(
-            thresholds=self.feature_thresholds_per_fold_
-        )
+        # Final thresholds are the thresholds from the last cv split/fold
+        self.feature_thresholds_ = tag_thresholds_fold
 
-        # For the aggregate, use the accumulated mse of scaled residuals per timestep
-        self.aggregate_threshold_ = scaled_mse_per_timestep.rolling(6).min().max()
+        # For the aggregate also use the thresholds from the last split/fold
+        self.aggregate_threshold_ = aggregate_threshold_fold
         return cv_output
 
     @staticmethod
@@ -210,26 +212,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         diff = pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
         diff.name = f"fold-{fold}"
         return diff
-
-    @staticmethod
-    def _final_thresholds(thresholds: pd.DataFrame) -> pd.Series:
-        """
-        Calculate the aggregate and final thresholds from previously
-        calculated fold thresholds.
-
-        Parameters
-        ----------
-        thresholds: pd.DataFrame
-            Aggregate thresholds from previous folds.
-
-        Returns
-        -------
-        pd.Series
-            Per feature calculated final thresholds over the fold thresholds
-        """
-        final_thresholds = thresholds.mean()
-        final_thresholds.name = "thresholds"
-        return final_thresholds
 
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
