@@ -75,7 +75,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         if hasattr(self, "aggregate_thresholds_per_fold_"):
             metadata[
                 "aggregate-thresholds-per-fold"
-            ] = self.aggregate_threshold_per_fold_
+            ] = self.aggregate_thresholds_per_fold_
         if isinstance(self.base_estimator, GordoBase):
             metadata.update(self.base_estimator.get_metadata())
         else:
