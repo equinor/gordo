@@ -161,7 +161,7 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert not hasattr(model, "feature_thresholds_")
     assert not hasattr(model, "aggregate_threshold_")
     assert not hasattr(model, "feature_thresholds_per_fold_")
-    assert not hasattr(model, "aggregate_threshold_per_fold_")
+    assert not hasattr(model, "aggregate_thresholds_per_fold_")
 
     model.fit(X, y)
 
@@ -169,7 +169,7 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert not hasattr(model, "feature_thresholds_")
     assert not hasattr(model, "aggregate_threshold_")
     assert not hasattr(model, "feature_thresholds_per_fold_")
-    assert not hasattr(model, "aggregate_threshold_per_fold_")
+    assert not hasattr(model, "aggregate_thresholds_per_fold_")
 
     # Calling cross validate should set the threshold for it.
     model.cross_validate(X=X, y=y)
@@ -178,12 +178,13 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert hasattr(model, "feature_thresholds_")
     assert hasattr(model, "aggregate_threshold_")
     assert hasattr(model, "feature_thresholds_per_fold_")
-    assert hasattr(model, "aggregate_threshold_per_fold_")
+    assert hasattr(model, "aggregate_thresholds_per_fold_")
     assert isinstance(model.feature_thresholds_, pd.Series)
     assert len(model.feature_thresholds_) == y.shape[1]
     assert all(model.feature_thresholds_.notna())
     assert isinstance(model.feature_thresholds_per_fold_, pd.DataFrame)
-    assert isinstance(model.aggregate_threshold_per_fold_, dict)
+    assert isinstance(model.aggregate_thresholds_per_fold_, dict)
+
 
 @pytest.mark.parametrize("return_estimator", (True, False))
 def test_diff_detector_cross_validate(return_estimator: bool):
@@ -227,7 +228,6 @@ def test_diff_detector_fold_thresholds(y_pred_shape: tuple, y_true_shape: tuple)
 
     assert np.allclose(expected.values, output.values)
     assert output.name == "fold-1"
-
 
 
 @pytest.mark.parametrize("require_threshold", (True, False))
