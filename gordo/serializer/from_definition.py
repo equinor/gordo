@@ -26,16 +26,16 @@ def from_definition(
     >>> raw_config = '''
     ... sklearn.pipeline.Pipeline:
     ...         steps:
-    ...             - sklearn.decomposition.pca.PCA:
+    ...             - sklearn.decomposition.PCA:
     ...                 n_components: 3
     ...             - sklearn.pipeline.FeatureUnion:
-    ...                 - sklearn.decomposition.pca.PCA:
+    ...                 - sklearn.decomposition.PCA:
     ...                     n_components: 3
     ...                 - sklearn.pipeline.Pipeline:
-    ...                     - sklearn.preprocessing.data.MinMaxScaler
-    ...                     - sklearn.decomposition.truncated_svd.TruncatedSVD:
+    ...                     - sklearn.preprocessing.MinMaxScaler
+    ...                     - sklearn.decomposition.TruncatedSVD:
     ...                         n_components: 2
-    ...             - sklearn.ensemble.forest.RandomForestClassifier:
+    ...             - sklearn.ensemble.RandomForestClassifier:
     ...                 max_depth: 3
     ... '''
     >>> config = yaml.load(raw_config)
@@ -204,7 +204,7 @@ def _load_param_classes(params: dict):
 
     # Load an actual model, without any kwargs
     >>> from sklearn.ensemble import RandomForestRegressor
-    >>> params = {"base_estimator": "sklearn.ensemble.forest.RandomForestRegressor"}
+    >>> params = {"base_estimator": "sklearn.ensemble.RandomForestRegressor"}
     >>> print(_load_param_classes(params))
     {'base_estimator': RandomForestRegressor(bootstrap=True, ccp_alpha=0.0, criterion='mse',
                           max_depth=None, max_features='auto', max_leaf_nodes=None,
@@ -215,7 +215,7 @@ def _load_param_classes(params: dict):
                           random_state=None, verbose=0, warm_start=False)}
 
     # Load an actual model, with kwargs
-    >>> params = {"base_estimator": {"sklearn.ensemble.forest.RandomForestRegressor": {"n_estimators": 20}}}
+    >>> params = {"base_estimator": {"sklearn.ensemble.RandomForestRegressor": {"n_estimators": 20}}}
     >>> print(_load_param_classes(params))
     {'base_estimator': RandomForestRegressor(bootstrap=True, ccp_alpha=0.0, criterion='mse',
                           max_depth=None, max_features='auto', max_leaf_nodes=None,
