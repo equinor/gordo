@@ -54,7 +54,7 @@ class ModelBuilder:
         >>> from gordo.machine import Machine
         >>> machine = Machine(
         ...     name="special-model-name",
-        ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+        ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
         ...     dataset={
         ...         "type": "RandomDataset",
         ...         "train_start_date": "2017-12-25 06:00:00Z",
@@ -535,7 +535,7 @@ class ModelBuilder:
                 >>> from gordo.machine.dataset.sensor_tag import SensorTag
                 >>> machine = Machine(
                 ...     name="special-model-name",
-                ...     model={"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}},
+                ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
                 ...     dataset={
                 ...         "type": "RandomDataset",
                 ...         "train_start_date": "2017-12-25 06:00:00Z",

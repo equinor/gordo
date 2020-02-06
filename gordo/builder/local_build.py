@@ -51,9 +51,9 @@ def local_build(
     ...             base_estimator:
     ...               sklearn.pipeline.Pipeline:
     ...                 steps:
-    ...                 - sklearn.decomposition.pca.PCA
+    ...                 - sklearn.decomposition.PCA
     ...                 - sklearn.multioutput.MultiOutputRegressor:
-    ...                     estimator: sklearn.linear_model.base.LinearRegression
+    ...                     estimator: sklearn.linear_model.LinearRegression
     ...         name: crazy-sweet-name
     ... '''
     >>> models_n_metadata = local_build(config)
