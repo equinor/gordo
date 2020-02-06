@@ -38,7 +38,7 @@ def from_definition(
     ...             - sklearn.ensemble.RandomForestClassifier:
     ...                 max_depth: 3
     ... '''
-    >>> config = yaml.load(raw_config)
+    >>> config = yaml.safe_load(raw_config)
     >>> scikit_learn_pipeline = serializer.from_definition(config)
 
 
