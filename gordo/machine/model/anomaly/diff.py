@@ -256,6 +256,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         )
         data = data.join(unscaled_abs_diff)
 
+        # Calculate the scaled total anomaly
+        data["total-anomaly-unscaled"] = np.square(data["tag-anomaly-unscaled"]).mean(axis=1)
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         if hasattr(self, "feature_thresholds_"):
@@ -272,8 +274,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             data = data.join(anomaly_confidence_scores)
 
         if hasattr(self, "aggregate_threshold_"):
-            scaled_mse = (scaled_diff ** 2).mean(axis=1)
-            data["total-anomaly-confidence"] = scaled_mse / self.aggregate_threshold_
+            data["total-anomaly-confidence"] = data["total-anomaly-scaled"] / self.aggregate_threshold_
 
         # Explicitly raise error if we were required to do threshold based calculations
         # should would have required a call to .cross_validate before .anomaly
