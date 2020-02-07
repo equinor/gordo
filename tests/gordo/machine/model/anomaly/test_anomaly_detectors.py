@@ -208,6 +208,7 @@ def test_diff_detector_cross_validate(return_estimator: bool):
 
     assert cv_results_da.keys() == cv_results_sk.keys()
 
+
 @pytest.mark.parametrize("require_threshold", (True, False))
 def test_diff_detector_require_thresholds(require_threshold: bool):
     """
