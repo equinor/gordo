@@ -208,28 +208,6 @@ def test_diff_detector_cross_validate(return_estimator: bool):
 
     assert cv_results_da.keys() == cv_results_sk.keys()
 
-
-# simulate LSTM outptu shorter than input
-@pytest.mark.parametrize("y_pred_shape", ((100, 2), (100, 2)))
-@pytest.mark.parametrize("y_true_shape", ((100, 2),))
-def test_diff_detector_fold_thresholds(y_pred_shape: tuple, y_true_shape: tuple):
-    """
-    Calculation of intermediate folds from y predicted and y true
-    """
-    y_pred = np.random.random(y_pred_shape)
-    y_true = np.random.random(y_true_shape)
-
-    expected = (
-        pd.DataFrame(np.abs(y_pred - y_true[-len(y_pred) :])).rolling(6).min().max()
-    )
-    output = DiffBasedAnomalyDetector._feature_fold_thresholds(
-        y_true=y_true, y_pred=y_pred, fold=1
-    )
-
-    assert np.allclose(expected.values, output.values)
-    assert output.name == "fold-1"
-
-
 @pytest.mark.parametrize("require_threshold", (True, False))
 def test_diff_detector_require_thresholds(require_threshold: bool):
     """
