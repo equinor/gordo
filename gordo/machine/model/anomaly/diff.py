@@ -152,7 +152,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
 
             # Accumulate the rolling mins of diffs into common df
-            tag_thresholds_fold = pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
+            tag_thresholds_fold = (
+                pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
+            )
             tag_thresholds_fold.name = f"fold-{i}"
             self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
                 tag_thresholds_fold
@@ -162,7 +164,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self.feature_thresholds = tag_thresholds_fold
 
         # For the aggregate also use the thresholds from the last split/fold
-        self.aggregate_threshold_= aggregate_threshold_fold
+        self.aggregate_threshold_ = aggregate_threshold_fold
 
         return cv_output
 
@@ -244,7 +246,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         data = data.join(tag_anomaly_scaled)
 
         # Calculate scaled total anomaly
-        data["total-anomaly-scaled"] = np.square(data["tag-anomaly-scaled"]).mean(axis=1)
+        data["total-anomaly-scaled"] = np.square(data["tag-anomaly-scaled"]).mean(
+            axis=1
+        )
 
         # Calculate the unscaled tag anomalies
         unscaled_abs_diff = pd.DataFrame(
@@ -257,7 +261,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         data = data.join(unscaled_abs_diff)
 
         # Calculate the scaled total anomaly
-        data["total-anomaly-unscaled"] = np.square(data["tag-anomaly-unscaled"]).mean(axis=1)
+        data["total-anomaly-unscaled"] = np.square(data["tag-anomaly-unscaled"]).mean(
+            axis=1
+        )
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         if hasattr(self, "feature_thresholds_"):
@@ -274,7 +280,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             data = data.join(anomaly_confidence_scores)
 
         if hasattr(self, "aggregate_threshold_"):
-            data["total-anomaly-confidence"] = data["total-anomaly-scaled"] / self.aggregate_threshold_
+            data["total-anomaly-confidence"] = (
+                data["total-anomaly-scaled"] / self.aggregate_threshold_
+            )
 
         # Explicitly raise error if we were required to do threshold based calculations
         # should would have required a call to .cross_validate before .anomaly
