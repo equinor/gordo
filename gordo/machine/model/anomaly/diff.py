@@ -144,22 +144,26 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             test_idxs = test_idxs[-len(y_pred) :]
             y_true = y.iloc[test_idxs] if isinstance(y, pd.DataFrame) else y[test_idxs]
 
-            # Model's timestep scaled mse
+            # Model's timestep scaled mse over all features
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
+
             # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
             aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
             self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
+
             # Accumulate the rolling mins of diffs into common df
-            tag_thresholds_fold = self._feature_fold_thresholds(y_true, y_pred, fold=i)
+            tag_thresholds_fold = pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
+            tag_thresholds_fold.name = f"fold-{i}"
             self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
                 tag_thresholds_fold
             )
 
         # Final thresholds are the thresholds from the last cv split/fold
-        self.feature_thresholds_ = tag_thresholds_fold
+        self.feature_thresholds = tag_thresholds_fold
 
         # For the aggregate also use the thresholds from the last split/fold
-        self.aggregate_threshold_ = aggregate_threshold_fold
+        self.aggregate_threshold_= aggregate_threshold_fold
+
         return cv_output
 
     @staticmethod
@@ -187,31 +191,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         scaled_y_pred = model.scaler.transform(y_pred)
         mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
         return pd.Series(mse_per_time_step)
-
-    @staticmethod
-    def _feature_fold_thresholds(
-        y_true: np.ndarray, y_pred: np.ndarray, fold: int
-    ) -> pd.Series:
-        """
-        Calculate the per fold thresholds
-
-        Parameters
-        ----------
-        y_true: np.ndarray
-            True valudes
-        y_pred: np.ndarray
-            Predicted values
-        fold: int
-            Current fold iteration number
-
-        Returns
-        -------
-        pd.Series
-            Per feature calculated thresholds
-        """
-        diff = pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
-        diff.name = f"fold-{fold}"
-        return diff
 
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
