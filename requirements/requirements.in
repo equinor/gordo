@@ -17,6 +17,7 @@ scikit-learn~=0.22
 tensorflow~=2.0
 Flask~=1.0
 flask-restplus~=0.12
+Werkzeug==0.16.1 # flask-restplus requires Werkzeug, but is incompatible with 1.0.0. When that is fixed this explicit dependency can be dropped
 azure-datalake-store~=0.0
 cchardet~=2.1
 urllib3~=1.24
