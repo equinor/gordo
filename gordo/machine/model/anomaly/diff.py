@@ -161,7 +161,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             )
 
         # Final thresholds are the thresholds from the last cv split/fold
-        self.feature_thresholds = tag_thresholds_fold
+        self.feature_thresholds_ = tag_thresholds_fold
 
         # For the aggregate also use the thresholds from the last split/fold
         self.aggregate_threshold_ = aggregate_threshold_fold
@@ -235,11 +235,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             index=data.index,
         )
 
-        # Calculate the scaled tag anomalies
+        # Calculate the absolute scaled tag anomaly
         # Ensure to offset the y to match model out, which could be less if it was an LSTM
         scaled_y = self.scaler.transform(y)
-        scaled_diff = model_out_scaled - scaled_y[-len(data) :, :]
-        tag_anomaly_scaled = np.abs(scaled_diff)
+        tag_anomaly_scaled = np.abs(model_out_scaled - scaled_y[-len(data) :, :])
         tag_anomaly_scaled.columns = pd.MultiIndex.from_product(
             (("tag-anomaly-scaled",), tag_anomaly_scaled.columns)
         )
@@ -250,7 +249,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             axis=1
         )
 
-        # Calculate the unscaled tag anomalies
+        # Calculate the absolute unscaled tag anomalies
         unscaled_abs_diff = pd.DataFrame(
             data=np.abs(data["model-output"].values - y.values[-len(data) :, :]),
             index=data.index,
