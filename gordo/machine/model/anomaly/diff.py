@@ -144,13 +144,18 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             test_idxs = test_idxs[-len(y_pred) :]
             y_true = y.iloc[test_idxs] if isinstance(y, pd.DataFrame) else y[test_idxs]
 
-            # Model's timestep scaled mse
+            # Model's timestep scaled mse over all features
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
+
             # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
             aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
             self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
+
             # Accumulate the rolling mins of diffs into common df
-            tag_thresholds_fold = self._feature_fold_thresholds(y_true, y_pred, fold=i)
+            tag_thresholds_fold = (
+                pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
+            )
+            tag_thresholds_fold.name = f"fold-{i}"
             self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
                 tag_thresholds_fold
             )
@@ -160,6 +165,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # For the aggregate also use the thresholds from the last split/fold
         self.aggregate_threshold_ = aggregate_threshold_fold
+
         return cv_output
 
     @staticmethod
@@ -187,31 +193,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         scaled_y_pred = model.scaler.transform(y_pred)
         mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
         return pd.Series(mse_per_time_step)
-
-    @staticmethod
-    def _feature_fold_thresholds(
-        y_true: np.ndarray, y_pred: np.ndarray, fold: int
-    ) -> pd.Series:
-        """
-        Calculate the per fold thresholds
-
-        Parameters
-        ----------
-        y_true: np.ndarray
-            True valudes
-        y_pred: np.ndarray
-            Predicted values
-        fold: int
-            Current fold iteration number
-
-        Returns
-        -------
-        pd.Series
-            Per feature calculated thresholds
-        """
-        diff = pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
-        diff.name = f"fold-{fold}"
-        return diff
 
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
@@ -254,20 +235,21 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             index=data.index,
         )
 
-        # Calculate the total anomaly between all tags for the original/untransformed
+        # Calculate the absolute scaled tag anomaly
         # Ensure to offset the y to match model out, which could be less if it was an LSTM
         scaled_y = self.scaler.transform(y)
-        scaled_diff = model_out_scaled - scaled_y[-len(data) :, :]
-        tag_anomaly_scaled = np.abs(scaled_diff)
+        tag_anomaly_scaled = np.abs(model_out_scaled - scaled_y[-len(data) :, :])
         tag_anomaly_scaled.columns = pd.MultiIndex.from_product(
             (("tag-anomaly-scaled",), tag_anomaly_scaled.columns)
         )
         data = data.join(tag_anomaly_scaled)
-        data["total-anomaly-scaled"] = np.linalg.norm(
-            data["tag-anomaly-scaled"], axis=1
+
+        # Calculate scaled total anomaly
+        data["total-anomaly-scaled"] = np.square(data["tag-anomaly-scaled"]).mean(
+            axis=1
         )
 
-        # Unscaled anomalies: feature-wise and total
+        # Calculate the absolute unscaled tag anomalies
         unscaled_abs_diff = pd.DataFrame(
             data=np.abs(data["model-output"].values - y.values[-len(data) :, :]),
             index=data.index,
@@ -276,8 +258,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             ),
         )
         data = data.join(unscaled_abs_diff)
-        data["total-anomaly-unscaled"] = np.linalg.norm(
-            data["tag-anomaly-unscaled"], axis=1
+
+        # Calculate the scaled total anomaly
+        data["total-anomaly-unscaled"] = np.square(data["tag-anomaly-unscaled"]).mean(
+            axis=1
         )
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
@@ -295,8 +279,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             data = data.join(anomaly_confidence_scores)
 
         if hasattr(self, "aggregate_threshold_"):
-            scaled_mse = (scaled_diff ** 2).mean(axis=1)
-            data["total-anomaly-confidence"] = scaled_mse / self.aggregate_threshold_
+            data["total-anomaly-confidence"] = (
+                data["total-anomaly-scaled"] / self.aggregate_threshold_
+            )
 
         # Explicitly raise error if we were required to do threshold based calculations
         # should would have required a call to .cross_validate before .anomaly

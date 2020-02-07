@@ -83,7 +83,7 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 
     # Verify calculation for unscaled data
     feature_error_unscaled = np.abs(base_df["model-output"].values - y.values)
-    total_anomaly_unscaled = np.linalg.norm(feature_error_unscaled, axis=1)
+    total_anomaly_unscaled = np.square(feature_error_unscaled).mean(axis=1)
     assert np.allclose(
         feature_error_unscaled, anomaly_df["tag-anomaly-unscaled"].values
     )
@@ -95,7 +95,7 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
     feature_error_scaled = np.abs(
         scaler.transform(base_df["model-output"].values) - scaler.transform(y)
     )
-    total_anomaly_scaled = np.linalg.norm(feature_error_scaled, axis=1)
+    total_anomaly_scaled = np.square(feature_error_scaled).mean(axis=1)
     assert np.allclose(feature_error_scaled, anomaly_df["tag-anomaly-scaled"].values)
     assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].values)
 
@@ -207,27 +207,6 @@ def test_diff_detector_cross_validate(return_estimator: bool):
     cv_results_sk = cross_validate(model, X=X, y=y, cv=cv, return_estimator=True)
 
     assert cv_results_da.keys() == cv_results_sk.keys()
-
-
-# simulate LSTM outptu shorter than input
-@pytest.mark.parametrize("y_pred_shape", ((100, 2), (100, 2)))
-@pytest.mark.parametrize("y_true_shape", ((100, 2),))
-def test_diff_detector_fold_thresholds(y_pred_shape: tuple, y_true_shape: tuple):
-    """
-    Calculation of intermediate folds from y predicted and y true
-    """
-    y_pred = np.random.random(y_pred_shape)
-    y_true = np.random.random(y_true_shape)
-
-    expected = (
-        pd.DataFrame(np.abs(y_pred - y_true[-len(y_pred) :])).rolling(6).min().max()
-    )
-    output = DiffBasedAnomalyDetector._feature_fold_thresholds(
-        y_true=y_true, y_pred=y_pred, fold=1
-    )
-
-    assert np.allclose(expected.values, output.values)
-    assert output.name == "fold-1"
 
 
 @pytest.mark.parametrize("require_threshold", (True, False))
