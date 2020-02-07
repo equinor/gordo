@@ -83,7 +83,7 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 
     # Verify calculation for unscaled data
     feature_error_unscaled = np.abs(base_df["model-output"].values - y.values)
-    total_anomaly_unscaled = np.linalg.norm(feature_error_unscaled, axis=1)
+    total_anomaly_unscaled = np.square(feature_error_unscaled).mean(axis=1)
     assert np.allclose(
         feature_error_unscaled, anomaly_df["tag-anomaly-unscaled"].values
     )
