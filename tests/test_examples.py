@@ -47,8 +47,10 @@ def test_faked_DataLakeBackedDataset(MockDataset):
     X, y = dataset.get_data()
 
 
+@mock.patch("azureml.core.authentication.InteractiveLoginAuthentication")
+@mock.patch("gordo.reporters.mlflow.Workspace")
 @mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
-def test_notebooks(MockDataset, tmpdir):
+def test_notebooks(MockDataset, MockInteractiveLogin, MockWorskpace, tmpdir):
     """
     Ensures all notebooks will run without error
     """

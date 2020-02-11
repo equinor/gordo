@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import tempfile
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 from uuid import uuid4
 
 from azureml.core import Workspace
@@ -341,37 +341,28 @@ def batch_log_items(
     return log_batches
 
 
-def get_kwargs_from_secret(name: str, keys: List[str]) -> dict:
+def get_kwargs_from_secret(secret_str: str, keys: List[str]) -> dict:
     """
     Get keyword arguments dictionary from secrets environment variable
 
     Parameters
     ----------
-    name: str
-        Name of the environment variable whose content is a colon separated
-        list of secrets.
+    secret_str: str
+        String of a colon separated list of secrets.
+    keys: List[str]
+        List of keys associated with each element in secrets string.
 
     Returns
     -------
     kwargs: dict
         Dictionary of keyword arguments parsed from environment variable.
     """
-    secret_str = os.getenv(name)
-
-    if secret_str is None:
-        raise MlflowLoggingError(f"The value for env var '{name}' must not be `None`.")
-
-    if secret_str:
-        elements = secret_str.split(":")
-        if len(elements) != len(keys):
-            raise MlflowLoggingError(
-                "`keys` len {len(keys)} must be of equal length with env var {name} elements {len(elements)}."
-            )
-        kwargs = {key: elements[i] for i, key in enumerate(keys)}
-    else:
-        kwargs = {}
-
-    return kwargs
+    elements = secret_str.split(":")
+    if len(elements) != len(keys):
+        raise MlflowLoggingError(
+            f"`keys` len {len(keys)} must be of equal number of elements {len(elements)} parsed from secrets str."
+        )
+    return {key: elements[i] for i, key in enumerate(keys)}
 
 
 def get_workspace_kwargs() -> dict:
@@ -387,8 +378,13 @@ def get_workspace_kwargs() -> dict:
         AzureML Workspace configuration to use for remote MLFlow tracking. See
         :func:`gordo.builder.mlflow_utils.get_mlflow_client`.
     """
-    return get_kwargs_from_secret(
-        "AZUREML_WORKSPACE_STR", ["subscription_id", "resource_group", "workspace_name"]
+    secret_str = os.getenv("AZUREML_WORKSPACE_STR")
+    return (
+        get_kwargs_from_secret(
+            secret_str, ["subscription_id", "resource_group", "workspace_name"]
+        )
+        if secret_str
+        else dict()
     )
 
 
@@ -405,9 +401,14 @@ def get_spauth_kwargs() -> dict:
         AzureML ServicePrincipalAuthentication keyword arguments. See
         :func:`gordo.builder.mlflow_utils.get_mlflow_client`
     """
-    return get_kwargs_from_secret(
-        "DL_SERVICE_AUTH_STR",
-        ["tenant_id", "service_principal_id", "service_principal_password"],
+    secret_str = os.getenv("DL_SERVICE_AUTH_STR")
+    return (
+        get_kwargs_from_secret(
+            secret_str,
+            ["tenant_id", "service_principal_id", "service_principal_password"],
+        )
+        if secret_str
+        else dict()
     )
 
 
@@ -491,6 +492,7 @@ class MlFlowReporter(BaseReporter):
 
         workspace_kwargs = get_workspace_kwargs()
         service_principal_kwargs = get_spauth_kwargs()
+
         cache_key = ModelBuilder.calculate_cache_key(machine)
 
         with mlflow_context(

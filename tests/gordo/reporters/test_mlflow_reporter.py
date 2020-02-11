@@ -216,41 +216,44 @@ def test_get_machine_log_items(metadata):
     assert all(type(p) == Param for p in params)
 
 
-@pytest.mark.parametrize(
-    "secret_str,keys,keys_valid",
-    [
-        ("dummy1:dummy2:dummy3", ["key1", "key2", "key3"], True),
-        ("dummy1:dummy2:dummy3", ["key1", "key2"], False),
-    ],
-)
-def test_get_kwargs_from_secret(monkeypatch, secret_str, keys, keys_valid):
+def test_get_kwargs_from_secret_invalid():
     """
-    Test that service principal kwargs are generated correctly if env var present
+    Test that method fails with number of secret elements mismatch number of keys
     """
-    env_var_name = "TEST_SECRET"
-
-    # TEST_SECRET doesn't exist as env var
     with pytest.raises(ReporterException):
-        mlu.get_kwargs_from_secret(env_var_name, keys)
+        mlu.get_kwargs_from_secret("dummy1:dummy2:dummy3", ["key1", "key2"])
 
-    # TEST_SECRET exists as env var
-    monkeypatch.setenv(name=env_var_name, value=secret_str)
-    if keys_valid:
-        kwargs = mlu.get_kwargs_from_secret(env_var_name, keys)
-        for key, value in zip(keys, secret_str.split(":")):
-            assert kwargs[key] == value
-    else:
-        with pytest.raises(ReporterException):
-            mlu.get_kwargs_from_secret(env_var_name, keys)
+    with pytest.raises(AttributeError):
+        mlu.get_kwargs_from_secret(None, ["key1", "key2"])
 
 
-def test_workspace_spauth_kwargs():
-    """Make sure an error is thrown when env vars not set"""
-    with pytest.raises(ReporterException):
-        mlu.get_workspace_kwargs()
+def test_workspace_kwargs(monkeypatch):
+    """
+    Test that appropriate kwargs dict is returned
+    """
+    assert mlu.get_workspace_kwargs() == {}
 
-    with pytest.raises(ReporterException):
-        mlu.get_spauth_kwargs()
+    monkeypatch.setenv("AZUREML_WORKSPACE_STR", "test:test:test")
+    assert mlu.get_workspace_kwargs() == {
+        "subscription_id": "test",
+        "resource_group": "test",
+        "workspace_name": "test",
+    }
+
+
+def test_spauth_kwargs(monkeypatch):
+    """
+    Test that appropriate kwargs dict is returned
+    """
+
+    assert mlu.get_spauth_kwargs() == {}
+
+    monkeypatch.setenv("DL_SERVICE_AUTH_STR", "test:test:test")
+    assert mlu.get_spauth_kwargs() == {
+        "tenant_id": "test",
+        "service_principal_id": "test",
+        "service_principal_password": "test",
+    }
 
 
 def test_MachineEncoder(metadata):
