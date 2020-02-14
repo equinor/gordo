@@ -82,7 +82,7 @@ class PostgresReporter(BaseReporter):
 
 
 class Machine(Model):
-    name = CharField(index=True, unique=True)
+    name = CharField(index=True, unique=False)
     dataset = BinaryJSONField()
     model = BinaryJSONField()
     metadata = BinaryJSONField()

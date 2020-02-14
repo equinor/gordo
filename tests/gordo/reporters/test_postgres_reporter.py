@@ -47,3 +47,16 @@ def test_postgres_exceptions(metadata, postgresdb):
     reporter = PostgresReporter(host="localhost")
     with pytest.raises(ReporterException):
         reporter.report("This it not a a machine instance.")  # type: ignore
+
+
+def test_overwrite_report(postgresdb, metadata):
+    """
+    Ensure saving same machine is ok.
+    """
+    reporter = PostgresReporter(host="localhost")
+    machine = Machine(**metadata)
+
+    reporter.report(machine)
+
+    # Reporting twice should be ok.
+    reporter.report(machine)
