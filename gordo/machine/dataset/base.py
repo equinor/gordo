@@ -19,6 +19,7 @@ class InsufficientDataError(ValueError):
 class GordoBaseDataset:
 
     _params: Dict[Any, Any] = dict()  # provided by @capture_args on child's __init__
+    _metadata: Dict[Any, Any] = dict()
 
     @abc.abstractmethod
     def get_data(self):
@@ -73,8 +74,8 @@ class GordoBaseDataset:
         Return metadata about the dataset in primitive / json encode-able dict form.
         """
 
-    @staticmethod
     def join_timeseries(
+        self,
         series_iterable: Iterable[pd.Series],
         resampling_startpoint: datetime,
         resampling_endpoint: datetime,
@@ -121,7 +122,11 @@ class GordoBaseDataset:
         resampled_series = []
         missing_data_series = []
 
+        key = "tag_loading_metadata"
+        self._metadata[key] = dict()
+
         for series in series_iterable:
+            self._metadata[key][series.name] = dict(original_length=len(series))
             try:
                 resampled = GordoBaseDataset._resample(
                     series,
@@ -134,17 +139,24 @@ class GordoBaseDataset:
                 missing_data_series.append(series.name)
             else:
                 resampled_series.append(resampled)
-
+                self._metadata[key][series.name].update(
+                    dict(resampled_length=len(resampled))
+                )
         if missing_data_series:
             raise InsufficientDataError(
                 f"The following features are missing data: {missing_data_series}"
             )
 
-        new_series = pd.concat(resampled_series, axis=1, join="inner")
+        joined_df = pd.concat(resampled_series, axis=1, join="inner")
+
         # Before returning, delete all rows with NaN, they were introduced by the
         # insertion of NaNs in the beginning of all timeseries
+        dropped_na = joined_df.dropna()
 
-        return new_series.dropna()
+        self._metadata[key]["aggregate_metadata"] = dict(
+            joined_length=len(joined_df), dropped_na_length=len(dropped_na)
+        )
+        return dropped_na
 
     @staticmethod
     def _resample(

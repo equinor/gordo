@@ -18,6 +18,15 @@ from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.sensor_tag import SensorTag
 
 
+@pytest.fixture
+def dataset():
+    return RandomDataset(
+        train_start_date="2017-12-25 06:00:00Z",
+        train_end_date="2017-12-29 06:00:00Z",
+        tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+    )
+
+
 def create_timeseries_list():
     """Create three dataframes with different resolution and different start/ends"""
     # Test for no NaNs, test for correct first and last date
@@ -57,19 +66,10 @@ def create_timeseries_list():
     )
 
 
-def test_random_dataset_attrs():
+def test_random_dataset_attrs(dataset):
     """
     Test expected attributes
     """
-
-    start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
-    end = dateutil.parser.isoparse("2017-12-29 06:00:00Z")
-
-    dataset = RandomDataset(
-        train_start_date=start,
-        train_end_date=end,
-        tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-    )
 
     assert isinstance(dataset, GordoBaseDataset)
     assert hasattr(dataset, "get_data")
@@ -85,7 +85,7 @@ def test_random_dataset_attrs():
     assert isinstance(metadata, dict)
 
 
-def test_join_timeseries():
+def test_join_timeseries(dataset):
 
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
 
@@ -95,7 +95,7 @@ def test_join_timeseries():
     timedelta = pd.Timedelta("7 minutes")
     resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
     resampling_end = dateutil.parser.isoparse("2018-01-15 08:00:00Z")
-    all_in_frame = GordoBaseDataset.join_timeseries(
+    all_in_frame = dataset.join_timeseries(
         timeseries_list, resampling_start, resampling_end, frequency
     )
 
@@ -139,18 +139,18 @@ def test_join_timeseries_empty_series(value, n_rows, resolution, row_threshold, 
         TimeSeriesDataset(**kwargs).get_data()
 
 
-def test_join_timeseries_nonutcstart():
+def test_join_timeseries_nonutcstart(dataset):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
     frequency = "7T"
     resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00+07:00")
     resampling_end = dateutil.parser.isoparse("2018-01-12 13:07:00+07:00")
-    all_in_frame = GordoBaseDataset.join_timeseries(
+    all_in_frame = dataset.join_timeseries(
         timeseries_list, resampling_start, resampling_end, frequency
     )
     assert len(all_in_frame) == 1854
 
 
-def test_join_timeseries_with_gaps():
+def test_join_timeseries_with_gaps(dataset):
 
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
 
@@ -166,7 +166,7 @@ def test_join_timeseries_with_gaps():
     resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00Z")
     resampling_end = dateutil.parser.isoparse("2018-01-12 07:00:00Z")
 
-    all_in_frame = GordoBaseDataset.join_timeseries(
+    all_in_frame = dataset.join_timeseries(
         timeseries_with_holes, resampling_start, resampling_end, frequency
     )
     assert all_in_frame.index[0] == pd.Timestamp(latest_start)
