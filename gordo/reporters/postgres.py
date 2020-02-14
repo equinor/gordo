@@ -1,12 +1,15 @@
 import json
 import logging
+
+import peewee
 from playhouse.postgres_ext import (
     Model,
     PostgresqlExtDatabase,
     CharField,
     BinaryJSONField,
+    PrimaryKeyField,
 )
-from playhouse.shortcuts import dict_to_model
+from playhouse.shortcuts import dict_to_model, model_to_dict
 
 from .base import BaseReporter
 from gordo.util.utils import capture_args
@@ -76,13 +79,23 @@ class PostgresReporter(BaseReporter):
 
                 # Ensure it's serializable using MachineEncoder
                 record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
-                dict_to_model(Machine, record, ignore_unknown=True).save()
+                model = dict_to_model(Machine, record, ignore_unknown=True)
+                try:
+                    saved_machine = Machine.get(Machine.name == machine.name)
+                except peewee.DoesNotExist:
+                    model.save()
+                else:
+                    model.id = saved_machine.id
+                    query = saved_machine.update(**model_to_dict(model))
+                    query.execute()
+
         except Exception as exc:
             raise PostgresReporterException(exc)
 
 
 class Machine(Model):
-    name = CharField(index=True, unique=False)
+    id = PrimaryKeyField()
+    name = CharField(index=True, unique=True)
     dataset = BinaryJSONField()
     model = BinaryJSONField()
     metadata = BinaryJSONField()
