@@ -7,7 +7,6 @@ from playhouse.postgres_ext import (
     PostgresqlExtDatabase,
     CharField,
     BinaryJSONField,
-    PrimaryKeyField,
 )
 from playhouse.shortcuts import dict_to_model, model_to_dict
 
@@ -85,7 +84,6 @@ class PostgresReporter(BaseReporter):
                 except peewee.DoesNotExist:
                     model.save()
                 else:
-                    model.id = saved_machine.id
                     query = saved_machine.update(**model_to_dict(model))
                     query.execute()
 
@@ -94,13 +92,13 @@ class PostgresReporter(BaseReporter):
 
 
 class Machine(Model):
-    id = PrimaryKeyField()
     name = CharField(index=True, unique=True)
     dataset = BinaryJSONField()
     model = BinaryJSONField()
     metadata = BinaryJSONField()
 
     class Meta:
+        primary_key = False
         database = db
         table_name = "machine"
 
