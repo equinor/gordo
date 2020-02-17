@@ -180,20 +180,40 @@ def test_datetime_to_ms_since_epoch(x, expected):
     assert mlu._datetime_to_ms_since_epoch(x) == expected
 
 
-def test_get_batch_kwargs(metadata):
+@pytest.mark.parametrize(
+    "n_metrics,n_max_metrics,n_params,n_max_params,expected_n_batches",
+    [
+        # N max metrics limiting
+        (20, 5, 20, 20, 4),
+        # N max params limiting
+        (20, 20, 20, 5, 4),
+        # N max equal
+        (20, 5, 20, 5, 4),
+    ],
+)
+def test_batch_log_items(
+    n_metrics, n_max_metrics, n_params, n_max_params, expected_n_batches
+):
+    metrics = ["dummy_metric"] * n_metrics
+    params = ["dummy_param"] * n_params
+
+    log_batches = mlu.batch_log_items(metrics, params, n_max_metrics, n_max_params)
+
+    # Make sure that we get the number of batches based on max number of metrics, params allowed
+    assert len(log_batches) == expected_n_batches
+
+    # Regardless of batch, each batch kwargs should have the same keys, "metrics" and "params"
+    assert all([("metrics" in b) and ("params" in b) for b in log_batches])
+
+
+def test_get_machine_log_items(metadata):
     """
     Test that dicts are correctly converted to MLflow types or errors raised
     """
-    metadata = Machine(**metadata)
+    metrics, params = mlu.get_machine_log_items(Machine(**metadata))
 
-    def _test_mlflow_batch_arg_types(metadata):
-        batch_kwargs = mlu.get_batch_kwargs(metadata)
-
-        assert all(type(m) == Metric for m in batch_kwargs["metrics"])
-        assert all(type(p) == Param for p in batch_kwargs["params"])
-
-    # With cross validation and metric scores
-    _test_mlflow_batch_arg_types(metadata)
+    assert all(type(m) == Metric for m in metrics)
+    assert all(type(p) == Param for p in params)
 
 
 @pytest.mark.parametrize(
