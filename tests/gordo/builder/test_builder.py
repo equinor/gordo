@@ -511,6 +511,7 @@ def test_provide_saved_model_caching(
             model=model_config,
             metadata=metadata,
             project_name="test",
+            runtime={"something": True},
         )
     ).build(
         output_dir=new_output_dir,
@@ -524,6 +525,8 @@ def test_provide_saved_model_caching(
     model2_creation_date = (
         second_machine.metadata.build_metadata.model.model_creation_date
     )
+    assert "something" in second_machine.runtime
+
     if should_be_equal:
         assert model1_creation_date == model2_creation_date
     else:
