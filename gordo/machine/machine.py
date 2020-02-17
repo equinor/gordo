@@ -132,7 +132,7 @@ class Machine:
         # Avoid circular dependency with reporters which import Machine
         from gordo.reporters.base import BaseReporter
 
-        for reporter in map(BaseReporter.from_dict, self.runtime["reporters"]):
+        for reporter in map(BaseReporter.from_dict, self.runtime.get("reporters", [])):
             logger.debug(f"Using reporter: {reporter}")
             reporter.report(self)
 
