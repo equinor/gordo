@@ -133,6 +133,9 @@ class ModelBuilder:
                 metadata["metadata"][
                     "user_defined"
                 ] = self.machine.metadata.user_defined
+
+                metadata["runtime"] = self.machine.runtime
+
                 machine = Machine(**metadata)
 
             # Otherwise build and cache the model
