@@ -53,14 +53,16 @@ def test_overwrite_report(postgresdb, metadata):
     """
     Ensure saving same machine is ok.
     """
-    reporter = PostgresReporter(host="localhost")
+    reporter1 = PostgresReporter(host="localhost")
+    reporter2 = PostgresReporter(host="localhost")
+
     machine1 = Machine(**metadata)
     machine2 = Machine(**metadata)
 
-    reporter.report(machine1)
+    reporter1.report(machine1)
 
     # Reporting twice should be ok.
-    reporter.report(machine2)
+    reporter2.report(machine2)
 
     results = PostgresMachine.select().where(PostgresMachine.name == machine1.name)
     assert len([result for result in results]) == 1

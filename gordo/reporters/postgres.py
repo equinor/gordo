@@ -80,11 +80,13 @@ class PostgresReporter(BaseReporter):
                 record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
                 model = dict_to_model(Machine, record, ignore_unknown=True)
                 try:
-                    saved_machine = Machine.get(Machine.name == machine.name)
+                    Machine.get(Machine.name == machine.name)
                 except peewee.DoesNotExist:
                     model.save()
                 else:
-                    query = saved_machine.update(**model_to_dict(model))
+                    query = Machine.update(**model_to_dict(model)).where(
+                        Machine.name == machine.name
+                    )
                     query.execute()
 
         except Exception as exc:
