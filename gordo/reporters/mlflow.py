@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import tempfile
-from typing import List
+from typing import Dict, List, Union, Tuple
 from uuid import uuid4
 
 from azureml.core import Workspace
@@ -185,7 +185,7 @@ def epoch_now() -> int:
     return _datetime_to_ms_since_epoch(datetime.now(tz=UTC))
 
 
-def get_batch_kwargs(machine: Machine) -> dict:
+def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
     """
     Create flat lists of MLflow logging entities from multilevel dictionary
 
@@ -198,19 +198,18 @@ def get_batch_kwargs(machine: Machine) -> dict:
 
     Returns
     -------
-    batch_kwargs: dict
-        Dict with `metrics` and `param_list` lists for passing to
-        `mlflow.tracking.MlflowClient.log_batch`. The metrics key contains a list of
-        Mlflow `Metric` instances, and the param_list key contains a list of `Param`
-        instances.
+    metrics: List[Metric]
+        List of MLFlow Metric objects to log.
+    params: List[Param]
+        List of MLFlow Param objects to log.
     """
 
-    metric_list: List[Metric] = list()
+    metrics: List[Metric] = list()
     build_metadata = machine.metadata.build_metadata
 
     # Project/machine parameters
     keys = ["project_name", "name"]
-    param_list = [Param(attr, getattr(machine, attr)) for attr in keys]
+    params = [Param(attr, getattr(machine, attr)) for attr in keys]
 
     # Dataset parameters
     dataset_keys = [
@@ -220,17 +219,15 @@ def get_batch_kwargs(machine: Machine) -> dict:
         "row_filter",
         "row_filter_buffer_size",
     ]
-    param_list.extend(Param(k, str(getattr(machine.dataset, k))) for k in dataset_keys)
+    params.extend(Param(k, str(getattr(machine.dataset, k))) for k in dataset_keys)
 
     # Model parameters
     model_keys = ["model_creation_date", "model_builder_version", "model_offset"]
-    param_list.extend(
-        Param(k, str(getattr(build_metadata.model, k))) for k in model_keys
-    )
+    params.extend(Param(k, str(getattr(build_metadata.model, k))) for k in model_keys)
 
     # Parse cross-validation split metadata
     splits = build_metadata.model.cross_validation.splits
-    param_list.extend(Param(k, str(v)) for k, v in splits.items())
+    params.extend(Param(k, str(v)) for k, v in splits.items())
 
     # Parse cross-validation metrics
 
@@ -250,11 +247,9 @@ def get_batch_kwargs(machine: Machine) -> dict:
 
         # Summary stats per metric
         for sk in subkeys:
-            metric_list.append(
-                Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0)
-            )
+            metrics.append(Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0))
         # Append value for each fold with increasing steps
-        metric_list.extend(
+        metrics.extend(
             Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i) for i in range(n_folds)
         )
 
@@ -266,22 +261,84 @@ def get_batch_kwargs(machine: Machine) -> dict:
             "Key 'build-metadata.model.history.params' not found found in metadata."
         )
     else:
-        metric_list.extend(
+        metrics.extend(
             Metric(k, float(getattr(build_metadata.model, k)), epoch_now(), 0)
             for k in ["model_training_duration_sec"]
         )
         for m in meta_params["metrics"]:
             data = build_metadata.model.model_meta["history"][m]
-            metric_list.extend(
+            metrics.extend(
                 Metric(m, float(x), timestamp=epoch_now(), step=i)
                 for i, x in enumerate(data)
             )
-        param_list.extend(
+        params.extend(
             Param(k, str(meta_params[k]))
             for k in (p for p in meta_params if p != "metrics")
         )
 
-    return {"metrics": metric_list, "params": param_list}
+    return metrics, params
+
+
+def batch_log_items(
+    metrics: List[Metric],
+    params: List[Param],
+    n_max_metrics: int = 200,
+    n_max_params: int = 100,
+) -> List[Dict[str, Union[Metric, Param]]]:
+    """
+    Split metrics, params and tags to batches that satisfy limits imposed by MLFlow and AzureML
+
+    NOTE: The default maximum number of metrics are and parameters set here are
+    those set by AzureML as per today, 18 February 2020.
+
+    Also, there the 1mb request size is not evaluated here, as doing this
+    should not be necessary and is not addressable in a succint way. MLflow
+    also has a limit of 1000 log items per request, but reaching this is not
+    possible with AzureML's current limit on metrics.
+
+    Parameters
+    ----------
+    metrics: List[Metric]
+        List of MLFlow Metric objects to log.
+    params: List[Param]
+        List of MLFlow Param objects to log.
+    n_max_metrics:int
+        Limit to number of metrics AzureML allows per batch log request payload.
+    n_max_params:int
+        Limit to number of params MLFlow allows per batch log request payload.
+
+    Returns
+    -------
+    log_batches: List[Dict[str, Union[Metric, Param]]]
+        List of MlflowClinet.log_batch keyworkd arguments, split to quatnitites
+        that respect limits present for MLFlow and AzureML.
+    """
+
+    def _calc_n_batches(n: int, n_max: int):
+        """
+        Calculate the number of batches required to log n items with batches of n_max
+        """
+        return (n // n_max) + (1 if (n % n_max) else 0)
+
+    n_batches = max(
+        _calc_n_batches(len(metrics), n_max_metrics),
+        _calc_n_batches(len(params), n_max_params),
+    )
+
+    i = 0
+    j = 0
+    log_batches = list()
+    for _ in range(n_batches):
+        log_batches.append(
+            {
+                "metrics": metrics[i : i + n_max_metrics],
+                "params": params[j : j + n_max_params],
+            }
+        )
+        i += n_max_metrics
+        j += n_max_params
+
+    return log_batches
 
 
 def get_kwargs_from_secret(name: str, keys: List[str]) -> dict:
@@ -409,8 +466,9 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
     machine: Machine
         Machine to log with MlflowClient.
     """
-    # Log params and metrics
-    mlflow_client.log_batch(run_id, **get_batch_kwargs(machine))
+    # Log machine metrics and params
+    for batch_kwargs in batch_log_items(*get_machine_log_items(machine)):
+        mlflow_client.log_batch(run_id, **batch_kwargs)
 
     # Send configs as JSON artifacts
     try:
