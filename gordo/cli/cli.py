@@ -15,6 +15,7 @@ from gordo.machine.dataset.datasets import (
     InsufficientDataAfterRowFilteringError,
 )
 from gunicorn.glogging import Logger
+from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 
 import jinja2
 import yaml
@@ -35,6 +36,7 @@ from gordo.reporters.exceptions import ReporterException
 EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
     PermissionError: 20,
     FileNotFoundError: 30,
+    DatalakeIncompleteTransferException: 40,
     SensorTagNormalizationError: 60,
     NoSuitableDataProviderError: 70,
     InsufficientDataError: 80,
