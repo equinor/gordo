@@ -193,11 +193,11 @@ def test_row_filter():
     X, _ = TimeSeriesDataset(**kwargs).get_data()
     assert 577 == len(X)
 
-    X, _ = TimeSeriesDataset(row_filter="'Tag 1' < 5000", **kwargs).get_data()
+    X, _ = TimeSeriesDataset(row_filter="`Tag 1` < 5000", **kwargs).get_data()
     assert 8 == len(X)
 
     X, _ = TimeSeriesDataset(
-        row_filter="'Tag 1' / 'Tag 3' < 0.999", **kwargs
+        row_filter="`Tag 1` / `Tag 3` < 0.999", **kwargs
     ).get_data()
     assert 3 == len(X)
 
@@ -362,4 +362,4 @@ def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value
     )
 
     with pytest.raises(InsufficientDataAfterRowFilteringError):
-        TimeSeriesDataset(row_filter=f"'Tag 1' < {filter_value}", **kwargs).get_data()
+        TimeSeriesDataset(row_filter=f"`Tag 1` < {filter_value}", **kwargs).get_data()
