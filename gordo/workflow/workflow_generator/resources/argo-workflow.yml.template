@@ -876,6 +876,8 @@ spec:
                                  value: /gordo/models/{{project_name}}/{{project_revision}}
                                - name: GORDO_LOG_LEVEL
                                  value: "{{log_level}}"
+                               - name: EXPECTED_MODELS
+                                 value: [{% for machine in machines %}"{{ machine.name }}",{% endfor %}]
 
                              resources:
                                requests:

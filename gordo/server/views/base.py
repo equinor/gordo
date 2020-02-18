@@ -268,7 +268,14 @@ class RevisionListView(Resource):
         )
 
 
+class ExpectedModels(Resource):
+    @api.doc(description="Models that the server expects to be able to serve.")
+    def get(self, gordo_project: str):
+        return jsonify({"expected-models": current_app.config["EXPECTED_MODELS"]})
+
+
 api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
+api.add_resource(ExpectedModels, "/gordo/v0/<gordo_project>/expected-models")
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
 api.add_resource(
     MetaDataView,
