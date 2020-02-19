@@ -160,6 +160,16 @@ def test_list_revisions_listdir_fail(caplog):
     assert resp.json["available-revisions"] == [expected_revision]
 
 
+def test_model_list_view_non_existant_proj():
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=os.path.join("does", "not", "exist")):
+        app = server.build_app()
+        app.testing = True
+        client = app.test_client()
+        resp = client.get("/gordo/v0/test-project/models")
+        assert resp.status_code == 200
+        assert resp.json["models"] == []
+
+
 @pytest.mark.parametrize(
     "revision_to_models",
     [
