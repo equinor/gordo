@@ -632,7 +632,7 @@ spec:
       image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}
       env:
       - name: OUTPUT_DIR
-        value: "/gordo/models/{{project_name}}/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
+        value: "/gordo/models/{{project_name}}/models/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
       - name: MODEL_REGISTER_DIR
         value: "/gordo/models/{{project_name}}/model_register"
       - name: PROJECT_NAME
@@ -873,7 +873,7 @@ spec:
                                timeoutSeconds: 5
                              env:
                                - name: MODEL_COLLECTION_DIR
-                                 value: /gordo/models/{{project_name}}/{{project_revision}}
+                                 value: /gordo/models/{{project_name}}/models/{{project_revision}}
                                - name: GORDO_LOG_LEVEL
                                  value: "{{log_level}}"
                                - name: EXPECTED_MODELS
