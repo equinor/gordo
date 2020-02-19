@@ -6,7 +6,7 @@ a model, dataset, metadata and everything
 needed to create and build a ML model to
 be served by a deployment.
 
-.. automodule:: gordo.machine.machine.Machine
+.. automodule:: gordo.machine.machine
     :members:
     :undoc-members:
     :show-inheritance:

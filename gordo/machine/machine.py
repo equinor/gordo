@@ -75,6 +75,23 @@ class Machine:
     def from_config(  # type: ignore
         cls, config: Dict[str, Any], project_name: str, config_globals=None
     ):
+        """
+        Construct an instance from a block of YAML config file which represents
+        a single Machine.
+
+        Parameters
+        ----------
+        config: dict
+            The loaded block of config which represents a 'Machine' in YAML
+        project_name: str
+            Name of the project this Machine belongs to.
+        config_globals:
+            The block of config within the YAML file within `globals`
+
+        Returns
+        -------
+        :class:`~Machine`
+        """
         if config_globals is None:
             config_globals = dict()
 
@@ -114,7 +131,19 @@ class Machine:
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "Machine":
+        """
+        Get an instance from a dict taken from :func:`~Machine.to_dict`
+        """
+        # No special treatment required, just here for consistency.
+        return cls(**d)
+
     def to_dict(self):
+        """
+        Convert to a ``dict`` representation along with all attributes which
+        can also be converted to a ``dict``. Can reload with :func:`~Machine.from_dict`
+        """
         return {
             "name": self.name,
             "dataset": self.dataset.to_dict(),
@@ -128,6 +157,17 @@ class Machine:
     def report(self):
         """ 
         Run any reporters in the machine's runtime for the current state.
+
+        Reporters implement the :class:`gordo.reporters.base.BaseReporter` and
+        can be specified in a config file of the machine for example:
+
+        .. code-block:: yaml
+
+            runtime:
+              reporters:
+                - gordo.reporters.postgres.PostgresReporter:
+                    host: my-special-host
+
         """
         # Avoid circular dependency with reporters which import Machine
         from gordo.reporters.base import BaseReporter
