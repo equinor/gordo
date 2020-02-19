@@ -245,8 +245,12 @@ class ModelListView(Resource):
 
     @api.doc(description="List the name of the models capable of being served.")
     def get(self, gordo_project: str):
-        available_models = os.listdir(g.collection_dir)
-        return jsonify({"models": available_models})
+        try:
+            available_models = os.listdir(g.collection_dir)
+        except FileNotFoundError:
+            available_models = []
+        finally:
+            return jsonify({"models": available_models})
 
 
 class RevisionListView(Resource):
