@@ -497,6 +497,9 @@ def test_expected_models_in_workflow(repo_dir):
     # basically want to get to 'gordo-server-deployment' and ensure the EXPECTED_MODELS env var
     # is set with a list (in string form) of model names which can be loaded.
     expected_models_str = (
-        workflow_str.split("EXPECTED_MODELS")[1].split("value:")[1].split("\n")[0]
+        workflow_str.split("EXPECTED_MODELS")[1]
+        .split("value:")[1]
+        .split("|")[1]
+        .split()[0]
     )
     assert isinstance(yaml.safe_load(expected_models_str), list)
