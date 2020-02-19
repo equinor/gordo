@@ -131,18 +131,12 @@ def load(source_dir: Union[os.PathLike, str]) -> Any:
 
 def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
     """
-    Serialize an object into a directory
-
-    The object must either be picklable or implement BOTH a ``GordoBase.save_to_dir`` AND
-    ``GordoBase.load_from_dir`` methods. This object can hold multiple objects, specifically
-    it can be a sklearn.pipeline.[FeatureUnion, Pipeline] object, in such a case
-    it's sub transformers (steps/transformer_list) will be serialized recursively.
+    Serialize an object into a directory, the object must be pickle-able.
 
     Parameters
     ----------
     obj
-        The object to dump. Must be picklable or implement
-        a ``save_to_dir`` AND ``load_from_dir`` method.
+        The object to dump. Must be pickle-able.
     dest_dir: Union[os.PathLike, str]
         The directory to which to save the model metadata: dict - any additional
         metadata to be saved alongside this model if it exists, will be returned
@@ -163,9 +157,7 @@ def dump(obj: object, dest_dir: Union[os.PathLike, str], metadata: dict = None):
     >>> from gordo import serializer
     >>> from tempfile import TemporaryDirectory
     >>> pipe = Pipeline([
-    ...     # PCA is picklable
     ...     ('pca', PCA(3)),
-    ...     # KerasAutoEncoder implements both `save_to_dir` and `load_from_dir`
     ...     ('model', KerasAutoEncoder(kind='feedforward_hourglass'))])
     >>> with TemporaryDirectory() as tmp:
     ...     serializer.dump(obj=pipe, dest_dir=tmp)
