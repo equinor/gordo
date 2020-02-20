@@ -22,9 +22,6 @@
   <a href="https://gordo.readthedocs.io/en/latest/?badge=latest">
     <img src="https://readthedocs.org/projects/gordo/badge/?version=latest" alt="Documentation"/>
   </a> 
-  <a href="https://dependabot.com">
-    <img src="https://api.dependabot.com/badges/status?host=github&repo=equinor/gordo" alt="Dependabot"/>
-  </a>
 </div>
 
 ---
