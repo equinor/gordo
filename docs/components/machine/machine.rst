@@ -35,6 +35,7 @@ And to construct this into a python object:
 .. code-block:: python
 
     >>> from gordo.machine import Machine
+    >>> # `config` is the result of the parsed and loaded yaml element above
     >>> machine = Machine.from_config(config, project_name='test-proj')
     >>> machine.name
     ct-23-0001

@@ -31,7 +31,7 @@ Into Definitiion
 ================
 
 The ability to take a Python object, such as a scikit-learn
-pipeline and convert it into a primitive ``dict``, and thus inserted
+pipeline and convert it into a primitive ``dict``, which can then be inserted
 into a YAML config file.
 
 .. automodule:: gordo.serializer.into_definition

@@ -77,7 +77,7 @@ class Machine:
     ):
         """
         Construct an instance from a block of YAML config file which represents
-        a single Machine.
+        a single Machine; loaded as a ``dict``.
 
         Parameters
         ----------
