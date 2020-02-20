@@ -2,7 +2,7 @@
 
 import abc
 import logging
-from typing import Iterable, Union, List, Callable, Dict, Any
+from typing import Iterable, Union, List, Callable, Dict, Any, Tuple
 from datetime import datetime
 
 import pandas as pd
@@ -22,16 +22,18 @@ class GordoBaseDataset:
     _metadata: Dict[Any, Any] = dict()
 
     @abc.abstractmethod
-    def get_data(self):
+    def get_data(
+        self,
+    ) -> Tuple[Union[np.ndarray, pd.DataFrame], Union[np.ndarray, pd.DataFrame]]:
         """
-        Using initialized params, returns X, y as numpy arrays.
+        Return X, y data as numpy or pandas' dataframes given current state
         """
 
     @abc.abstractmethod
     def to_dict(self) -> dict:
         """
         Serialize this object into a dict representation, which can be used to
-        initialize a new object after popping 'type' from the dict.
+        initialize a new object using :func:`~GordoBaseDataset.from_dict`
 
         Returns
         -------
@@ -54,7 +56,7 @@ class GordoBaseDataset:
     @abc.abstractmethod
     def from_dict(cls, config: Dict[str, Any]) -> "GordoBaseDataset":
         """
-        Construct the dataset from a config without doing any validation
+        Construct the dataset using a config from :func:`~GordoBaseDataset.to_dict`
         """
         from gordo.machine.dataset import datasets
 
@@ -71,7 +73,7 @@ class GordoBaseDataset:
     @abc.abstractmethod
     def get_metadata(self):
         """
-        Return metadata about the dataset in primitive / json encode-able dict form.
+        Get metadata about the current state of the dataset
         """
 
     def join_timeseries(
