@@ -137,31 +137,7 @@ class BaseModelView(Resource):
                 ],
                 'time-seconds': '0.1937'
             }
-    """
-        return self._process_request()
-
-    def _process_request(self):
         """
-        Construct a response which fetches model outputs (transformed) as well
-        as original input, transformed model input and, if applicable, inverse
-        transformed model output.
-
-        Parameters
-        ----------
-        context: dict
-            Current context mapping of the request. Must be dict where
-            items are capable of JSON serialization
-
-        Returns
-        -------
-        flask.Response
-        """
-        context = dict()  # type: typing.Dict[str, typing.Any]
-        context["status-code"] = 200
-        context["tags"] = self.tags
-        context["target-tags"] = self.target_tags
-
-        data = None
         context: typing.Dict[typing.Any, typing.Any] = dict()
         X = g.X
         process_request_start_time_s = timeit.default_timer()
