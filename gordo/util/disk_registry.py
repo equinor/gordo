@@ -55,7 +55,7 @@ def write_key(registry_dir: Union[os.PathLike, str], key: str, val: AnyStr):
 
 def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnyStr]:
     """
-    Retrieves the value with key `reg_key`from the registry, None if it does not
+    Retrieves the value with key reg_key from the registry, None if it does not
     exists.
 
     Parameters
@@ -67,7 +67,7 @@ def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnySt
 
     Returns
     -------
-    Optional[AnyStr]
+    Optional[AnyStr]:
         The value of `key` in the registry, None if no value is registered with that key
         in the registry.
     """
@@ -90,7 +90,7 @@ def get_value(registry_dir: Union[os.PathLike, str], key: str) -> Optional[AnySt
 
 def delete_value(registry_dir: Union[os.PathLike, str], key: str) -> bool:
     """
-    Deletes the value with key `reg_key`from the registry, and returns True if it
+    Deletes the value with key reg_key from the registry, and returns True if it
     existed.
 
     Parameters
@@ -102,7 +102,7 @@ def delete_value(registry_dir: Union[os.PathLike, str], key: str) -> bool:
 
     Returns
     -------
-    bool
+    bool:
         True if the key existed, false otherwise
     """
     key_file_path = Path(registry_dir).joinpath(key)
