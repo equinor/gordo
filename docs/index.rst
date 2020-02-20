@@ -31,6 +31,7 @@ and deployed as a REST API on Kubernetes.
     ./components/server/server.rst
     ./components/cli.rst
     ./components/client.rst
+    ./components/workflow.rst
 
 
 

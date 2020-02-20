@@ -23,6 +23,12 @@ def _calculate_influx_resources(nr_of_machines):
 
 class NormalizedConfig:
 
+    """
+    Handles the conversion of a single Machine representation in config format
+    and updates it with any features which are 'left out' inside of ``globals``
+    key or the default config globals held here.
+    """
+
     DEFAULT_CONFIG_GLOBALS = {
         "runtime": {
             "reporters": [],
