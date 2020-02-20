@@ -52,36 +52,6 @@ _single_prediction_record = {
 class BaseModelView(Resource):
     """
     The base model view.
-
-    Both POST and GET should return the same data response, but can vary
-    in how it collects the data.
-
-    POST expects data to be provided, GET uses TimeSeriesDataset
-
-    A typical response might look like this::
-
-         {
-        'data': [
-            {
-           'end': ['2016-01-01T00:10:00+00:00'],
-           'model-output': [0.0005317790200933814,
-                            -0.0001525811239844188,
-                            0.0008310950361192226,
-                            0.0015755111817270517],
-           'original-input': [0.9135588550070414,
-                              0.3472517774179448,
-                              0.8994921857179736,
-                              0.11982773108991263],
-           'start': ['2016-01-01T00:00:00+00:00'],
-            },
-            ...
-        ],
-
-     'tags': [{'asset': None, 'name': 'tag-0'},
-              {'asset': None, 'name': 'tag-1'},
-              {'asset': None, 'name': 'tag-2'},
-              {'asset': None, 'name': 'tag-3'}],
-     'time-seconds': '0.1937'}
     """
 
     methods = ["POST"]
@@ -98,6 +68,13 @@ class BaseModelView(Resource):
 
     @property
     def tags(self) -> typing.List[SensorTag]:
+        """
+        The input tags for this model
+
+        Returns
+        -------
+        typing.List[SensorTag]
+        """
         return normalize_sensor_tags(
             g.metadata["dataset"]["tag_list"],
             asset=g.metadata["dataset"].get("asset"),
@@ -106,6 +83,13 @@ class BaseModelView(Resource):
 
     @property
     def target_tags(self) -> typing.List[SensorTag]:
+        """
+        The target tags for this model
+
+        Returns
+        -------
+        typing.List[SensorTag]
+        """
         if "target_tag_list" in g.metadata["dataset"]:
             return normalize_sensor_tags(
                 g.metadata["dataset"]["target_tag_list"],
@@ -123,7 +107,34 @@ class BaseModelView(Resource):
     def post(self):
         """
         Process a POST request by using provided user data
-        """
+
+        A typical response might look like this
+
+        .. code-block:: python
+
+            {
+            'data': [
+                {
+               'end': ['2016-01-01T00:10:00+00:00'],
+               'model-output': [0.0005317790200933814,
+                                -0.0001525811239844188,
+                                0.0008310950361192226,
+                                0.0015755111817270517],
+               'original-input': [0.9135588550070414,
+                                  0.3472517774179448,
+                                  0.8994921857179736,
+                                  0.11982773108991263],
+               'start': ['2016-01-01T00:00:00+00:00'],
+                },
+                ...
+            ],
+
+         'tags': [{'asset': None, 'name': 'tag-0'},
+                  {'asset': None, 'name': 'tag-1'},
+                  {'asset': None, 'name': 'tag-2'},
+                  {'asset': None, 'name': 'tag-3'}],
+         'time-seconds': '0.1937'}
+    """
         return self._process_request()
 
     def _process_request(self):
