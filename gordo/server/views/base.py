@@ -209,7 +209,7 @@ class DownloadModel(Resource):
     """
     Download the trained model
 
-    suitable for reloading via ``gordo.serializer.loads()``
+    suitable for reloading via :func:`gordo.serializer.serializer.loads`
     """
 
     @api.doc(description="Download model, loadable via gordo.serializer.loads")

@@ -275,16 +275,18 @@ class ValidUrlString(BaseDescriptor):
 
     Use:
 
-    class MySpecialClass:
+    .. code-block:: python
 
-        url_attribute = ValidUrlString()
+        class MySpecialClass:
 
-        ...
+            url_attribute = ValidUrlString()
 
-    myspecialclass = MySpecialClass()
+            ...
 
-    myspecialclass.url_attribute = 'this-is-ok'
-    myspecialclass.url_attribute = 'this will r@ise a ValueError'
+        myspecialclass = MySpecialClass()
+
+        myspecialclass.url_attribute = 'this-is-ok'
+        myspecialclass.url_attribute = 'this will r@ise a ValueError'
     """
 
     def __set__(self, instance, value):
