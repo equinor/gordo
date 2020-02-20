@@ -23,7 +23,7 @@ class GordoBaseDataset:
 
     @abc.abstractmethod
     def get_data(
-        self
+        self,
     ) -> Tuple[Union[np.ndarray, pd.DataFrame], Union[np.ndarray, pd.DataFrame]]:
         """
         Return X, y data as numpy or pandas' dataframes given current state
