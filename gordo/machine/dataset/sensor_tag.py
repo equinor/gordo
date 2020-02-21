@@ -36,7 +36,10 @@ TAG_TO_ASSET = [
     TagPatternToAsset(re.compile(r"^1904.", re.IGNORECASE), "1904-jsv"),
     TagPatternToAsset(re.compile(r"^vis.", re.IGNORECASE), "1230-vis"),
     TagPatternToAsset(re.compile(r"^hd.", re.IGNORECASE), "1170-hd"),
-    TagPatternToAsset(re.compile(r"^1219.", re.IGNORECASE), "1219-aah"),
+    TagPatternToAsset(re.compile(r"^1219.", re.IGNORECASE), "1219-aha"),
+    TagPatternToAsset(re.compile(r"^osc.", re.IGNORECASE), "1765-osc"),
+    TagPatternToAsset(re.compile(r"^oss.", re.IGNORECASE), "1766-oss"),
+    TagPatternToAsset(re.compile(r"^ose.", re.IGNORECASE), "1767-ose"),
 ]
 
 
