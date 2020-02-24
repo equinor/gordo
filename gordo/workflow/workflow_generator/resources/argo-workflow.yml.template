@@ -1110,7 +1110,7 @@ spec:
          && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_revision}}" \
-         && kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}
+         && if [ "{{log_level}}" != "DEBUG" ]; then kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}; fi
 
       resources:
         requests:
