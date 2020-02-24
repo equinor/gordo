@@ -4,8 +4,7 @@ import abc
 import itertools
 import logging
 import time
-import typing
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import pandas as pd
 import numpy as np
@@ -135,6 +134,9 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         Takes a multi-layed column dataframe and write points to influx where
         each top level name is treated as the measurement name.
 
+        How the data is written via InfluxDB DataFrameClient in this method
+        determines the schema of the database.
+
         Parameters
         ----------
         predictions: pd.DataFrame
@@ -171,9 +173,9 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
             if len(sub_df.columns) == len(machine.dataset.tag_list):
                 sub_df.columns = [tag.name for tag in machine.dataset.tag_list]
 
-            self._write_to_influx_with_retries(sub_df, tags, top_lvl_name)
+            self._write_to_influx_with_retries(sub_df, top_lvl_name, tags)
 
-    def _write_to_influx_with_retries(self, df, tags, measurement):
+    def _write_to_influx_with_retries(self, df, measurement, tags: Dict[str, Any] = {}):
         """
         Write data to influx with retries and exponential backof. Will sleep
         exponentially longer between each retry, starting at 8 seconds, capped at 5 min.
@@ -181,10 +183,18 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         logger.info(
             f"Writing {len(df)} points to Influx for measurement: {measurement}"
         )
+
         for current_attempt in itertools.count(start=1):
             try:
+                df = ForwardPredictionsIntoInflux._stack_to_name_value_columns(df)
+
                 self.dataframe_client.write_points(
-                    dataframe=df, measurement=measurement, tags=tags, batch_size=10000
+                    dataframe=df,
+                    measurement=measurement,
+                    tags=tags,
+                    tag_columns=["sensor_name"],
+                    field_columns=["sensor_value"],
+                    batch_size=10000,
                 )
             except Exception as exc:
                 if current_attempt <= self.n_retries:
@@ -210,48 +220,29 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
         """
         # Write the per-sensor points to influx
         logger.info(f"Writing {len(sensors)} sensor points to Influx")
-
-        for tag_name, tag_data in _explode_df(sensors).items():
-            self._write_to_influx_with_retries(tag_data, {"tag": tag_name}, "resampled")
-            logger.debug(f"Wrote resampled tag data for {tag_name} to Influx")
+        self._write_to_influx_with_retries(sensors, "resampled")
         logger.debug("Done writing resampled sensor values to influx")
 
+    @staticmethod
+    def _stack_to_name_value_columns(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Stack a DataFrame with a range of tag columns to one with name and value columns
 
-def _explode_df(
-    df: pd.DataFrame, field_name: str = "value"
-) -> typing.Dict[str, pd.DataFrame]:
-    """
-    Converts a single dataframe with several columns to a map from the column names
-    to dataframes which has that single column as the only column with the name
-    `field_name`
+        Parameters
+        ----------
+        df: pd.DataFrame
+            Source dataframe with individual columns for tags.
 
-    Parameters
-    ----------
-    df: pd.DataFrame
-        DataFrame with one or more columns
-    field_name:
-        Name to give the data-columns in the resulting map
+        Returns
+        -------
+        df: pd.DataFrame
+            Stacked dataframe with columns `sensor_name` and `sensor_value`.
+        """
+        # String column names are necessary for stacking
+        # (as opposed to integers when df created from np.ndarray)
+        df.columns = df.columns.astype(str)
 
-    Returns
-    -------
-    Dict: A map from column names to DataFrames containing only that column.
-
-    Examples
-    --------
-    >>> import pandas as pd
-    >>> df = pd.DataFrame({"Column 1": [1,2,3], "Col2": [5,6,7]})
-    >>> res = _explode_df(df)
-    >>> len(res)
-    2
-    >>> sorted(list(res.keys()))
-    ['Col2', 'Column 1']
-    >>> res["Col2"]
-       value
-    0      5
-    1      6
-    2      7
-    """
-    ret = dict()
-    for col in df.columns:
-        ret[col] = df[[col]].rename(columns={col: field_name}, inplace=False)
-    return ret
+        df = df.stack().to_frame(name="sensor_value")
+        df = df.reset_index(level=1).rename(columns={"level_1": "sensor_name"})
+        df["sensor_value"].astype(float)
+        return df
