@@ -123,6 +123,22 @@ class NcsReader(GordoBaseDataProvider):
                 yield filtered
 
     @staticmethod
+    def _verify_tag_path_exist(
+        adls_file_system_client: core.AzureDLFileSystem, path: str
+    ):
+        """
+        Verify that the tag path exists, if not the `adls_file_system_client.info` will raise a FileNotFound error.
+
+        Parameters
+        ----------
+        adls_file_system_client: core.AzureDLFileSystem
+            the AzureDLFileSystem client to use
+        path : str
+            Path of tag to be checked if exists.
+        """
+        adls_file_system_client.info(f"{path}")
+
+    @staticmethod
     def read_tag_files(
         adls_file_system_client: core.AzureDLFileSystem,
         tag: SensorTag,
@@ -165,39 +181,51 @@ class NcsReader(GordoBaseDataProvider):
             raise ValueError(f"Unable to find base path from tag {tag} ")
         all_years = []
         logger.info(f"Downloading tag: {tag} for years: {years}")
+        tag_name_encoded = quote(tag.name, safe=" ")
+
+        NcsReader._verify_tag_path_exist(
+            adls_file_system_client, f"{tag_base_path}/{tag_name_encoded}/"
+        )
 
         for year in years:
-            tag_name_encoded = quote(tag.name, safe=" ")
             file_path = (
                 f"{tag_base_path}/{tag_name_encoded}/{tag_name_encoded}_{year}.csv"
             )
             logger.info(f"Parsing file {file_path}")
 
-            info = adls_file_system_client.info(file_path)
-            file_size = info.get("length") / (1024 ** 2)
-            logger.info(f"File size for file {file_path}: {file_size:.2f}MB")
-            if dry_run:
-                logger.info("Dry run only, returning empty frame early")
-                return pd.DataFrame()
+            try:
+                info = adls_file_system_client.info(file_path)
+                file_size = info.get("length") / (1024 ** 2)
+                logger.debug(f"File size for file {file_path}: {file_size:.2f}MB")
 
-            with adls_file_system_client.open(file_path, "rb") as f:
-                df = pd.read_csv(
-                    f,
-                    sep=";",
-                    header=None,
-                    names=["Sensor", tag.name, "Timestamp", "Status"],
-                    usecols=[tag.name, "Timestamp", "Status"],
-                    dtype={tag.name: np.float32},
-                    parse_dates=["Timestamp"],
-                    date_parser=lambda col: pd.to_datetime(col, utc=True),
-                    index_col="Timestamp",
-                )
+                if dry_run:
+                    logger.info("Dry run only, returning empty frame early")
+                    return pd.Series()
 
-                df = df[~df["Status"].isin(remove_status_codes)]
-                all_years.append(df)
-                logger.info(f"Done parsing file {file_path}")
+                with adls_file_system_client.open(file_path, "rb") as f:
+                    df = pd.read_csv(
+                        f,
+                        sep=";",
+                        header=None,
+                        names=["Sensor", tag.name, "Timestamp", "Status"],
+                        usecols=[tag.name, "Timestamp", "Status"],
+                        dtype={tag.name: np.float32},
+                        parse_dates=["Timestamp"],
+                        date_parser=lambda col: pd.to_datetime(col, utc=True),
+                        index_col="Timestamp",
+                    )
+                    df = df[~df["Status"].isin(remove_status_codes)]
+                    all_years.append(df)
+                    logger.info(f"Done parsing file {file_path}")
 
-        combined = pd.concat(all_years)
+            except FileNotFoundError as e:
+                logger.debug(f"{file_path} not found, skipping it: {e}")
+
+        try:
+            combined = pd.concat(all_years)
+        except Exception as e:
+            logger.debug(f"Not able to concatinate all years: {e}.")
+            return pd.Series(name=tag.name, data=None)
 
         # There often comes duplicated timestamps, keep the last
         if combined.index.duplicated().any():

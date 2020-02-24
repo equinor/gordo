@@ -133,6 +133,41 @@ def test_load_series_known_prefix(dates, ncs_reader):
         )
     },
 )
+@pytest.mark.parametrize(
+    "start_date, end_date, frame_len",
+    [
+        [
+            dateutil.parser.isoparse("2000-01-01T08:56:00+00:00"),
+            dateutil.parser.isoparse("2021-09-01T10:01:00+00:00"),
+            20,
+        ],
+        [
+            # Test something not valid (where there could not be any data)
+            dateutil.parser.isoparse("2025-01-01T00:00:00+00:00"),
+            dateutil.parser.isoparse("2030-01-01T00:00:00+00:00"),
+            0,
+        ],
+    ],
+)
+def test_load_series_invalid_year(start_date, end_date, frame_len, ncs_reader):
+    valid_tag_list = normalize_sensor_tags(["TRC-123"])
+    frame = next(ncs_reader.load_series(start_date, end_date, valid_tag_list))
+    assert len(frame) == frame_len
+
+
+def test_ncs_reader_valid_tag_path():
+    with pytest.raises(FileNotFoundError):
+        NcsReader._verify_tag_path_exist(AzureDLFileSystemMock(), "not/valid/path")
+
+
+@patch(
+    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
+    {
+        "1776-troc": os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
+        )
+    },
+)
 def test_load_series_dry_run(dates, ncs_reader):
     valid_tag_list_no_asset = normalize_sensor_tags(["TRC-123", "TRC-321"])
     for frame in ncs_reader.load_series(
