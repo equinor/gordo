@@ -18,25 +18,50 @@ logger = logging.getLogger(__name__)
 
 class NcsReader(GordoBaseDataProvider):
     ASSET_TO_PATH = {
-        "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/1101-SFB",
+        # Paths on the datalake with problematic tag naming schemes (e.g. misplaced,
+        # varying delimiters, non-unique, etc.) are commented with their assioted tag prefixes
+        "1100-sfa": "/raw/corporate/IMS Statfjord/sensordata/1100-SFA",  # None
+        "1101-sfb": "/raw/corporate/IMS Statfjord/sensordata/1101-SFB",  # None
+        "1102-sfc": "/raw/corporate/IMS Statfjord/sensordata/1102-SFC",  # None
         "1110-gfa": "/raw/corporate/Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA",
         "1111-gfb": "/raw/corporate/Aspen MS - IP21 Gullfaks B/sensordata/1111-GFB",
         "1112-gfc": "/raw/corporate/Aspen MS - IP21 Gullfaks C/sensordata/1112-GFC",
+        "1120-vfr": "/raw/corporate/Aspen MS - IP21 Veslefrikk/sensordata/1120-VFR",
         "1125-kvb": "/raw/corporate/PI System Operation Norway/sensordata/1125-KVB",
         "1130-troa": "/raw/corporate/Aspen MS - IP21 Troll A/sensordata/1130-TROA",
         "1138-val": "/raw/corporate/PI System Operation Norway/sensordata/1138-VAL",
-        "1163-gdr": "/raw/corporate/PI System Manager Sleipner/sensordata/1163-GDR",
-        "1175-kri": "/raw/corporate/PI System Operation North/sensordata/1175-KRI",
+        "1140-sla": "/raw/corporate/PI System Manager Sleipner/sensordata/1140-SLA",  # None
+        "1141-slt": "/raw/corporate/PI System Manager Sleipner/sensordata/1141-SLT",  # None
+        "1142-slb": "/raw/corporate/PI System Manager Sleipner/sensordata/1142-SLB",  # None
+        "1163-gdr": "/raw/corporate/PI System Manager Sleipner/sensordata/1163-GDR",  # None
+        "1170-hd": "/raw/corporate/PI System Operation North/sensordata/1170-HD",
+        "1175-kri": "/raw/corporate/PI System Operation North/sensordata/1175-KRI",  # kri.
+        "1175-kris": "/raw/corporate/PI System Operation North/sensordata/1175-KRIS",  # kri.
         "1180-nor": "/raw/corporate/PI System Operation North/sensordata/1180-NOR",
         "1190-asga": "/raw/corporate/PI System Operation North/sensordata/1190-ASGA",
-        "1191-asgb": "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",
-        "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",
+        "1191-asgb": "/raw/corporate/PI System Operation North/sensordata/1191-ASGB",  # asga. asgb-
+        "1192-asgs": "/raw/corporate/PI System Operation North/sensordata/1192-ASGS",  # asgb.
+        "1218-gkr": "/raw/corporate/PI System Manager Sleipner/sensordata/1218-GKR",  # None + 1218.
+        "1219-aha": "/raw/corporate/PI System Operation Mam/sensordata/1219-AHA",
+        "1220-sna": "/raw/corporate/IMS Snorre A/sensordata/1220-SNA",  # None
+        "1221-snb": "/raw/corporate/IMS Snorre B/sensordata/1221-SNB",  # None
         "1230-vis": "/raw/corporate/Aspen MS - IP21 Visund/sensordata/1230-VIS",
-        "1295-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1295-PERA",
+        "1294-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1294-PERA",  # per.
+        "1295-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1295-PERA",  # per.
+        "1298-perb": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1298-PERB",  # per.
+        "1299-per": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1299-PER",  # per.
+        "1340-met": "/raw/corporate/PI System Operation Norway/sensordata/1340-MET",
+        "1380-sno": "/raw/corporate/Aspen MS - IP21 Hammerfest/sensordata/1380-SNO",  # 25haxxx_
         "1755-gra": "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
         "1760-hea": "/raw/corporate/PI System Operation Norway/sensordata/1760-HEA",
+        "1765-osc": "/raw/corporate/Aspen MS - IP21 Oseberg C/sensordata/1765-OSC",
+        "1766-oss": "/raw/corporate/Aspen MS - IP21 Oseberg South/sensordata/1766-OSS",
+        "1767-ose": "/raw/corporate/Aspen MS - IP21 Oseberg East/sensordata/1767-OSE",
+        "1772-osa": "/raw/corporate/Aspen MS - IP21 Oseberg Field Center/sensordata/1772-OSA",  # osf.
+        "1774-osd": "/raw/corporate/Aspen MS - IP21 Oseberg Field Center/sensordata/1774-OSD",  # osf.
         "1775-trob": "/raw/corporate/Aspen MS - IP21 Troll B/sensordata/1775-TROB",
         "1776-troc": "/raw/corporate/Aspen MS - IP21 Troll C/sensordata/1776-TROC",
+        "1886-mara": "/raw/corporate/PI System Operation Mam/sensordata/1886-MARA",
         "1900-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1900-JSV",
         "1901-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1901-JSV",
         "1902-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1902-JSV",
