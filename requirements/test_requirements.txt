@@ -10,7 +10,7 @@ appdirs==1.4.3            # via black
 attrs==19.3.0             # via black, jsonschema, pytest
 backcall==0.1.0           # via ipython
 black==19.10b0
-bleach==3.1.0             # via nbconvert
+bleach==3.1.1
 certifi==2019.11.28       # via requests
 cffi==1.13.2              # via cryptography
 chardet==3.0.4            # via requests
