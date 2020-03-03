@@ -548,13 +548,19 @@
         "steppedLine": false,
         "targets": [
           {
-            "alias": "",
+            "alias": "$tag_sensor_name",
             "groupBy": [
               {
                 "params": [
                   "$__interval"
                 ],
                 "type": "time"
+              },
+              {
+                "params": [
+                  "sensor_name"
+                ],
+                "type": "tag"
               },
               {
                 "params": [
@@ -567,15 +573,15 @@
             "measurement": "model-input",
             "orderByTime": "ASC",
             "policy": "default",
-            "query": "SELECT mean(/^$Sensor$/) FROM \"model-input\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
-            "rawQuery": true,
+            "query": "SELECT mean(*) FROM \"model-input\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval), \"sensor_name\" fill(null)",
+            "rawQuery": false,
             "refId": "A",
             "resultFormat": "time_series",
             "select": [
               [
                 {
                   "params": [
-                    "*"
+                    "sensor_value"
                   ],
                   "type": "field"
                 },
@@ -590,6 +596,12 @@
                 "key": "machine",
                 "operator": "=~",
                 "value": "/^$Machine$/"
+              },
+              {
+                "condition": "AND",
+                "key": "sensor_name",
+                "operator": "=~",
+                "value": "/^$Sensor$/"
               }
             ]
           }
@@ -641,13 +653,16 @@
         "bars": false,
         "dashLength": 10,
         "dashes": false,
+        "datasource": null,
         "fill": 1,
+        "fillGradient": 0,
         "gridPos": {
           "h": 12,
           "w": 12,
           "x": 12,
           "y": 10
         },
+        "hiddenSeries": false,
         "id": 17,
         "legend": {
           "avg": false,
@@ -662,6 +677,9 @@
         "linewidth": 1,
         "links": [],
         "nullPointMode": "connected",
+        "options": {
+          "dataLinks": []
+        },
         "paceLength": 10,
         "percentage": false,
         "pointradius": 0.5,
@@ -673,12 +691,19 @@
         "steppedLine": false,
         "targets": [
           {
+            "alias": "$tag_sensor_name",
             "groupBy": [
               {
                 "params": [
                   "$__interval"
                 ],
                 "type": "time"
+              },
+              {
+                "params": [
+                  "sensor_name"
+                ],
+                "type": "tag"
               },
               {
                 "params": [
@@ -690,8 +715,8 @@
             "measurement": "model-output",
             "orderByTime": "ASC",
             "policy": "default",
-            "query": "SELECT mean(/^$Sensor$/)  FROM \"model-output\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
-            "rawQuery": true,
+            "query": "SELECT mean(sensor_value)  FROM \"model-output\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": false,
             "refId": "A",
             "resultFormat": "time_series",
             "select": [
@@ -713,6 +738,12 @@
                 "key": "machine",
                 "operator": "=~",
                 "value": "/^$Machine$/"
+              },
+              {
+                "condition": "AND",
+                "key": "sensor_name",
+                "operator": "=~",
+                "value": "/^$Sensor$/"
               }
             ]
           }
@@ -766,12 +797,14 @@
         "dashes": false,
         "datasource": "InfluxDB",
         "fill": 0,
+        "fillGradient": 0,
         "gridPos": {
           "h": 12,
           "w": 12,
           "x": 0,
           "y": 22
         },
+        "hiddenSeries": false,
         "id": 2,
         "legend": {
           "avg": false,
@@ -787,6 +820,9 @@
         "linewidth": 1,
         "links": [],
         "nullPointMode": "connected",
+        "options": {
+          "dataLinks": []
+        },
         "paceLength": 10,
         "percentage": false,
         "pointradius": 1,
@@ -798,13 +834,19 @@
         "steppedLine": false,
         "targets": [
           {
-            "alias": "$col",
+            "alias": "$tag_sensor_name",
             "groupBy": [
               {
                 "params": [
                   "$__interval"
                 ],
                 "type": "time"
+              },
+              {
+                "params": [
+                  "sensor_name"
+                ],
+                "type": "tag"
               },
               {
                 "params": [
@@ -817,8 +859,8 @@
             "measurement": "tag-anomaly-scaled",
             "orderByTime": "ASC",
             "policy": "default",
-            "query": "SELECT mean(/^$Sensor$/)  FROM \"tag-anomaly-scaled\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
-            "rawQuery": true,
+            "query": "SELECT mean(sensor_value)  FROM \"tag-anomaly-scaled\" WHERE (\"machine\" =~ /^$Machine$/) AND $timeFilter GROUP BY time($__interval) fill(null)",
+            "rawQuery": false,
             "refId": "B",
             "resultFormat": "time_series",
             "select": [
@@ -840,6 +882,12 @@
                 "key": "machine",
                 "operator": "=~",
                 "value": "/^$Machine$/"
+              },
+              {
+                "condition": "AND",
+                "key": "sensor_name",
+                "operator": "=~",
+                "value": "/^$Sensor$/"
               }
             ]
           }
@@ -886,11 +934,11 @@
         }
       },
       {
-        "datasource": "-- Mixed --",
         "aliasColors": {},
         "bars": false,
         "dashLength": 10,
         "dashes": false,
+        "datasource": "-- Mixed --",
         "fill": 0,
         "fillGradient": 0,
         "gridPos": {
@@ -899,6 +947,7 @@
           "x": 12,
           "y": 22
         },
+        "hiddenSeries": false,
         "id": 18,
         "legend": {
           "avg": false,
@@ -928,7 +977,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "alias": "$col",
+            "alias": "Anomaly score",
             "datasource": "InfluxDB",
             "groupBy": [
               {
@@ -1044,7 +1093,7 @@
       }
     ],
     "refresh": false,
-    "schemaVersion": 18,
+    "schemaVersion": 21,
     "style": "dark",
     "tags": [
       "machine"
@@ -1054,8 +1103,9 @@
         {
           "allValue": null,
           "current": {
-            "text": "sfb-asset-key-needed",
-            "value": "sfb-asset-key-needed"
+            "tags": [],
+            "text": "trolla-ff-model",
+            "value": "trolla-ff-model"
           },
           "datasource": "InfluxDB",
           "definition": "",
@@ -1079,20 +1129,21 @@
         {
           "allValue": null,
           "current": {
+            "tags": [],
             "text": "All",
             "value": [
               "$__all"
             ]
           },
           "datasource": "InfluxDB",
-          "definition": "SHOW FIELD KEYS from \"model-input\"",
+          "definition": "SHOW TAG VALUES FROM \"model-input\" WITH KEY = \"sensor_name\" WHERE \"machine\" =~ /$Machine/",
           "hide": 0,
           "includeAll": true,
           "label": null,
           "multi": true,
           "name": "Sensor",
           "options": [],
-          "query": "SHOW FIELD KEYS from \"model-input\"",
+          "query": "SHOW TAG VALUES FROM \"model-input\" WITH KEY = \"sensor_name\" WHERE \"machine\" =~ /$Machine/",
           "refresh": 1,
           "regex": "",
           "skipUrlSync": false,

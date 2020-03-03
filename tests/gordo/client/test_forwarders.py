@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import List
 from unittest.mock import patch
 
 import pandas as pd
@@ -9,6 +10,19 @@ from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import influx_client_from_uri
 from gordo.machine import Machine
 from gordo.machine.dataset import sensor_tag
+
+
+def get_test_data(columns: List[str]) -> pd.DataFrame:
+    """
+    Generate timeseries sensor dataframe with given columns
+    """
+    index = pd.date_range("2019-01-01", "2019-01-02", periods=4)
+    df = pd.DataFrame(columns=columns, index=index)
+
+    # Generate some unique values for each key, and insert it into that column
+    for i, key in enumerate(columns):
+        df[key] = range(i, i + 4)
+    return df
 
 
 def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
@@ -34,20 +48,15 @@ def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
 
     # Feature outs which match length of tags
     # These should then be re-mapped to the sensor tag names
-    keys = [("name1", i) for i, _ in enumerate(sensors)]
+    input_keys = [("name1", i) for i, _ in enumerate(sensors)]
 
     # Feature outs which don't match the length of the tags
     # These will be kept at 0..N as field names
-    keys.extend([("name2", i) for i in range(len(sensors) * 2)])
+    # output_keys = [("name2", f"sensor_{i}") for i in range(len(sensors) * 2)]
+    output_keys = [("name2", i) for i in range(len(sensors) * 2)]
 
     # Assign all keys unique numbers
-    columns = pd.MultiIndex.from_tuples(keys)
-    index = pd.date_range("2019-01-01", "2019-01-02", periods=4)
-    df = pd.DataFrame(columns=columns, index=index)
-
-    # Generate some unique values for each key, and insert it into that column
-    for i, key in enumerate(keys):
-        df[key] = range(i, i + 4)
+    df = get_test_data(pd.MultiIndex.from_tuples(input_keys + output_keys))
 
     # Create the forwarder and forward the 'predictions' to influx.
     forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=influxdb_uri)
@@ -58,20 +67,54 @@ def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
 
     name1_results = client.query("SELECT * FROM name1")["name1"]
 
-    # Should have the tag names as column names since the shape matched
-    assert all(c in name1_results.columns for c in ["machine"] + sensors_str)
+    # Should have column names: 'machine', 'sensor_name', 'sensor_value'
+    assert all(
+        c in name1_results.columns for c in ["machine", "sensor_name", "sensor_value"]
+    )
+
+    # Check that values returned from InfluxDB match what put in for inputs
     for i, tag in enumerate(sensors_str):
-        assert np.allclose(df[("name1", i)].values, name1_results[tag].values)
+        results_mask = name1_results["sensor_name"] == tag
+        assert np.allclose(
+            df[("name1", i)].values, name1_results[results_mask]["sensor_value"].values
+        )
 
     # Now check the other top level name "name2" is a measurement with the correct points written
     name2_results = client.query("SELECT * FROM name2")["name2"]
 
-    # Should not have the same names as tags, since shape was 2x as long, should just be numeric columns
+    # Should have the same names as tags, since all top levels get stacked into the same resulting columns
     assert all(
-        [
-            str(c) in name2_results.columns
-            for c in ["machine"] + list(range(len(sensors) * 2))
-        ]
+        [c in name2_results.columns for c in ["machine", "sensor_name", "sensor_value"]]
     )
-    for key in filter(lambda k: k[0] == "name2", keys):
-        assert np.allclose(df[key].values, name2_results[str(key[1])].values)
+
+    # Check that values returned from InfluxDB match what put in for outputs
+    # Note that here the influx sensor names for the output tags are string-cast integers
+    for key in output_keys:
+        results_mask = name2_results["sensor_name"] == str(key[1])
+        assert np.allclose(
+            df[key].values, name2_results[results_mask]["sensor_value"].values
+        )
+
+
+def test_influx_send_data(influxdb, influxdb_uri, sensors, sensors_str):
+    """
+    """
+    df = get_test_data(sensors_str)
+
+    # Create the forwarder and forward the sensor data to influx.
+    forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=influxdb_uri)
+    forwarder.send_sensor_data(df)
+
+    # Client to manually verify the points written
+    client = influx_client_from_uri(influxdb_uri, dataframe_client=True)
+    resampled_results = client.query("SELECT * FROM resampled")["resampled"]
+
+    # Should have column names: 'sensor_name', 'sensor_value'
+    assert all(c in resampled_results.columns for c in ["sensor_name", "sensor_value"])
+
+    # Check that values returned from InfluxDB match what put in for inputs
+    for key in sensors_str:
+        results_mask = resampled_results["sensor_name"] == key
+        assert np.allclose(
+            df[key].values, resampled_results[results_mask]["sensor_value"].values
+        )
