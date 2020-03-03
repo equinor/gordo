@@ -127,3 +127,11 @@ def walk_azure(
                     f"Found that the file_path {file_path} does not satisfy regexp "
                     f"requirements"
                 )
+
+
+def is_file(client: core.AzureDLFileSystem, path: str):
+    try:
+        info = client.info(path)
+    except FileNotFoundError:
+        return False
+    return info["type"] == "FILE"

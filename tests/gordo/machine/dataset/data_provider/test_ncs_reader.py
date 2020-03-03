@@ -5,7 +5,7 @@ import pytest
 
 import dateutil.parser
 
-from gordo.machine.dataset.data_provider.ncs_reader import NcsReader
+from gordo.machine.dataset.data_provider.ncs_reader import NcsReader, NcsParquetLookup
 from gordo.machine.dataset.data_provider.providers import DataLakeProvider
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.dataset.sensor_tag import SensorTag
@@ -13,7 +13,12 @@ from gordo.machine.dataset.sensor_tag import SensorTag
 
 class AzureDLFileSystemMock:
     def info(self, file_path):
-        return {"length": os.path.getsize(file_path)}
+        info = {"length": os.path.getsize(file_path)}
+        if os.path.isfile(file_path):
+            info["type"] = "FILE"
+        elif os.path.isdir(file_path):
+            info["type"] = "DIRECTORY"
+        return info
 
     def open(self, file_path, mode):
         return open(file_path, mode)
@@ -215,3 +220,76 @@ def test_ncs_reader_kwargs_contains_remove_status_codes(remove_status_codes):
     # Cheks that the kwargs remove_status_codes has been passed to the sub_provider
     expected = [] if remove_status_codes == [] else [0]
     assert ncs_reader.remove_status_codes == expected
+
+
+@patch(
+    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
+    {
+        "1776-troc": os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
+        )
+    },
+)
+def test_parquet_files_lookup(dates):
+    ncs_reader = NcsReader(AzureDLFileSystemMock(), remove_status_codes=[0])
+
+    valid_tag_list = normalize_sensor_tags(["TRC-323"])
+    series_gen = ncs_reader.load_series(dates[0], dates[1], valid_tag_list)
+    tags_series = [v for v in series_gen]
+    assert len(tags_series) == 1
+    trc_323_series = tags_series[0]
+    assert trc_323_series.name == "TRC-323"
+    assert trc_323_series.dtype.name == "float64"
+    assert len(trc_323_series) == 20
+
+
+def test_get_file_lookups():
+    with pytest.raises(ValueError):
+        NcsReader.get_file_lookups([])
+    with pytest.raises(ValueError):
+        NcsReader.get_file_lookups(["excel"])
+    file_lookups = NcsReader.get_file_lookups(["parquet"])
+    assert len(file_lookups) == 1
+    assert isinstance(file_lookups[0], NcsParquetLookup)
+
+
+@patch(
+    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
+    {
+        "1776-troc": os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
+        )
+    },
+)
+def test_with_conflicted_file_types(dates):
+    ncs_reader = NcsReader(AzureDLFileSystemMock(), remove_status_codes=[0])
+
+    valid_tag_list = normalize_sensor_tags(["TRC-324"])
+    series_gen = ncs_reader.load_series(dates[0], dates[1], valid_tag_list)
+    tags_series = [v for v in series_gen]
+    assert len(tags_series) == 1
+    trc_324_series = tags_series[0]
+    # Parquet file should be with 15 rows
+    assert len(trc_324_series) == 15
+
+
+@patch(
+    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
+    {
+        "1776-troc": os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
+        )
+    },
+)
+def test_with_conflicted_file_types_with_preferable_csv(dates):
+    ncs_reader = NcsReader(
+        AzureDLFileSystemMock(), remove_status_codes=[0], lookup_for=["csv"]
+    )
+
+    valid_tag_list = normalize_sensor_tags(["TRC-324"])
+    series_gen = ncs_reader.load_series(dates[0], dates[1], valid_tag_list)
+    tags_series = [v for v in series_gen]
+    assert len(tags_series) == 1
+    trc_324_series = tags_series[0]
+    # CSV file should be with 1 row
+    assert len(trc_324_series) == 1
