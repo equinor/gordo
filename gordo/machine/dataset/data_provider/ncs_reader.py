@@ -1,19 +1,97 @@
 # -*- coding: utf-8 -*-
 import logging
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Iterable, List, Optional
 from urllib.parse import quote
 
-import numpy as np
 import pandas as pd
 from azure.datalake.store import core
 
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
+from gordo.machine.dataset.data_provider.file_type import (
+    FileType,
+    CsvFileType,
+    ParquetFileType,
+    TimeSeriesColumns,
+)
+from gordo.machine.dataset.data_provider.azure_utils import is_file
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.util import capture_args
 
 logger = logging.getLogger(__name__)
+
+
+time_series_columns = TimeSeriesColumns("Time", "Value", "Status")
+
+
+class NcsFileLookup:
+    def __init__(self, file_type: FileType):
+        """
+        Creates a files finder.
+
+        Notes
+        -----
+        This implementation related only for :class:`gordo.machine.dataset.data_provider.ndc_reader.NcsReader` not for :class:`gordo.machine.dataset.data_provider.iroc_reader.IrocReader`
+
+        Parameters
+        ----------
+        file_type : FileType
+        """
+        self.file_type = file_type
+
+    def lookup(
+        self, client: core.AzureDLFileSystem, dir_path: str, tag_name: str, year: int
+    ) -> Optional[str]:
+        """
+        Find files with a given file type in Azure Data Lake
+
+        Parameters
+        ----------
+        client: core.AzureDLFileSystem
+            Azure Data Lake client
+        dir_path: str
+            Base directory for finding files
+        tag_name
+            File tag (encoded version)
+        year
+            File year
+        """
+        raise NotImplementedError()
+
+
+class NcsCsvLookup(NcsFileLookup):
+    """
+    Finder for CSV files
+    """
+
+    def __init__(self):
+        header = ["Sensor", "Value", "Time", "Status"]
+        super().__init__(CsvFileType(header, time_series_columns))
+
+    def lookup(
+        self, client: core.AzureDLFileSystem, dir_path: str, tag_name: str, year: int
+    ) -> Optional[str]:
+        file_extension = self.file_type.file_extension
+        path = f"{dir_path}/{tag_name}_{year}{file_extension}"
+        return path if is_file(client, path) else None
+
+
+class NcsParquetLookup(NcsFileLookup):
+    """
+    Finder for Parquet files
+    """
+
+    def __init__(self):
+        super().__init__(ParquetFileType(time_series_columns))
+
+    def lookup(
+        self, client: core.AzureDLFileSystem, dir_path: str, tag_name: str, year: int
+    ) -> Optional[str]:
+        file_extension = self.file_type.file_extension
+        path = f"{dir_path}/parquet/{tag_name}_{year}{file_extension}"
+        return path if is_file(client, path) else None
 
 
 class NcsReader(GordoBaseDataProvider):
@@ -69,6 +147,24 @@ class NcsReader(GordoBaseDataProvider):
         "1904-jsv": "/raw/corporate/PI System Operation Johan Sverdrup/sensordata/1904-JSV",
     }
 
+    ALL_FILE_LOOKUPS = OrderedDict(
+        (("parquet", NcsParquetLookup()), ("csv", NcsCsvLookup()))
+    )
+
+    @classmethod
+    def get_file_lookups(cls, lookup_for: List[str]) -> List[NcsFileLookup]:
+        if not lookup_for:
+            raise ValueError("'lookup_for' must not be empty")
+        file_lookups = []
+        for lookup_name in lookup_for:
+            try:
+                file_lookups.append(cls.ALL_FILE_LOOKUPS[lookup_name])
+            except KeyError:
+                raise ValueError(
+                    "Wrong lookup type '%s' in 'lookup_for' property", lookup_name
+                )
+        return file_lookups
+
     @capture_args
     def __init__(
         self,
@@ -76,6 +172,7 @@ class NcsReader(GordoBaseDataProvider):
         threads: Optional[int] = 1,
         remove_status_codes: Optional[list] = [0],
         dl_base_path: Optional[str] = None,
+        lookup_for: Optional[List[str]] = None,
         **kwargs,
     ):
         """
@@ -92,12 +189,25 @@ class NcsReader(GordoBaseDataProvider):
         dl_base_path: Optional[str]
             Base bath used to override the asset to path dictionary. Useful for demos
             and other non-production settings.
+        lookup_for:  Optional[List[str]]
+            List of file finders by the file type name. Value by default: ``['parquet', 'csv']``
+
+        Notes
+        -----
+        `lookup_for` provide list sorted by priority. It means that for value ``['csv', 'parquet']``
+        the reader will prefer to find CSV files over Parquet
 
         """
         self.client = client
         self.threads = threads
         self.remove_status_codes = remove_status_codes
         self.dl_base_path = dl_base_path
+
+        if lookup_for is None:
+            file_lookups = list(self.ALL_FILE_LOOKUPS.values())
+        else:
+            file_lookups = self.get_file_lookups(lookup_for)
+        self.file_lookups = file_lookups
         logger.info(f"Starting NCS reader with {self.threads} threads")
 
     def can_handle_tag(self, tag: SensorTag):
@@ -163,8 +273,8 @@ class NcsReader(GordoBaseDataProvider):
         """
         adls_file_system_client.info(f"{path}")
 
-    @staticmethod
     def read_tag_files(
+        self,
         adls_file_system_client: core.AzureDLFileSystem,
         tag: SensorTag,
         years: range,
@@ -212,10 +322,20 @@ class NcsReader(GordoBaseDataProvider):
             adls_file_system_client, f"{tag_base_path}/{tag_name_encoded}/"
         )
 
+        dir_path = f"{tag_base_path}/{tag_name_encoded}"
         for year in years:
-            file_path = (
-                f"{tag_base_path}/{tag_name_encoded}/{tag_name_encoded}_{year}.csv"
-            )
+            file_path = None
+            file_lookup = None
+            for v in self.file_lookups:
+                file_path = v.lookup(
+                    adls_file_system_client, dir_path, tag_name_encoded, year
+                )
+                if file_path is not None:
+                    file_lookup = v
+                    break
+            if file_lookup is None:
+                continue
+            file_type = file_lookup.file_type
             logger.info(f"Parsing file {file_path}")
 
             try:
@@ -228,17 +348,8 @@ class NcsReader(GordoBaseDataProvider):
                     return pd.Series()
 
                 with adls_file_system_client.open(file_path, "rb") as f:
-                    df = pd.read_csv(
-                        f,
-                        sep=";",
-                        header=None,
-                        names=["Sensor", tag.name, "Timestamp", "Status"],
-                        usecols=[tag.name, "Timestamp", "Status"],
-                        dtype={tag.name: np.float32},
-                        parse_dates=["Timestamp"],
-                        date_parser=lambda col: pd.to_datetime(col, utc=True),
-                        index_col="Timestamp",
-                    )
+                    df = file_type.read_df(f)
+                    df = df.rename(columns={"Value": tag.name})
                     df = df[~df["Status"].isin(remove_status_codes)]
                     all_years.append(df)
                     logger.info(f"Done parsing file {file_path}")
