@@ -3,6 +3,7 @@ import logging
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import timeit
 from typing import Iterable, List, Optional
 from urllib.parse import quote
 
@@ -21,7 +22,6 @@ from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.util import capture_args
 
 logger = logging.getLogger(__name__)
-
 
 time_series_columns = TimeSeriesColumns("Time", "Value", "Status")
 
@@ -346,13 +346,16 @@ class NcsReader(GordoBaseDataProvider):
                 if dry_run:
                     logger.info("Dry run only, returning empty frame early")
                     return pd.Series()
-
+                before_downloading = timeit.default_timer()
                 with adls_file_system_client.open(file_path, "rb") as f:
                     df = file_type.read_df(f)
                     df = df.rename(columns={"Value": tag.name})
                     df = df[~df["Status"].isin(remove_status_codes)]
+                    df.sort_index(inplace=True)
                     all_years.append(df)
-                    logger.info(f"Done parsing file {file_path}")
+                    logger.info(
+                        f"Done in {(timeit.default_timer()-before_downloading):.2f} sec {file_path}"
+                    )
 
             except FileNotFoundError as e:
                 logger.debug(f"{file_path} not found, skipping it: {e}")
