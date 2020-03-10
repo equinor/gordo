@@ -1,5 +1,4 @@
 import pandas as pd
-import pyarrow.parquet as pa
 import numpy as np
 
 from abc import ABCMeta, abstractmethod
@@ -100,10 +99,8 @@ class ParquetFileType(FileType):
     def read_df(self, f: BinaryIO) -> pd.DataFrame:
         columns = self.time_series_columns.columns
         datetime_column = self.time_series_columns.datetime_column
-        pf = pa.ParquetFile(f)
-        table = pf.read(columns)
-        df = table.to_pandas()
-        df[datetime_column] = df[datetime_column].apply(
-            lambda v: pd.to_datetime(v, utc=True)
+        df = pd.read_parquet(f, engine="pyarrow", columns=columns).set_index(
+            datetime_column
         )
-        return df.set_index(datetime_column)
+        df.index = pd.to_datetime(df.index, utc=True)
+        return df
