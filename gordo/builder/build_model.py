@@ -165,8 +165,8 @@ class ModelBuilder:
         -------
             Tuple[sklearn.base.BaseEstimator, dict]
         """
-        if self.machine.evaluation.get("seed"):
-            self.set_seed(seed=self.machine.evaluation["seed"])
+        # Enforce random seed to 0 if not specified.
+        self.set_seed(seed=self.machine.evaluation.get("seed", 0))
 
         # Get the dataset from config
         logger.debug(
