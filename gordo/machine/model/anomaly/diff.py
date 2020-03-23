@@ -133,7 +133,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self.feature_thresholds_per_fold_ = pd.DataFrame()
         self.aggregate_thresholds_per_fold_ = {}
 
-        for i, ((test_idxs, _train_idxs), split_model) in enumerate(
+        for i, ((train_idxs, test_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
         ):
             y_pred = split_model.predict(
