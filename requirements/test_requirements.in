@@ -1,6 +1,6 @@
 -c full_requirements.txt
 # Force latest version for security patch until nbconvert is updated
-bleach>=3.1.1
+bleach>=3.1.2
 docker~=4.0
 pytest~=5.3
 pytest-xdist~=1.26  # Parallelises the test-runs
