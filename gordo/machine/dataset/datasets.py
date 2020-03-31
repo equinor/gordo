@@ -231,6 +231,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         if X.first_valid_index():
             self._metadata["train_start_date_actual"] = X.index[0]
             self._metadata["train_end_date_actual"] = X.index[-1]
+            self._metadata["tag_summary_statistics"] = X.describe().to_dict()
 
         return X, y
 
