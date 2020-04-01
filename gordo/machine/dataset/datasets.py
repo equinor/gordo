@@ -7,6 +7,7 @@ from dateutil.parser import isoparse
 from functools import wraps
 
 import pandas as pd
+import numpy as np
 
 from gordo.machine.dataset.data_provider.providers import (
     RandomDataProvider,
@@ -231,6 +232,23 @@ class TimeSeriesDataset(GordoBaseDataset):
         if X.first_valid_index():
             self._metadata["train_start_date_actual"] = X.index[0]
             self._metadata["train_end_date_actual"] = X.index[-1]
+
+        self._metadata["summary_statistics"] = X.describe().to_json(orient="index")
+        hists: Dict[str, str] = {}
+        for tag in X.columns:
+            step = round((X[tag].max() - X[tag].min()) / 100, 6)
+            if step < 9e-07:
+                hists[str(tag)] = "{}"
+                continue
+            outs = pd.cut(
+                X[tag],
+                bins=np.arange(
+                    round(X[tag].min() - step, 6), round(X[tag].max() + step, 6), step,
+                ),
+                retbins=False,
+            )
+            hists[str(tag)] = outs.value_counts().sort_index().to_json(orient="index")
+        self._metadata["x_hist"] = hists
 
         return X, y
 
