@@ -442,6 +442,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         if not isinstance(X, pd.DataFrame):
             X = self._validate_and_fix_size_of_X(X)
+        else:
+            pass #TODO
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
@@ -513,9 +515,11 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         >>> model_transform.shape
         (2, 2)
         """
-        X = X.values if isinstance(X, pd.DataFrame) else X
+        if not isinstance(X, pd.DataFrame):
+            X = self._validate_and_fix_size_of_X(X)
+        else:
+            pass #TODO
 
-        X = self._validate_and_fix_size_of_X(X)
         tsg = create_keras_timeseriesgenerator(
             X=X,
             y=X,
@@ -656,6 +660,7 @@ def create_keras_timeseriesgenerator(
     if isinstance(X, pd.DataFrame):
         if not isinstance(y, pd.DataFrame):
             raise ValueError("'y' should be an instance of pandas.DataFrame")
+        #TODO padding for X and y
         return GordoTimeseriesGenerator(
             data=X, targets=y, length=lookback_window, batch_size=batch_size
         )
