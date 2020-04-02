@@ -6,7 +6,6 @@ import io
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
-from math import ceil
 
 import h5py
 import tensorflow.keras.models
@@ -604,7 +603,7 @@ def create_keras_timeseriesgenerator(
     batch_size: int,
     lookback_window: int,
     lookahead: int,
-) -> object:
+) -> TimeseriesGenerator:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
     LSTM's, but with the added ability to specify the lookahead of the target in y.
