@@ -583,7 +583,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         if not isinstance(X, pd.DataFrame):
             X = self._validate_and_fix_size_of_X(X)
         else:
-            pass #TODO
+            pass  # TODO
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
@@ -658,7 +658,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         if not isinstance(X, pd.DataFrame):
             X = self._validate_and_fix_size_of_X(X)
         else:
-            pass #TODO
+            pass  # TODO
 
         tsg = create_keras_timeseriesgenerator(
             X=X,
@@ -800,7 +800,7 @@ def create_keras_timeseriesgenerator(
     if isinstance(X, pd.DataFrame):
         if not isinstance(y, pd.DataFrame):
             raise ValueError("'y' should be an instance of pandas.DataFrame")
-        #TODO padding for X and y
+        # TODO padding for X and y
         return GordoTimeseriesGenerator(
             data=X, targets=y, length=lookback_window, batch_size=batch_size
         )
@@ -817,7 +817,7 @@ class GordoTimeseriesGenerator(object):
         data: pd.DataFrame,
         targets: pd.DataFrame,
         length: int,
-        batch_size=128,
+        batch_size: int = 128,
         step: Optional[pd.Timedelta] = None,
     ):
 
@@ -856,16 +856,17 @@ class GordoTimeseriesGenerator(object):
         return df, None
 
     def __getitem__(self, index):
-        i = self.batch_size * index
-
-        index = self.data.index
+        data = self.data
+        index = data.index
 
         samples = []
+        rows = []
         current_date = index.min()
         while True:
-            batch = self.data[current_date : current_date + self.time_batch_size]
+            batch = data.loc[current_date : current_date + self.time_batch_size]
             if batch.empty:
                 break
+            rows.append(index.get_loc(current_date))
             if len(batch) == self.batch_size:
                 samples.append(batch.values)
                 current_date += self.step
@@ -881,6 +882,6 @@ class GordoTimeseriesGenerator(object):
                     current_date += self.step
                 samples.append(batch_values)
 
-        targets = np.array([self.targets[row] for row in range(len(samples))])
+        targets = np.array([self.targets[row] for row in rows])
 
         return np.array(samples), np.array(targets)
