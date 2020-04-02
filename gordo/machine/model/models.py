@@ -744,7 +744,7 @@ def create_keras_timeseriesgenerator(
     batch_size: int,
     lookback_window: int,
     lookahead: int,
-) -> object:
+) -> TimeseriesGenerator:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
     LSTM's, but with the added ability to specify the lookahead of the target in y.
