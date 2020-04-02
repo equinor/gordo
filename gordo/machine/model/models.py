@@ -6,6 +6,7 @@ import io
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
+from math import ceil
 
 import h5py
 import tensorflow.keras.models
@@ -654,7 +655,7 @@ def create_keras_timeseriesgenerator(
 
     if isinstance(X, pd.DataFrame):
         if not isinstance(y, pd.DataFrame):
-            raise ValueError("'y' should be instance of pandas.DataFrame")
+            raise ValueError("'y' should be an instance of pandas.DataFrame")
         return GordoTimeseriesGenerator(
             data=X, targets=y, length=lookback_window, batch_size=batch_size
         )
@@ -667,7 +668,12 @@ def create_keras_timeseriesgenerator(
 
 class GordoTimeseriesGenerator(object):
     def __init__(
-        self, data: pd.DataFrame, targets: pd.DataFrame, length: int, batch_size=128
+        self,
+        data: pd.DataFrame,
+        targets: pd.DataFrame,
+        length: int,
+        batch_size=128,
+        step: Optional[pd.Timedelta] = None,
     ):
 
         if len(data) != len(targets):
@@ -681,15 +687,55 @@ class GordoTimeseriesGenerator(object):
         self.targets = targets
         self.length = length
         self.batch_size = batch_size
+        if step is None:
+            step = pd.Timedelta(minutes=10)
+        self.step = step
+        self.time_batch_size = step * batch_size
 
     def __len__(self):
         return (len(self.data) - 1 + self.batch_size) // self.batch_size
 
+    def split_consecutive(
+        self, df: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, Optional[pd.Timestamp]]:
+        prev_date = None
+        start_date = None
+        for dt in df.index:
+            if prev_date is None:
+                prev_date = dt
+                start_date = dt
+            else:
+                if dt - prev_date != self.step:
+                    return df.loc[start_date:prev_date], dt
+                prev_date = dt
+        return df, None
+
     def __getitem__(self, index):
         i = self.batch_size * index
-        rows = np.arange(i, min(i + self.batch_size, len(self.data)), 1)
 
-        samples = np.array([self.data[row - self.length : row : 1] for row in rows])
-        targets = np.array([self.targets[row] for row in rows])
+        index = self.data.index
 
-        return samples, targets
+        samples = []
+        current_date = index.min()
+        while True:
+            batch = self.data[current_date : current_date + self.time_batch_size]
+            if batch.empty:
+                break
+            if len(batch) == self.batch_size:
+                samples.append(batch.values)
+                current_date += self.step
+            else:
+                batch, last_date = self.split_consecutive(batch)
+                batch_values = batch.values
+                if last_date is not None:
+                    current_date = last_date
+                    batch_values = pad_sequences(
+                        [batch_values], padding="post", truncating="post", maxlen=batch
+                    )[0]
+                else:
+                    current_date += self.step
+                samples.append(batch_values)
+
+        targets = np.array([self.targets[row] for row in range(len(samples))])
+
+        return np.array(samples), np.array(targets)
