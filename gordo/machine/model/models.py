@@ -4,7 +4,7 @@ import abc
 import logging
 import io
 from pprint import pprint
-from typing import Union, Callable, Dict, Any, Optional
+from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
 
 import h5py
@@ -439,10 +439,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         """
 
-        X = X.values if isinstance(X, pd.DataFrame) else X
-        y = y.values if isinstance(y, pd.DataFrame) else y
-
-        X = self._validate_and_fix_size_of_X(X)
+        if not isinstance(X, pd.DataFrame):
+            X = self._validate_and_fix_size_of_X(X)
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
@@ -574,13 +572,34 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         return 0
 
 
+def pad_x_and_y(
+    X: np.ndarray, y: np.ndarray, lookahead: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    new_length = len(X) + 1 - lookahead
+    if lookahead == 1:
+        return X, y
+    elif lookahead >= 0:
+        pad_kw = dict(maxlen=new_length, dtype=X.dtype)
+
+        if lookahead == 0:
+            X = pad_sequences([X], padding="post", **pad_kw)[0]
+            y = pad_sequences([y], padding="pre", **pad_kw)[0]
+
+        elif lookahead > 1:
+            X = pad_sequences([X], padding="post", truncating="post", **pad_kw)[0]
+            y = pad_sequences([y], padding="pre", truncating="pre", **pad_kw)[0]
+        return X, y
+    else:
+        raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
+
+
 def create_keras_timeseriesgenerator(
-    X: np.ndarray,
-    y: Optional[np.ndarray],
+    X: Union[pd.DataFrame, np.ndarray],
+    y: Optional[Union[pd.DataFrame, np.ndarray]],
     batch_size: int,
     lookback_window: int,
     lookahead: int,
-) -> tensorflow.keras.preprocessing.sequence.TimeseriesGenerator:
+) -> object:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
     LSTM's, but with the added ability to specify the lookahead of the target in y.
@@ -632,27 +651,45 @@ def create_keras_timeseriesgenerator(
     >>> len(gen[0][0][0][0]) # n_features = 2
     2
     """
-    new_length = len(X) + 1 - lookahead
-    kwargs: Dict[str, Any] = dict(length=lookback_window, batch_size=batch_size)
-    if lookahead == 1:
-        kwargs.update(dict(data=X, targets=y))
 
-    elif lookahead >= 0:
-
-        pad_kw = dict(maxlen=new_length, dtype=X.dtype)
-
-        if lookahead == 0:
-            kwargs["data"] = pad_sequences([X], padding="post", **pad_kw)[0]
-            kwargs["targets"] = pad_sequences([y], padding="pre", **pad_kw)[0]
-
-        elif lookahead > 1:
-            kwargs["data"] = pad_sequences(
-                [X], padding="post", truncating="post", **pad_kw
-            )[0]
-            kwargs["targets"] = pad_sequences(
-                [y], padding="pre", truncating="pre", **pad_kw
-            )[0]
+    if isinstance(X, pd.DataFrame):
+        if not isinstance(y, pd.DataFrame):
+            raise ValueError("'y' should be instance of pandas.DataFrame")
+        return GordoTimeseriesGenerator(
+            data=X, targets=y, length=lookback_window, batch_size=batch_size
+        )
     else:
-        raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
+        X, y = pad_x_and_y(X, y, lookahead)
+        return TimeseriesGenerator(
+            data=X, targets=y, length=lookback_window, batch_size=batch_size
+        )
 
-    return TimeseriesGenerator(**kwargs)
+
+class GordoTimeseriesGenerator(object):
+    def __init__(
+        self, data: pd.DataFrame, targets: pd.DataFrame, length: int, batch_size=128
+    ):
+
+        if len(data) != len(targets):
+            raise ValueError(
+                "Data and targets have to be" + " of same length. "
+                "Data length is {}".format(len(data))
+                + " while target length is {}".format(len(targets))
+            )
+
+        self.data = data
+        self.targets = targets
+        self.length = length
+        self.batch_size = batch_size
+
+    def __len__(self):
+        return (len(self.data) - 1 + self.batch_size) // self.batch_size
+
+    def __getitem__(self, index):
+        i = self.batch_size * index
+        rows = np.arange(i, min(i + self.batch_size, len(self.data)), 1)
+
+        samples = np.array([self.data[row - self.length : row : 1] for row in rows])
+        targets = np.array([self.targets[row] for row in rows])
+
+        return samples, targets
