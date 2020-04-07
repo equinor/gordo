@@ -9,12 +9,14 @@ from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
 from copy import copy, deepcopy
 from importlib.util import find_spec
+from dataclasses import dataclass
 
 import h5py
 import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from tensorflow.python.keras.utils import data_utils
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -811,77 +813,110 @@ def create_keras_timeseriesgenerator(
         )
 
 
-class GordoTimeseriesGenerator(object):
+@dataclass
+class TimeseriesChunk:
+    start_ts: pd.Timestamp
+    end_ts: pd.Timestamp
+    size: int
+
+
+@dataclass
+class TimeseriesGeneratorContainer:
+    generator: TimeseriesGenerator
+    chunk: TimeseriesChunk
+    length: int
+
+
+class GordoTimeseriesGenerator(data_utils.Sequence):
     def __init__(
         self,
         data: pd.DataFrame,
         targets: pd.DataFrame,
         length: int,
         batch_size: int = 128,
-        step: Optional[pd.Timedelta] = None,
+        shuffle: bool = False,
+        step: Optional[Union[pd.Timedelta, int]] = None,
     ):
 
         if len(data) != len(targets):
             raise ValueError(
-                "Data and targets have to be" + " of same length. "
-                "Data length is {}".format(len(data))
-                + " while target length is {}".format(len(targets))
+                "Data and targets have to be of same length. "
+                f"Data length is {len(data)}"
+                f" while target length is {len(targets)}"
             )
 
-        self.data = data
-        self.targets = targets
-        self.length = length
-        self.batch_size = batch_size
         if step is None:
             step = pd.Timedelta(minutes=10)
+        if isinstance(step, int):
+            step = pd.Timedelta(minutes=step)
         self.step = step
-        self.time_batch_size = step * batch_size
+        self.consecutive_chunks = self.find_consecutive_chunks(data)
+        self.failed_chunks = []
+        self.generators_containers = self.create_generator_containers(
+            data, targets, length=length, batch_size=batch_size, shuffle=shuffle
+        )
+
+    def filter_chunks(self, indexes=None):
+        if indexes is not None:
+            self.generators_containers = [
+                self.generators_containers[i] for i in indexes
+            ]
 
     def __len__(self):
-        return (len(self.data) - 1 + self.batch_size) // self.batch_size
+        return sum(container.length for container in self.generators_containers)
 
-    def split_consecutive(
-        self, df: pd.DataFrame
-    ) -> Tuple[pd.DataFrame, Optional[pd.Timestamp]]:
-        prev_date = None
-        start_date = None
+    def find_consecutive_chunks(self, df: pd.DataFrame) -> List[TimeseriesChunk]:
+        chunks = []
+        prev_ts, start_ts, size = None, None, 0
         for dt in df.index:
-            if prev_date is None:
-                prev_date = dt
-                start_date = dt
+            if prev_ts is None:
+                prev_ts = dt
+                start_ts = dt
             else:
-                if dt - prev_date != self.step:
-                    return df.loc[start_date:prev_date], dt
-                prev_date = dt
-        return df, None
+                if dt - prev_ts == self.step:
+                    size += 1
+                    prev_ts = dt
+                else:
+                    chunks.append(TimeseriesChunk(start_ts, prev_ts, size))
+                    prev_ts, start_ts, size = None, None, 0
+        if start_ts is not None:
+            chunks.append(TimeseriesChunk(start_ts, prev_ts, size))
+        return chunks
+
+    def create_generator_containers(
+        self,
+        data: pd.DataFrame,
+        targets: pd.DataFrame,
+        length: int,
+        batch_size: int,
+        shuffle: bool,
+    ) -> List[TimeseriesGeneratorContainer]:
+        generator_containers = []
+        for chunk in self.consecutive_chunks:
+            gen_data = data[chunk.start_ts : chunk.end_ts].values
+            gen_target = targets[chunk.start_ts : chunk.end_ts].values
+            try:
+                generator = TimeseriesGenerator(
+                    gen_data,
+                    gen_target,
+                    length=length,
+                    batch_size=batch_size,
+                    shuffle=shuffle,
+                )
+            except ValueError:
+                self.failed_chunks.append(chunk)
+            length = len(generator)
+            generator_containers.append(
+                TimeseriesGeneratorContainer(generator, chunk, length)
+            )
+        return generator_containers
 
     def __getitem__(self, index):
-        data = self.data
-        index = data.index
-
-        samples = []
-        rows = []
-        current_date = index.min()
-        while True:
-            batch = data.loc[current_date : current_date + self.time_batch_size]
-            if batch.empty:
-                break
-            rows.append(index.get_loc(current_date))
-            if len(batch) == self.batch_size:
-                samples.append(batch.values)
-                current_date += self.step
-            else:
-                batch, last_date = self.split_consecutive(batch)
-                batch_values = batch.values
-                if last_date is not None:
-                    current_date = last_date
-                    batch_values = pad_sequences(
-                        [batch_values], padding="post", truncating="post", maxlen=batch
-                    )[0]
-                else:
-                    current_date += self.step
-                samples.append(batch_values)
-
-        targets = np.array([self.targets[row] for row in rows])
-
-        return np.array(samples), np.array(targets)
+        i = -1
+        for container in self.generators_containers:
+            new_i = i + container.length
+            if index <= new_i:
+                gen_i = index - i - 1
+                return container.generator[gen_i]
+            i = new_i
+        raise IndexError(index)
