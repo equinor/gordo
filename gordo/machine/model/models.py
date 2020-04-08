@@ -710,7 +710,7 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
             step = pd.Timedelta(minutes=step)
         self.step = step
         self.consecutive_chunks = self.find_consecutive_chunks(data)
-        self.failed_chunks = []
+        self.failed_chunks: List[TimeseriesChunk] = []
         self.generators_containers = self.create_generator_containers(
             data, targets, length=length, batch_size=batch_size, shuffle=shuffle
         )
