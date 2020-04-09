@@ -851,15 +851,23 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
             step = pd.Timedelta(minutes=step)
         self.step = step
         self.consecutive_chunks = self.find_consecutive_chunks(data)
-        logger.debug('GordoTimeseriesGenerator with consecutive_chunks=%s', self.consecutive_chunks)
+        logger.debug(
+            "GordoTimeseriesGenerator with consecutive_chunks=%s",
+            self.consecutive_chunks,
+        )
         self.failed_chunks: List[TimeseriesChunk] = []
         self.generators_containers = self.create_generator_containers(
             data, targets, length=length, batch_size=batch_size, shuffle=shuffle
         )
-        logger.debug('GordoTimeseriesGenerator with generators_containers=%s', self.generators_containers)
+        logger.debug(
+            "GordoTimeseriesGenerator with generators_containers=%s",
+            self.generators_containers,
+        )
         if not self.generators_containers:
-            raise ValueError("Seems like the time series are too small or in random order."
-                             "Failed chunks: %s" % self.consecutive_chunks)
+            raise ValueError(
+                "Seems like the time series are too small or in random order."
+                "Failed chunks: %s" % self.consecutive_chunks
+            )
 
     def filter_chunks(self, indexes=None):
         if indexes is not None:
