@@ -716,6 +716,8 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
             data, targets, length=length, batch_size=batch_size, shuffle=shuffle
         )
         logger.debug('GordoTimeseriesGenerator with generators_containers=%s', self.generators_containers)
+        if not self.generators_containers:
+            raise ValueError("Seems like the time series are too small or in random order")
 
     def filter_chunks(self, indexes=None):
         if indexes is not None:
