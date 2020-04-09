@@ -858,7 +858,8 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
         )
         logger.debug('GordoTimeseriesGenerator with generators_containers=%s', self.generators_containers)
         if not self.generators_containers:
-            raise ValueError("Seems like the time series are too small or in random order")
+            raise ValueError("Seems like the time series are too small or in random order."
+                             "Failed chunks: %s" % self.consecutive_chunks)
 
     def filter_chunks(self, indexes=None):
         if indexes is not None:
@@ -871,20 +872,20 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
 
     def find_consecutive_chunks(self, df: pd.DataFrame) -> List[TimeseriesChunk]:
         chunks = []
-        prev_ts, start_ts, size = None, None, 0
-        for dt in df.index:
+        prev_ts, start_ts, start_i = None, None, 0
+        for i, dt in enumerate(df.index):
             if prev_ts is None:
                 prev_ts = dt
                 start_ts = dt
             else:
                 if dt - prev_ts == self.step:
-                    size += 1
                     prev_ts = dt
                 else:
-                    chunks.append(TimeseriesChunk(start_ts, prev_ts, size))
-                    prev_ts, start_ts, size = None, None, 0
+                    chunks.append(TimeseriesChunk(start_ts, prev_ts, i - start_i))
+                    prev_ts, start_ts = None, None
+                    start_i = i
         if start_ts is not None:
-            chunks.append(TimeseriesChunk(start_ts, prev_ts, size))
+            chunks.append(TimeseriesChunk(start_ts, prev_ts, len(df.index) - start_i))
         return chunks
 
     def create_generator_containers(
@@ -909,10 +910,11 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
                 )
             except ValueError:
                 self.failed_chunks.append(chunk)
-            length = len(generator)
-            generator_containers.append(
-                TimeseriesGeneratorContainer(generator, chunk, length)
-            )
+            else:
+                length = len(generator)
+                generator_containers.append(
+                    TimeseriesGeneratorContainer(generator, chunk, length)
+                )
         return generator_containers
 
     def __getitem__(self, index):
