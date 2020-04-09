@@ -4,7 +4,6 @@ import pandas as pd
 from itertools import chain
 from random import randrange
 from itertools import count
-from numpy import ndarray
 
 from gordo.machine.model.models import GordoTimeseriesGenerator, TimeseriesChunk
 
