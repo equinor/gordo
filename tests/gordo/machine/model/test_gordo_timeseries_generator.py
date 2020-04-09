@@ -47,3 +47,23 @@ def test_find_consecutive_chunks():
     for chunk, expected_chunk in zip(gen.consecutive_chunks, expected_chunks):
         assert chunk == expected_chunk
 
+def test_create_generator_containers():
+    test1_time_intervals = (
+        ('2018-01-01', 4),
+        ('2018-01-02', 35),
+        ('2018-01-04', 10),
+    )
+    test1_df = get_test_df(test1_time_intervals)
+    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, step=60)
+    expected_generator_containers = [
+        {'chunk': TimeseriesChunk(start_ts=pd.Timestamp('2018-01-02 01:00:00'), end_ts=pd.Timestamp('2018-01-03 10:00:00'), size=35), 'length': 1},
+        {'chunk': TimeseriesChunk(start_ts=pd.Timestamp('2018-01-04 01:00:00'), end_ts=pd.Timestamp('2018-01-04 09:00:00'), size=10), 'length': 1},
+    ]
+    assert len(gen.generators_containers) == 2
+    for i, generator_container in enumerate(gen.generators_containers):
+        for k, v in expected_generator_containers[i].items():
+            assert getattr(generator_container, k) == v, "%s.%s != %s" % (generator_container, k, v)
+    expected_failed_chunk = TimeseriesChunk(start_ts=pd.Timestamp('2018-01-01 00:00:00'), end_ts=pd.Timestamp('2018-01-01 03:00:00'), size=4)
+    assert len(gen.failed_chunks) == 1
+    assert gen.failed_chunks[0] == expected_failed_chunk
+
