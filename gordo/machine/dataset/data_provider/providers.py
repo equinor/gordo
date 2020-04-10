@@ -4,6 +4,7 @@ import random
 import logging
 import threading
 import timeit
+import math
 
 from datetime import datetime
 import typing
@@ -351,9 +352,20 @@ class RandomDataProvider(GordoBaseDataProvider):
         return True  # We can be random about everything
 
     @capture_args
-    def __init__(self, min_size=100, max_size=300, **kwargs):
+    def __init__(
+        self,
+        min_size=100,
+        max_size=300,
+        randomize_dates=True,
+        consecutive_freq=None,
+        **kwargs,
+    ):
         self.max_size = max_size
         self.min_size = min_size
+        self.randomize_dates = randomize_dates
+        self.consecutive_freq = (
+            consecutive_freq if consecutive_freq is not None else "10min"
+        )
         np.random.seed(0)
 
     # Thanks stackoverflow
@@ -369,6 +381,15 @@ class RandomDataProvider(GordoBaseDataProvider):
             pd.to_datetime(np.random.randint(start_u, end_u, n), unit="s", utc=True)
         )
 
+    @staticmethod
+    def _consecutive_dates(start, end, freq):
+        start = pd.to_datetime(start)
+        end = pd.to_datetime(end)
+        step = pd.to_timedelta(freq)
+        periods = int(math.floor((end - start) / step))
+        dr = pd.date_range(start, periods=periods, freq=freq)
+        return pd.DatetimeIndex(dr)
+
     def load_series(
         self,
         train_start_date: datetime,
@@ -381,12 +402,14 @@ class RandomDataProvider(GordoBaseDataProvider):
                 "Dry run for RandomDataProvider is not implemented"
             )
         for tag in tag_list:
-            nr = random.randint(self.min_size, self.max_size)
-
-            random_index = self._random_dates(train_start_date, train_end_date, n=nr)
+            if self.randomize_dates:
+                nr = random.randint(self.min_size, self.max_size)
+                index = self._random_dates(train_start_date, train_end_date, n=nr)
+            else:
+                index = self._consecutive_dates(
+                    train_start_date, train_end_date, freq=self.consecutive_freq
+                )
             series = pd.Series(
-                index=random_index,
-                name=tag.name,
-                data=np.random.random(size=len(random_index)),
+                index=index, name=tag.name, data=np.random.random(size=len(index)),
             )
             yield series

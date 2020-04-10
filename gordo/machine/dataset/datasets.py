@@ -251,11 +251,15 @@ class RandomDataset(TimeSeriesDataset):
         train_start_date: Union[datetime, str],
         train_end_date: Union[datetime, str],
         tag_list: list,
+        randomize_dates: bool = True,
+        consecutive_freq: Optional[str] = None,
         **kwargs,
     ):
         kwargs.pop("data_provider", None)  # Dont care what you ask for, you get random!
         super().__init__(
-            data_provider=RandomDataProvider(),
+            data_provider=RandomDataProvider(
+                randomize_dates=randomize_dates, consecutive_freq=consecutive_freq
+            ),
             train_start_date=train_start_date,
             train_end_date=train_end_date,
             tag_list=tag_list,
