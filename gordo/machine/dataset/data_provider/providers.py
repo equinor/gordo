@@ -7,6 +7,7 @@ import timeit
 import math
 
 from datetime import datetime
+from dateutil.tz import tzutc
 import typing
 
 from cachetools import cached, TTLCache
@@ -387,7 +388,7 @@ class RandomDataProvider(GordoBaseDataProvider):
         end = pd.to_datetime(end)
         step = pd.to_timedelta(freq)
         periods = int(math.floor((end - start) / step))
-        dr = pd.date_range(start, periods=periods, freq=freq)
+        dr = pd.date_range(start, periods=periods, freq=freq, tz=tzutc())
         return pd.DatetimeIndex(dr)
 
     def load_series(
