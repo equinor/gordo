@@ -10,6 +10,7 @@ from abc import ABCMeta
 from copy import copy, deepcopy
 from importlib.util import find_spec
 from dataclasses import dataclass
+from copy import copy
 
 import h5py
 import tensorflow.keras.models
@@ -474,6 +475,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kind: Union[Callable, str],
         lookback_window: int = 1,
         batch_size: int = 32,
+        timeseries_generator: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
         """
@@ -505,6 +507,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
+
+        self.timeseries_generator_config = timeseries_generator
 
         # fit_generator_params is a set of strings with the keyword arguments of
         # Keras fit_generator method (excluding "shuffle" as this will be hardcoded).
@@ -597,6 +601,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=1,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            config=self.timeseries_generator_config,
         )
 
         primer_x, primer_y = tsg[0]
@@ -609,6 +614,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            config=self.timeseries_generator_config,
         )
 
         gen_kwargs = {
@@ -746,6 +752,7 @@ def create_keras_timeseriesgenerator(
     batch_size: int,
     lookback_window: int,
     lookahead: int,
+    config: Optional[Dict[str, Any]] = None,
 ) -> TimeseriesGenerator:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
@@ -798,19 +805,47 @@ def create_keras_timeseriesgenerator(
     >>> len(gen[0][0][0][0]) # n_features = 2
     2
     """
+    X, y = pad_x_and_y(X, y, lookahead)
+    return timeseries_generators.create_from_config(
+        config, data=X, targets=y, length=lookback_window, batch_size=batch_size
+    )
 
-    if isinstance(X, pd.DataFrame):
-        if not isinstance(y, pd.DataFrame):
-            raise ValueError("'y' should be an instance of pandas.DataFrame")
-        # TODO padding for X and y
-        return GordoTimeseriesGenerator(
-            data=X, targets=y, length=lookback_window, batch_size=batch_size
-        )
-    else:
-        X, y = pad_x_and_y(X, y, lookahead)
-        return TimeseriesGenerator(
-            data=X, targets=y, length=lookback_window, batch_size=batch_size
-        )
+
+class TimeseriesGeneratorTypes:
+    def __init__(self, default_type):
+        self.default_type = default_type
+        self._types = {}
+
+    def create_from_config(self, config, **kwargs):
+        if config is None:
+            return self.default_type(**kwargs)
+        else:
+            if "type" not in config:
+                raise ValueError(
+                    'Unspecified "type" attribute for "timeseries_generator"'
+                )
+            type_name = config["type"]
+            if type_name not in self._types:
+                raise ValueError(
+                    f'Unknown type "{type_name}" for "timeseries_generator"'
+                )
+            all_kwargs = copy(config).pop("type")
+            all_kwargs.update(kwargs)
+            return self._types[type_name](**all_kwargs)
+
+    def __call__(self, type_name):
+        def wrap(cls):
+            if type_name in self._types:
+                raise ValueError(
+                    f'TimeseriesGenerator type with name "{type_name}" already exists'
+                )
+            self._types[type_name] = cls
+            return cls
+
+        return wrap
+
+
+timeseries_generators = TimeseriesGeneratorTypes(default_type=TimeseriesGenerator)
 
 
 @dataclass
@@ -827,17 +862,21 @@ class TimeseriesGeneratorContainer:
     length: int
 
 
+@timeseries_generators("GordoTimeseriesGenerator")
 class GordoTimeseriesGenerator(data_utils.Sequence):
     def __init__(
         self,
-        data: pd.DataFrame,
-        targets: pd.DataFrame,
+        data: Union[pd.DataFrame, np.ndarray],
+        targets: Union[pd.DataFrame, np.ndarray],
         length: int,
         batch_size: int = 128,
         shuffle: bool = False,
         step: Optional[Union[pd.Timedelta, int]] = None,
     ):
-
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Data have to be instance of pandas.DataFrame")
+        if not isinstance(targets, pd.DataFrame):
+            raise ValueError("Targets have to be instance of pandas.DataFrame")
         if len(data) != len(targets):
             raise ValueError(
                 "Data and targets have to be of same length. "
