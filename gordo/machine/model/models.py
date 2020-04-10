@@ -871,7 +871,7 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
         length: int,
         batch_size: int = 128,
         shuffle: bool = False,
-        step: Optional[Union[pd.Timedelta, int]] = None,
+        step: Union[pd.Timedelta, str] = '10min',
     ):
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Data have to be instance of pandas.DataFrame")
@@ -884,10 +884,8 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
                 f" while target length is {len(targets)}"
             )
 
-        if step is None:
-            step = pd.Timedelta(minutes=10)
-        if isinstance(step, int):
-            step = pd.Timedelta(minutes=step)
+        if isinstance(step, str):
+            step = pd.to_timedelta(step)
         self.step = step
         self.consecutive_chunks = self.find_consecutive_chunks(data)
         logger.debug(

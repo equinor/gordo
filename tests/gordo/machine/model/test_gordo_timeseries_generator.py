@@ -56,7 +56,7 @@ def test_find_consecutive_chunks():
         ("2018-02-03", 20),
     )
     test1_df = get_test_df(test1_time_intervals)
-    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, step=60)
+    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, step='60min')
     expected_chunks = [
         TimeseriesChunk(
             start_ts=pd.Timestamp("2018-01-01 00:00:00"),
@@ -96,7 +96,7 @@ def test_create_generator_containers():
         ("2018-01-04", 10),
     )
     test1_df = get_test_df(test1_time_intervals)
-    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, step=60)
+    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, step='60min')
     expected_generator_containers = [
         {
             "chunk": TimeseriesChunk(
@@ -138,7 +138,7 @@ def test_timeseries_generator():
         ("2018-01-04", 10),
     )
     test1_df = get_test_df(test1_time_intervals, generator=range_gen(), tags_count=1)
-    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, batch_size=3, step=60)
+    gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, batch_size=3, step='60min')
     assert len(gen.generators_containers) == 2
     assert len(gen) == 6
     x, y = gen[0]
@@ -160,4 +160,4 @@ def test_too_short_timeseries_length():
     )
     test1_df = get_test_df(test1_time_intervals)
     with pytest.raises(ValueError):
-        GordoTimeseriesGenerator(test1_df, test1_df, length=10, step=60)
+        GordoTimeseriesGenerator(test1_df, test1_df, length=10, step='60min')

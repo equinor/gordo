@@ -337,7 +337,6 @@ def test_lstmae_predict_output():
     out = model.predict(xTest)
     assert out.shape == (2, 3)
 
-
 def test_keras_autoencoder_fits_callbacks():
     model = KerasAutoEncoder(
         kind="feedforward_hourglass",
@@ -410,3 +409,5 @@ def test_for_wrong_kind_import():
     X, y = np.random.rand(10, 10), np.random.rand(10, 10)
     with pytest.raises(ValueError):
         model.fit(X, y)
+
+# TODO test with GordoTimeseriesGenerator
