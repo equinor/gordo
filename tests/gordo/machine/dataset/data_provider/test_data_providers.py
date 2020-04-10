@@ -10,7 +10,8 @@ import pytest
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.data_provider import providers
 from gordo.machine.dataset.data_provider.providers import (
-    load_series_from_multiple_providers, RandomDataProvider
+    load_series_from_multiple_providers,
+    RandomDataProvider,
 )
 from gordo.machine.dataset.sensor_tag import SensorTag
 
@@ -130,14 +131,19 @@ def test_data_provider_serializations(
     cloned = provider.__class__.from_dict(encoded)
     assert type(cloned) == type(provider)
 
+
 def test_random_data_provider_consecutive():
-    provider = RandomDataProvider(randomize_dates=False, consecutive_freq='10min')
-    tag_list = [SensorTag('tag1', '')]
-    series = list(provider.load_series(isoparse('2020-04-01 00:00:00'), isoparse('2020-04-01 01:00:00'), tag_list=tag_list))
+    provider = RandomDataProvider(randomize_dates=False, consecutive_freq="10min")
+    tag_list = [SensorTag("tag1", "")]
+    series = list(
+        provider.load_series(
+            isoparse("2020-04-01 00:00:00"),
+            isoparse("2020-04-01 01:00:00"),
+            tag_list=tag_list,
+        )
+    )
     assert len(series) == 1
     first_series = series[0]
     assert len(first_series) == 6
-    assert first_series.index[0] == pd.to_datetime('2020-04-01 00:00:00+00:00')
-    assert first_series.index[5] == pd.to_datetime('2020-04-01 00:50:00+00:00')
-
-
+    assert first_series.index[0] == pd.to_datetime("2020-04-01 00:00:00+00:00")
+    assert first_series.index[5] == pd.to_datetime("2020-04-01 00:50:00+00:00")
