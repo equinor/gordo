@@ -507,8 +507,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
-
-        self.timeseries_generator_config = timeseries_generator
+        kwargs["timeseries_generator"] = timeseries_generator
 
         # fit_generator_params is a set of strings with the keyword arguments of
         # Keras fit_generator method (excluding "shuffle" as this will be hardcoded).
@@ -538,6 +537,10 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
     def lookahead(self) -> int:
         """Steps ahead in y the model should target"""
         ...
+
+    @property
+    def timeseries_generator(self):
+        return self.kwargs.get('timeseries_generator', None)
 
     def get_metadata(self):
         """
@@ -601,7 +604,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=1,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
-            config=self.timeseries_generator_config,
+            config=self.timeseries_generator,
         )
 
         primer_x, primer_y = tsg[0]
@@ -614,7 +617,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
-            config=self.timeseries_generator_config,
+            config=self.timeseries_generator,
         )
 
         gen_kwargs = {
@@ -674,6 +677,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=10000,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            config=self.timeseries_generator,
         )
         return self.model.predict_generator(tsg)
 
@@ -829,7 +833,8 @@ class TimeseriesGeneratorTypes:
                 raise ValueError(
                     f'Unknown type "{type_name}" for "timeseries_generator"'
                 )
-            all_kwargs = copy(config).pop("type")
+            all_kwargs = copy(config)
+            all_kwargs.pop("type")
             all_kwargs.update(kwargs)
             return self._types[type_name](**all_kwargs)
 
