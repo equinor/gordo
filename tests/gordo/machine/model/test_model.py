@@ -333,3 +333,5 @@ def test_lstmae_predict_output():
     xTest = np.random.random(size=(4, 3))
     out = model.predict(xTest)
     assert out.shape == (2, 3)
+
+#TODO test with GordoTimeseriesGenerator
