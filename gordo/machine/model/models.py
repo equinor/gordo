@@ -713,7 +713,7 @@ class TimeseriesGeneratorTypes:
         return wrap
 
 
-class DefaultTimeseriesGenertor(TimeseriesGenerator):
+class DefaultTimeseriesGenerator(TimeseriesGenerator):
     def __init__(
         self,
         data: Union[pd.DataFrame, np.ndarray],
@@ -729,7 +729,7 @@ class DefaultTimeseriesGenertor(TimeseriesGenerator):
         super().__init__(data=data, targets=targets, **kwargs)
 
 
-timeseries_generators = TimeseriesGeneratorTypes(default_type=DefaultTimeseriesGenertor)
+timeseries_generators = TimeseriesGeneratorTypes(default_type=DefaultTimeseriesGenerator)
 
 
 @dataclass
