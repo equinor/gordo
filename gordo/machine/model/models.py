@@ -870,7 +870,9 @@ class DefaultTimeseriesGenerator(TimeseriesGenerator):
         super().__init__(data=data, targets=targets, **kwargs)
 
 
-timeseries_generators = TimeseriesGeneratorTypes(default_type=DefaultTimeseriesGenerator)
+timeseries_generators = TimeseriesGeneratorTypes(
+    default_type=DefaultTimeseriesGenerator
+)
 
 
 @dataclass
