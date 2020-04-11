@@ -668,9 +668,13 @@ def create_keras_timeseriesgenerator(
     >>> len(gen[0][0][0][0]) # n_features = 2
     2
     """
-    X, y = pad_x_and_y(X, y, lookahead)
     return timeseries_generators.create_from_config(
-        config, data=X, targets=y, length=lookback_window, batch_size=batch_size
+        config,
+        data=X,
+        targets=y,
+        length=lookback_window,
+        batch_size=batch_size,
+        lookahead=lookahead,
     )
 
 
@@ -709,7 +713,23 @@ class TimeseriesGeneratorTypes:
         return wrap
 
 
-timeseries_generators = TimeseriesGeneratorTypes(default_type=TimeseriesGenerator)
+class DefaultTimeseriesGenertor(TimeseriesGenerator):
+    def __init__(
+        self,
+        data: Union[pd.DataFrame, np.ndarray],
+        targets: Union[pd.DataFrame, np.ndarray],
+        lookahead: int = 1,
+        **kwargs,
+    ):
+        if isinstance(data, pd.DataFrame):
+            data = data.values
+        if isinstance(targets, pd.DataFrame):
+            targets = targets.values
+        data, targets = pad_x_and_y(data, targets, lookahead)
+        super().__init__(data=data, targets=targets, **kwargs)
+
+
+timeseries_generators = TimeseriesGeneratorTypes(default_type=DefaultTimeseriesGenertor)
 
 
 @dataclass
@@ -736,6 +756,7 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
         batch_size: int = 128,
         shuffle: bool = False,
         step: Union[pd.Timedelta, str] = "10min",
+        lookahead: int = 1,
     ):
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Data have to be instance of pandas.DataFrame")
@@ -769,6 +790,8 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
                 "Seems like the time series are too small or in random order."
                 "Failed chunks: %s" % self.consecutive_chunks
             )
+        # TODO use lookahead
+        self.lookahead = lookahead
 
     def filter_chunks(self, indexes=None):
         if indexes is not None:

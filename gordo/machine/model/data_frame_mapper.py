@@ -1,14 +1,14 @@
 import logging
+import sklearn_pandas
 
 from pydoc import locate
-from sklearn_pandas import DataFrameMapper, gen_features
 from copy import copy, deepcopy
 from typing import List, Union, Optional
 
 logger = logging.getLogger(__name__)
 
 
-class DataFrameMapper(DataFrameMapper):
+class DataFrameMapper(sklearn_pandas.DataFrameMapper):
 
     _default_kwargs = {"df_out": True}
 
@@ -37,8 +37,8 @@ class DataFrameMapper(DataFrameMapper):
                 if isinstance(v["class"], str):
                     cls = locate(v["class"])
                     classes[i]["class"] = cls
-        logger.debug("_build_features for columns=%s, classes=%s)", columns, classes)
-        return gen_features(columns=columns, classes=classes)
+        logger.debug("_build_features for columns=%s, classes=%s", columns, classes)
+        return sklearn_pandas.gen_features(columns=columns, classes=classes)
 
     def __getstate__(self):
         state = super().__getstate__()
