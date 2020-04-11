@@ -2,7 +2,7 @@ import logging
 
 from pydoc import locate
 from sklearn_pandas import DataFrameMapper, gen_features
-from copy import copy
+from copy import copy, deepcopy
 from typing import List, Union, Optional
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class DataFrameMapper(DataFrameMapper):
         columns: List[Union[str, List[str]]], classes: Optional[List[dict]] = None,
     ):
         if classes is not None:
-            classes = copy(classes)
+            classes = deepcopy(classes)
             for i, v in enumerate(classes):
                 if "class" not in v:
                     raise ValueError('"class" attribute is empty')
