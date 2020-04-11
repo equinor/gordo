@@ -17,7 +17,7 @@ class DataFrameMapper(DataFrameMapper):
         features = gen_features(columns=columns, classes=classes)
         base_kwargs = copy(self._default_kwargs)
         base_kwargs.update(kwargs)
-        super().__init__(features=features, **kwargs)
+        super().__init__(features=features, **base_kwargs)
 
     @staticmethod
     def _prepare_classes(classes: List[dict]):
