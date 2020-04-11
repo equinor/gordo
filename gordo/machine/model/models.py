@@ -540,7 +540,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
     @property
     def timeseries_generator(self):
-        return self.kwargs.get('timeseries_generator', None)
+        return self.kwargs.get("timeseries_generator", None)
 
     def get_metadata(self):
         """
@@ -876,7 +876,7 @@ class GordoTimeseriesGenerator(data_utils.Sequence):
         length: int,
         batch_size: int = 128,
         shuffle: bool = False,
-        step: Union[pd.Timedelta, str] = '10min',
+        step: Union[pd.Timedelta, str] = "10min",
     ):
         if not isinstance(data, pd.DataFrame):
             raise ValueError("Data have to be instance of pandas.DataFrame")

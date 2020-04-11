@@ -6,11 +6,14 @@ from typing import List, Union, Optional
 
 class DataFrameMapper(DataFrameMapper):
 
-    _default_kwargs = {
-        "df_out": True
-    }
+    _default_kwargs = {"df_out": True}
 
-    def __init__(self, columns: List[Union[str, List[str]]], classes: Optional[List[dict]] = None, **kwargs):
+    def __init__(
+        self,
+        columns: List[Union[str, List[str]]],
+        classes: Optional[List[dict]] = None,
+        **kwargs
+    ):
         if classes is not None:
             classes = copy(classes)
             self._prepare_classes(classes)
@@ -23,7 +26,7 @@ class DataFrameMapper(DataFrameMapper):
     def _prepare_classes(classes: List[dict]):
         for i, v in enumerate(classes):
             if "class" not in v:
-                raise ValueError("\"class\" attribute is empty")
+                raise ValueError('"class" attribute is empty')
             if isinstance(v["class"], str):
                 cls = locate(v["class"])
                 classes[i]["class"] = cls
