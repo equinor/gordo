@@ -334,4 +334,5 @@ def test_lstmae_predict_output():
     out = model.predict(xTest)
     assert out.shape == (2, 3)
 
-#TODO test with GordoTimeseriesGenerator
+
+# TODO test with GordoTimeseriesGenerator
