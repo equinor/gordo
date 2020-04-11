@@ -25,3 +25,4 @@ simplejson~=3.17
 catboost~=0.20
 typing_extensions~=3.7
 wrapt~=1.11
+sklearn-pandas~=1.8.0
