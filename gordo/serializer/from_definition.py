@@ -4,10 +4,12 @@ import logging
 import pydoc
 import copy
 import typing  # noqa
-from typing import Union, Dict, Any, Iterable
+from typing import Union, Dict, Any, Iterable, Type, Optional
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
+
+from gordo.data_frame_mapper import DataFrameMapper
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +64,7 @@ def from_definition(
 
 def _build_branch(
     definition: Iterable[Union[str, Dict[Any, Any]]],
-    constructor_class=Union[Pipeline, None],
+    constructor_class: Optional[Type[Pipeline]] = None,
 ):
     """
     Builds a branch of the tree and optionally constructs the class with the given
@@ -169,6 +171,11 @@ def _build_step(
                     f"Got {StepClass} but the supplied parameters"
                     f"seem invalid: {params}"
                 )
+
+        if issubclass(StepClass, DataFrameMapper):
+            params = _load_data_mapper_params(params)
+
+        logger.debug("StopClass(%s)", params)
         return StepClass(**params)
 
     # If step is just a string, can initialize it without any params
@@ -181,6 +188,16 @@ def _build_step(
         raise ValueError(
             f"Expected step to be either a string or a dict," f"found: {type(step)}"
         )
+
+
+def _load_data_mapper_params(params: dict):
+    if "classes" in params:
+        classes = copy.deepcopy(params["classes"])
+        if not isinstance(classes, list):
+            raise TypeError('"classes" should be a list')
+        logger.debug("classes=%s", classes)
+        params["classes"] = _build_branch(classes)
+    return params
 
 
 def _load_param_classes(params: dict):
@@ -233,6 +250,7 @@ def _load_param_classes(params: dict):
         objects
     """
     params = copy.copy(params)
+    logger.debug("_load_param_classes=%s", params)
     for key, value in params.items():
 
         # If value is a simple string, try to load the model/class
@@ -263,6 +281,14 @@ def _load_param_classes(params: dict):
                 else:
                     # Call this func again, incase there is nested occurances of this problem in these kwargs
                     sub_params = value[list(value.keys())[0]]
-                    kwargs = _load_param_classes(sub_params)
+
+                    if issubclass(Model, DataFrameMapper):
+                        kwargs = _load_data_mapper_params(sub_params)
+                        logger.debug(
+                            "_load_data_mapper_params(%s)=%s", sub_params, kwargs
+                        )
+                    else:
+                        kwargs = _load_param_classes(sub_params)
+
                     params[key] = Model(**kwargs)  # type: ignore
     return params

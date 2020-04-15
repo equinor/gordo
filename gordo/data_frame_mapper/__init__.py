@@ -9,14 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 class DataFrameMapper(sklearn_pandas.DataFrameMapper):
-
     _default_kwargs = {"df_out": True}
 
     def __init__(
-        self,
-        columns: List[Union[str, List[str]]],
-        classes: Optional[List[dict]] = None,
-        **kwargs
+            self,
+            columns: List[Union[str, List[str]]],
+            classes: Optional[List[dict]] = None,
+            **kwargs
     ):
         self.columns = columns
         self.classes = classes
@@ -27,16 +26,17 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
 
     @staticmethod
     def _build_features(
-        columns: List[Union[str, List[str]]], classes: Optional[List[dict]] = None,
+            columns: List[Union[str, List[str]]], classes: Optional[List[dict]] = None,
     ):
         if classes is not None:
             classes = deepcopy(classes)
             for i, v in enumerate(classes):
-                if "class" not in v:
-                    raise ValueError('"class" attribute is empty')
-                if isinstance(v["class"], str):
-                    cls = locate(v["class"])
-                    classes[i]["class"] = cls
+                if isinstance(v, dict):
+                    if "class" not in v:
+                        raise ValueError('"class" attribute is empty')
+                    if isinstance(v["class"], str):
+                        cls = locate(v["class"])
+                        classes[i]["class"] = cls
         logger.debug("_build_features for columns=%s, classes=%s", columns, classes)
         return sklearn_pandas.gen_features(columns=columns, classes=classes)
 
@@ -51,3 +51,6 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
         features = self._build_features(state.get("columns"), state.get("classes"))
         state["features"] = features
         super().__setstate__(state)
+
+
+__all__ = ['DataFrameMapper']
