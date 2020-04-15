@@ -1,9 +1,9 @@
 import logging
 import sklearn_pandas
 
-from pydoc import locate
-from copy import copy, deepcopy
-from typing import List, Union, Optional
+from copy import copy
+from sklearn.base import BaseEstimator
+from typing import List, Union
 
 logger = logging.getLogger(__name__)
 
@@ -14,41 +14,34 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
     def __init__(
             self,
             columns: List[Union[str, List[str]]],
-            classes: Optional[List[dict]] = None,
+            transformers: List[BaseEstimator] = None,
             **kwargs
     ):
         self.columns = columns
-        self.classes = classes
-        features = self._build_features(columns, classes)
+        self.transformers = transformers
+        features = self._build_features(columns, transformers)
         base_kwargs = copy(self._default_kwargs)
         base_kwargs.update(kwargs)
         super().__init__(features=features, **base_kwargs)
 
     @staticmethod
     def _build_features(
-            columns: List[Union[str, List[str]]], classes: Optional[List[dict]] = None,
+            columns: List[Union[str, List[str]]], transformers: List[BaseEstimator],
     ):
-        if classes is not None:
-            classes = deepcopy(classes)
-            for i, v in enumerate(classes):
-                if isinstance(v, dict):
-                    if "class" not in v:
-                        raise ValueError('"class" attribute is empty')
-                    if isinstance(v["class"], str):
-                        cls = locate(v["class"])
-                        classes[i]["class"] = cls
-        logger.debug("_build_features for columns=%s, classes=%s", columns, classes)
-        return sklearn_pandas.gen_features(columns=columns, classes=classes)
+        features = []
+        for column in columns:
+            features.append((column, transformers))
+        return features
 
     def __getstate__(self):
         state = super().__getstate__()
         state["columns"] = self.columns
-        state["classes"] = self.classes
+        state["transformers"] = self.transformers
         del state["features"]
         return state
 
     def __setstate__(self, state):
-        features = self._build_features(state.get("columns"), state.get("classes"))
+        features = self._build_features(state.get("columns"), state.get("transformers"))
         state["features"] = features
         super().__setstate__(state)
 

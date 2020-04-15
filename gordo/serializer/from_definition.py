@@ -191,12 +191,12 @@ def _build_step(
 
 
 def _load_data_mapper_params(params: dict):
-    if "classes" in params:
-        classes = copy.deepcopy(params["classes"])
+    if "transformers" in params:
+        classes = copy.deepcopy(params["transformers"])
         if not isinstance(classes, list):
-            raise TypeError('"classes" should be a list')
-        logger.debug("classes=%s", classes)
-        params["classes"] = _build_branch(classes)
+            raise TypeError('"transformers" should be a list')
+        logger.debug("transformers=%s", classes)
+        params["transformers"] = _build_branch(classes)
     return params
 
 
