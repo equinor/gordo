@@ -233,8 +233,8 @@ class TimeSeriesDataset(GordoBaseDataset):
             self._metadata["train_start_date_actual"] = X.index[0]
             self._metadata["train_end_date_actual"] = X.index[-1]
 
-        self._metadata["summary_statistics"] = X.describe().to_json(orient="index")
-        hists: Dict[str, str] = {}
+        self._metadata["summary_statistics"] = X.describe().to_dict()
+        hists = dict()
         for tag in X.columns:
             step = round((X[tag].max() - X[tag].min()) / 100, 6)
             if step < 9e-07:
