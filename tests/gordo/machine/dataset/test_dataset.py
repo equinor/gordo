@@ -238,6 +238,29 @@ def test_aggregation_methods():
     ]
 
 
+def test_metadata_statistics():
+    """Tests that it works to set aggregation method(s)"""
+
+    kwargs = dict(
+        data_provider=MockDataProvider(),
+        tag_list=[
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ],
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+    )
+
+    # Default aggregation gives no extra columns
+    dataset = TimeSeriesDataset(**kwargs)
+    X, _ = dataset.get_data()
+    assert (577, 3) == X.shape
+    metadata = dataset.get_metadata()
+    assert isinstance(metadata["x_hist"], dict)
+    assert len(metadata["x_hist"].keys()) == 3
+
+
 def test_time_series_no_resolution():
     kwargs = dict(
         data_provider=MockDataProvider(),
