@@ -624,6 +624,7 @@ spec:
         app: gordo-model-builder
         applications.gordo.equinor.com/project-name: {{project_name}}
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
     inputs:
       parameters:
       - name: machine-name
@@ -1139,18 +1140,6 @@ spec:
           dependencies:
             - ensure-single-workflow
         {% for machine in machines %}
-        - name: model-builder-{{ machine.name }}
-          template: model-builder
-          arguments:
-            parameters:
-              - name: machine-name
-                value: {{ machine.name }}
-              - name: machine
-                value: |
-                  {{ machine.to_dict() | tojson }}
-          dependencies:
-            - gordo-server
-            {% if enable_influx %}- gordo-postgres{% endif %}
         - name: gordo-mdl-{{ machine.name }}
           template: gordo-model
           arguments:
@@ -1161,7 +1150,19 @@ spec:
                 value: |
                   {{ machine.to_dict() | tojson }}
           dependencies:
-            - model-builder-{{ machine.name }}
+            - gordo-server
+            {% if enable_influx %}- gordo-postgres{% endif %}
+        - name: model-builder-{{ machine.name }}
+          template: model-builder
+          arguments:
+            parameters:
+              - name: machine-name
+                value: {{ machine.name }}
+              - name: machine
+                value: |
+                  {{ machine.to_dict() | tojson }}
+          dependencies:
+            - gordo-mdl-{{ machine.name }}
         {% endfor %}
         - name: postgres-cleanup
           template: postgres-cleanup
