@@ -624,7 +624,7 @@ spec:
         app: gordo-model-builder
         applications.gordo.equinor.com/project-name: {{project_name}}
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
-        applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
+        applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"
     inputs:
       parameters:
       - name: machine-name
