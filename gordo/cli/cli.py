@@ -32,17 +32,20 @@ from gordo.cli.client import client as gordo_client
 from gordo.cli.custom_types import key_value_par, HostIP
 from gordo.reporters.exceptions import ReporterException
 
+from .exceptions_reporter import ReportLevel, ExceptionsReporter
 
-EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
-    PermissionError: 20,
-    FileNotFoundError: 30,
-    DatalakeIncompleteTransferException: 40,
-    SensorTagNormalizationError: 60,
-    NoSuitableDataProviderError: 70,
-    InsufficientDataError: 80,
-    InsufficientDataAfterRowFilteringError: 81,
-    ReporterException: 90,
-}
+_exceptions_reporter = ExceptionsReporter(
+    (
+        (PermissionError, 20),
+        (FileNotFoundError, 30),
+        (DatalakeIncompleteTransferException, 40),
+        (SensorTagNormalizationError, 60),
+        (NoSuitableDataProviderError, 70),
+        (InsufficientDataError, 80),
+        (InsufficientDataAfterRowFilteringError, 81),
+        (ReporterException, 90),
+    )
+)
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +99,25 @@ def gordo(gordo_ctx: click.Context, **ctx):
     "multiple times. Separate key,valye by a comma. ie: --model-parameter key,val "
     "--model-parameter some_key,some_value",
 )
+@click.option(
+    "--exceptions-reporter-file",
+    envvar="EXCEPTIONS_REPORTER_FILE",
+    help="JSON output file for exception information",
+)
+@click.option(
+    "--exceptions-report-level",
+    type=click.Choice(ReportLevel.get_names()),
+    default=ReportLevel.MESSAGE.name,
+    help="Details level for exception reporting",
+)
 def build(
     machine_config: dict,
     output_dir: str,
     model_register_dir: click.Path,
     print_cv_scores: bool,
     model_parameter: List[Tuple[str, Any]],
+    exceptions_reporter_file: str,
+    exceptions_report_level: str,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -123,6 +139,10 @@ def build(
     model_parameter: List[Tuple[str, Any]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
+    exceptions_reporter_file: str
+        JSON output file for exception information
+    exceptions_report_level: str
+        Details level for exception reporting
     """
     if model_parameter and isinstance(machine_config["model"], str):
         parameters = dict(model_parameter)  # convert lib of tuples to dict
@@ -157,8 +177,14 @@ def build(
                 print(score)
 
     except Exception as e:
-        exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
         traceback.print_exc()
+        exit_code = _exceptions_reporter.exception_exit_code(e)
+        if exceptions_reporter_file:
+            _exceptions_reporter.safe_report(
+                ReportLevel.get_by_name(exceptions_report_level),
+                e,
+                exceptions_reporter_file,
+            )
         sys.exit(exit_code)
     else:
         return 0
