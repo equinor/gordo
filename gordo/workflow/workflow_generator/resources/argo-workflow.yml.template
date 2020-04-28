@@ -1133,12 +1133,6 @@ spec:
       tasks:
         - name: ensure-single-workflow
           template: ensure-single-workflow
-        - name: gordo-server
-          template: gordo-server
-          arguments:
-            parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
-          dependencies:
-            - ensure-single-workflow
         {% for machine in machines %}
         - name: gordo-mdl-{{ machine.name }}
           template: gordo-model
@@ -1150,8 +1144,15 @@ spec:
                 value: |
                   {{ machine.to_dict() | tojson }}
           dependencies:
-            - gordo-server
-            {% if enable_influx %}- gordo-postgres{% endif %}
+            - ensure-single-workflow
+        {% endfor %}
+        - name: gordo-server
+          template: gordo-server
+          arguments:
+            parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
+          dependencies:{% for machine in machines %}
+            - gordo-mdl-{{ machine.name }}{% endfor %}
+        {% for machine in machines %}
         - name: model-builder-{{ machine.name }}
           template: model-builder
           arguments:
@@ -1162,7 +1163,8 @@ spec:
                 value: |
                   {{ machine.to_dict() | tojson }}
           dependencies:
-            - gordo-mdl-{{ machine.name }}
+            - gordo-server
+            {% if enable_influx %}- gordo-postgres{% endif %}
         {% endfor %}
         - name: postgres-cleanup
           template: postgres-cleanup
