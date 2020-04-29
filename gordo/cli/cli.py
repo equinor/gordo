@@ -106,7 +106,7 @@ def gordo(gordo_ctx: click.Context, **ctx):
 )
 @click.option(
     "--exceptions-report-level",
-    type=click.Choice(ReportLevel.get_names()),
+    type=click.Choice(ReportLevel.get_names(), case_sensitive=False),
     default=ReportLevel.MESSAGE.name,
     help="Details level for exception reporting",
 )
