@@ -92,3 +92,6 @@ jobs:
 
       - name: Build Images
         run: make images
+
+      - name: Scan Images
+        run: make scan
