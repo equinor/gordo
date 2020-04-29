@@ -14,6 +14,8 @@ def test_report_level():
     assert level == ReportLevel.MESSAGE
     level = ReportLevel.get_by_name("DIFFERENT")
     assert level == ReportLevel.EXIT_CODE
+    level = ReportLevel.get_by_name("DIFFERENT", ReportLevel.MESSAGE)
+    assert level == ReportLevel.MESSAGE
     levels = ReportLevel.get_names()
     assert len(levels) == 3
 

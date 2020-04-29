@@ -108,6 +108,7 @@ def gordo(gordo_ctx: click.Context, **ctx):
     "--exceptions-report-level",
     type=click.Choice(ReportLevel.get_names(), case_sensitive=False),
     default=ReportLevel.MESSAGE.name,
+    envvar="EXCEPTIONS_REPORT_LEVEL",
     help="Details level for exception reporting",
 )
 def build(
@@ -181,7 +182,7 @@ def build(
         exit_code = _exceptions_reporter.exception_exit_code(e)
         if exceptions_reporter_file:
             _exceptions_reporter.safe_report(
-                ReportLevel.get_by_name(exceptions_report_level),
+                ReportLevel.get_by_name(exceptions_report_level, ReportLevel.EXIT_CODE),
                 e,
                 exceptions_reporter_file,
             )

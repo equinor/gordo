@@ -11,13 +11,28 @@ import click
 from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
+from gordo.cli.exceptions_reporter import ReportLevel
 
 
 logger = logging.getLogger(__name__)
 
 
 PREFIX = "WORKFLOW_GENERATOR"
+DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL = ReportLevel.MESSAGE
 
+def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel:
+    orig_report_level = None
+    try:
+        orig_report_level = config.globals["runtime"]["builder"]["exceptions_report_level"]
+    except KeyError:
+        pass
+    if orig_report_level is not None:
+        report_level = ReportLevel.get_by_name(orig_report_level)
+        if report_level is None:
+            raise ValueError("Invalid 'runtime.builder.exceptions_report_level' value '%s'" % orig_report_level)
+    else:
+        report_level = DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL
+    return report_level
 
 @click.group("workflow")
 @click.pass_context
@@ -216,6 +231,12 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         context["owner_references"] = json.dumps(context["owner_references"])
     else:
         context.pop("owner_references")
+
+    print(config.globals)
+    builder_exceptions_report_level = get_builder_exceptions_report_level(config)
+    context["builder_exceptions_report_level"] = builder_exceptions_report_level.name
+    if builder_exceptions_report_level != ReportLevel.EXIT_CODE:
+        context["builder_exceptions_report_file"] = "/tmp/exception.json"
 
     if context["workflow_template"]:
         template = wg.load_workflow_template(context["workflow_template"])
