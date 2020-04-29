@@ -13,7 +13,7 @@ def test_filter_rows_basic():
     assert len(pandas_filter_rows(df, "(`Tag  1` <= `Tag 2`) | (`Tag 2` < 2)")) == 20
     assert len(pandas_filter_rows(df, "(`Tag  1` <= `Tag 2`) | (`Tag 2` < 0.9)")) == 12
     assert len(pandas_filter_rows(df, "(`Tag  1` > 0) & (`Tag 2` > 0)")) == 9
-    assert len(pandas_filter_rows(df, ["`Tag  1` > 0",  "`Tag 2` > 0"])) == 9
+    assert len(pandas_filter_rows(df, ["`Tag  1` > 0", "`Tag 2` > 0"])) == 9
 
     assert_frame_equal(
         pandas_filter_rows(df, "(`Tag  1` <= `Tag 2`)"),
