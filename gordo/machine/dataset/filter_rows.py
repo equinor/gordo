@@ -49,7 +49,7 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     ----------
     df: pandas.Dataframe
       Dataframe to filter rows from. Does not modify the parameter
-    filter_str: str
+    filter_str: str or list
       String representing the filter. Can be a boolean combination of conditions,
       where conditions are comparisons of column names and either other columns
       or numeric values. The rows matching the filter are kept.
@@ -57,6 +57,7 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
       names without spaces could be quoted with backticks or be unquoted.
       Example of legal filters are " `Tag A` > 5 " , " (`Tag B` > 1) | (`Tag C` > 4)"
       '(`Tag D` < 5) ', " (TagB > 5) "
+      The parameter can also be a list, in which the items will be joined by logical " & ".
     buffer_size: int
       Area fore and aft of the application of ``fitler_str`` to also mark for removal.
 
@@ -98,8 +99,47 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     6  2  0
     7  2  1
     8  2  2
-
+    >>> pandas_filter_rows(df, "(`A`>1) & (`B`<1)")
+       A  B
+    6  2  0
+    >>> pandas_filter_rows(df, ["A>1", "B<1"])
+       A  B
+    6  2  0
+    >>> pandas_filter_rows(df, ["A!=1", "B<3"])
+       A  B
+    0  0  0
+    1  0  1
+    2  0  2
+    6  2  0
+    7  2  1
+    8  2  2
+    >>> pandas_filter_rows(df, ["A!=1", "B<3"], buffer_size=1)
+       A  B
+    0  0  0
+    1  0  1
+    7  2  1
+    8  2  2
     """
-    pandas_filter = df.eval(filter_str)
+    # pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items
+    # therefore split in n=30 (to be safe) and evaluate iterative, keeping the sparse evaluation with numexpr
+    if isinstance(filter_str, list):
+        pandas_filter = []
+        for x in _batch(iterable=filter_str, n=30):
+            pandas_filter.append(pd.DataFrame(df.eval(x)).transpose().all(axis=1))
+        pandas_filter = pd.concat(pandas_filter, axis=1).all(axis=1)
+
+    # pd.DataFrame.eval of a combined string logic, can only consist of
+    # a maximum 32 (current dependency) or 242 logical parts (latest release)
+    # and returns a pd.Series
+    else:
+        pandas_filter = df.eval(filter_str)
+    print(pandas_filter)
     apply_buffer(pandas_filter, buffer_size=buffer_size)
     return df[pandas_filter]
+
+
+def _batch(iterable, n: int):
+    """Helper function for creating batches on list items"""
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
