@@ -141,4 +141,4 @@ def _batch(iterable, n: int):
     """Helper function for creating batches on list items"""
     l = len(iterable)
     for ndx in range(0, l, n):
-        yield iterable[ndx:min(ndx + n, l)]
+        yield iterable[ndx : min(ndx + n, l)]
