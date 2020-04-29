@@ -20,7 +20,7 @@ from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 import jinja2
 import yaml
 import click
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, cast
 
 from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
@@ -182,9 +182,10 @@ def build(
         exit_code = _exceptions_reporter.exception_exit_code(e)
         if exceptions_reporter_file:
             _exceptions_reporter.safe_report(
-                ReportLevel.get_by_name(exceptions_report_level, ReportLevel.EXIT_CODE),
+                cast(ReportLevel, ReportLevel.get_by_name(exceptions_report_level, ReportLevel.EXIT_CODE)),
                 e,
                 exceptions_reporter_file,
+                max_message_len=2024 - 500,
             )
         sys.exit(exit_code)
     else:
