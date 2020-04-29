@@ -651,7 +651,11 @@ spec:
             name: dlserviceauth
             key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
-        value: "{{log_level}}"
+        value: "{{log_level}}"{% if builder_exceptions_report_file is defined %}
+      - name: EXCEPTIONS_REPORTER_FILE
+        value: "{{ builder_exceptions_report_file }}"{% endif %}
+      - name: EXCEPTIONS_REPORT_LEVEL
+        value: "{{ builder_exceptions_report_level }}"
       volumeMounts:
       - name: azurefile
         mountPath: /gordo
@@ -661,7 +665,8 @@ spec:
           cpu: "{{ model_builder_resources_requests_cpu }}m"
         limits:
           memory: "{{ model_builder_resources_limits_memory }}M"
-          cpu: "{{ model_builder_resources_limits_cpu }}m"
+          cpu: "{{ model_builder_resources_limits_cpu }}m"{% if builder_exceptions_report_file is defined %}
+      terminationMessagePath: "{{ builder_exceptions_report_file }}"{% endif %}
 
   - name: gordo-server-hpa
     inputs:

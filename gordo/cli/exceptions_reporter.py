@@ -12,11 +12,11 @@ class ReportLevel(Enum):
     MESSAGE = 2
 
     @classmethod
-    def get_by_name(cls, name: str) -> "ReportLevel":
+    def get_by_name(cls, name: str, default: "ReportLevel" = None) -> "ReportLevel":
         for level in cls:
             if name == level.name:
                 return level
-        return cls.EXIT_CODE
+        return default
 
     @classmethod
     def get_names(cls):
