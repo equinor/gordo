@@ -20,7 +20,7 @@ from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 import jinja2
 import yaml
 import click
-from typing import Dict, Type, Tuple, List, Any
+from typing import Tuple, List, Any
 
 from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
