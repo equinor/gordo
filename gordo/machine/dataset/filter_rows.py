@@ -133,7 +133,6 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     # and returns a pd.Series
     else:
         pandas_filter = df.eval(filter_str)
-    print(pandas_filter)
     apply_buffer(pandas_filter, buffer_size=buffer_size)
     return df[pandas_filter]
 
