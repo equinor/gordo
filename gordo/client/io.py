@@ -5,7 +5,7 @@ from typing import Union, Optional
 import requests
 
 
-class HttpUnprocessableEntity(BaseException):
+class HttpUnprocessableEntity(Exception):
     """
     Represents an error from an HTTP status code of 422: UnprocessableEntity.
     Used in our case for calling /anomaly/prediction on a model which does not
@@ -15,7 +15,7 @@ class HttpUnprocessableEntity(BaseException):
     pass
 
 
-class ResourceGone(BaseException):
+class ResourceGone(Exception):
     """
     Represents an error from an HTTP status code of 410: Gone.
     Indicates that access to the target resource is no longer available at the origin
@@ -27,7 +27,7 @@ class ResourceGone(BaseException):
     pass
 
 
-class BadGordoRequest(BaseException):
+class BadGordoRequest(Exception):
     """
     Represents a general 4xx bad request
     """
@@ -35,7 +35,7 @@ class BadGordoRequest(BaseException):
     pass
 
 
-class NotFound(BaseException):
+class NotFound(Exception):
     """
     Represents a 404
     """
