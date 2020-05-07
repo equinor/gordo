@@ -146,28 +146,29 @@ def build(
     exceptions_report_level: str
         Details level for exception reporting
     """
-    if model_parameter and isinstance(machine_config["model"], str):
-        parameters = dict(model_parameter)  # convert lib of tuples to dict
-        machine_config["model"] = expand_model(machine_config["model"], parameters)
-
-    machine: Machine = Machine.from_config(
-        machine_config, project_name=machine_config["project_name"]
-    )
-
-    logger.info(f"Building, output will be at: {output_dir}")
-    logger.info(f"Register dir: {model_register_dir}")
-
-    # Convert the config into a pipeline, and back into definition to ensure
-    # all default parameters are part of the config.
-    logger.debug(f"Ensuring the passed model config is fully expanded.")
-    machine.model = serializer.into_definition(
-        serializer.from_definition(machine.model)
-    )
-    logger.info(f"Fully expanded model config: {machine.model}")
-
-    builder = ModelBuilder(machine=machine)
 
     try:
+        if model_parameter and isinstance(machine_config["model"], str):
+            parameters = dict(model_parameter)  # convert lib of tuples to dict
+            machine_config["model"] = expand_model(machine_config["model"], parameters)
+
+        machine: Machine = Machine.from_config(
+            machine_config, project_name=machine_config["project_name"]
+        )
+
+        logger.info(f"Building, output will be at: {output_dir}")
+        logger.info(f"Register dir: {model_register_dir}")
+
+        # Convert the config into a pipeline, and back into definition to ensure
+        # all default parameters are part of the config.
+        logger.debug(f"Ensuring the passed model config is fully expanded.")
+        machine.model = serializer.into_definition(
+            serializer.from_definition(machine.model)
+        )
+        logger.info(f"Fully expanded model config: {machine.model}")
+
+        builder = ModelBuilder(machine=machine)
+
         _, machine_out = builder.build(output_dir, model_register_dir)  # type: ignore
 
         logger.debug("Reporting built machine.")
