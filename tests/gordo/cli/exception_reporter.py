@@ -76,3 +76,24 @@ def test_with_unicode_chars(reporter1):
         "type": "_Test1Exception",
         "message": " world!",
     }
+
+
+def test_with_max_message_len(reporter1):
+    report_file = StringIO()
+    reporter1.report(ReportLevel.MESSAGE, _Test1Exception("Hello world!"), report_file, max_message_len=8)
+    assert get_result(report_file) == {
+        "type": "_Test1Exception",
+        "message": "Hello...",
+    }
+    report_file = StringIO()
+    reporter1.report(ReportLevel.MESSAGE, _Test1Exception("Hello world!"), report_file, max_message_len=20)
+    assert get_result(report_file) == {
+        "type": "_Test1Exception",
+        "message": "Hello world!",
+    }
+    report_file = StringIO()
+    reporter1.report(ReportLevel.MESSAGE, _Test1Exception("Hello"), report_file, max_message_len=4)
+    assert get_result(report_file) == {
+        "type": "_Test1Exception",
+        "message": "",
+    }

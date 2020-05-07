@@ -182,7 +182,12 @@ def build(
         exit_code = _exceptions_reporter.exception_exit_code(e)
         if exceptions_reporter_file:
             _exceptions_reporter.safe_report(
-                cast(ReportLevel, ReportLevel.get_by_name(exceptions_report_level, ReportLevel.EXIT_CODE)),
+                cast(
+                    ReportLevel,
+                    ReportLevel.get_by_name(
+                        exceptions_report_level, ReportLevel.EXIT_CODE
+                    ),
+                ),
                 e,
                 exceptions_reporter_file,
                 max_message_len=2024 - 500,
