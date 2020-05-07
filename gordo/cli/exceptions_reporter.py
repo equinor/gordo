@@ -14,7 +14,9 @@ class ReportLevel(Enum):
     MESSAGE = 2
 
     @classmethod
-    def get_by_name(cls, name: str, default: Optional["ReportLevel"] = None) -> Optional["ReportLevel"]:
+    def get_by_name(
+        cls, name: str, default: Optional["ReportLevel"] = None
+    ) -> Optional["ReportLevel"]:
         for level in cls:
             if name == level.name:
                 return level
@@ -59,10 +61,12 @@ class ExceptionsReporter:
                 add_report("message", str(e))
                 if max_message_len is not None:
                     message = report["message"]
-                    if len(message) <= 3:
-                        report["message"] = ""
-                    else:
-                        report["message"] = message[: max_message_len - 3] + "..."
+                    if len(message) > max_message_len:
+                        message = message[: max_message_len - 3]
+                        if len(message) <= 3:
+                            report["message"] = ""
+                        else:
+                            report["message"] = message + "..."
         json.dump(report, report_file)
 
     def safe_report(
