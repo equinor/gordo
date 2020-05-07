@@ -46,7 +46,11 @@ def get_result(sio):
 def test_sort_exceptions():
     exceptions = ((Exception, 10), (IOError, 20), (FileNotFoundError, 30))
     sorted_exceptions = ExceptionsReporter.sort_exceptions(exceptions)
-    assert sorted_exceptions == [(FileNotFoundError, 30), (OSError, 20), (Exception, 10)]
+    assert sorted_exceptions == [
+        (FileNotFoundError, 30),
+        (OSError, 20),
+        (Exception, 10),
+    ]
 
 
 def test_reporter1(reporter1):
