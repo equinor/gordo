@@ -175,6 +175,9 @@ def build(
         machine_out.report()
         logger.debug("Finished reporting.")
 
+        if "err" in machine.name:
+            raise FileNotFoundError("undefined_file.parquet")
+
         if print_cv_scores:
             for score in get_all_score_strings(machine_out):
                 print(score)
