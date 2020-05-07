@@ -40,7 +40,9 @@ class ExceptionsReporter:
         self.default_exit_code = default_exit_code
 
     @staticmethod
-    def sort_exceptions(exceptions: Iterable[Tuple[Type[Exception], int]]) -> List[Tuple[Type[Exception], int]]:
+    def sort_exceptions(
+        exceptions: Iterable[Tuple[Type[Exception], int]]
+    ) -> List[Tuple[Type[Exception], int]]:
         inheritance_levels = Counter()
         for exc, exit_code in exceptions:
             for e, _ in exceptions:
@@ -51,6 +53,7 @@ class ExceptionsReporter:
         def key(v):
             exc, exit_code = v
             return (inheritance_levels[exc], exit_code)
+
         return sorted(sorted_exceptions, key=key)
 
     def found_exception_item(self, exc_type: Type[Exception]):
