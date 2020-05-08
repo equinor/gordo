@@ -58,7 +58,6 @@ class ExceptionsReporter:
 
     def found_exception_item(self, exc_type: Type[Exception]):
         for item in self.exceptions_items:
-            print(exc_type, item[0], issubclass(exc_type, item[0]))
             if issubclass(exc_type, item[0]):
                 return item
         return None
