@@ -89,7 +89,7 @@ def test_with_unicode_chars(reporter1):
     reporter1.report(ReportLevel.MESSAGE, _Test1Exception("你好 world!"), report_file)
     assert get_result(report_file) == {
         "type": "_Test1Exception",
-        "message": " world!",
+        "message": "?? world!",
     }
 
 
