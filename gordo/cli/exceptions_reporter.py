@@ -5,7 +5,7 @@ from typing import Tuple, Iterable, Type, IO, Optional, List
 from collections import Counter
 from enum import Enum
 
-from gordo.util import cuts_all_non_ascii_chars
+from gordo.util import replace_all_non_ascii_chars
 
 
 class ReportLevel(Enum):
@@ -76,7 +76,7 @@ class ExceptionsReporter:
         report = {}
 
         def add_report(k: str, v: str):
-            report[k] = cuts_all_non_ascii_chars(v)
+            report[k] = replace_all_non_ascii_chars(v, "?")
 
         if self.found_exception_item(e.__class__) is not None:
             if level in (ReportLevel.MESSAGE, ReportLevel.TYPE):
