@@ -182,9 +182,11 @@ def build(
             for score in get_all_score_strings(machine_out):
                 print(score)
 
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
-        exit_code = _exceptions_reporter.exception_exit_code(e)
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        exit_code = _exceptions_reporter.exception_exit_code(exc_type)
         if exceptions_reporter_file:
             _exceptions_reporter.safe_report(
                 cast(
@@ -193,7 +195,9 @@ def build(
                         exceptions_report_level, ReportLevel.EXIT_CODE
                     ),
                 ),
-                e,
+                exc_type,
+                exc_value,
+                exc_traceback,
                 exceptions_reporter_file,
                 max_message_len=2024 - 500,
             )

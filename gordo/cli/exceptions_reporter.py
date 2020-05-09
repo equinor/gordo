@@ -2,6 +2,7 @@ import json
 import traceback
 
 from typing import Tuple, Iterable, Type, IO, Optional, List
+from types import TracebackType
 from collections import Counter
 from enum import Enum
 
@@ -62,14 +63,16 @@ class ExceptionsReporter:
                 return item
         return None
 
-    def exception_exit_code(self, e: Exception):
-        item = self.found_exception_item(e.__class__)
+    def exception_exit_code(self, exc_type: Type[Exception]):
+        item = self.found_exception_item(exc_type)
         return item[1] if item is not None else self.default_exit_code
 
     def report(
         self,
         level: ReportLevel,
-        e: Exception,
+        exc_type: Type[Exception],
+        exc_value: Exception,
+        exc_traceback: TracebackType,
         report_file: IO[str],
         max_message_len: Optional[int] = None,
     ):
@@ -78,11 +81,11 @@ class ExceptionsReporter:
         def add_report(k: str, v: str):
             report[k] = replace_all_non_ascii_chars(v, "?")
 
-        if self.found_exception_item(e.__class__) is not None:
+        if self.found_exception_item(exc_type) is not None:
             if level in (ReportLevel.MESSAGE, ReportLevel.TYPE):
-                add_report("type", e.__class__.__name__)
+                add_report("type", exc_type.__name__)
             if level == ReportLevel.MESSAGE:
-                add_report("message", str(e))
+                add_report("message", str(exc_value))
                 if max_message_len is not None:
                     message = report["message"]
                     if len(message) > max_message_len:
@@ -96,12 +99,21 @@ class ExceptionsReporter:
     def safe_report(
         self,
         level: ReportLevel,
-        e: Exception,
+        exc_type: Type[Exception],
+        exc_value: Exception,
+        exc_traceback: TracebackType,
         report_file_path: str,
         max_message_len: Optional[int] = None,
     ):
         try:
             with open(report_file_path, "w") as report_file:
-                self.report(level, e, report_file, max_message_len)
+                self.report(
+                    level,
+                    exc_type,
+                    exc_value,
+                    exc_traceback,
+                    report_file,
+                    max_message_len,
+                )
         except Exception:
             traceback.print_exc()
