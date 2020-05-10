@@ -53,6 +53,7 @@ def test_reporter1(reporter1):
     assert reporter1.exception_exit_code(_Test1Exception) == 110
     assert reporter1.exception_exit_code(_Test2Exception) == DEFAULT_EXIT_CODE
     assert reporter1.exception_exit_code(_Test3Exception) == 110
+    assert reporter1.exception_exit_code(None) == 0
 
 
 def test_reporting_out_of_exception_scope(reporter1):

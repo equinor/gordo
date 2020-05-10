@@ -63,7 +63,9 @@ class ExceptionsReporter:
                 return item
         return None
 
-    def exception_exit_code(self, exc_type: Type[BaseException]):
+    def exception_exit_code(self, exc_type: Optional[Type[BaseException]]):
+        if exc_type is None:
+            return 0
         item = self.found_exception_item(exc_type)
         return item[1] if item is not None else self.default_exit_code
 
