@@ -36,7 +36,7 @@ from .exceptions_reporter import ReportLevel, ExceptionsReporter
 
 _exceptions_reporter = ExceptionsReporter(
     (
-        (Exception, 10),
+        (Exception, 1),
         (PermissionError, 20),
         (FileNotFoundError, 30),
         (DatalakeIncompleteTransferException, 40),
