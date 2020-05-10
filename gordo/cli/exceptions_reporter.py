@@ -1,7 +1,7 @@
 import json
 import traceback
 
-from typing import Tuple, Iterable, Type, IO, Optional, List
+from typing import Tuple, Iterable, Type, IO, Optional, List, Dict
 from types import TracebackType
 from collections import Counter
 from enum import Enum
@@ -44,7 +44,7 @@ class ExceptionsReporter:
     def sort_exceptions(
         exceptions: Iterable[Tuple[Type[Exception], int]]
     ) -> List[Tuple[Type[Exception], int]]:
-        inheritance_levels = Counter()
+        inheritance_levels: Dict[Type[BaseException], int] = Counter()
         for exc, exit_code in exceptions:
             for e, _ in exceptions:
                 if e is not exc and issubclass(exc, e):
@@ -57,21 +57,21 @@ class ExceptionsReporter:
 
         return sorted(sorted_exceptions, key=key)
 
-    def found_exception_item(self, exc_type: Type[Exception]):
+    def found_exception_item(self, exc_type: Type[BaseException]):
         for item in self.exceptions_items:
             if issubclass(exc_type, item[0]):
                 return item
         return None
 
-    def exception_exit_code(self, exc_type: Type[Exception]):
+    def exception_exit_code(self, exc_type: Type[BaseException]):
         item = self.found_exception_item(exc_type)
         return item[1] if item is not None else self.default_exit_code
 
     def report(
         self,
         level: ReportLevel,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         exc_traceback: Optional[TracebackType],
         report_file: IO[str],
         max_message_len: Optional[int] = None,
@@ -100,8 +100,8 @@ class ExceptionsReporter:
     def safe_report(
         self,
         level: ReportLevel,
-        exc_type: Optional[Type[Exception]],
-        exc_value: Optional[Exception],
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
         exc_traceback: Optional[TracebackType],
         report_file_path: str,
         max_message_len: Optional[int] = None,
