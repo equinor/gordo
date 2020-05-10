@@ -38,6 +38,12 @@ def _generate_test_workflow_yaml(
     getvalue = _generate_test_workflow_str(
         path_to_config_files, config_filename, project_name=project_name
     )
+    print("START:")
+    print()
+    print()
+    print(getvalue)
+    print()
+    print()
     expanded_template = yaml.load(getvalue, Loader=yaml.FullLoader)
 
     return expanded_template
