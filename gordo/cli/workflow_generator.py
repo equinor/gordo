@@ -239,7 +239,6 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     else:
         context.pop("owner_references")
 
-    print(config.globals)
     builder_exceptions_report_level = get_builder_exceptions_report_level(config)
     context["builder_exceptions_report_level"] = builder_exceptions_report_level.name
     if builder_exceptions_report_level != ReportLevel.EXIT_CODE:
