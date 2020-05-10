@@ -55,6 +55,12 @@ def test_reporter1(reporter1):
     assert reporter1.exception_exit_code(_Test3Exception) == 110
 
 
+def test_reporting_out_of_exception_scope(reporter1):
+    sio = StringIO()
+    reporter1.report(ReportLevel.MESSAGE, None, None, None, sio)
+    assert json.loads(sio.getvalue()) == {}
+
+
 def report(e, reporter, report_level, report_file, **kwargs):
     try:
         raise e

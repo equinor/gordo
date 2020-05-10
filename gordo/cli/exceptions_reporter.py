@@ -70,9 +70,9 @@ class ExceptionsReporter:
     def report(
         self,
         level: ReportLevel,
-        exc_type: Type[Exception],
-        exc_value: Exception,
-        exc_traceback: TracebackType,
+        exc_type: Optional[Type[Exception]],
+        exc_value: Optional[Exception],
+        exc_traceback: Optional[TracebackType],
         report_file: IO[str],
         max_message_len: Optional[int] = None,
     ):
@@ -81,27 +81,28 @@ class ExceptionsReporter:
         def add_report(k: str, v: str):
             report[k] = replace_all_non_ascii_chars(v, "?")
 
-        if self.found_exception_item(exc_type) is not None:
-            if level in (ReportLevel.MESSAGE, ReportLevel.TYPE):
-                add_report("type", exc_type.__name__)
-            if level == ReportLevel.MESSAGE:
-                add_report("message", str(exc_value))
-                if max_message_len is not None:
-                    message = report["message"]
-                    if len(message) > max_message_len:
-                        message = message[: max_message_len - 3]
-                        if len(message) <= 3:
-                            report["message"] = ""
-                        else:
-                            report["message"] = message + "..."
+        if exc_type is not None and exc_value is not None and exc_traceback is not None:
+            if self.found_exception_item(exc_type) is not None:
+                if level in (ReportLevel.MESSAGE, ReportLevel.TYPE):
+                    add_report("type", exc_type.__name__)
+                if level == ReportLevel.MESSAGE:
+                    add_report("message", str(exc_value))
+                    if max_message_len is not None:
+                        message = report["message"]
+                        if len(message) > max_message_len:
+                            message = message[: max_message_len - 3]
+                            if len(message) <= 3:
+                                report["message"] = ""
+                            else:
+                                report["message"] = message + "..."
         json.dump(report, report_file)
 
     def safe_report(
         self,
         level: ReportLevel,
-        exc_type: Type[Exception],
-        exc_value: Exception,
-        exc_traceback: TracebackType,
+        exc_type: Optional[Type[Exception]],
+        exc_value: Optional[Exception],
+        exc_traceback: Optional[TracebackType],
         report_file_path: str,
         max_message_len: Optional[int] = None,
     ):
