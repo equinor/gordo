@@ -13,6 +13,7 @@ class ReportLevel(Enum):
     EXIT_CODE = 0
     TYPE = 1
     MESSAGE = 2
+    TRACEBACK = 3
 
     @classmethod
     def get_by_name(
@@ -36,9 +37,11 @@ class ExceptionsReporter:
         self,
         exceptions: Iterable[Tuple[Type[Exception], int]],
         default_exit_code: int = DEFAULT_EXIT_CODE,
+        traceback_limit: Optional[int] = None,
     ):
         self.exceptions_items = self.sort_exceptions(exceptions)
         self.default_exit_code = default_exit_code
+        self.traceback_limit = traceback_limit
 
     @staticmethod
     def sort_exceptions(
@@ -56,6 +59,30 @@ class ExceptionsReporter:
             return (inheritance_levels[exc], exit_code)
 
         return sorted(sorted_exceptions, key=key)
+
+    @staticmethod
+    def trim_message(message: str, max_length: int) -> str:
+        if len(message) > max_length:
+            message = message[: max_length - 3]
+            return "" if len(message) <= 3 else message + "..."
+        return message
+
+    @staticmethod
+    def trim_formatted_traceback(
+        formatted_traceback: List[str], max_length: int
+    ) -> List[str]:
+        if sum(len(line) for line in formatted_traceback) <= max_length:
+            return formatted_traceback
+        length = 4
+        result = []
+        for line in reversed(formatted_traceback):
+            length += len(line)
+            if length > max_length:
+                result.append("...\n")
+                break
+            else:
+                result.append(line)
+        return list(reversed(result))
 
     def found_exception_item(self, exc_type: Type[BaseException]):
         for item in self.exceptions_items:
@@ -80,23 +107,32 @@ class ExceptionsReporter:
     ):
         report = {}
 
-        def add_report(k: str, v: str):
-            report[k] = replace_all_non_ascii_chars(v, "?")
-
         if exc_type is not None and exc_value is not None and exc_traceback is not None:
             if self.found_exception_item(exc_type) is not None:
-                if level in (ReportLevel.MESSAGE, ReportLevel.TYPE):
-                    add_report("type", exc_type.__name__)
+                if level in (
+                    ReportLevel.MESSAGE,
+                    ReportLevel.TYPE,
+                    ReportLevel.TRACEBACK,
+                ):
+                    report["type"] = replace_all_non_ascii_chars(exc_type.__name__, "?")
                 if level == ReportLevel.MESSAGE:
-                    add_report("message", str(exc_value))
+                    report["message"] = replace_all_non_ascii_chars(str(exc_value), "?")
                     if max_message_len is not None:
-                        message = report["message"]
-                        if len(message) > max_message_len:
-                            message = message[: max_message_len - 3]
-                            if len(message) <= 3:
-                                report["message"] = ""
-                            else:
-                                report["message"] = message + "..."
+                        report["message"] = self.trim_message(
+                            report["message"], max_message_len
+                        )
+                elif level == ReportLevel.TRACEBACK:
+                    formatted_traceback = traceback.format_exception(
+                        exc_type, exc_value, exc_traceback, limit=self.traceback_limit
+                    )
+                    formatted_traceback = [
+                        replace_all_non_ascii_chars(v, "?") for v in formatted_traceback
+                    ]
+                    if max_message_len is not None:
+                        formatted_traceback = self.trim_formatted_traceback(
+                            formatted_traceback, max_message_len
+                        )
+                    report["traceback"] = "".join(formatted_traceback)
         json.dump(report, report_file)
 
     def safe_report(
