@@ -19,7 +19,7 @@ def test_report_level():
     level = ReportLevel.get_by_name("DIFFERENT", ReportLevel.MESSAGE)
     assert level == ReportLevel.MESSAGE
     levels = ReportLevel.get_names()
-    assert len(levels) == 3
+    assert len(levels) == 4
 
 
 class _Test1Exception(Exception):
@@ -32,6 +32,16 @@ class _Test2Exception(Exception):
 
 class _Test3Exception(_Test1Exception):
     pass
+
+
+traceback_example = [
+    "Traceback (most recent call last):\n",
+    '  File "bar.py", line 13, in <module>\n    foo()\n',
+    '  File "bar.py", line 10, in foo\n    bar()\n',
+    '  File "bar.py", line 7, in bar\n'
+    '    raise Exception("Something bad happening")\n',
+    "Exception: Something bad happening\n",
+]
 
 
 @pytest.fixture
@@ -47,6 +57,18 @@ def test_sort_exceptions():
         (OSError, 20),
         (Exception, 10),
     ]
+
+
+def test_trim_formatted_traceback():
+    result = ExceptionsReporter.trim_formatted_traceback(traceback_example, 118)
+    assert result == [
+        "...\n",
+        '  File "bar.py", line 7, in bar\n'
+        '    raise Exception("Something bad happening")\n',
+        "Exception: Something bad happening\n",
+    ]
+    result = ExceptionsReporter.trim_formatted_traceback(traceback_example, 117)
+    assert result == ["...\n", "Exception: Something bad happening\n"]
 
 
 def test_reporter1(reporter1):
@@ -87,6 +109,15 @@ def test_with_message_report_level(reporter1):
         "type": "_Test1Exception",
         "message": "Test message",
     }
+
+
+def test_with_traceback_report_level(reporter1):
+    result = report_to_string(
+        _Test1Exception("Test message"), reporter1, ReportLevel.TRACEBACK
+    )
+    assert result["type"] == "_Test1Exception"
+    assert "traceback" in result
+    assert "Test message" in result["traceback"]
 
 
 def test_with_type_report_level(reporter1):
