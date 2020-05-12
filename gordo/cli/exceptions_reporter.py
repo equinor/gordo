@@ -34,7 +34,9 @@ DEFAULT_EXIT_CODE = 1
 
 class ExceptionsReporter:
     """
-    Helper which can store exception information into the file in customizable JSON format
+        Helper which can save the exception information in JSON format into the file.
+        This class might be used for storing exception information after termination of the Kubernetes pod.
+        `Information <https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#customizing-the-termination-message>`_
     """
 
     def __init__(
@@ -49,7 +51,7 @@ class ExceptionsReporter:
         exceptions
             Exceptions list with preferred exit codes for each of them
         default_exit_code
-            Default exit code. It might be used as `sys.exit()` argument
+            Default exit code. It might be used as `sys.exit()` code
         traceback_limit
             Limit for `traceback.format_exception()`
         """
@@ -148,9 +150,8 @@ class ExceptionsReporter:
             File like object for reporting
         max_message_len
             The maximum length of `message` or `traceback`.
-            Actual for environments with the limitation of maximum storage capacity
-            This argument might be used for storing exception information inside of the Kubernetes pod in
-            `terminationMessagePath <https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#customizing-the-termination-message>`_
+            Actual for the environments with limitation of storage capacity.
+            For example, 2024 bytes is the maximum size of the k8s pod termination message content
         """
         report = {}
 
