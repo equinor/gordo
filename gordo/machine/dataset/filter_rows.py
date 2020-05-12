@@ -134,7 +134,7 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     else:
         pandas_filter = df.eval(filter_str)
     apply_buffer(pandas_filter, buffer_size=buffer_size)
-    return df[pandas_filter]
+    return df[list(pandas_filter)]
 
 
 def _batch(iterable, n: int):
