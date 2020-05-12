@@ -134,7 +134,8 @@ class ExceptionsReporter:
         max_message_len: Optional[int] = None,
     ):
         """
-        Report exception to the file
+        Report exception to the file.
+        `exc_type`, `exc_value`, `exc_traceback` might be values returned by `sys.exc_info()`
 
         Parameters
         ----------
