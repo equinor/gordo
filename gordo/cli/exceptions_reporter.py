@@ -33,12 +33,26 @@ DEFAULT_EXIT_CODE = 1
 
 
 class ExceptionsReporter:
+    """
+    Helper which can store exception information into the file in customizable JSON format
+    """
+
     def __init__(
         self,
         exceptions: Iterable[Tuple[Type[Exception], int]],
         default_exit_code: int = DEFAULT_EXIT_CODE,
         traceback_limit: Optional[int] = None,
     ):
+        """
+        Parameters
+        ----------
+        exceptions
+            Exceptions list with preferred exit codes for each of them
+        default_exit_code
+            Default exit code. It might be used as `sys.exit()` argument
+        traceback_limit
+            Limit for `traceback.format_exception()`
+        """
         self.exceptions_items = self.sort_exceptions(exceptions)
         self.default_exit_code = default_exit_code
         self.traceback_limit = traceback_limit
@@ -90,7 +104,19 @@ class ExceptionsReporter:
                 return item
         return None
 
-    def exception_exit_code(self, exc_type: Optional[Type[BaseException]]):
+    def exception_exit_code(self, exc_type: Optional[Type[BaseException]]) -> int:
+        """
+        Possible `sys.exit()` code for given exception type
+
+        Parameters
+        ----------
+        exc_type
+            The exception type
+
+        Returns
+        -------
+        int
+        """
         if exc_type is None:
             return 0
         item = self.found_exception_item(exc_type)
@@ -105,6 +131,27 @@ class ExceptionsReporter:
         report_file: IO[str],
         max_message_len: Optional[int] = None,
     ):
+        """
+        Report exception to the file
+
+        Parameters
+        ----------
+        level: ReportLevel
+            Level of the report verbosity
+        exc_type
+            The exception type
+        exc_value
+            The exception
+        exc_traceback
+            The exception traceback
+        report_file
+            File like object for reporting
+        max_message_len
+            The maximum length of `message` or `traceback`.
+            Actual for environments with the limitation of maximum storage capacity
+            This argument might be used for storing exception information inside of the Kubernetes pod in
+            `terminationMessagePath <https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#customizing-the-termination-message>`_
+        """
         report = {}
 
         if exc_type is not None and exc_value is not None and exc_traceback is not None:
@@ -144,6 +191,23 @@ class ExceptionsReporter:
         report_file_path: str,
         max_message_len: Optional[int] = None,
     ):
+        """
+        Basically this is a wrapper for `ExceptionsReporter.report()` function
+        with additional internal exceptions handling
+
+        Parameters
+        ----------
+        level
+        exc_type
+        exc_value
+        exc_traceback
+        report_file_path
+        max_message_len
+
+        Returns
+        -------
+
+        """
         try:
             with open(report_file_path, "w") as report_file:
                 self.report(
