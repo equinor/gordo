@@ -138,11 +138,11 @@ def test_with_exit_code_report_level(reporter1):
 
 def test_with_unicode_chars(reporter1):
     result = report_to_string(
-        _Test1Exception("你好 world!"), reporter1, ReportLevel.MESSAGE
+        _Test1Exception("\t你好 world!\n"), reporter1, ReportLevel.MESSAGE
     )
     assert result == {
         "type": "_Test1Exception",
-        "message": "?? world!",
+        "message": "\t?? world!\n",
     }
 
 
