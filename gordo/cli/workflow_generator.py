@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 PREFIX = "WORKFLOW_GENERATOR"
-DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL = ReportLevel.MESSAGE
+DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL = ReportLevel.TRACEBACK
 
 
 def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel:
