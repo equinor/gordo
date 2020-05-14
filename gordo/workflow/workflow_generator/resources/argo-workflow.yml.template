@@ -624,6 +624,7 @@ spec:
         app: gordo-model-builder
         applications.gordo.equinor.com/project-name: {{project_name}}
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"
     inputs:
       parameters:
       - name: machine-name
@@ -650,7 +651,11 @@ spec:
             name: dlserviceauth
             key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
-        value: "{{log_level}}"
+        value: "{{log_level}}"{% if builder_exceptions_report_file is defined %}
+      - name: EXCEPTIONS_REPORTER_FILE
+        value: "{{ builder_exceptions_report_file }}"{% endif %}
+      - name: EXCEPTIONS_REPORT_LEVEL
+        value: "{{ builder_exceptions_report_level }}"
       volumeMounts:
       - name: azurefile
         mountPath: /gordo
@@ -660,7 +665,8 @@ spec:
           cpu: "{{ model_builder_resources_requests_cpu }}m"
         limits:
           memory: "{{ model_builder_resources_limits_memory }}M"
-          cpu: "{{ model_builder_resources_limits_cpu }}m"
+          cpu: "{{ model_builder_resources_limits_cpu }}m"{% if builder_exceptions_report_file is defined %}
+      terminationMessagePath: "{{ builder_exceptions_report_file }}"{% endif %}
 
   - name: gordo-server-hpa
     inputs:
@@ -1132,12 +1138,25 @@ spec:
       tasks:
         - name: ensure-single-workflow
           template: ensure-single-workflow
+        {% for machine in machines %}
+        - name: gordo-mdl-{{ machine.name }}
+          template: gordo-model
+          arguments:
+            parameters:
+              - name: model-name
+                value: "{{ machine.name }}"
+              - name: config
+                value: |
+                  {{ machine.to_dict() | tojson }}
+          dependencies:
+            - ensure-single-workflow
+        {% endfor %}
         - name: gordo-server
           template: gordo-server
           arguments:
             parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
-          dependencies:
-            - ensure-single-workflow
+          dependencies:{% for machine in machines %}
+            - gordo-mdl-{{ machine.name }}{% endfor %}
         {% for machine in machines %}
         - name: model-builder-{{ machine.name }}
           template: model-builder
@@ -1151,17 +1170,6 @@ spec:
           dependencies:
             - gordo-server
             {% if enable_influx %}- gordo-postgres{% endif %}
-        - name: gordo-mdl-{{ machine.name }}
-          template: gordo-model
-          arguments:
-            parameters:
-              - name: model-name
-                value: "{{ machine.name }}"
-              - name: config
-                value: |
-                  {{ machine.to_dict() | tojson }}
-          dependencies:
-            - model-builder-{{ machine.name }}
         {% endfor %}
         - name: postgres-cleanup
           template: postgres-cleanup

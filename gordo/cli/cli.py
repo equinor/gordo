@@ -20,7 +20,7 @@ from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 import jinja2
 import yaml
 import click
-from typing import Dict, Type, Tuple, List, Any
+from typing import Tuple, List, Any, cast
 
 from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
@@ -32,17 +32,21 @@ from gordo.cli.client import client as gordo_client
 from gordo.cli.custom_types import key_value_par, HostIP
 from gordo.reporters.exceptions import ReporterException
 
+from .exceptions_reporter import ReportLevel, ExceptionsReporter
 
-EXCEPTION_TO_EXITCODE: Dict[Type[Exception], int] = {
-    PermissionError: 20,
-    FileNotFoundError: 30,
-    DatalakeIncompleteTransferException: 40,
-    SensorTagNormalizationError: 60,
-    NoSuitableDataProviderError: 70,
-    InsufficientDataError: 80,
-    InsufficientDataAfterRowFilteringError: 81,
-    ReporterException: 90,
-}
+_exceptions_reporter = ExceptionsReporter(
+    (
+        (Exception, 1),
+        (PermissionError, 20),
+        (FileNotFoundError, 30),
+        (DatalakeIncompleteTransferException, 40),
+        (SensorTagNormalizationError, 60),
+        (NoSuitableDataProviderError, 70),
+        (InsufficientDataError, 80),
+        (InsufficientDataAfterRowFilteringError, 81),
+        (ReporterException, 90),
+    )
+)
 
 logger = logging.getLogger(__name__)
 
@@ -96,12 +100,26 @@ def gordo(gordo_ctx: click.Context, **ctx):
     "multiple times. Separate key,valye by a comma. ie: --model-parameter key,val "
     "--model-parameter some_key,some_value",
 )
+@click.option(
+    "--exceptions-reporter-file",
+    envvar="EXCEPTIONS_REPORTER_FILE",
+    help="JSON output file for exception information",
+)
+@click.option(
+    "--exceptions-report-level",
+    type=click.Choice(ReportLevel.get_names(), case_sensitive=False),
+    default=ReportLevel.MESSAGE.name,
+    envvar="EXCEPTIONS_REPORT_LEVEL",
+    help="Details level for exception reporting",
+)
 def build(
     machine_config: dict,
     output_dir: str,
     model_register_dir: click.Path,
     print_cv_scores: bool,
     model_parameter: List[Tuple[str, Any]],
+    exceptions_reporter_file: str,
+    exceptions_report_level: str,
 ):
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
@@ -123,42 +141,66 @@ def build(
     model_parameter: List[Tuple[str, Any]
         List of model key-values, wheres the values will be injected into the model
         config wherever there is a jinja variable with the key.
+    exceptions_reporter_file: str
+        JSON output file for exception information
+    exceptions_report_level: str
+        Details level for exception reporting
     """
-    if model_parameter and isinstance(machine_config["model"], str):
-        parameters = dict(model_parameter)  # convert lib of tuples to dict
-        machine_config["model"] = expand_model(machine_config["model"], parameters)
-
-    machine: Machine = Machine.from_config(
-        machine_config, project_name=machine_config["project_name"]
-    )
-
-    logger.info(f"Building, output will be at: {output_dir}")
-    logger.info(f"Register dir: {model_register_dir}")
-
-    # Convert the config into a pipeline, and back into definition to ensure
-    # all default parameters are part of the config.
-    logger.debug(f"Ensuring the passed model config is fully expanded.")
-    machine.model = serializer.into_definition(
-        serializer.from_definition(machine.model)
-    )
-    logger.info(f"Fully expanded model config: {machine.model}")
-
-    builder = ModelBuilder(machine=machine)
 
     try:
+        if model_parameter and isinstance(machine_config["model"], str):
+            parameters = dict(model_parameter)  # convert lib of tuples to dict
+            machine_config["model"] = expand_model(machine_config["model"], parameters)
+
+        machine: Machine = Machine.from_config(
+            machine_config, project_name=machine_config["project_name"]
+        )
+
+        logger.info(f"Building, output will be at: {output_dir}")
+        logger.info(f"Register dir: {model_register_dir}")
+
+        # Convert the config into a pipeline, and back into definition to ensure
+        # all default parameters are part of the config.
+        logger.debug(f"Ensuring the passed model config is fully expanded.")
+        machine.model = serializer.into_definition(
+            serializer.from_definition(machine.model)
+        )
+        logger.info(f"Fully expanded model config: {machine.model}")
+
+        builder = ModelBuilder(machine=machine)
+
         _, machine_out = builder.build(output_dir, model_register_dir)  # type: ignore
 
         logger.debug("Reporting built machine.")
         machine_out.report()
         logger.debug("Finished reporting.")
 
+        if "err" in machine.name:
+            raise FileNotFoundError("undefined_file.parquet")
+
         if print_cv_scores:
             for score in get_all_score_strings(machine_out):
                 print(score)
 
-    except Exception as e:
-        exit_code = EXCEPTION_TO_EXITCODE.get(e.__class__, 1)
+    except Exception:
         traceback.print_exc()
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        exit_code = _exceptions_reporter.exception_exit_code(exc_type)
+        if exceptions_reporter_file:
+            _exceptions_reporter.safe_report(
+                cast(
+                    ReportLevel,
+                    ReportLevel.get_by_name(
+                        exceptions_report_level, ReportLevel.EXIT_CODE
+                    ),
+                ),
+                exc_type,
+                exc_value,
+                exc_traceback,
+                exceptions_reporter_file,
+                max_message_len=2024 - 500,
+            )
         sys.exit(exit_code)
     else:
         return 0
