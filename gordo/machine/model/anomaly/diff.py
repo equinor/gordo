@@ -37,7 +37,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             The model to which normal ``.fit``, ``.predict`` methods will be used.
             defaults to py:class:`gordo.machine.model.models.KerasAutoEncoder` with
             ``kind='feedforward_hourglass``
-        scaler: sklearn.base.TransformerMixn
+        scaler: sklearn.base.TransformerMixin
             Defaults to ``sklearn.preprocessing.RobustScaler``
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
@@ -78,6 +78,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             ] = self.aggregate_thresholds_per_fold_
         if isinstance(self.base_estimator, GordoBase):
             metadata.update(self.base_estimator.get_metadata())
+        # TODO Add metadata here
         else:
             metadata.update(
                 {"scaler": str(self.scaler), "base_estimator": str(self.base_estimator)}
@@ -132,8 +133,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         self.feature_thresholds_per_fold_ = pd.DataFrame()
         self.aggregate_thresholds_per_fold_ = {}
+        
+        # Set window for smoothed threshold, should be equivalent to 1 day worth of data
+        self.window_ = 144
+        self.window_feature_thresholds_per_fold_ = pd.DataFrame()
+        self.window_aggregate_thresholds_per_fold_ = {}
 
-        for i, ((train_idxs, test_idxs), split_model) in enumerate(
+        for i, ((_, test_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
         ):
             y_pred = split_model.predict(
@@ -147,17 +153,29 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             # Model's timestep scaled mse over all features
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
 
+            # Absolute error
+            mae = pd.DataFrame(np.abs(y_pred - y_true))
+
             # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
             aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
             self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
 
             # Accumulate the rolling mins of diffs into common df
-            tag_thresholds_fold = (
-                pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
-            )
+            tag_thresholds_fold = mae.rolling(6).min().max()
             tag_thresholds_fold.name = f"fold-{i}"
             self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
                 tag_thresholds_fold
+            )
+
+            # Calculate smoothed thresholds
+            window_aggregate_threshold_fold = scaled_mse.rolling(self.window_).min().max()
+            self.window_aggregate_thresholds_per_fold_[f"fold-{i}"] = window_aggregate_threshold_fold
+
+            # Accumulate the rolling mins of diffs into common df
+            window_tag_thresholds_fold = (mae.rolling(self.window_).min().max())
+            window_tag_thresholds_fold.name = f"fold-{i}"
+            self.window_feature_thresholds_per_fold_ = self.window_feature_thresholds_per_fold_.append(
+                window_tag_thresholds_fold
             )
 
         # Final thresholds are the thresholds from the last cv split/fold
@@ -165,6 +183,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # For the aggregate also use the thresholds from the last split/fold
         self.aggregate_threshold_ = aggregate_threshold_fold
+
+        # For the smoothed thresholds also use the last fold
+        self.window_aggregate_threshold_ = window_aggregate_threshold_fold
+        self.window_feature_thresholds_ = window_tag_thresholds_fold
 
         return cv_output
 
