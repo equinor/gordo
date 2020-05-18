@@ -298,23 +298,31 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             axis=1
         )
 
+        # If there is window information one can calculate the smoothed anomalies
+        if hasattr(self, "window_"):
+            data["smooth-tag-anomaly-scaled"] = data["tag-anomaly-scaled"].rolling(self.window_).median()
+            data["smooth-total-anomaly-scaled"] = data["total-anomaly-scaled"].rolling(self.window_).median()
+            data["smooth-tag-anomaly-unscaled"] = data["tag-anomaly-unscaled"].rolling(self.window_).median()
+            data["smooth_total-anomaly-unscaled"] = data["total-anomaly-unscaled"].rolling(self.window_).median()
+
         # If we have `thresholds_` values, then we can calculate anomaly confidence
-        if hasattr(self, "feature_thresholds_"):
-            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
+        if hasattr(self, "smooth_feature_thresholds_"):
+            confidence = data["smooth-tag-anomaly-scaled"].values / self.smooth_feature_thresholds_.values
 
             # Dataframe of % abs_diff is of the thresholds
+            # This is now based on the smoothed tag anomaly
             anomaly_confidence_scores = pd.DataFrame(
                 confidence,
-                index=tag_anomaly_scaled.index,
+                index=data["smooth-tag-anomaly-scaled"].index,
                 columns=pd.MultiIndex.from_product(
                     (("anomaly-confidence",), data["model-output"].columns)
                 ),
             )
             data = data.join(anomaly_confidence_scores)
 
-        if hasattr(self, "aggregate_threshold_"):
+        if hasattr(self, "smooth_aggregate_threshold_"):
             data["total-anomaly-confidence"] = (
-                data["total-anomaly-scaled"] / self.aggregate_threshold_
+                data["smooth-total-anomaly-scaled"] / self.smooth_aggregate_threshold_
             )
 
         # Explicitly raise error if we were required to do threshold based calculations
