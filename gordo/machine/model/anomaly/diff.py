@@ -300,10 +300,23 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # If there is window information one can calculate the smoothed anomalies
         if hasattr(self, "window_"):
-            data["smooth-tag-anomaly-scaled"] = data["tag-anomaly-scaled"].rolling(self.window_).median()
+            # Calculate scaled tag-level smoothed anomaly scores
+            smooth_tag_anomaly_scaled = tag_anomaly_scaled.rolling(self.window_).median()
+            smooth_tag_anomaly_scaled.columns = smooth_tag_anomaly_scaled.columns.set_levels(
+                ["smooth-tag-anomaly-scaled"], level=0
+            )
+            data = data.join(smooth_tag_anomaly_scaled)
+            # Calculate scaled smoothed total anomaly score
             data["smooth-total-anomaly-scaled"] = data["total-anomaly-scaled"].rolling(self.window_).median()
-            data["smooth-tag-anomaly-unscaled"] = data["tag-anomaly-unscaled"].rolling(self.window_).median()
-            data["smooth_total-anomaly-unscaled"] = data["total-anomaly-unscaled"].rolling(self.window_).median()
+            
+            # Calculate unscaled tag-level smoothed anomaly scores
+            smooth_tag_anomaly_unscaled = unscaled_abs_diff.rolling(self.window_).median()
+            smooth_tag_anomaly_unscaled.columns = smooth_tag_anomaly_unscaled.columns.set_levels(
+                ["smooth-tag-anomaly-unscaled"], level=0
+            )
+            data = data.join(smooth_tag_anomaly_unscaled)
+            # Calculate unscaled smoothed total anomaly score
+            data["smooth-total-anomaly-unscaled"] = data["total-anomaly-unscaled"].rolling(self.window_).median()
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         if hasattr(self, "smooth_feature_thresholds_"):
@@ -323,7 +336,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         if hasattr(self, "smooth_aggregate_threshold_"):
             data["total-anomaly-confidence"] = (
                 data["smooth-total-anomaly-scaled"] / self.smooth_aggregate_threshold_
-            )
+                )
 
         # Explicitly raise error if we were required to do threshold based calculations
         # should would have required a call to .cross_validate before .anomaly
