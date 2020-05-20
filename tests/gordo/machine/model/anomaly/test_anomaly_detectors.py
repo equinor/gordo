@@ -21,21 +21,25 @@ from gordo.machine.model.anomaly.base import AnomalyDetectorBase
 
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
-@pytest.mark.parametrize(
-    "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
-)
+@pytest.mark.parametrize("len_x_y", (100, 144, 1440))
+@pytest.mark.parametrize("time_index", (True, False))
 @pytest.mark.parametrize("lookback", (0, 5))
 @pytest.mark.parametrize("with_thresholds", (True, False))
-def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
+def test_diff_detector(scaler, len_x_y: int, time_index: bool, lookback: int, with_thresholds: bool):
     """
     Test the functionality of the DiffBasedAnomalyDetector
     """
 
     # Some dataset.
     X, y = (
-        pd.DataFrame(np.random.random((10, 3))),
-        pd.DataFrame(np.random.random((10, 3))),
+        pd.DataFrame(np.random.random((len_x_y, 3))),
+        pd.DataFrame(np.random.random((len_x_y, 3))),
     )
+    tags = ["A", "B", "C"]
+    if time_index:
+        index = pd.date_range("2019-01-01", "2019-01-11", periods=len_x_y)
+    else:
+        index = range(len_x_y)
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
     model = DiffBasedAnomalyDetector(
@@ -53,9 +57,8 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 
     output: np.ndarray = model.predict(X)
     base_df = model_utils.make_base_dataframe(
-        tags=["A", "B", "C"], model_input=X, model_output=output, index=index
+        tags=tags, model_input=X, model_output=output, index=index
     )
-
     # Base prediction dataframe has none of these columns
     assert not any(
         col in base_df.columns
@@ -64,11 +67,15 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
             "total-anomaly-unscaled",
             "tag-anomaly-scaled",
             "tag-anomaly-unscaled",
+            "smooth-total-anomaly-scaled",
+            "smooth-total-anomaly-unscaled",
+            "smooth-tag-anomaly-scaled",
+            "smooth-tag-anomaly-unscaled"
         )
     )
-
+ 
     # Apply the anomaly detection logic on the base prediction df
-    anomaly_df = model.anomaly(X, y, timedelta(days=1))
+    anomaly_df = model.anomaly(X, y)
 
     # Should have these added error calculated columns now.
     assert all(
@@ -78,26 +85,79 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
             "total-anomaly-unscaled",
             "tag-anomaly-scaled",
             "tag-anomaly-unscaled",
+            "smooth-total-anomaly-scaled",
+            "smooth-total-anomaly-unscaled",
+            "smooth-tag-anomaly-scaled",
+            "smooth-tag-anomaly-unscaled"
         )
     )
 
     # Verify calculation for unscaled data
-    feature_error_unscaled = np.abs(base_df["model-output"].values - y.values)
-    total_anomaly_unscaled = np.square(feature_error_unscaled).mean(axis=1)
-    assert np.allclose(
-        feature_error_unscaled, anomaly_df["tag-anomaly-unscaled"].values
+    feature_error_unscaled = pd.DataFrame(
+        data=np.abs(base_df["model-output"].to_numpy() - y.to_numpy()),
+        index=index,
+        columns=tags
+    )
+    total_anomaly_unscaled = pd.Series(
+        data=np.square(feature_error_unscaled).mean(axis=1)
     )
     assert np.allclose(
-        total_anomaly_unscaled, anomaly_df["total-anomaly-unscaled"].values
+        feature_error_unscaled.to_numpy(),
+        anomaly_df["tag-anomaly-unscaled"].to_numpy()
+    )
+    assert np.allclose(
+        total_anomaly_unscaled.to_numpy(),
+        anomaly_df["total-anomaly-unscaled"].to_numpy()
+    )
+
+    smooth_feature_error_unscaled = feature_error_unscaled\
+        .rolling(model.window).median().dropna()
+    smooth_total_anomaly_unscaled = total_anomaly_unscaled\
+        .rolling(model.window).median().dropna()
+    assert np.allclose(
+        smooth_feature_error_unscaled.to_numpy(),
+        anomaly_df["smooth-tag-anomaly-unscaled"].dropna().to_numpy()
+    )
+    assert np.allclose(
+        smooth_total_anomaly_unscaled.to_numpy(),
+        anomaly_df["smooth-total-anomaly-unscaled"].dropna().to_numpy()
     )
 
     # Verify calculations for scaled data
-    feature_error_scaled = np.abs(
-        scaler.transform(base_df["model-output"].values) - scaler.transform(y)
+    feature_error_scaled = pd.DataFrame(
+        data=np.abs(scaler.transform(base_df["model-output"].to_numpy()) - scaler.transform(y)),
+        index=index,
+        columns=tags
     )
-    total_anomaly_scaled = np.square(feature_error_scaled).mean(axis=1)
-    assert np.allclose(feature_error_scaled, anomaly_df["tag-anomaly-scaled"].values)
-    assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].values)
+    total_anomaly_scaled = pd.Series(
+        data=np.square(feature_error_scaled).mean(axis=1)
+    )
+    assert np.allclose(
+        feature_error_scaled.to_numpy(),
+        anomaly_df["tag-anomaly-scaled"].to_numpy())
+    assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].to_numpy())
+
+    smooth_feature_error_scaled = feature_error_scaled\
+        .rolling(model.window).median().dropna()
+    smooth_total_anomaly_scaled = total_anomaly_scaled\
+        .rolling(model.window).median().dropna()
+    assert np.allclose(
+        smooth_feature_error_scaled.to_numpy(),
+        anomaly_df["smooth-tag-anomaly-scaled"].dropna().to_numpy()
+    )
+    assert np.allclose(
+        smooth_total_anomaly_scaled.to_numpy(),
+        anomaly_df["smooth-total-anomaly-scaled"].dropna().to_numpy()
+    )
+
+    # Check number of NA's is consistent with window size
+    if len_x_y >= model.window:
+        assert (anomaly_df["smooth-tag-anomaly-scaled"].isna().sum().sum() 
+                == (model.window - 1) * anomaly_df["smooth-tag-anomaly-scaled"].shape[1]
+        )
+        assert (anomaly_df["smooth-total-anomaly-scaled"].isna().sum()
+                == model.window - 1
+        )
 
     if with_thresholds:
         assert "anomaly-confidence" in anomaly_df.columns
@@ -115,7 +175,7 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
             base_estimator:
                 sklearn.pipeline.Pipeline:
                     steps:
-                        - sklearn.preprocessing.data.MinMaxScaler
+                        - sklearn.preprocessing.MinMaxScaler
                         - gordo.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                     memory:
@@ -132,7 +192,7 @@ def test_diff_detector_serializability(config):
     """
     Should play well with the gordo serializer
     """
-    config = yaml.load(config)
+    config = yaml.safe_load(config)
 
     model = serializer.from_definition(config)
     serializer.into_definition(model)
@@ -142,13 +202,14 @@ def test_diff_detector_serializability(config):
 
 @pytest.mark.parametrize("n_features_y", range(1, 3))
 @pytest.mark.parametrize("n_features_x", range(1, 3))
-def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
+@pytest.mark.parametrize("len_x_y", [100, 144, 1440])
+def test_diff_detector_threshold(n_features_y: int, n_features_x: int, len_x_y: int):
     """
     Basic construction logic of thresholds_ attribute in the
     DiffBasedAnomalyDetector
     """
-    X = np.random.random((100, n_features_x))
-    y = np.random.random((100, n_features_y))
+    X = np.random.random((len_x_y, n_features_x))
+    y = np.random.random((len_x_y, n_features_y))
 
     model = DiffBasedAnomalyDetector(
         base_estimator=MultiOutputRegressor(estimator=LinearRegression())
@@ -162,6 +223,10 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert not hasattr(model, "aggregate_threshold_")
     assert not hasattr(model, "feature_thresholds_per_fold_")
     assert not hasattr(model, "aggregate_thresholds_per_fold_")
+    assert not hasattr(model, "smooth_feature_thresholds_")
+    assert not hasattr(model, "smooth_aggregate_threshold_")
+    assert not hasattr(model, "smooth_feature_thresholds_per_fold_")
+    assert not hasattr(model, "smooth_aggregate_thresholds_per_fold_")
 
     model.fit(X, y)
 
@@ -170,6 +235,10 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert not hasattr(model, "aggregate_threshold_")
     assert not hasattr(model, "feature_thresholds_per_fold_")
     assert not hasattr(model, "aggregate_thresholds_per_fold_")
+    assert not hasattr(model, "smooth_feature_thresholds_")
+    assert not hasattr(model, "smooth_aggregate_threshold_")
+    assert not hasattr(model, "smooth_feature_thresholds_per_fold_")
+    assert not hasattr(model, "smooth_aggregate_thresholds_per_fold_")
 
     # Calling cross validate should set the threshold for it.
     model.cross_validate(X=X, y=y)
@@ -184,6 +253,20 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     assert all(model.feature_thresholds_.notna())
     assert isinstance(model.feature_thresholds_per_fold_, pd.DataFrame)
     assert isinstance(model.aggregate_thresholds_per_fold_, dict)
+
+    assert hasattr(model, "smooth_feature_thresholds_")
+    assert hasattr(model, "smooth_aggregate_threshold_")
+    assert hasattr(model, "smooth_feature_thresholds_per_fold_")
+    assert hasattr(model, "smooth_aggregate_thresholds_per_fold_")
+    assert isinstance(model.smooth_feature_thresholds_, pd.Series)
+    assert len(model.smooth_feature_thresholds_) == y.shape[1]
+    if len_x_y <= model.window:
+        assert all(model.smooth_feature_thresholds_.isna())
+    else:
+        assert all(model.smooth_feature_thresholds_.notna())
+    assert isinstance(model.smooth_feature_thresholds_per_fold_, pd.DataFrame)
+    assert isinstance(model.smooth_aggregate_thresholds_per_fold_, dict)
+
 
 
 @pytest.mark.parametrize("return_estimator", (True, False))
