@@ -45,7 +45,10 @@ def test_diff_detector(
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
     model = DiffBasedAnomalyDetector(
-        base_estimator=base_estimator, scaler=scaler, require_thresholds=False
+        base_estimator=base_estimator,
+        scaler=scaler,
+        require_thresholds=False,
+        window=144,
     )
 
     assert isinstance(model, AnomalyDetectorBase)
@@ -220,7 +223,7 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int, len_x_y: 
     y = np.random.random((len_x_y, n_features_y))
 
     model = DiffBasedAnomalyDetector(
-        base_estimator=MultiOutputRegressor(estimator=LinearRegression())
+        base_estimator=MultiOutputRegressor(estimator=LinearRegression()), window=144
     )
 
     # Model has own implementation of cross_validate
