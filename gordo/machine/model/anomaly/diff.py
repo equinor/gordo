@@ -372,13 +372,21 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             )
             data = data.join(anomaly_confidence_scores)
 
+        total_anomaly_confidence = None
         if (
             hasattr(self, "smooth_aggregate_threshold_")
             and self.smooth_aggregate_threshold_ is not None
         ):
-            data["total-anomaly-confidence"] = (
+            total_anomaly_confidence = (
                 data["smooth-total-anomaly-scaled"] / self.smooth_aggregate_threshold_
             )
+        elif hasattr(self, "aggregate_threshold_"):
+            total_anomaly_confidence = (
+                data["total-anomaly-scaled"] / self.aggregate_threshold_
+            )
+
+        if total_anomaly_confidence is not None:
+            data["total-anomaly-confidence"] = total_anomaly_confidence
 
         # Explicitly raise error if we were required to do threshold based calculations
         # should would have required a call to .cross_validate before .anomaly

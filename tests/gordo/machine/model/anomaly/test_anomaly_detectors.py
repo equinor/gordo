@@ -21,11 +21,98 @@ from gordo.machine.model.anomaly.base import AnomalyDetectorBase
 
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
+@pytest.mark.parametrize(
+    "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
+)
+@pytest.mark.parametrize("lookback", (0, 5))
+@pytest.mark.parametrize("with_thresholds", (True, False))
+def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
+    """
+    Test the functionality of the DiffBasedAnomalyDetector
+    """
+
+    # Some dataset.
+    X, y = (
+        pd.DataFrame(np.random.random((10, 3))),
+        pd.DataFrame(np.random.random((10, 3))),
+    )
+
+    base_estimator = MultiOutputRegressor(estimator=LinearRegression())
+    model = DiffBasedAnomalyDetector(
+        base_estimator=base_estimator, scaler=scaler, require_thresholds=False
+    )
+
+    assert isinstance(model, AnomalyDetectorBase)
+
+    assert model.get_params() == dict(base_estimator=base_estimator, scaler=scaler)
+
+    if with_thresholds:
+        model.cross_validate(X=X, y=y)
+
+    model.fit(X, y)
+
+    output: np.ndarray = model.predict(X)
+    base_df = model_utils.make_base_dataframe(
+        tags=["A", "B", "C"], model_input=X, model_output=output, index=index
+    )
+
+    # Base prediction dataframe has none of these columns
+    assert not any(
+        col in base_df.columns
+        for col in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+        )
+    )
+
+    # Apply the anomaly detection logic on the base prediction df
+    anomaly_df = model.anomaly(X, y, timedelta(days=1))
+
+    # Should have these added error calculated columns now.
+    assert all(
+        col in anomaly_df.columns
+        for col in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+        )
+    )
+
+    # Verify calculation for unscaled data
+    feature_error_unscaled = np.abs(base_df["model-output"].values - y.values)
+    total_anomaly_unscaled = np.square(feature_error_unscaled).mean(axis=1)
+    assert np.allclose(
+        feature_error_unscaled, anomaly_df["tag-anomaly-unscaled"].values
+    )
+    assert np.allclose(
+        total_anomaly_unscaled, anomaly_df["total-anomaly-unscaled"].values
+    )
+
+    # Verify calculations for scaled data
+    feature_error_scaled = np.abs(
+        scaler.transform(base_df["model-output"].values) - scaler.transform(y)
+    )
+    total_anomaly_scaled = np.square(feature_error_scaled).mean(axis=1)
+    assert np.allclose(feature_error_scaled, anomaly_df["tag-anomaly-scaled"].values)
+    assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].values)
+
+    if with_thresholds:
+        assert "anomaly-confidence" in anomaly_df.columns
+        assert "total-anomaly-confidence" in anomaly_df.columns
+    else:
+        assert "anomaly-confidence" not in anomaly_df.columns
+        assert "total-anomaly-confidence" not in anomaly_df.columns
+
+
+@pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
 @pytest.mark.parametrize("len_x_y", (100, 144, 1440))
 @pytest.mark.parametrize("time_index", (True, False))
 @pytest.mark.parametrize("lookback", (0, 5))
 @pytest.mark.parametrize("with_thresholds", (True, False))
-def test_diff_detector(
+def test_diff_detector_with_window(
     scaler, len_x_y: int, time_index: bool, lookback: int, with_thresholds: bool
 ):
     """
@@ -213,8 +300,56 @@ def test_diff_detector_serializability(config):
 
 @pytest.mark.parametrize("n_features_y", range(1, 3))
 @pytest.mark.parametrize("n_features_x", range(1, 3))
+def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
+    """
+    Basic construction logic of thresholds_ attribute in the
+    DiffBasedAnomalyDetector
+    """
+    X = np.random.random((100, n_features_x))
+    y = np.random.random((100, n_features_y))
+
+    model = DiffBasedAnomalyDetector(
+        base_estimator=MultiOutputRegressor(estimator=LinearRegression())
+    )
+
+    # Model has own implementation of cross_validate
+    assert hasattr(model, "cross_validate")
+
+    # When initialized it should not have a threshold calculated.
+    assert not hasattr(model, "feature_thresholds_")
+    assert not hasattr(model, "aggregate_threshold_")
+    assert not hasattr(model, "feature_thresholds_per_fold_")
+    assert not hasattr(model, "aggregate_thresholds_per_fold_")
+
+    model.fit(X, y)
+
+    # Until it has done cross validation, it has no threshold.
+    assert not hasattr(model, "feature_thresholds_")
+    assert not hasattr(model, "aggregate_threshold_")
+    assert not hasattr(model, "feature_thresholds_per_fold_")
+    assert not hasattr(model, "aggregate_thresholds_per_fold_")
+
+    # Calling cross validate should set the threshold for it.
+    model.cross_validate(X=X, y=y)
+
+    # Now we have calculated thresholds based on cross validation folds
+    assert hasattr(model, "feature_thresholds_")
+    assert hasattr(model, "aggregate_threshold_")
+    assert hasattr(model, "feature_thresholds_per_fold_")
+    assert hasattr(model, "aggregate_thresholds_per_fold_")
+    assert isinstance(model.feature_thresholds_, pd.Series)
+    assert len(model.feature_thresholds_) == y.shape[1]
+    assert all(model.feature_thresholds_.notna())
+    assert isinstance(model.feature_thresholds_per_fold_, pd.DataFrame)
+    assert isinstance(model.aggregate_thresholds_per_fold_, dict)
+
+
+@pytest.mark.parametrize("n_features_y", range(1, 3))
+@pytest.mark.parametrize("n_features_x", range(1, 3))
 @pytest.mark.parametrize("len_x_y", [100, 144, 1440])
-def test_diff_detector_threshold(n_features_y: int, n_features_x: int, len_x_y: int):
+def test_diff_detector_threshold_with_window(
+    n_features_y: int, n_features_x: int, len_x_y: int
+):
     """
     Basic construction logic of thresholds_ attribute in the
     DiffBasedAnomalyDetector
