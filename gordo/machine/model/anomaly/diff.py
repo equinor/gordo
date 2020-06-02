@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import pandas as pd
 
@@ -22,6 +21,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
         scaler: TransformerMixin = RobustScaler(),
         require_thresholds: bool = True,
+        window=None,
     ):
         """
         Classifier which wraps a ``base_estimator`` and provides a diff error
@@ -37,7 +37,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             The model to which normal ``.fit``, ``.predict`` methods will be used.
             defaults to py:class:`gordo.machine.model.models.KerasAutoEncoder` with
             ``kind='feedforward_hourglass``
-        scaler: sklearn.base.TransformerMixn
+        scaler: sklearn.base.TransformerMixin
             Defaults to ``sklearn.preprocessing.RobustScaler``
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
@@ -46,10 +46,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             If this is set (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate`
             was not called before calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
             will be raised.
+        window: int
+            Window size for smoothed thresholds
         """
         self.base_estimator = base_estimator
         self.scaler = scaler
         self.require_thresholds = require_thresholds
+        self.window = window
 
     def __getattr__(self, item):
         """
@@ -76,6 +79,31 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             metadata[
                 "aggregate-thresholds-per-fold"
             ] = self.aggregate_thresholds_per_fold_
+        # Window threshold metadata
+        if hasattr(self, "window"):
+            metadata["window"] = self.window
+        if (
+            hasattr(self, "smooth_feature_thresholds_")
+            and self.smooth_aggregate_threshold_ is not None
+        ):
+            metadata[
+                "smooth-feature-thresholds"
+            ] = self.smooth_feature_thresholds_.tolist()
+        if (
+            hasattr(self, "smooth_aggregate_threshold_")
+            and self.smooth_aggregate_threshold_ is not None
+        ):
+            metadata["smooth-aggregate-threshold"] = self.smooth_aggregate_threshold_
+
+        if hasattr(self, "smooth_feature_thresholds_per_fold_"):
+            metadata[
+                "smooth-feature-thresholds-per-fold"
+            ] = self.smooth_feature_thresholds_per_fold_.to_dict()
+        if hasattr(self, "smooth_aggregate_thresholds_per_fold_"):
+            metadata[
+                "smooth-aggregate-thresholds-per-fold"
+            ] = self.smooth_aggregate_thresholds_per_fold_
+
         if isinstance(self.base_estimator, GordoBase):
             metadata.update(self.base_estimator.get_metadata())
         else:
@@ -132,8 +160,12 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         self.feature_thresholds_per_fold_ = pd.DataFrame()
         self.aggregate_thresholds_per_fold_ = {}
+        self.smooth_feature_thresholds_per_fold_ = pd.DataFrame()
+        self.smooth_aggregate_thresholds_per_fold_ = {}
+        smooth_aggregate_threshold_fold = None
+        smooth_tag_thresholds_fold = None
 
-        for i, ((train_idxs, test_idxs), split_model) in enumerate(
+        for i, ((_, test_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
         ):
             y_pred = split_model.predict(
@@ -147,24 +179,44 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             # Model's timestep scaled mse over all features
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
 
+            # Absolute error
+            mae = pd.DataFrame(np.abs(y_pred - y_true))
+
             # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
             aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
             self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
 
             # Accumulate the rolling mins of diffs into common df
-            tag_thresholds_fold = (
-                pd.DataFrame(np.abs(y_pred - y_true)).rolling(6).min().max()
-            )
+            tag_thresholds_fold = mae.rolling(6).min().max()
             tag_thresholds_fold.name = f"fold-{i}"
             self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
                 tag_thresholds_fold
             )
+
+            if self.window is not None:
+                # Calculate smoothed thresholds only if len of data >= window
+                smooth_aggregate_threshold_fold = (
+                    scaled_mse.rolling(self.window).min().max()
+                )
+                self.smooth_aggregate_thresholds_per_fold_[
+                    f"fold-{i}"
+                ] = smooth_aggregate_threshold_fold
+
+                smooth_tag_thresholds_fold = mae.rolling(self.window).min().max()
+                smooth_tag_thresholds_fold.name = f"fold-{i}"
+                self.smooth_feature_thresholds_per_fold_ = self.smooth_feature_thresholds_per_fold_.append(
+                    smooth_tag_thresholds_fold
+                )
 
         # Final thresholds are the thresholds from the last cv split/fold
         self.feature_thresholds_ = tag_thresholds_fold
 
         # For the aggregate also use the thresholds from the last split/fold
         self.aggregate_threshold_ = aggregate_threshold_fold
+
+        # For the smoothed thresholds also use the last fold
+        self.smooth_aggregate_threshold_ = smooth_aggregate_threshold_fold
+        self.smooth_feature_thresholds_ = smooth_tag_thresholds_fold
 
         return cv_output
 
@@ -251,7 +303,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # Calculate the absolute unscaled tag anomalies
         unscaled_abs_diff = pd.DataFrame(
-            data=np.abs(data["model-output"].values - y.values[-len(data) :, :]),
+            data=np.abs(
+                data["model-output"].to_numpy() - y.to_numpy()[-len(data) :, :]
+            ),
             index=data.index,
             columns=pd.MultiIndex.from_product(
                 (("tag-anomaly-unscaled",), y.columns.tolist())
@@ -264,24 +318,75 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             axis=1
         )
 
-        # If we have `thresholds_` values, then we can calculate anomaly confidence
-        if hasattr(self, "feature_thresholds_"):
-            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
+        if self.window is not None:
+            # Calculate scaled tag-level smoothed anomaly scores
+            smooth_tag_anomaly_scaled = tag_anomaly_scaled.rolling(self.window).median()
+            smooth_tag_anomaly_scaled.columns = smooth_tag_anomaly_scaled.columns.set_levels(
+                ["smooth-tag-anomaly-scaled"], level=0
+            )
+            data = data.join(smooth_tag_anomaly_scaled)
 
+            # Calculate scaled smoothed total anomaly score
+            data["smooth-total-anomaly-scaled"] = (
+                data["total-anomaly-scaled"].rolling(self.window).median()
+            )
+
+            # Calculate unscaled tag-level smoothed anomaly scores
+            smooth_tag_anomaly_unscaled = unscaled_abs_diff.rolling(
+                self.window
+            ).median()
+            smooth_tag_anomaly_unscaled.columns = smooth_tag_anomaly_unscaled.columns.set_levels(
+                ["smooth-tag-anomaly-unscaled"], level=0
+            )
+            data = data.join(smooth_tag_anomaly_unscaled)
+
+            # Calculate unscaled smoothed total anomaly score
+            data["smooth-total-anomaly-unscaled"] = (
+                data["total-anomaly-unscaled"].rolling(self.window).median()
+            )
+
+        # If we have `thresholds_` values, then we can calculate anomaly confidence
+        confidence, index = None, None
+        if (
+            hasattr(self, "smooth_feature_thresholds_")
+            and self.smooth_feature_thresholds_ is not None
+        ):
+            confidence = (
+                data["smooth-tag-anomaly-scaled"].to_numpy()
+                / self.smooth_feature_thresholds_.to_numpy()
+            )
+            index = data["smooth-tag-anomaly-scaled"].index
+        elif hasattr(self, "feature_thresholds_"):
+            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
+            index = tag_anomaly_scaled.index
+
+        if confidence is not None and index is not None:
             # Dataframe of % abs_diff is of the thresholds
+            # This is now based on the smoothed tag anomaly
             anomaly_confidence_scores = pd.DataFrame(
                 confidence,
-                index=tag_anomaly_scaled.index,
+                index=index,
                 columns=pd.MultiIndex.from_product(
                     (("anomaly-confidence",), data["model-output"].columns)
                 ),
             )
             data = data.join(anomaly_confidence_scores)
 
-        if hasattr(self, "aggregate_threshold_"):
-            data["total-anomaly-confidence"] = (
+        total_anomaly_confidence = None
+        if (
+            hasattr(self, "smooth_aggregate_threshold_")
+            and self.smooth_aggregate_threshold_ is not None
+        ):
+            total_anomaly_confidence = (
+                data["smooth-total-anomaly-scaled"] / self.smooth_aggregate_threshold_
+            )
+        elif hasattr(self, "aggregate_threshold_"):
+            total_anomaly_confidence = (
                 data["total-anomaly-scaled"] / self.aggregate_threshold_
             )
+
+        if total_anomaly_confidence is not None:
+            data["total-anomaly-confidence"] = total_anomaly_confidence
 
         # Explicitly raise error if we were required to do threshold based calculations
         # should would have required a call to .cross_validate before .anomaly
