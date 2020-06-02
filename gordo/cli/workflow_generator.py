@@ -105,7 +105,7 @@ def workflow_cli(gordo_ctx):
 @click.option(
     "--split-workflows",
     type=int,
-    default=50,
+    default=30,
     help="Split workflows containg more than this number of models into several "
     "workflows, where each workflow contains at most this nr of models. The "
     "workflows are outputted sequentially with '---' in between, which allows "
