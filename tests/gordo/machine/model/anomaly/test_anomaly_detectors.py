@@ -140,7 +140,9 @@ def test_diff_detector_with_window(
 
     assert isinstance(model, AnomalyDetectorBase)
 
-    assert model.get_params() == dict(base_estimator=base_estimator, scaler=scaler)
+    assert model.get_params() == dict(
+        base_estimator=base_estimator, scaler=scaler, window=144
+    )
 
     if with_thresholds:
         model.cross_validate(X=X, y=y)
