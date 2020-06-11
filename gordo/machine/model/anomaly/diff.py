@@ -123,7 +123,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     def get_params(self, deep=True):
         params = {"base_estimator": self.base_estimator, "scaler": self.scaler}
         if self.window is not None:
-            params['window'] = self.window
+            params["window"] = self.window
         return params
 
     def fit(self, X: np.ndarray, y: np.ndarray):
