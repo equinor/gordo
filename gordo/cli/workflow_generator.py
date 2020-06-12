@@ -255,11 +255,13 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     # Clear output file
     if context["output_file"]:
         open(context["output_file"], "w").close()  # type: ignore
+    project_workflow = 0
     for i in range(0, len(config.machines), context["split_workflows"]):  # type: ignore
         logger.info(
             f"Generating workflow for machines {i} to {i + context['split_workflows']}"
         )
         context["machines"] = config.machines[i : i + context["split_workflows"]]
+        context["project_workflow"] = str(project_workflow)
 
         if context["output_file"]:
             s = template.stream(**context)
@@ -272,6 +274,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
             if i != 0:
                 print("\n---\n")
             print(output)
+        project_workflow += 1
 
 
 @click.command("unique-tags")

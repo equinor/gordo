@@ -121,7 +121,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         return self.base_estimator.score(X, y)
 
     def get_params(self, deep=True):
-        return {"base_estimator": self.base_estimator, "scaler": self.scaler}
+        params = {"base_estimator": self.base_estimator, "scaler": self.scaler}
+        if self.window is not None:
+            params["window"] = self.window
+        return params
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         self.base_estimator.fit(X, y)
