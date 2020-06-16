@@ -809,7 +809,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
-                      applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
+                      applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"{% if project_workflow %}
+                      applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
