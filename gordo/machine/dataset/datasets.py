@@ -32,8 +32,10 @@ logger = logging.getLogger(__name__)
 class InsufficientDataAfterRowFilteringError(InsufficientDataError):
     pass
 
+
 class InsufficientDataAfterGlobalFilteringError(InsufficientDataError):
     pass
+
 
 def compat(init):
     """
