@@ -233,7 +233,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             logger.info("Applying global min/max filtering")
             mask = ((data > self.low_threshold) & (data < self.high_threshold)).all(1)
             data = data[mask]
-            logger.info("Shape of data after global min/max filtering: %s", self.data.shape)
+            logger.info("Shape of data after global min/max filtering: %s", data.shape)
             if len(data) <= self.n_samples_threshold:
                 raise InsufficientDataAfterGlobalFilteringError(
                     f"The length of the generated DataFrame ({len(data)}) does not exceed the "
