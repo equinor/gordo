@@ -8,6 +8,7 @@ from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.callbacks import Callback
 
 
 logger = logging.getLogger(__name__)
@@ -137,15 +138,17 @@ def _build_step(
                     if callable(possible_func):
                         params[param] = possible_func
 
-        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
-            import_str
-        )
+        StepClass: Union[
+            FeatureUnion, Pipeline, BaseEstimator, Callback
+        ] = pydoc.locate(import_str)
 
         if StepClass is None:
             raise ImportError(f'Could not locate path: "{import_str}"')
-
+        print(type(StepClass))
         # FeatureUnion or another Pipeline transformer
-        if any(StepClass == obj for obj in [FeatureUnion, Pipeline, Sequential]):
+        if any(
+            StepClass == obj for obj in [FeatureUnion, Pipeline, Sequential, Callback]
+        ):
 
             # Need to ensure the parameters to be supplied are valid FeatureUnion
             # & Pipeline both take a list of transformers, but with different
@@ -156,7 +159,6 @@ def _build_step(
                 )
             elif "steps" in params:
                 params["steps"] = _build_scikit_branch(params["steps"], None)
-
             # If params is an iterable, is has to be the first argument
             # to the StepClass (FeatureUnion / Pipeline); a list of transformers
             elif any(isinstance(params, obj) for obj in (tuple, list)):
@@ -245,7 +247,11 @@ def _load_param_classes(params: dict):
             ):
 
                 params[key] = Model()
-
+        elif "callbacks" in params:
+            callbacks = []
+            for callback in params["callbacks"]:
+                callbacks.append(_build_step(callback))
+            params["callbacks"] = callbacks
         # For the next bit to work, the dict must have a single key (maybe) the class path,
         # and its value must be a dict of kwargs
         elif (
