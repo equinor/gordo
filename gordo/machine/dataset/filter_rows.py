@@ -138,10 +138,6 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     apply_buffer(pandas_filter, buffer_size=buffer_size)
     df = df[list(pandas_filter)]
     logger.info("Shape of data after numerical filtering: %s", df.shape)
-    logger.info("Applying global min/max filtering")
-    mask = ((df > -1000) & (df < 50000)).all(1)
-    df = df[mask]
-    logger.info("Shape of data after global min/max filtering: %s", df.shape)
     return df
 
 
