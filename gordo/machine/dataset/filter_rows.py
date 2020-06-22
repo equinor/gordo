@@ -120,6 +120,7 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     7  2  1
     8  2  2
     """
+    logger.info("Applying numerical filtering to data of shape %s", df.shape)
     # pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items
     # therefore split in n=30 (to be safe) and evaluate iterative, keeping the sparse evaluation with numexpr
     if isinstance(filter_str, list):
@@ -133,8 +134,11 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     # and returns a pd.Series
     else:
         pandas_filter = df.eval(filter_str)
+
     apply_buffer(pandas_filter, buffer_size=buffer_size)
-    return df[list(pandas_filter)]
+    df = df[list(pandas_filter)]
+    logger.info("Shape of data after numerical filtering: %s", df.shape)
+    return df
 
 
 def _batch(iterable, n: int):

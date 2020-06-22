@@ -136,6 +136,8 @@ def test_machine_from_config(default_globals: dict):
                 "type": "DataLakeProvider",
             },
             "default_asset": None,
+            "high_threshold": 50000,
+            "low_threshold": -1000,
             "n_samples_threshold": 0,
             "resolution": "10T",
             "row_filter": "",

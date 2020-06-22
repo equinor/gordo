@@ -191,7 +191,7 @@ def test_row_filter():
         train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
     )
     X, _ = TimeSeriesDataset(**kwargs).get_data()
-    assert 577 == len(X)
+    assert 83 == len(X)
 
     X, _ = TimeSeriesDataset(row_filter="`Tag 1` < 5000", **kwargs).get_data()
     assert 8 == len(X)
@@ -218,7 +218,7 @@ def test_aggregation_methods():
 
     # Default aggregation gives no extra columns
     X, _ = TimeSeriesDataset(**kwargs).get_data()
-    assert (577, 3) == X.shape
+    assert (83, 3) == X.shape
 
     # The default single aggregation method gives the tag-names as columns
     assert list(X.columns) == ["Tag 1", "Tag 2", "Tag 3"]
@@ -227,7 +227,7 @@ def test_aggregation_methods():
     # on top and aggregation_method as second level
     X, _ = TimeSeriesDataset(aggregation_methods=["mean", "max"], **kwargs).get_data()
 
-    assert (577, 6) == X.shape
+    assert (83, 6) == X.shape
     assert list(X.columns) == [
         ("Tag 1", "mean"),
         ("Tag 1", "max"),
@@ -255,7 +255,7 @@ def test_metadata_statistics():
     # Default aggregation gives no extra columns
     dataset = TimeSeriesDataset(**kwargs)
     X, _ = dataset.get_data()
-    assert (577, 3) == X.shape
+    assert (83, 3) == X.shape
     metadata = dataset.get_metadata()
     assert isinstance(metadata["x_hist"], dict)
     assert len(metadata["x_hist"].keys()) == 3

@@ -33,6 +33,10 @@ class InsufficientDataAfterRowFilteringError(InsufficientDataError):
     pass
 
 
+class InsufficientDataAfterGlobalFilteringError(InsufficientDataError):
+    pass
+
+
 def compat(init):
     """
     __init__ decorator for compatibility where the Gordo config file's ``dataset`` keys have
@@ -83,6 +87,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         asset: Optional[str] = None,
         default_asset: Optional[str] = None,
         n_samples_threshold: int = 0,
+        low_threshold=-1000,
+        high_threshold=50000,
         **_kwargs,
     ):
         """
@@ -162,6 +168,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.row_filter_buffer_size = row_filter_buffer_size
         self.asset = asset
         self.n_samples_threshold = n_samples_threshold
+        self.low_threshold = low_threshold
+        self.high_threshold = high_threshold
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -221,6 +229,17 @@ class TimeSeriesDataset(GordoBaseDataset):
                     f"The length of the genrated DataFrame ({len(data)}) does not exceed the "
                     f"specified required threshold for the number of rows ({self.n_samples_threshold}), "
                     f" after applying the specified row-filter."
+                )
+
+        if self.low_threshold and self.high_threshold:
+            logger.info("Applying global min/max filtering")
+            mask = ((data > self.low_threshold) & (data < self.high_threshold)).all(1)
+            data = data[mask]
+            logger.info("Shape of data after global min/max filtering: %s", data.shape)
+            if len(data) <= self.n_samples_threshold:
+                raise InsufficientDataAfterGlobalFilteringError(
+                    f"The length of the generated DataFrame ({len(data)}) does not exceed the "
+                    f"specified required threshold for number of rows ({self.n_samples_threshold})."
                 )
 
         x_tag_names = [tag.name for tag in self.tag_list]
