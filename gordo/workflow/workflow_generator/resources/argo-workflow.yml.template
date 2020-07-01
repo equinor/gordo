@@ -38,6 +38,10 @@ spec:
     # Deletes any workflows for the same project of different version
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: ensure-single-workflow
@@ -86,6 +90,10 @@ spec:
   - name: apply-with-retries
     retryStrategy:
       limit: 4
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     inputs:
       parameters:
         - name: resource
@@ -188,6 +196,10 @@ spec:
   - name: gordo-influx-statefulset
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     resource:
       action: apply
       successCondition: status.readyReplicas > 0
@@ -274,6 +286,10 @@ spec:
   - name: gordo-influx-database-creator
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-influx-database-creator
@@ -338,6 +354,10 @@ spec:
   - name: gordo-grafana-statefulset
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     resource:
       action: apply
       successCondition: status.readyReplicas > 0
@@ -433,6 +453,10 @@ spec:
   - name: gordo-grafana-datasource-creator
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-grafana-datasource-creator
@@ -499,6 +523,10 @@ spec:
   - name: gordo-postgres-statefulset
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     resource:
       action: apply
       successCondition: status.readyReplicas > 0
@@ -620,6 +648,10 @@ spec:
   - name: model-builder
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-model-builder
@@ -943,6 +975,10 @@ spec:
   - name: gordo-client-waiter
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-client-waiter
@@ -996,6 +1032,10 @@ spec:
   - name: gordo-client
     retryStrategy:
       limit: 5 # Maybe the server is not up yet
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     inputs:
       parameters:
       - name: model-name
@@ -1052,6 +1092,10 @@ spec:
     activeDeadlineSeconds: 300
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-influx-cleanup
@@ -1079,6 +1123,10 @@ spec:
     activeDeadlineSeconds: 300
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-postgres-cleanup
@@ -1103,6 +1151,10 @@ spec:
   - name: cleanup
     retryStrategy:
       limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
     metadata:
       labels:
         app: gordo-cleanup
