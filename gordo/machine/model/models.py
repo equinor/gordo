@@ -37,6 +37,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         kind: Union[
             str, Callable[[int, Dict[str, Any]], tensorflow.keras.models.Model]
         ],
+        fit_kwargs: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
         """
@@ -61,6 +62,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         """
         self.build_fn = None
         self.kwargs = kwargs
+        self.fit_kwargs = fit_kwargs
 
         class_name = self.__class__.__name__
 
@@ -145,6 +147,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if len(X.shape) == 3:
             self.kwargs.update({"n_features": X.shape[2]})
         kwargs.setdefault("verbose", 0)
+        if self.fit_kwargs is not None:
+            fit_kwargs = serializer.from_definition(self.fit_kwargs)
+            kwargs.update(fit_kwargs)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
@@ -184,6 +189,8 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         params.pop("build_fn", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
+        if self.fit_kwargs is not None:
+            params['fit_kwargs'] = self.fit_kwargs
         return params
 
     def __call__(self):

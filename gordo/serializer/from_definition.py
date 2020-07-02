@@ -85,6 +85,11 @@ def _build_scikit_branch(
     steps = [(f"step_{i}", _build_step(step)) for i, step in enumerate(definition)]
     return steps if constructor_class is None else constructor_class(steps)
 
+def _build_callbacks(definition):
+    callbacks = []
+    for callback in definition:
+        callbacks.append(_build_step(callback))
+    return callbacks
 
 def _build_step(
     step: Union[str, Dict[str, Dict[str, Any]]]
@@ -114,7 +119,6 @@ def _build_step(
         Scikit-Learn Transformer or BaseEstimator
     """
     logger.debug(f"Building step: {step}")
-
     # Here, 'step' _should_ be a dict with a single key
     # and an associated dict containing parameters for the desired
     # sklearn step. ie. {'sklearn.preprocessing.PCA': {'n_components': 2}}
@@ -144,7 +148,6 @@ def _build_step(
 
         if StepClass is None:
             raise ImportError(f'Could not locate path: "{import_str}"')
-        print(type(StepClass))
         # FeatureUnion or another Pipeline transformer
         if any(
             StepClass == obj for obj in [FeatureUnion, Pipeline, Sequential, Callback]
@@ -247,11 +250,10 @@ def _load_param_classes(params: dict):
             ):
 
                 params[key] = Model()
-        elif "callbacks" in params:
-            callbacks = []
-            for callback in params["callbacks"]:
-                callbacks.append(_build_step(callback))
-            params["callbacks"] = callbacks
+
+        elif key == "callbacks":
+            params["callbacks"] = _build_callbacks(value)
+
         # For the next bit to work, the dict must have a single key (maybe) the class path,
         # and its value must be a dict of kwargs
         elif (
