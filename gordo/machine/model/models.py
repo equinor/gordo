@@ -6,6 +6,7 @@ import io
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
+from copy import deepcopy
 
 import h5py
 import tensorflow.keras.models
@@ -80,7 +81,11 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
     def sk_params(self):
         """
         Parameters used for scikit learn kwargs"""
-        return self.kwargs
+        kwargs = self.kwargs
+        if self.fit_kwargs is not None:
+            kwargs = deepcopy(kwargs)
+            kwargs.update(self.fit_kwargs)
+        return kwargs
 
     def __getstate__(self):
 
@@ -190,7 +195,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         params.update({"kind": self.kind})
         params.update(self.kwargs)
         if self.fit_kwargs is not None:
-            params['fit_kwargs'] = self.fit_kwargs
+            params["fit_kwargs"] = self.fit_kwargs
         return params
 
     def __call__(self):

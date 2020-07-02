@@ -85,11 +85,13 @@ def _build_scikit_branch(
     steps = [(f"step_{i}", _build_step(step)) for i, step in enumerate(definition)]
     return steps if constructor_class is None else constructor_class(steps)
 
+
 def _build_callbacks(definition):
     callbacks = []
     for callback in definition:
         callbacks.append(_build_step(callback))
     return callbacks
+
 
 def _build_step(
     step: Union[str, Dict[str, Dict[str, Any]]]
