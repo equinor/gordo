@@ -6,6 +6,7 @@ import io
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
+from copy import deepcopy
 
 import h5py
 import tensorflow.keras.models
@@ -32,6 +33,22 @@ logger = logging.getLogger(__name__)
 
 
 class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
+    supported_fit_args = [
+        "batch_size",
+        "epochs",
+        "verbose",
+        "callbacks",
+        "validation_split",
+        "shuffle",
+        "class_weight",
+        "initial_epoch",
+        "steps_per_epoch",
+        "validation_batch_size",
+        "max_queue_size",
+        "workers",
+        "use_multiprocessing",
+    ]
+
     def __init__(
         self,
         kind: Union[
@@ -74,11 +91,24 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 )
             self.kind = kind
 
+    def extract_supported_fit_args(self):
+        fit_args = {}
+        for arg in self.supported_fit_args:
+            if arg in self.kwargs:
+                fit_args[arg] = self.kwargs[arg]
+        return fit_args
+
     @property
     def sk_params(self):
         """
         Parameters used for scikit learn kwargs"""
-        return self.kwargs
+        fit_args = self.extract_supported_fit_args()
+        if fit_args:
+            kwargs = deepcopy(self.kwargs)
+            kwargs.update(serializer.from_definition(fit_args))
+            return kwargs
+        else:
+            return self.kwargs
 
     def __getstate__(self):
 
