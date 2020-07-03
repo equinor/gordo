@@ -194,7 +194,7 @@ def _build_callbacks(definitions: list):
     --------
     >>> callbacks=_build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
     >>> type(callbacks[0])
-    tensorflow.python.keras.callbacks.EarlyStopping
+    <class 'tensorflow.python.keras.callbacks.EarlyStopping'>
 
     Returns
     -------
@@ -291,3 +291,18 @@ def _load_param_classes(params: dict):
         elif key == "callbacks" and isinstance(value, list):
             params[key] = _build_callbacks(value)
     return params
+
+
+def load_params_from_definition(definition: dict) -> dict:
+    """
+    Deserialize each value from a dictionary. Could be used for preparing kwargs for methods
+
+    Parameters
+    ----------
+    definition: dict
+    """
+    if not isinstance(definition, dict):
+        raise ValueError(
+            "Expected definition to be a dict," f"found: {type(definition)}"
+        )
+    return _load_param_classes(definition)
