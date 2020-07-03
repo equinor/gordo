@@ -127,7 +127,8 @@ class NcsReader(GordoBaseDataProvider):
         "1294-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1294-PERA",  # per.
         "1295-pera": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1295-PERA",  # per.
         "1298-perb": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1298-PERB",  # per.
-        "1299-per": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1299-PER",  # per.
+        "1299-per": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1299-PERF",  # per. keeping this for back-compatibility
+        "1299-perf": "/raw/corporate/Aspen MS - IP21 Peregrino/sensordata/1299-PERF",  # per.
         "1340-met": "/raw/corporate/PI System Operation Norway/sensordata/1340-MET",
         "1380-sno": "/raw/corporate/Aspen MS - IP21 Hammerfest/sensordata/1380-SNO",  # 25haxxx_
         "1755-gra": "/raw/corporate/Aspen MS - IP21 Grane/sensordata/1755-GRA",
