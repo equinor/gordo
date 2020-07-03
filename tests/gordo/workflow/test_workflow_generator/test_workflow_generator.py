@@ -8,6 +8,7 @@ import docker
 import pytest
 import yaml
 from unittest.mock import patch
+from packaging import version
 
 from click.testing import CliRunner
 
@@ -88,6 +89,11 @@ def test_argo_lint(repo_dir, tmpdir, argo_version):
     """
     Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
     """
+    if version.parse(argo_version) >= version.parse("v2.5.0"):
+        # argocli does not support workflow linting without valid kubernetes configuration anymore
+        # https://github.com/argoproj/argo/blob/v2.5.0/cmd/argo/commands/lint.go#L24
+        pytest.skip("argo lint does not work in version %s", argo_version)
+
     docker_client = docker.from_env()
 
     # Verify doing a workflow generation on the config will generate valid yaml
