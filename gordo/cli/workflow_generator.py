@@ -133,6 +133,20 @@ def workflow_cli(gordo_ctx):
     help="The docker registry to use for pulling component images from",
     envvar=f"{PREFIX}_DOCKER_REGISTRY",
 )
+@click.option(
+    "--retry-backoff-duration",
+    type=str,
+    default="15s",
+    help="retryStrategy.backoff.duration for workflow steps",
+    envvar=f"{PREFIX}_RETRY_BACKOFF_DURATION",
+)
+@click.option(
+    "--retry-backoff-factor",
+    type=int,
+    default=2,
+    help="retryStrategy.backoff.factor for workflow steps",
+    envvar=f"{PREFIX}_RETRY_BACKOFF_FACTOR",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
