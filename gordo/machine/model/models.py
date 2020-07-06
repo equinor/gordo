@@ -6,7 +6,7 @@ import io
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
-from copy import deepcopy, copy
+from copy import copy
 
 import h5py
 import tensorflow.keras.models
@@ -321,7 +321,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     ...             units: 1
     ... '''
     >>> config = yaml.safe_load(config_str)
-    >>> model = KerasRawModelRegressor(kind=config)
+    >>> model = KerasRawModelRegressor.from_definition({"kind": config})
     >>>
     >>> X, y = np.random.random((10, 4)), np.random.random((10, 1))
     >>> model.fit(X, y)

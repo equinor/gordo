@@ -3,7 +3,6 @@
 import inspect
 import logging
 
-from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
 
