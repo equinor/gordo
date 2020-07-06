@@ -129,6 +129,16 @@ def _build_step(
         if isinstance(params, dict):
             params = _load_param_classes(params)
 
+        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
+            import_str
+        )
+
+        if StepClass is None:
+            raise ImportError(f'Could not locate path: "{import_str}"')
+
+        if hasattr(StepClass, "from_definition"):
+            return getattr(StepClass, "from_definition")(params)
+
         # update any param values which are string locations to functions
         if isinstance(params, dict):
             for param, value in params.items():
@@ -136,13 +146,6 @@ def _build_step(
                     possible_func = pydoc.locate(value)
                     if callable(possible_func):
                         params[param] = possible_func
-
-        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
-            import_str
-        )
-
-        if StepClass is None:
-            raise ImportError(f'Could not locate path: "{import_str}"')
 
         # FeatureUnion or another Pipeline transformer
         if any(StepClass == obj for obj in [FeatureUnion, Pipeline, Sequential]):
@@ -277,6 +280,10 @@ def _load_param_classes(params: dict):
             and isinstance(value[list(value.keys())[0]], dict)
         ):
             Model = pydoc.locate(list(value.keys())[0])
+
+            if hasattr(Model, "from_definition"):
+                return getattr(Model, "from_definition")(params)
+
             if Model is not None and isinstance(Model, type):
 
                 if issubclass(Model, Pipeline) or issubclass(Model, Sequential):

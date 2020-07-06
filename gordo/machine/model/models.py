@@ -6,7 +6,7 @@ import io
 from pprint import pprint
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
-from copy import deepcopy
+from copy import deepcopy, copy
 
 import h5py
 import tensorflow.keras.models
@@ -91,24 +91,36 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 )
             self.kind = kind
 
-    def extract_supported_fit_args(self):
+    @classmethod
+    def extract_supported_fit_args(cls, kwargs):
         fit_args = {}
-        for arg in self.supported_fit_args:
-            if arg in self.kwargs:
-                fit_args[arg] = self.kwargs[arg]
+        for arg in cls.supported_fit_args:
+            if arg in kwargs:
+                fit_args[arg] = kwargs[arg]
         return fit_args
+
+    @classmethod
+    def from_definition(cls, definition: dict):
+        kind = definition.pop("kind")
+        kwargs = copy(definition)
+        fit_args = cls.extract_supported_fit_args(kwargs)
+        if fit_args:
+            kwargs.update(serializer.load_params_from_definition(fit_args))
+        return cls(kind, **kwargs)
+
+    def into_definition(self) -> dict:
+        definition = copy(self.kwargs)
+        fit_args = self.extract_supported_fit_args(self.kwargs)
+        if fit_args:
+            definition.update(serializer.load_definition_from_params(fit_args))
+        definition["kind"] = self.kind
+        return definition
 
     @property
     def sk_params(self):
         """
         Parameters used for scikit learn kwargs"""
-        fit_args = self.extract_supported_fit_args()
-        if fit_args:
-            kwargs = deepcopy(self.kwargs)
-            kwargs.update(serializer.load_params_from_definition(fit_args))
-            return kwargs
-        else:
-            return self.kwargs
+        return self.kwargs
 
     def __getstate__(self):
 
@@ -320,33 +332,57 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     >>> out = model.predict(X)
     """
 
-    def __init__(self, kind: dict, **kwargs):
+    _expected_keys = ("spec", "compile")
 
-        self.kind = kind  # type: ignore
+    def __init__(self, model, compile_kwargs, **kwargs):
+
+        self.model = model
+        self.compile_kwargs = compile_kwargs
         self.kwargs = kwargs
 
+    @classmethod
+    def from_definition(cls, definition: dict):
+        kind = definition.pop("kind")
+        if not all(k in kind for k in cls._expected_keys):
+            raise ValueError(
+                f"Expected spec to have keys: {cls._expected_keys}, but found {kind.keys()}"
+            )
+        logger.debug(f"Building model from spec: {kind}")
+
+        model = serializer.from_definition(kind.pop("spec"))
+
+        # Load any compile kwargs as well, such as compile.optimizer which may map to class obj
+        compile_kwargs = serializer.load_params_from_definition(kind.pop("compile"))
+
+        kwargs = definition
+        return cls(model, compile_kwargs, **kwargs)
+
+    def into_definition(self) -> dict:
+        definition = copy(self.kwargs)
+        fit_args = self.extract_supported_fit_args(self.kwargs)
+        if fit_args:
+            definition.update(serializer.load_params_from_definition(fit_args))
+        definition["kind"] = self.get_kind()
+        return definition
+
+    def get_kind(self) -> dict:
+        kind = dict()
+        kind["spec"] = serializer.into_definition(self.model)
+        kind["compile"] = serializer.load_params_from_definition(self.compile_kwargs)
+        return kind
+
     def __repr__(self):
+        kind = self.get_kind()
         stream = io.StringIO()
-        pprint(self.kind, stream=stream)
+        pprint(kind, stream=stream)
         stream.seek(0)
         result = f"{self.__class__.__name__}(kind: {stream.read()})"
         return result
 
     def build_fn(self):
         """Build Keras model from specification"""
-        _expected_keys = ("spec", "compile")
-        if not all(k in self.kind for k in _expected_keys):
-            raise ValueError(
-                f"Expected spec to have keys: {_expected_keys}, but found {self.kind.keys()}"
-            )
-        logger.debug(f"Building model from spec: {self.kind}")
-
-        model = serializer.from_definition(self.kind["spec"])
-
-        # Load any compile kwargs as well, such as compile.optimizer which may map to class obj
-        kwargs = serializer.from_definition(self.kind["compile"])
-
-        model.compile(**kwargs)
+        model = self.model
+        model.compile(**self.compile_kwargs)
         return model
 
 
