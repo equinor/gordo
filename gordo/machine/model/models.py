@@ -3,7 +3,7 @@
 import abc
 import logging
 import io
-from pprint import pprint
+from pprint import pformat
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
 from copy import copy
@@ -340,11 +340,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
         return kind
 
     def __repr__(self):
-        stream = io.StringIO()
-        pprint(self.kind, stream=stream)
-        stream.seek(0)
-        result = f"{self.__class__.__name__}(kind: {stream.read()})"
-        return result
+        return f"{self.__class__.__name__}(kind: {pformat(self.kind)})"
 
     def build_fn(self):
         """Build Keras model from specification"""
