@@ -282,10 +282,13 @@ def _load_param_classes(params: dict):
             and len(value.keys()) == 1
             and isinstance(value[list(value.keys())[0]], dict)
         ):
-            Model = pydoc.locate(list(value.keys())[0])
+            import_path = list(value.keys())[0]
+            Model = pydoc.locate(import_path)
+
+            sub_params = value[import_path]
 
             if hasattr(Model, "from_definition"):
-                params[key] = getattr(Model, "from_definition")(value)
+                params[key] = getattr(Model, "from_definition")(sub_params)
             if Model is not None and isinstance(Model, type):
 
                 if issubclass(Model, Pipeline) or issubclass(Model, Sequential):
@@ -294,7 +297,6 @@ def _load_param_classes(params: dict):
                     params[key] = from_definition(value)
                 else:
                     # Call this func again, incase there is nested occurances of this problem in these kwargs
-                    sub_params = value[list(value.keys())[0]]
                     kwargs = _load_param_classes(sub_params)
                     params[key] = Model(**kwargs)  # type: ignore
         elif key == "callbacks" and isinstance(value, list):
