@@ -289,7 +289,7 @@ def _load_param_classes(params: dict):
 
             if hasattr(Model, "from_definition"):
                 params[key] = getattr(Model, "from_definition")(sub_params)
-            if Model is not None and isinstance(Model, type):
+            elif Model is not None and isinstance(Model, type):
 
                 if issubclass(Model, Pipeline) or issubclass(Model, Sequential):
                     # Model is a Pipeline, so 'value' is the definition of that Pipeline
