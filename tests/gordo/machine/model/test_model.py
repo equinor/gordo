@@ -12,6 +12,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from tensorflow.keras.callbacks import EarlyStopping
 
 from tests.utils import get_model
 from gordo.machine.model.models import (
@@ -19,6 +20,7 @@ from gordo.machine.model.models import (
     KerasLSTMForecast,
     KerasLSTMBaseEstimator,
     KerasBaseEstimator,
+    KerasAutoEncoder,
     create_keras_timeseriesgenerator,
 )
 from gordo.machine.model.factories import lstm_autoencoder
@@ -333,3 +335,24 @@ def test_lstmae_predict_output():
     xTest = np.random.random(size=(4, 3))
     out = model.predict(xTest)
     assert out.shape == (2, 3)
+
+
+def test_keras_autoencoder_fits_callbacks():
+    model = KerasAutoEncoder(
+        kind="feedforward_hourglass",
+        batch_size=128,
+        callbacks=[
+            {
+                "tensorflow.keras.callbacks.EarlyStopping": {
+                    "monitor": "val_loss",
+                    "patience": 10,
+                }
+            }
+        ],
+    )
+    sk_params = model.sk_params
+    assert len(sk_params["callbacks"]) == 1
+    first_callback = sk_params["callbacks"][0]
+    assert isinstance(first_callback, EarlyStopping)
+    assert first_callback.monitor == "val_loss"
+    assert first_callback.patience == 10
