@@ -123,11 +123,6 @@ def _build_step(
             return _load_param_classes(step)
 
         import_str = list(step.keys())[0]
-        params = step.get(import_str, dict())
-
-        # Load any possible classes in the params if this is a dict of maybe kwargs
-        if isinstance(params, dict):
-            params = _load_param_classes(params)
 
         StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
             import_str
@@ -136,8 +131,14 @@ def _build_step(
         if StepClass is None:
             raise ImportError(f'Could not locate path: "{import_str}"')
 
+        params = step.get(import_str, dict())
+
         if hasattr(StepClass, "from_definition"):
             return getattr(StepClass, "from_definition")(params)
+
+        # Load any possible classes in the params if this is a dict of maybe kwargs
+        if isinstance(params, dict):
+            params = _load_param_classes(params)
 
         # update any param values which are string locations to functions
         if isinstance(params, dict):
@@ -178,7 +179,10 @@ def _build_step(
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
         Step = pydoc.locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
-        return Step() if Step is not None else step
+        if hasattr(Step, "from_definition"):
+            return getattr(Step, "from_definition")({})
+        else:
+            return Step() if Step is not None else step
 
     else:
         raise ValueError(
@@ -264,13 +268,15 @@ def _load_param_classes(params: dict):
         # If value is a simple string, try to load the model/class
         if isinstance(value, str):
             Model: Union[None, BaseEstimator, Pipeline] = pydoc.locate(value)
-            if (
-                Model is not None
-                and isinstance(Model, type)
-                and issubclass(Model, BaseEstimator)
-            ):
+            if Model is not None:
+                if hasattr(Model, "from_definition"):
+                    params[key] = getattr(Model, "from_definition")({})
+                elif (
+                    isinstance(Model, type)
+                    and issubclass(Model, BaseEstimator)
+                ):
 
-                params[key] = Model()
+                    params[key] = Model()
 
         # For the next bit to work, the dict must have a single key (maybe) the class path,
         # and its value must be a dict of kwargs
