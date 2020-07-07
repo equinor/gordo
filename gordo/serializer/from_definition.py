@@ -271,10 +271,7 @@ def _load_param_classes(params: dict):
             if Model is not None:
                 if hasattr(Model, "from_definition"):
                     params[key] = getattr(Model, "from_definition")({})
-                elif (
-                    isinstance(Model, type)
-                    and issubclass(Model, BaseEstimator)
-                ):
+                elif isinstance(Model, type) and issubclass(Model, BaseEstimator):
 
                     params[key] = Model()
 
