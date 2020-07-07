@@ -6,7 +6,7 @@ import io
 from pprint import pformat
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
-from copy import copy
+from copy import copy, deepcopy
 
 import h5py
 import tensorflow.keras.models
@@ -119,7 +119,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         Parameters used for scikit learn kwargs"""
         fit_args = self.extract_supported_fit_args(self.kwargs)
         if fit_args:
-            kwargs = copy(self.kwargs)
+            kwargs = deepcopy(self.kwargs)
             kwargs.update(serializer.load_definition_from_params(fit_args))
             return kwargs
         else:
@@ -329,8 +329,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     >>> model.fit(X, y)
     KerasRawModelRegressor(kind: {'compile': {'loss': 'mse', 'optimizer': 'adam'},
      'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'units': 4}},
-                                                                {'tensorflow.keras.layers.Dense': {'units': 1}}]}}}
-    )
+                                                                {'tensorflow.keras.layers.Dense': {'units': 1}}]}}})
     >>> out = model.predict(X)
     """
 
