@@ -120,7 +120,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         fit_args = self.extract_supported_fit_args(self.kwargs)
         if fit_args:
             kwargs = deepcopy(self.kwargs)
-            kwargs.update(serializer.load_definition_from_params(fit_args))
+            kwargs.update(serializer.load_params_from_definition(fit_args))
             return kwargs
         else:
             return self.kwargs

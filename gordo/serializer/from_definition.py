@@ -285,8 +285,7 @@ def _load_param_classes(params: dict):
             Model = pydoc.locate(list(value.keys())[0])
 
             if hasattr(Model, "from_definition"):
-                return getattr(Model, "from_definition")(params)
-
+                params[key] = getattr(Model, "from_definition")(value)
             if Model is not None and isinstance(Model, type):
 
                 if issubclass(Model, Pipeline) or issubclass(Model, Sequential):
