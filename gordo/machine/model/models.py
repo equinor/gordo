@@ -342,7 +342,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     def __repr__(self):
         return f"{self.__class__.__name__}(kind: {pformat(self.kind)})"
 
-    def build_fn(self):
+    def __call__(self):
         """Build Keras model from specification"""
         if not all(k in self.kind for k in self._expected_keys):
             raise ValueError(
