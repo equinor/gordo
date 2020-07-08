@@ -24,6 +24,7 @@ jobs:
       - name: Install deps
         run: |
           pip install --upgrade pip
+          pip uninstall -y aws-sam-cli # Workaround for fixing an issue with incompatible package versions
           pip install -r requirements/full_requirements.txt
 
       - name: Build
