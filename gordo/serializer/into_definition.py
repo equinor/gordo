@@ -127,6 +127,18 @@ def _prune_default_parameters(obj: object, current_params) -> dict:
 
 
 def load_definition_from_params(params: dict) -> dict:
+    """
+    Recursively decomposing each of values from params into the definition
+
+    Parameters
+    ----------
+        params: dict
+
+    Returns
+    -------
+        dict
+
+    """
     definition = {}
     for param, param_val in params.items():
 

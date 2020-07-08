@@ -96,6 +96,17 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     @classmethod
     def extract_supported_fit_args(cls, kwargs):
+        """
+        Filtering only ``fit`` related kwargs
+
+        Parameters
+        ----------
+        kwargs
+
+        Returns
+        -------
+
+        """
         fit_args = {}
         for arg in cls.supported_fit_args:
             if arg in kwargs:
@@ -104,11 +115,30 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     @classmethod
     def from_definition(cls, definition: dict):
+        """
+        Handler for ``gordo.serializer.from_definition``
+
+        Parameters
+        ----------
+            definition: dict
+
+        Returns
+        -------
+
+        """
         kind = definition.pop("kind")
         kwargs = copy(definition)
         return cls(kind, **kwargs)
 
     def into_definition(self) -> dict:
+        """
+        Handler for ``gordo.serializer.into_definition``
+
+        Returns
+        -------
+            dict
+
+        """
         definition = copy(self.kwargs)
         definition["kind"] = self.kind
         return definition
