@@ -15,6 +15,8 @@ from gordo.machine.model.models import KerasAutoEncoder
 from gordo.serializer import into_definition, from_definition
 from gordo.machine.model.register import register_model_builder
 
+from tests.gordo.serializer.definition_test_model import DefinitionTestModel
+
 logger = logging.getLogger(__name__)
 
 
@@ -304,3 +306,14 @@ def test_captures_kwarg_to_init():
 
     # And make sure we can init again
     KerasAutoEncoder(**parameters)
+
+
+def test_from_definition_test_model():
+    model = DefinitionTestModel(300)
+    definition = into_definition(model)
+    expected_definition = {
+        "tests.gordo.serializer.definition_test_model.DefinitionTestModel": {
+            "depth": 300
+        }
+    }
+    assert expected_definition == definition

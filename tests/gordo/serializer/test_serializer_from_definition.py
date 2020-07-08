@@ -19,6 +19,8 @@ from gordo.serializer import from_definition
 import gordo.machine.model.transformer_funcs.general
 from gordo.machine.model.register import register_model_builder
 
+from tests.gordo.serializer.definition_test_model import DefinitionTestModel
+
 logger = logging.getLogger(__name__)
 
 
@@ -65,6 +67,17 @@ def test_load_from_definition(definition):
     assert isinstance(model, MultiOutputRegressor)
     model.fit(X, y)
     model.predict(X)
+
+
+def test_from_definition_test_model():
+    config = """
+    tests.gordo.serializer.definition_test_model.DefinitionTestModel:
+        depth: "300"
+    """
+    definition = yaml.load(config)
+    model = serializer.from_definition(definition)
+    assert type(model) == DefinitionTestModel
+    assert model.depth == 300
 
 
 class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
