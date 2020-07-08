@@ -101,7 +101,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Parameters
         ----------
-        kwargs
+            kwargs: dict
 
         Returns
         -------
