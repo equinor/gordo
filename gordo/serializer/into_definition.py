@@ -3,7 +3,6 @@
 import inspect
 import logging
 
-from sklearn.base import BaseEstimator
 from sklearn.pipeline import Pipeline
 
 
@@ -60,7 +59,7 @@ def into_definition(pipeline: Pipeline, prune_default_params: bool = False) -> d
     return steps
 
 
-def _decompose_node(step: BaseEstimator, prune_default_params: bool = False):
+def _decompose_node(step: object, prune_default_params: bool = False):
     """
     Decompose a specific instance of a scikit-learn transformer,
     including Pipelines or FeatureUnions
@@ -81,34 +80,20 @@ def _decompose_node(step: BaseEstimator, prune_default_params: bool = False):
     """
 
     import_str = f"{step.__module__}.{step.__class__.__name__}"
-    params = step.get_params(deep=False)
 
-    for param, param_val in params.items():
+    if hasattr(step, "into_definition"):
+        definition = getattr(step, "into_definition")()
+    else:
+        params = getattr(step, "get_params")(deep=False)
 
-        if hasattr(param_val, "get_params"):
-            params[param] = _decompose_node(param_val)
+        definition = load_definition_from_params(params)
 
-        # Handle parameter value that is a list
-        elif isinstance(param_val, list):
-
-            # Decompose second elements; these are tuples of (str, BaseEstimator)
-            # or list of other types such as ints.
-            # TODO: Make this more robust, probably via another function to parse the iterable recursively
-            # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
-            params[param] = [
-                _decompose_node(leaf[1]) if isinstance(leaf, tuple) else leaf
-                for leaf in param_val
-            ]
-
-        # Handle FunctionTransformer function object type parameters
-        elif callable(param_val):
-            # param_val is a function for FunctionTransformer.func init param
-            params[param] = f"{param_val.__module__}.{param_val.__name__}"
-
-        else:
-            params[param] = param_val
-    params = _prune_default_parameters(step, params) if prune_default_params else params
-    return {import_str: params}
+        definition = (
+            _prune_default_parameters(step, definition)
+            if prune_default_params
+            else definition
+        )
+    return {import_str: definition}
 
 
 def _prune_default_parameters(obj: object, current_params) -> dict:
@@ -139,3 +124,44 @@ def _prune_default_parameters(obj: object, current_params) -> dict:
         for (k, v) in current_params.items()
         if current_params[k] != default_params[k]
     }
+
+
+def load_definition_from_params(params: dict) -> dict:
+    """
+    Recursively decomposing each of values from params into the definition
+
+    Parameters
+    ----------
+        params: dict
+
+    Returns
+    -------
+        dict
+
+    """
+    definition = {}
+    for param, param_val in params.items():
+
+        if hasattr(param_val, "get_params") or hasattr(param_val, "into_definition"):
+            definition[param] = _decompose_node(param_val)
+
+        # Handle parameter value that is a list
+        elif isinstance(param_val, list):
+
+            # Decompose second elements; these are tuples of (str, BaseEstimator)
+            # or list of other types such as ints.
+            # TODO: Make this more robust, probably via another function to parse the iterable recursively
+            # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
+            definition[param] = [
+                _decompose_node(leaf[1]) if isinstance(leaf, tuple) else leaf
+                for leaf in param_val
+            ]
+
+        # Handle FunctionTransformer function object type parameters
+        elif callable(param_val):
+            # param_val is a function for FunctionTransformer.func init param
+            definition[param] = f"{param_val.__module__}.{param_val.__name__}"
+
+        else:
+            definition[param] = param_val
+    return definition

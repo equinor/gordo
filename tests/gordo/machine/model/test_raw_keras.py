@@ -55,7 +55,7 @@ def test_raw_keras_basic(spec_str: str):
     """
     spec = yaml.safe_load(spec_str)
     pipe = KerasRawModelRegressor(spec)
-    model = pipe.build_fn()
+    model = pipe()
     assert isinstance(model, tf.keras.models.Sequential)
 
 

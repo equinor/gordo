@@ -123,7 +123,18 @@ def _build_step(
             return _load_param_classes(step)
 
         import_str = list(step.keys())[0]
+
+        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
+            import_str
+        )
+
+        if StepClass is None:
+            raise ImportError(f'Could not locate path: "{import_str}"')
+
         params = step.get(import_str, dict())
+
+        if hasattr(StepClass, "from_definition"):
+            return getattr(StepClass, "from_definition")(params)
 
         # Load any possible classes in the params if this is a dict of maybe kwargs
         if isinstance(params, dict):
@@ -136,13 +147,6 @@ def _build_step(
                     possible_func = pydoc.locate(value)
                     if callable(possible_func):
                         params[param] = possible_func
-
-        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
-            import_str
-        )
-
-        if StepClass is None:
-            raise ImportError(f'Could not locate path: "{import_str}"')
 
         # FeatureUnion or another Pipeline transformer
         if any(StepClass == obj for obj in [FeatureUnion, Pipeline, Sequential]):
@@ -175,12 +179,38 @@ def _build_step(
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
         Step = pydoc.locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
-        return Step() if Step is not None else step
+        if hasattr(Step, "from_definition"):
+            return getattr(Step, "from_definition")({})
+        else:
+            return Step() if Step is not None else step
 
     else:
         raise ValueError(
             f"Expected step to be either a string or a dict," f"found: {type(step)}"
         )
+
+
+def _build_callbacks(definitions: list):
+    """
+    Parameters
+    ----------
+    definitions: List
+        List of callbacks definitions
+
+    Examples
+    --------
+    >>> callbacks=_build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
+    >>> type(callbacks[0])
+    <class 'tensorflow.python.keras.callbacks.EarlyStopping'>
+
+    Returns
+    -------
+    dict
+    """
+    callbacks = []
+    for callback in definitions:
+        callbacks.append(_build_step(callback))
+    return callbacks
 
 
 def _load_param_classes(params: dict):
@@ -238,13 +268,12 @@ def _load_param_classes(params: dict):
         # If value is a simple string, try to load the model/class
         if isinstance(value, str):
             Model: Union[None, BaseEstimator, Pipeline] = pydoc.locate(value)
-            if (
-                Model is not None
-                and isinstance(Model, type)
-                and issubclass(Model, BaseEstimator)
-            ):
+            if Model is not None:
+                if hasattr(Model, "from_definition"):
+                    params[key] = getattr(Model, "from_definition")({})
+                elif isinstance(Model, type) and issubclass(Model, BaseEstimator):
 
-                params[key] = Model()
+                    params[key] = Model()
 
         # For the next bit to work, the dict must have a single key (maybe) the class path,
         # and its value must be a dict of kwargs
@@ -253,8 +282,14 @@ def _load_param_classes(params: dict):
             and len(value.keys()) == 1
             and isinstance(value[list(value.keys())[0]], dict)
         ):
-            Model = pydoc.locate(list(value.keys())[0])
-            if Model is not None and isinstance(Model, type):
+            import_path = list(value.keys())[0]
+            Model = pydoc.locate(import_path)
+
+            sub_params = value[import_path]
+
+            if hasattr(Model, "from_definition"):
+                params[key] = getattr(Model, "from_definition")(sub_params)
+            elif Model is not None and isinstance(Model, type):
 
                 if issubclass(Model, Pipeline) or issubclass(Model, Sequential):
                     # Model is a Pipeline, so 'value' is the definition of that Pipeline
@@ -262,7 +297,23 @@ def _load_param_classes(params: dict):
                     params[key] = from_definition(value)
                 else:
                     # Call this func again, incase there is nested occurances of this problem in these kwargs
-                    sub_params = value[list(value.keys())[0]]
                     kwargs = _load_param_classes(sub_params)
                     params[key] = Model(**kwargs)  # type: ignore
+        elif key == "callbacks" and isinstance(value, list):
+            params[key] = _build_callbacks(value)
     return params
+
+
+def load_params_from_definition(definition: dict) -> dict:
+    """
+    Deserialize each value from a dictionary. Could be used for preparing kwargs for methods
+
+    Parameters
+    ----------
+    definition: dict
+    """
+    if not isinstance(definition, dict):
+        raise ValueError(
+            "Expected definition to be a dict," f"found: {type(definition)}"
+        )
+    return _load_param_classes(definition)

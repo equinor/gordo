@@ -3,9 +3,10 @@
 import abc
 import logging
 import io
-from pprint import pprint
+from pprint import pformat
 from typing import Union, Callable, Dict, Any, Optional
 from abc import ABCMeta
+from copy import copy, deepcopy
 
 import h5py
 import tensorflow.keras.models
@@ -32,6 +33,22 @@ logger = logging.getLogger(__name__)
 
 
 class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
+    supported_fit_args = [
+        "batch_size",
+        "epochs",
+        "verbose",
+        "callbacks",
+        "validation_split",
+        "shuffle",
+        "class_weight",
+        "initial_epoch",
+        "steps_per_epoch",
+        "validation_batch_size",
+        "max_queue_size",
+        "workers",
+        "use_multiprocessing",
+    ]
+
     def __init__(
         self,
         kind: Union[
@@ -60,25 +77,83 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             to Keras' fit() method
         """
         self.build_fn = None
+
+        self.kind = self.load_kind(kind)
         self.kwargs = kwargs
 
+    def load_kind(self, kind):
         class_name = self.__class__.__name__
 
         if callable(kind):
             register_model_builder(type=class_name)(kind)
-            self.kind = kind.__name__
+            return kind.__name__
         else:
             if kind not in register_model_builder.factories[class_name]:
                 raise ValueError(
                     f"kind: {kind} is not an available model for type: {class_name}!"
                 )
-            self.kind = kind
+            return kind
+
+    @classmethod
+    def extract_supported_fit_args(cls, kwargs):
+        """
+        Filtering only ``fit`` related kwargs
+
+        Parameters
+        ----------
+        kwargs: dict
+
+        Returns
+        -------
+
+        """
+        fit_args = {}
+        for arg in cls.supported_fit_args:
+            if arg in kwargs:
+                fit_args[arg] = kwargs[arg]
+        return fit_args
+
+    @classmethod
+    def from_definition(cls, definition: dict):
+        """
+        Handler for ``gordo.serializer.from_definition``
+
+        Parameters
+        ----------
+        definition: dict
+
+        Returns
+        -------
+
+        """
+        kind = definition.pop("kind")
+        kwargs = copy(definition)
+        return cls(kind, **kwargs)
+
+    def into_definition(self) -> dict:
+        """
+        Handler for ``gordo.serializer.into_definition``
+
+        Returns
+        -------
+        dict
+
+        """
+        definition = copy(self.kwargs)
+        definition["kind"] = self.kind
+        return definition
 
     @property
     def sk_params(self):
         """
         Parameters used for scikit learn kwargs"""
-        return self.kwargs
+        fit_args = self.extract_supported_fit_args(self.kwargs)
+        if fit_args:
+            kwargs = deepcopy(self.kwargs)
+            kwargs.update(serializer.load_params_from_definition(fit_args))
+            return kwargs
+        else:
+            return self.kwargs
 
     def __getstate__(self):
 
@@ -258,7 +333,6 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     """
     Create a scikit-learn like model with an underlying tensorflow.keras model
     from a raw config.
-
     Examples
     --------
     >>> import yaml
@@ -285,29 +359,23 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     >>> model.fit(X, y)
     KerasRawModelRegressor(kind: {'compile': {'loss': 'mse', 'optimizer': 'adam'},
      'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'units': 4}},
-                                                                {'tensorflow.keras.layers.Dense': {'units': 1}}]}}}
-    )
+                                                                {'tensorflow.keras.layers.Dense': {'units': 1}}]}}})
     >>> out = model.predict(X)
     """
 
-    def __init__(self, kind: dict, **kwargs):
+    _expected_keys = ("spec", "compile")
 
-        self.kind = kind  # type: ignore
-        self.kwargs = kwargs
+    def load_kind(self, kind):
+        return kind
 
     def __repr__(self):
-        stream = io.StringIO()
-        pprint(self.kind, stream=stream)
-        stream.seek(0)
-        result = f"{self.__class__.__name__}(kind: {stream.read()})"
-        return result
+        return f"{self.__class__.__name__}(kind: {pformat(self.kind)})"
 
-    def build_fn(self):
+    def __call__(self):
         """Build Keras model from specification"""
-        _expected_keys = ("spec", "compile")
-        if not all(k in self.kind for k in _expected_keys):
+        if not all(k in self.kind for k in self._expected_keys):
             raise ValueError(
-                f"Expected spec to have keys: {_expected_keys}, but found {self.kind.keys()}"
+                f"Expected spec to have keys: {self._expected_keys}, but found {self.kind.keys()}"
             )
         logger.debug(f"Building model from spec: {self.kind}")
 
