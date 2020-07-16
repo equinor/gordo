@@ -228,4 +228,4 @@ class GordoBaseDataset:
             resampled.columns = pd.MultiIndex.from_product(
                 [[series.name], resampled.columns], names=["tag", "aggregation_method"]
             )
-        return resampled.fillna(method="ffill")
+        return resampled.dropna()
