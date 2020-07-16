@@ -171,7 +171,7 @@ class NcsReader(GordoBaseDataProvider):
         self,
         client: core.AzureDLFileSystem,
         threads: Optional[int] = 1,
-        remove_status_codes: Optional[list] = [0],
+        remove_status_codes: Optional[list] = [0, 64, 60, 8, 24, 3, 32768],
         dl_base_path: Optional[str] = None,
         lookup_for: Optional[List[str]] = None,
         **kwargs,
