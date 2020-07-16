@@ -381,7 +381,10 @@ class RandomDataProvider(GordoBaseDataProvider):
                 "Dry run for RandomDataProvider is not implemented"
             )
         for tag in tag_list:
-            nr = random.randint(self.min_size, self.max_size)
+            #nr = random.randint(self.min_size, self.max_size)
+
+            # ensure a observation for each aggregated time period (using default 10T)
+            nr = (pd.Timestamp(train_end_date) - pd.Timestamp(train_start_date)) / pd.Timedelta("1 hour") * 6
 
             random_index = self._random_dates(train_start_date, train_end_date, n=nr)
             series = pd.Series(
