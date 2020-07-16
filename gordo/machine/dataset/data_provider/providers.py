@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-import random
 import logging
 import threading
 import timeit
@@ -381,8 +380,6 @@ class RandomDataProvider(GordoBaseDataProvider):
                 "Dry run for RandomDataProvider is not implemented"
             )
         for tag in tag_list:
-            # nr = random.randint(self.min_size, self.max_size)
-
             # ensure a observation for each aggregated time period (using default 10T)
             nr = int(
                 (pd.Timestamp(train_end_date) - pd.Timestamp(train_start_date))
