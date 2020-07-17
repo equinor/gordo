@@ -390,6 +390,7 @@ class RandomDataProvider(GordoBaseDataProvider):
                 * 6
                 * random.uniform(0.9, 1)
             )
+            nr2
 
             random_index = self._random_dates(train_start_date, train_end_date, n=nr)
             series = pd.Series(
