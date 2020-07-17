@@ -234,4 +234,4 @@ class GordoBaseDataset:
         # given granularity in minutes
         granularity = int(re.findall(r"\d+", resolution)[0])
 
-        return resampled.interpolate(limit=(480 / granularity)).dropna()
+        return resampled.interpolate(limit=(480 / granularity))#.dropna()

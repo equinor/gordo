@@ -351,7 +351,7 @@ def test_client_cli_predict(
     if use_forwarder:
         vals = influx_client.query(query)
         assert len(vals) == 1
-        # assert len(vals["resampled"]) == 48
+        assert len(vals["resampled"]) == 48
         influx_client.drop_measurement("resampled")
 
     # Did it save dataframes to output dir if specified?

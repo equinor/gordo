@@ -381,9 +381,10 @@ class RandomDataProvider(GordoBaseDataProvider):
                 "Dry run for RandomDataProvider is not implemented"
             )
         for tag in tag_list:
+            nr = random.randint(self.min_size, self.max_size)
             # ensure a observation for each aggregated time period (using default 10T)
             # randomly keep between 90 and 100 percent to ensure uniqueness of generated data
-            nr = int(
+            nr2 = int(
                 (pd.Timestamp(train_end_date) - pd.Timestamp(train_start_date))
                 / pd.Timedelta("1 hour")
                 * 6
