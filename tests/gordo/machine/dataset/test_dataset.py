@@ -147,7 +147,7 @@ def test_join_timeseries_nonutcstart(dataset):
     all_in_frame = dataset.join_timeseries(
         timeseries_list, resampling_start, resampling_end, frequency
     )
-    assert len(all_in_frame) == 49
+    assert len(all_in_frame) == 481
 
 
 def test_join_timeseries_with_gaps(dataset):
