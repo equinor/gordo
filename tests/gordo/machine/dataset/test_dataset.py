@@ -170,7 +170,7 @@ def test_join_timeseries_with_gaps(dataset):
         timeseries_with_holes, resampling_start, resampling_end, frequency
     )
     assert all_in_frame.index[0] == pd.Timestamp(latest_start)
-    assert all_in_frame.index[-1] == pd.Timestamp(resampling_end)
+    assert all_in_frame.index[-1] <= pd.Timestamp(resampling_end)
 
     expected_index = pd.date_range(
         start=dateutil.parser.isoparse(latest_start), end=resampling_end, freq=frequency
