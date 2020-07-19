@@ -25,6 +25,7 @@ from gordo.machine.validators import (
     ValidDatasetKwargs,
     ValidDataProvider,
 )
+from .preprocessor import Preprocessor, normalize_preprocessor
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         n_samples_threshold: int = 0,
         low_threshold=-1000,
         high_threshold=50000,
+        preprocessor: Optional[Union[Preprocessor, Dict]] = None,
         **_kwargs,
     ):
         """
@@ -170,6 +172,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.n_samples_threshold = n_samples_threshold
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
+        self.preprocessor = normalize_preprocessor(preprocessor)
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -195,11 +198,16 @@ class TimeSeriesDataset(GordoBaseDataset):
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
+        preprocessor = self.preprocessor
+
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(
             train_start_date=self.train_start_date,
             train_end_date=self.train_end_date,
             tag_list=list(set(self.tag_list + self.target_tag_list)),
         )
+
+        if preprocessor is not None:
+            series_iter = preprocessor.prepare_series(series_iter)
 
         # Resample if we have a resolution set, otherwise simply join the series.
         if self.resolution:
@@ -241,6 +249,9 @@ class TimeSeriesDataset(GordoBaseDataset):
                     f"The length of the generated DataFrame ({len(data)}) does not exceed the "
                     f"specified required threshold for number of rows ({self.n_samples_threshold})."
                 )
+
+        if preprocessor is not None:
+            data = preprocessor.prepare_data(data)
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
