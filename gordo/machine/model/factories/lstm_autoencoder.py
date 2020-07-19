@@ -90,7 +90,7 @@ def lstm_model(
     for i, (n_neurons, activation) in enumerate(zip(encoding_dim, encoding_func)):
         input_shape = (
             lookback_window,
-            n_neurons if not with_masking and i != 0 else n_features,
+            n_neurons if with_masking or i != 0 else n_features,
         )
         kwargs["activation"] = activation
         kwargs["input_shape"] = input_shape
