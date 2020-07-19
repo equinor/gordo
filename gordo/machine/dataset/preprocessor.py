@@ -1,9 +1,12 @@
+import logging
 import pandas as pd
 
-from typing import Union, Iterable
+from typing import Iterable
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 _types = {}
 
@@ -74,7 +77,15 @@ class FillGapsPreprocessor(Preprocessor):
                 (row["Time"], row["Time"] + row["Diff"])
                 for _, row in filtered_df.iterrows()
             )
+
             self._gaps[name].extend(gaps)
+        for name, gaps in self._gaps.items():
+            logger.info(
+                "Found %d gap%s in '%s' time-series",
+                len(gaps),
+                "s" if len(gaps) > 1 else "",
+                name,
+            )
         return result
 
     def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
