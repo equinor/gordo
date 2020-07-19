@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple, Union, Dict, Any
+from typing import Tuple, Union, Dict, Any, Optional
 
 import tensorflow
 from tensorflow import keras
 from tensorflow.keras.optimizers import Optimizer
-from tensorflow.keras.layers import Dense, LSTM
+from tensorflow.keras.layers import Dense, LSTM, Masking
 from tensorflow.keras.models import Sequential as KerasSequential
 
 from gordo.machine.model.register import register_model_builder
@@ -26,6 +26,7 @@ def lstm_model(
     optimizer: Union[str, Optimizer] = "Adam",
     optimizer_kwargs: Dict[str, Any] = dict(),
     compile_kwargs: Dict[str, Any] = dict(),
+    mask_value: Optional[float] = None,
     **kwargs,
 ) -> tensorflow.keras.models.Sequential:
     """
@@ -63,6 +64,8 @@ def lstm_model(
         default values will be used.
     compile_kwargs: Dict[str, Any]
         Parameters to pass to ``keras.Model.compile``.
+    mask_value: Optional[float]
+        Add Masking layer with this mask_value
 
     Returns
     -------
@@ -71,17 +74,23 @@ def lstm_model(
 
     """
     n_features_out = n_features_out or n_features
+    with_masking = mask_value is not None
 
     check_dim_func_len("encoding", encoding_dim, encoding_func)
     check_dim_func_len("decoding", decoding_dim, decoding_func)
 
     model = KerasSequential()
 
+    if with_masking:
+        input_shape = (lookback_window, n_features)
+        model.add(Masking(mask_value=mask_value, input_shape=input_shape))
+
     # encoding layers
     kwargs = {"return_sequences": True}
     for i, (n_neurons, activation) in enumerate(zip(encoding_dim, encoding_func)):
-        input_shape = (lookback_window, n_neurons if i != 0 else n_features)
-        kwargs.update(dict(activation=activation, input_shape=input_shape))
+        input_shape = (lookback_window, n_neurons if not with_masking and i != 0 else n_features)
+        kwargs["activation"] = activation
+        kwargs["input_shape "] = input_shape
         model.add(LSTM(n_neurons, **kwargs))
 
     # decoding layers
