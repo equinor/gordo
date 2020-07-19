@@ -93,7 +93,7 @@ def lstm_model(
             n_neurons if not with_masking and i != 0 else n_features,
         )
         kwargs["activation"] = activation
-        kwargs["input_shape "] = input_shape
+        kwargs["input_shape"] = input_shape
         model.add(LSTM(n_neurons, **kwargs))
 
     # decoding layers
