@@ -88,7 +88,10 @@ def lstm_model(
     # encoding layers
     kwargs = {"return_sequences": True}
     for i, (n_neurons, activation) in enumerate(zip(encoding_dim, encoding_func)):
-        input_shape = (lookback_window, n_neurons if not with_masking and i != 0 else n_features)
+        input_shape = (
+            lookback_window,
+            n_neurons if not with_masking and i != 0 else n_features,
+        )
         kwargs["activation"] = activation
         kwargs["input_shape "] = input_shape
         model.add(LSTM(n_neurons, **kwargs))
