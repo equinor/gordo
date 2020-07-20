@@ -18,6 +18,10 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
 
 FROM python:3.7.5-slim-stretch
 
+RUN apt-get update && apt-get install -y \ #Fixing perl-base CVE-2020-10878
+    perl \
+ && rm -rf /var/lib/apt/lists/*
+
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
     useradd -r -u 999 -g gordo gordo
