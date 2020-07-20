@@ -1,14 +1,14 @@
 import logging
 import pandas as pd
 
-from typing import Iterable
+from typing import Iterable, Dict, Tuple, Union
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-_types = {}
+_types: Dict[str, Tuple[pd.Timestamp, pd.Timestamp]] = {}
 
 
 def preprocessor(preprocessor_type):
@@ -55,7 +55,7 @@ class Preprocessor(metaclass=ABCMeta):
 
 @preprocessor("fill_gaps")
 class FillGapsPreprocessor(Preprocessor):
-    def __init__(self, gap_size, replace_value):
+    def __init__(self, gap_size: Union[str, pd.Timedelta], replace_value: float):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
