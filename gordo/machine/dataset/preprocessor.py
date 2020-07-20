@@ -1,14 +1,29 @@
 import logging
 import pandas as pd
 
-from typing import Iterable, Dict, Tuple, Union
+from typing import Iterable, Dict, Tuple, Union, Type
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-_types: Dict[str, Tuple[pd.Timestamp, pd.Timestamp]] = {}
+
+class Preprocessor(metaclass=ABCMeta):
+    @abstractmethod
+    def reset(self):
+        ...
+
+    @abstractmethod
+    def prepare_series(self, series: Iterable[pd.Series]) -> Iterable[pd.Series]:
+        ...
+
+    @abstractmethod
+    def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        ...
+
+
+_types: Dict[str, Type[Preprocessor]] = {}
 
 
 def preprocessor(preprocessor_type):
@@ -37,20 +52,6 @@ def normalize_preprocessor(value):
         preprocessor_type = value.pop("type")
         return create_preprocessor(preprocessor_type, **value)
     return value
-
-
-class Preprocessor(metaclass=ABCMeta):
-    @abstractmethod
-    def reset(self):
-        ...
-
-    @abstractmethod
-    def prepare_series(self, series: Iterable[pd.Series]) -> Iterable[pd.Series]:
-        ...
-
-    @abstractmethod
-    def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        ...
 
 
 @preprocessor("fill_gaps")
