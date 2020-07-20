@@ -3,7 +3,7 @@
 bleach>=3.1.2
 docker~=4.0
 pytest~=5.3
-pytest-xdist~=1.26  # Parallelises the test-runs
+pytest-xdist~=1.33  # Parallelises the test-runs
 pytest-mock~=1.13
 pytest-mypy~=0.4
 pytest-timeout~=1.3
