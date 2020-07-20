@@ -82,11 +82,11 @@ class FillGapsPreprocessor(Preprocessor):
             )
 
             self._gaps[name].extend(gaps)
-        for name, gaps in self._gaps.items(): # type: ignore
+        for name, gaps in self._gaps.items():  # type: ignore
             logger.info(
                 "Found %d gap%s in '%s' time-series",
-                len(gaps), # type: ignore
-                "s" if len(gaps) > 1 else "", # type: ignore
+                len(gaps),  # type: ignore
+                "s" if len(gaps) > 1 else "",  # type: ignore
                 name,
             )
         return result
