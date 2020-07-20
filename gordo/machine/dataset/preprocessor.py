@@ -1,7 +1,7 @@
 import logging
 import pandas as pd
 
-from typing import Iterable, Dict, Tuple, Union, Type
+from typing import Iterable, Dict, Tuple, Union, Type, List
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
@@ -61,7 +61,7 @@ class FillGapsPreprocessor(Preprocessor):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
         self.replace_value = replace_value
-        self._gaps = defaultdict(list)
+        self._gaps: Dict[str, List[Tuple[pd.Timestamp, pd.Timestamp]]] = defaultdict(list)
 
     def reset(self):
         self._gaps = defaultdict(list)
