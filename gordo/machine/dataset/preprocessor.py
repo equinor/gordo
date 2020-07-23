@@ -97,6 +97,8 @@ class FillGapsPreprocessor(Preprocessor):
                 gap2str(gap_start, gap_end) for gap_start, gap_end in gaps
             )
             logger.debug("Gaps for '%s': %s", gaps_str)
+        else:
+            logger.info("Have not found any gaps in all time-series")
         return result
 
     def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
