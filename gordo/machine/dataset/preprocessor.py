@@ -60,11 +60,12 @@ def gap2str(gap_start: pd.Timestamp, gap_end: pd.Timestamp):
 
 @preprocessor("fill_gaps")
 class FillGapsPreprocessor(Preprocessor):
-    def __init__(self, gap_size: Union[str, pd.Timedelta], replace_value: float):
+    def __init__(self, gap_size: Union[str, pd.Timedelta], replace_value: float, replace_lower_values: bool = False):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
         self.replace_value = replace_value
+        self.replace_lower_values = replace_lower_values
         self._gaps: Dict[str, List[Tuple[pd.Timestamp, pd.Timestamp]]] = defaultdict(
             list
         )
@@ -102,19 +103,27 @@ class FillGapsPreprocessor(Preprocessor):
         return result
 
     def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        replace_value = self.replace_value
         for name, gaps in self._gaps.items():
             if len(gaps):
-                values_count = df.loc[df[name] == self.replace_value, name].count()
+                if self.replace_lower_values:
+                    condition = df[name] <= replace_value
+                else:
+                    condition = df[name] == replace_value
+                values_count = df.loc[condition, name].count()
                 if values_count:
                     logger.warning(
-                        "Found %d values replace_value='%s' in '%s'",
+                        "Found %d values %s to replace_value='%s' in '%s'",
                         values_count,
-                        self.replace_value,
+                        "lower or equal" if self.replace_lower_values else "equal",
+                        replace_value,
                         name,
                     )
+            if self.replace_lower_values:
+                df.loc[df[name] <= replace_value, name] = replace_value
             for gap_start, gap_end in gaps:
                 df.iloc[
                     (df.index > gap_start) & (df.index < gap_end),
                     df.columns.get_loc(name),
-                ] = self.replace_value
+                ] = replace_value
         return df
