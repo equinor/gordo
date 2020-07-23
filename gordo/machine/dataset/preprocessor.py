@@ -54,6 +54,10 @@ def normalize_preprocessor(value):
     return value
 
 
+def gap2str(gap_start: pd.Timestamp, gap_end: pd.Timestamp):
+    return "from %s to %s" % (gap_start.isoformat(), gap_end.isoformat())
+
+
 @preprocessor("fill_gaps")
 class FillGapsPreprocessor(Preprocessor):
     def __init__(self, gap_size: Union[str, pd.Timedelta], replace_value: float):
@@ -89,10 +93,23 @@ class FillGapsPreprocessor(Preprocessor):
                 "s" if len(gaps) > 1 else "",  # type: ignore
                 name,
             )
+            gaps_str = ", ".join(
+                gap2str(gap_start, gap_end) for gap_start, gap_end in gaps
+            )
+            logger.debug("Gaps for '%s': %s", gaps_str)
         return result
 
     def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
         for name, gaps in self._gaps.items():
+            if len(gaps):
+                values_count = df.loc[df[name] == self.replace_value, name].count()
+                if values_count:
+                    logger.warning(
+                        "Found %d values replace_value='%s' in '%s'",
+                        values_count,
+                        self.replace_value,
+                        name,
+                    )
             for gap_start, gap_end in gaps:
                 df.iloc[
                     (df.index > gap_start) & (df.index < gap_end),
