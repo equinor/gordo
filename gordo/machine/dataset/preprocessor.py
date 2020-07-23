@@ -60,7 +60,12 @@ def gap2str(gap_start: pd.Timestamp, gap_end: pd.Timestamp):
 
 @preprocessor("fill_gaps")
 class FillGapsPreprocessor(Preprocessor):
-    def __init__(self, gap_size: Union[str, pd.Timedelta], replace_value: float, replace_lower_values: bool = False):
+    def __init__(
+        self,
+        gap_size: Union[str, pd.Timedelta],
+        replace_value: float,
+        replace_lower_values: bool = False,
+    ):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
@@ -120,7 +125,7 @@ class FillGapsPreprocessor(Preprocessor):
                         name,
                     )
             if self.replace_lower_values:
-                df.loc[df[name] <= replace_value, name] = replace_value
+                df.loc[df[name] < replace_value, name] = replace_value
             for gap_start, gap_end in gaps:
                 df.iloc[
                     (df.index > gap_start) & (df.index < gap_end),
