@@ -109,21 +109,25 @@ class FillGapsPreprocessor(Preprocessor):
 
     def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
         replace_value = self.replace_value
+        logger.info(
+            "Preparing %d tags data DataFrame with %d gaps",
+            len(self._gaps),
+            sum(len(gaps) for gaps in self._gaps.values()),
+        )
         for name, gaps in self._gaps.items():
-            if len(gaps):
-                if self.replace_lower_values:
-                    condition = df[name] <= replace_value
-                else:
-                    condition = df[name] == replace_value
-                values_count = df.loc[condition, name].count()
-                if values_count:
-                    logger.warning(
-                        "Found %d values %s to replace_value='%s' in '%s'",
-                        values_count,
-                        "lower or equal" if self.replace_lower_values else "equal",
-                        replace_value,
-                        name,
-                    )
+            if self.replace_lower_values:
+                condition = df[name] <= replace_value
+            else:
+                condition = df[name] == replace_value
+            values_count = df.loc[condition, name].count()
+            if values_count:
+                logger.warning(
+                    "Found %d values %s to replace_value='%s' in '%s'",
+                    values_count,
+                    "lower or equal" if self.replace_lower_values else "equal",
+                    replace_value,
+                    name,
+                )
             if self.replace_lower_values:
                 df.loc[df[name] < replace_value, name] = replace_value
             for gap_start, gap_end in gaps:
