@@ -89,7 +89,6 @@ class TimeSeriesDataset(GordoBaseDataset):
         n_samples_threshold: int = 0,
         low_threshold=-1000,
         high_threshold=50000,
-        **_kwargs,
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -141,7 +140,6 @@ class TimeSeriesDataset(GordoBaseDataset):
             resolvable to a specific asset.
         n_samples_threshold: int = 0
             The threshold at which the generated DataFrame is considered to have too few rows of data.
-        _kwargs
         """
         self.train_start_date = self._validate_dt(train_start_date)
         self.train_end_date = self._validate_dt(train_end_date)

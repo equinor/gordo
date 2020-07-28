@@ -4,6 +4,7 @@ import abc
 import logging
 from typing import Iterable, Union, List, Callable, Dict, Any, Tuple
 from datetime import datetime
+from copy import copy
 
 import pandas as pd
 import numpy as np
@@ -60,7 +61,8 @@ class GordoBaseDataset:
         """
         from gordo.machine.dataset import datasets
 
-        Dataset = getattr(datasets, config.get("type", "TimeSeriesDataset"))
+        config = copy(config)
+        Dataset = getattr(datasets, config.pop("type", "TimeSeriesDataset"))
         if Dataset is None:
             raise TypeError(f"No dataset of type '{config['type']}'")
 
