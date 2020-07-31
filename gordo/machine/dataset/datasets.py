@@ -5,6 +5,7 @@ from typing import Tuple, List, Dict, Union, Optional, Iterable, Callable, Seque
 from datetime import datetime
 from dateutil.parser import isoparse
 from functools import wraps
+from copy import copy
 
 import pandas as pd
 import numpy as np
@@ -198,7 +199,8 @@ class TimeSeriesDataset(GordoBaseDataset):
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
-        preprocessor = self.preprocessor
+        preprocessor = copy(self.preprocessor)
+        preprocessor.reset()
 
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(
             train_start_date=self.train_start_date,

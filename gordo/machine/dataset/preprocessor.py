@@ -5,6 +5,7 @@ from typing import Iterable, Dict, Tuple, Union, Type, List
 from copy import deepcopy
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from math import floor
 
 logger = logging.getLogger(__name__)
 
@@ -65,12 +66,21 @@ class FillGapsPreprocessor(Preprocessor):
         gap_size: Union[str, pd.Timedelta],
         replace_value: float,
         replace_lower_values: bool = False,
+        fill_gaps: bool = False,
+        resolution: Union[str, pd.Timedelta] = None,
     ):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
         self.replace_value = replace_value
         self.replace_lower_values = replace_lower_values
+        self.fill_gaps = fill_gaps
+        if resolution is None:
+            resolution = gap_size
+        else:
+            if isinstance(resolution, str):
+                resolution = pd.Timedelta(resolution)
+        self.resolution = resolution
         self._gaps: Dict[str, List[Tuple[pd.Timestamp, pd.Timestamp]]] = defaultdict(
             list
         )
@@ -131,8 +141,28 @@ class FillGapsPreprocessor(Preprocessor):
             if self.replace_lower_values:
                 df.loc[df[name] < replace_value, name] = replace_value
             for gap_start, gap_end in gaps:
-                df.iloc[
-                    (df.index > gap_start) & (df.index < gap_end),
-                    df.columns.get_loc(name),
-                ] = replace_value
+                if self.fill_gaps:
+                    column = df[name]
+                    drop_index = column.iloc[
+                        (column.index > gap_start) & (column.index < gap_end)
+                    ].index
+                    df[name] = column.drop(index=drop_index)
+                    values_count = floor((gap_end - gap_start) / self.resolution)
+                    logger.info(
+                        "name=%s gap_start=%s gap_end=%s len(drop_index)=%d values_count=%d",
+                        name,
+                        gap_start,
+                        gap_end,
+                        len(drop_index),
+                        values_count,
+                    )
+                    curr_ts = deepcopy(gap_start)
+                    for _ in range(values_count):
+                        curr_ts += self.resolution
+                        df.at[curr_ts, name] = replace_value
+                else:
+                    df.iloc[
+                        (df.index > gap_start) & (df.index < gap_end),
+                        df.columns.get_loc(name),
+                    ] = replace_value
         return df
