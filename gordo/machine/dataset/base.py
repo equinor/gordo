@@ -247,14 +247,14 @@ class GordoBaseDataset:
         assert interpolation_method in ["linear_interpolation", "ffill"]
 
         if interpolation_limit is not None:
-            interpolation_limit = int(
+            limit = int(
                 pd.Timedelta(interpolation_limit).total_seconds()
                 / pd.Timedelta(resolution).total_seconds()
             )
-            assert interpolation_limit > 0
+            assert limit > 0
 
         if interpolation_method == "linear_interpolation":
-            return resampled.interpolate(limit=interpolation_limit).dropna()
+            return resampled.interpolate(limit=limit).dropna()
 
         if interpolation_method == "ffill":
-            return resampled.fillna(method="ffill", limit=interpolation_limit)
+            return resampled.fillna(method="ffill", limit=limit)
