@@ -86,6 +86,8 @@ class GordoBaseDataset:
         resampling_endpoint: datetime,
         resolution: str,
         aggregation_methods: Union[str, List[str], Callable] = "mean",
+        interpolation_method: str = "linear_interpolation",
+        interpolation_limit: str = "8H",
     ) -> pd.DataFrame:
         """
 
@@ -114,6 +116,13 @@ class GordoBaseDataset:
             and the aggregation method as the second level.
             See :py:func::`pandas.core.resample.Resampler#aggregate` for more
             information on possible aggregation methods.
+        interpolation_method: str
+            How should missing values be interpolated. Either forward fill (`ffill`) or by linear `
+            interpolation (default, `linear_interpolation).
+        interpolation_limit: str
+            Parameter sets how long from last valid data point values will be interpolated/forward filled.
+            Default is eight hours ("8H").
+            If None, all missing values are interpolated/forward filled.
 
         Returns
         -------
@@ -139,6 +148,8 @@ class GordoBaseDataset:
                     resampling_endpoint=resampling_endpoint,
                     resolution=resolution,
                     aggregation_methods=aggregation_methods,
+                    interpolation_method=interpolation_method,
+                    interpolation_limit=interpolation_limit,
                 )
             except IndexError:
                 missing_data_series.append(series.name)
@@ -163,77 +174,82 @@ class GordoBaseDataset:
         )
         return dropped_na
 
-    @staticmethod
-    def _resample(
-        series: pd.Series,
-        resampling_startpoint: datetime,
-        resampling_endpoint: datetime,
-        resolution: str,
-        aggregation_methods: Union[str, List[str], Callable] = "mean",
-    ):
-        """
-        Takes a single series and resamples it.
-        See :class:`gordo.machine.dataset.base.GordoBaseDataset.join_timeseries`
-        """
 
-        startpoint_sametz = resampling_startpoint.astimezone(tz=series.index[0].tzinfo)
-        endpoint_sametz = resampling_endpoint.astimezone(tz=series.index[0].tzinfo)
+def _resample(
+    series: pd.Series,
+    resampling_startpoint: datetime,
+    resampling_endpoint: datetime,
+    resolution: str,
+    aggregation_methods: Union[str, List[str], Callable] = "mean",
+    interpolation_method: str = "linear_interpolation",
+    interpolation_limit: str = "8H",
+):
+    """
+    Takes a single series and resamples it.
+    See :class:`gordo.machine.dataset.base.GordoBaseDataset.join_timeseries`
+    """
 
-        if series.index[0] > startpoint_sametz:
-            # Insert a NaN at the startpoint, to make sure that all resampled
-            # indexes are the same. This approach will "pad" most frames with
-            # NaNs, that will be removed at the end.
-            startpoint = pd.Series(
-                [np.NaN], index=[startpoint_sametz], name=series.name
-            )
-            series = startpoint.append(series)
-            logging.debug(
-                f"Appending NaN to {series.name} " f"at time {startpoint_sametz}"
-            )
+    startpoint_sametz = resampling_startpoint.astimezone(tz=series.index[0].tzinfo)
+    endpoint_sametz = resampling_endpoint.astimezone(tz=series.index[0].tzinfo)
 
-        elif series.index[0] < resampling_startpoint:
-            msg = (
-                f"Error - for {series.name}, first timestamp "
-                f"{series.index[0]} is before the resampling start point "
-                f"{startpoint_sametz}"
-            )
-            logging.error(msg)
-            raise RuntimeError(msg)
+    if series.index[0] > startpoint_sametz:
+        # Insert a NaN at the startpoint, to make sure that all resampled
+        # indexes are the same. This approach will "pad" most frames with
+        # NaNs, that will be removed at the end.
+        startpoint = pd.Series([np.NaN], index=[startpoint_sametz], name=series.name)
+        series = startpoint.append(series)
+        logging.debug(f"Appending NaN to {series.name} " f"at time {startpoint_sametz}")
 
-        if series.index[-1] < endpoint_sametz:
-            endpoint = pd.Series([np.NaN], index=[endpoint_sametz], name=series.name)
-            series = series.append(endpoint)
-            logging.debug(
-                f"Appending NaN to {series.name} " f"at time {endpoint_sametz}"
-            )
-        elif series.index[-1] > endpoint_sametz:
-            msg = (
-                f"Error - for {series.name}, last timestamp "
-                f"{series.index[-1]} is later than the resampling end point "
-                f"{endpoint_sametz}"
-            )
-            logging.error(msg)
-            raise RuntimeError(msg)
+    elif series.index[0] < resampling_startpoint:
+        msg = (
+            f"Error - for {series.name}, first timestamp "
+            f"{series.index[0]} is before the resampling start point "
+            f"{startpoint_sametz}"
+        )
+        logging.error(msg)
+        raise RuntimeError(msg)
 
-        logging.debug("Head (3) and tail(3) of dataframe to be resampled:")
-        logging.debug(series.head(3))
-        logging.debug(series.tail(3))
+    if series.index[-1] < endpoint_sametz:
+        endpoint = pd.Series([np.NaN], index=[endpoint_sametz], name=series.name)
+        series = series.append(endpoint)
+        logging.debug(f"Appending NaN to {series.name} " f"at time {endpoint_sametz}")
+    elif series.index[-1] > endpoint_sametz:
+        msg = (
+            f"Error - for {series.name}, last timestamp "
+            f"{series.index[-1]} is later than the resampling end point "
+            f"{endpoint_sametz}"
+        )
+        logging.error(msg)
+        raise RuntimeError(msg)
 
-        resampled = series.resample(resolution, label="left").agg(aggregation_methods)
-        # If several aggregation methods are provided, agg returns a dataframe
-        # instead of a series. In this dataframe the column names are the
-        # aggregation methods, like "max" and "mean", so we have to make a
-        # multi-index with the series-name as the top-level and the
-        # aggregation-method as the lower-level index.
-        # For backwards-compatibility we *dont* return a multi-level index
-        # when we have a single resampling method.
-        if isinstance(resampled, pd.DataFrame):  # Several aggregation methods provided
-            resampled.columns = pd.MultiIndex.from_product(
-                [[series.name], resampled.columns], names=["tag", "aggregation_method"]
-            )
+    logging.debug("Head (3) and tail(3) of dataframe to be resampled:")
+    logging.debug(series.head(3))
+    logging.debug(series.tail(3))
 
-        # ensure interpolation max eight hours (8 x 60 minutes) forward
-        # given granularity in minutes
-        granularity = int(re.findall(r"\d+", resolution)[0])
+    resampled = series.resample(resolution, label="left").agg(aggregation_methods)
+    # If several aggregation methods are provided, agg returns a dataframe
+    # instead of a series. In this dataframe the column names are the
+    # aggregation methods, like "max" and "mean", so we have to make a
+    # multi-index with the series-name as the top-level and the
+    # aggregation-method as the lower-level index.
+    # For backwards-compatibility we *dont* return a multi-level index
+    # when we have a single resampling method.
+    if isinstance(resampled, pd.DataFrame):  # Several aggregation methods provided
+        resampled.columns = pd.MultiIndex.from_product(
+            [[series.name], resampled.columns], names=["tag", "aggregation_method"]
+        )
 
-        return resampled.interpolate(limit=int(480 / granularity)).dropna()
+    assert interpolation_method in ["linear_interpolation", "ffill"]
+
+    if interpolation_limit is not None:
+        interpolation_limit = int(
+            pd.Timedelta(interpolation_limit).total_seconds()
+            / pd.Timedelta(resolution).total_seconds()
+        )
+        assert interpolation_limit > 0
+
+    if interpolation_method == "linear_interpolation":
+        return resampled.interpolate(limit=interpolation_limit).dropna()
+
+    if interpolation_method == "ffill":
+        return resampled.fillna(method="ffill", limit=interpolation_limit)
