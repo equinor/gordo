@@ -173,6 +173,7 @@ class GordoBaseDataset:
         )
         return dropped_na
 
+    @staticmethod
     def _resample(
         series: pd.Series,
         resampling_startpoint: datetime,
