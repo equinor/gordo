@@ -5,6 +5,7 @@ import logging
 from typing import Iterable, Union, List, Callable, Dict, Any, Tuple
 from datetime import datetime
 from copy import copy
+import re
 
 import pandas as pd
 import numpy as np
@@ -230,4 +231,9 @@ class GordoBaseDataset:
             resampled.columns = pd.MultiIndex.from_product(
                 [[series.name], resampled.columns], names=["tag", "aggregation_method"]
             )
-        return resampled.fillna(method="ffill")
+
+        # ensure interpolation max eight hours (8 x 60 minutes) forward
+        # given granularity in minutes
+        granularity = int(re.findall(r"\d+", resolution)[0])
+
+        return resampled.interpolate(limit=int(480 / granularity))  # .dropna()
