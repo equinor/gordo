@@ -116,11 +116,11 @@ class GordoBaseDataset:
             See :py:func::`pandas.core.resample.Resampler#aggregate` for more
             information on possible aggregation methods.
         interpolation_method: str
-            How should missing values be interpolated. Either forward fill (`ffill`) or by linear `
-            interpolation (default, `linear_interpolation).
+            How should missing values be interpolated. Either forward fill (`ffill`) or by linear
+            interpolation (default, `linear_interpolation`).
         interpolation_limit: str
             Parameter sets how long from last valid data point values will be interpolated/forward filled.
-            Default is eight hours ("8H").
+            Default is eight hours (`8H`).
             If None, all missing values are interpolated/forward filled.
 
         Returns
