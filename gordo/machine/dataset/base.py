@@ -4,7 +4,7 @@ import abc
 import logging
 from typing import Iterable, Union, List, Callable, Dict, Any, Tuple
 from datetime import datetime
-import re
+from copy import copy
 
 import pandas as pd
 import numpy as np
@@ -61,7 +61,8 @@ class GordoBaseDataset:
         """
         from gordo.machine.dataset import datasets
 
-        Dataset = getattr(datasets, config.get("type", "TimeSeriesDataset"))
+        config = copy(config)
+        Dataset = getattr(datasets, config.pop("type", "TimeSeriesDataset"))
         if Dataset is None:
             raise TypeError(f"No dataset of type '{config['type']}'")
 
@@ -229,9 +230,4 @@ class GordoBaseDataset:
             resampled.columns = pd.MultiIndex.from_product(
                 [[series.name], resampled.columns], names=["tag", "aggregation_method"]
             )
-
-        # ensure interpolation max eight hours (8 x 60 minutes) forward
-        # given granularity in minutes
-        granularity = int(re.findall(r"\d+", resolution)[0])
-
-        return resampled.interpolate(limit=int(480 / granularity))  # .dropna()
+        return resampled.fillna(method="ffill")

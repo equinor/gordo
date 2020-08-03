@@ -106,19 +106,19 @@ def test_join_timeseries(dataset):
 
 
 @pytest.mark.parametrize(
-    "value,n_rows,resolution,row_threshold,error",
+    "value,n_rows,resolution,error",
     [
         # Frequency passed as zero, resulting in an ZeroDivisionError during aggregation
-        (None, None, "0T", 0, ZeroDivisionError),
+        (None, None, "0T", ZeroDivisionError),
         # Empty series results in an InsufficientDataError
-        (None, 0, "12T", 0, InsufficientDataError),
+        (None, 0, "12T", InsufficientDataError),
         # When all rows are NaNs and dropped result in InsufficientDataError
-        (np.NaN, None, "12T", 0, InsufficientDataError),
+        (np.NaN, None, "12T", InsufficientDataError),
         # Rows less then or equal to `row_threshold` result in InsufficientDataError
-        (None, 6, "12T", 6, InsufficientDataError),
+        (None, 6, "12T", InsufficientDataError),
     ],
 )
-def test_join_timeseries_empty_series(value, n_rows, resolution, row_threshold, error):
+def test_join_timeseries_empty_series(value, n_rows, resolution, error):
     """
     Test that empty data scenarios raise appropriate errors
     """
@@ -131,7 +131,6 @@ def test_join_timeseries_empty_series(value, n_rows, resolution, row_threshold, 
         "train_end_date": train_end_date,
         "tag_list": tag_list,
         "resolution": resolution,
-        "row_threshold": row_threshold,
         "data_provider": MockDataProvider(value=np.NaN, n_rows=n_rows),
     }
 
