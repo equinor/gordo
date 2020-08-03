@@ -5,7 +5,6 @@ import logging
 from typing import Iterable, Union, List, Callable, Dict, Any, Tuple
 from datetime import datetime
 from copy import copy
-import re
 
 import pandas as pd
 import numpy as np
