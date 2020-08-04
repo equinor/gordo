@@ -172,6 +172,40 @@ def test_join_timeseries_with_gaps(dataset):
     assert all_in_frame.index[-1] <= pd.Timestamp(resampling_end)
 
 
+def test_join_timeseries_with_interpolation_method_wrong_interpolation_method(dataset):
+    timeseries_list, latest_start, earliest_end = create_timeseries_list()
+    frequency = "10T"
+    resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
+    resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
+
+    with pytest.raises(ValueError):
+        dataset.join_timeseries(
+            timeseries_list,
+            resampling_start,
+            resampling_end,
+            frequency,
+            interpolation_method="wrong_method",
+            interpolation_limit="8H",
+        )
+
+
+def test_join_timeseries_with_interpolation_method_wrong_interpolation_limit(dataset):
+    timeseries_list, latest_start, earliest_end = create_timeseries_list()
+    frequency = "10T"
+    resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
+    resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
+
+    with pytest.raises(ValueError):
+        dataset.join_timeseries(
+            timeseries_list,
+            resampling_start,
+            resampling_end,
+            frequency,
+            interpolation_method="ffill",
+            interpolation_limit="1H",
+        )
+
+
 def test_join_timeseries_with_interpolation_method_linear_interpolation(dataset):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
     frequency = "10T"

@@ -263,5 +263,5 @@ class GordoBaseDataset:
         if interpolation_method == "linear_interpolation":
             return resampled.interpolate(limit=limit).dropna()
 
-        if interpolation_method == "ffill":
-            return resampled.fillna(method="ffill", limit=limit).dropna()
+        else:
+            return resampled.fillna(method=interpolation_method, limit=limit).dropna()
