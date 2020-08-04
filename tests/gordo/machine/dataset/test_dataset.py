@@ -172,25 +172,20 @@ def test_join_timeseries_with_gaps(dataset):
     assert all_in_frame.index[-1] <= pd.Timestamp(resampling_end)
 
 
-def test_join_timeseries_with_interpolation_method_ffill():
-    dataset = RandomDataset(
-        train_start_date="2017-12-25 06:00:00Z",
-        train_end_date="2017-12-29 06:00:00Z",
-        tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-    )
-
+def test_join_timeseries_with_interpolation_method_linear_interpolation(dataset):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
-    frequency = "1H"
-    resampling_start = dateutil.parser.isoparse("2017-12-25 06:00:00+07:00")
-    resampling_end = dateutil.parser.isoparse("2018-01-12 13:07:00+07:00")
+    frequency = "10T"
+    resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
+    resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
     all_in_frame = dataset.join_timeseries(
         timeseries_list,
         resampling_start,
         resampling_end,
         frequency,
-        interpolation_method="ffill",
+        interpolation_method="linear_interpolation",
+        interpolation_limit="8H",
     )
-    assert len(all_in_frame) == 481
+    assert len(all_in_frame) == 337
 
 
 def test_row_filter():
