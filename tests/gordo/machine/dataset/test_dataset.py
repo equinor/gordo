@@ -174,7 +174,6 @@ def test_join_timeseries_with_gaps(dataset):
 
 def test_join_timeseries_with_interpolation_method_wrong_interpolation_method(dataset):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
-    frequency = "10T"
     resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
     resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
 
@@ -183,7 +182,7 @@ def test_join_timeseries_with_interpolation_method_wrong_interpolation_method(da
             timeseries_list,
             resampling_start,
             resampling_end,
-            frequency,
+            esolution="10T",
             interpolation_method="wrong_method",
             interpolation_limit="8H",
         )
@@ -191,7 +190,6 @@ def test_join_timeseries_with_interpolation_method_wrong_interpolation_method(da
 
 def test_join_timeseries_with_interpolation_method_wrong_interpolation_limit(dataset):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
-    frequency = "10T"
     resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
     resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
 
@@ -200,22 +198,22 @@ def test_join_timeseries_with_interpolation_method_wrong_interpolation_limit(dat
             timeseries_list,
             resampling_start,
             resampling_end,
-            frequency,
+            resolution="10T",
             interpolation_method="ffill",
-            interpolation_limit="1H",
+            interpolation_limit="1T",
         )
 
 
 def test_join_timeseries_with_interpolation_method_linear_interpolation(dataset):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
-    frequency = "10T"
     resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
     resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
+
     all_in_frame = dataset.join_timeseries(
         timeseries_list,
         resampling_start,
         resampling_end,
-        frequency,
+        resolution="10T",
         interpolation_method="linear_interpolation",
         interpolation_limit="8H",
     )
