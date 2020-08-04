@@ -251,7 +251,9 @@ class GordoBaseDataset:
                 pd.Timedelta(interpolation_limit).total_seconds()
                 / pd.Timedelta(resolution).total_seconds()
             )
-            assert limit > 0
+
+            if limit <= 0:
+                raise ValueError("Interpolation limit must be larger than given resolution")
 
         if interpolation_method == "linear_interpolation":
             return resampled.interpolate(limit=limit).dropna()
