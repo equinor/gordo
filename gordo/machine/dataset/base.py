@@ -244,7 +244,10 @@ class GordoBaseDataset:
                 [[series.name], resampled.columns], names=["tag", "aggregation_method"]
             )
 
-        assert interpolation_method in ["linear_interpolation", "ffill"]
+        if interpolation_method not in ["linear_interpolation", "ffill"]:
+            raise ValueError(
+                "Interpolation method should be either linear_interpolation of ffill"
+            )
 
         if interpolation_limit is not None:
             limit = int(
