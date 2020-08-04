@@ -182,7 +182,7 @@ def test_join_timeseries_with_interpolation_method_wrong_interpolation_method(da
             timeseries_list,
             resampling_start,
             resampling_end,
-            esolution="10T",
+            resolution="10T",
             interpolation_method="wrong_method",
             interpolation_limit="8H",
         )
