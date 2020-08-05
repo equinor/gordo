@@ -199,8 +199,10 @@ class TimeSeriesDataset(GordoBaseDataset):
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
-        preprocessor = copy(self.preprocessor)
-        preprocessor.reset()
+        preprocessor = None
+        if self.preprocessor is not None:
+            preprocessor = copy(self.preprocessor)
+            preprocessor.reset()
 
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(
             train_start_date=self.train_start_date,
