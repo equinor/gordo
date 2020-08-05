@@ -68,6 +68,7 @@ class FillGapsPreprocessor(Preprocessor):
         replace_lower_values: bool = False,
         fill_gaps: bool = False,
         resolution: Union[str, pd.Timedelta] = None,
+        fill_gaps_in_data: bool = True,
     ):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
@@ -81,6 +82,7 @@ class FillGapsPreprocessor(Preprocessor):
             if isinstance(resolution, str):
                 resolution = pd.Timedelta(resolution)
         self.resolution = resolution
+        self.fill_gaps_in_data = fill_gaps_in_data
         self._gaps: Dict[str, List[Tuple[pd.Timestamp, pd.Timestamp]]] = defaultdict(
             list
         )
@@ -88,19 +90,20 @@ class FillGapsPreprocessor(Preprocessor):
     def reset(self):
         self._gaps = defaultdict(list)
 
+    def find_gaps(self, series):
+        name = 'Time'
+        df = pd.concat([series.rename(name), series.diff().rename("Diff")], axis=1)
+        filtered_df = df[df["Diff"] > self.gap_size]
+        for _, row in filtered_df.iterrows():
+            yield row[name], row[name] + row["Diff"]
+
     def prepare_series(self, series: Iterable[pd.Series]) -> Iterable[pd.Series]:
         result = []
         for value in series:
             result.append(value)
             name = value.name
             idx = value.index.to_series()
-            df = pd.concat([idx, idx.diff().rename("Diff")], axis=1)
-            filtered_df = df[df["Diff"] > self.gap_size]
-            gaps = (
-                (row["Time"], row["Time"] + row["Diff"])
-                for _, row in filtered_df.iterrows()
-            )
-
+            gaps = list(self.find_gaps(idx))
             self._gaps[name].extend(gaps)
         for name, gaps in self._gaps.items():  # type: ignore
             logger.info(
@@ -124,6 +127,10 @@ class FillGapsPreprocessor(Preprocessor):
             len(self._gaps),
             sum(len(gaps) for gaps in self._gaps.values()),
         )
+        if self.fill_gaps_in_data:
+            for name in df.columns:
+                gaps = list(self.find_gaps(df[name].index.to_series()))
+                self._gaps[name].extend(gaps)
         for name, gaps in self._gaps.items():
             if self.replace_lower_values:
                 condition = df[name] <= replace_value
