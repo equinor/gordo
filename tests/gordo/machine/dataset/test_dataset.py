@@ -146,7 +146,7 @@ def test_join_timeseries_nonutcstart(dataset):
     all_in_frame = dataset.join_timeseries(
         timeseries_list, resampling_start, resampling_end, frequency
     )
-    assert len(all_in_frame) == 1854
+    assert len(all_in_frame) == 481
 
 
 def test_join_timeseries_with_gaps(dataset):
@@ -169,12 +169,55 @@ def test_join_timeseries_with_gaps(dataset):
         timeseries_with_holes, resampling_start, resampling_end, frequency
     )
     assert all_in_frame.index[0] == pd.Timestamp(latest_start)
-    assert all_in_frame.index[-1] == pd.Timestamp(resampling_end)
+    assert all_in_frame.index[-1] <= pd.Timestamp(resampling_end)
 
-    expected_index = pd.date_range(
-        start=dateutil.parser.isoparse(latest_start), end=resampling_end, freq=frequency
+
+def test_join_timeseries_with_interpolation_method_wrong_interpolation_method(dataset):
+    timeseries_list, latest_start, earliest_end = create_timeseries_list()
+    resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
+    resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
+
+    with pytest.raises(ValueError):
+        dataset.join_timeseries(
+            timeseries_list,
+            resampling_start,
+            resampling_end,
+            resolution="10T",
+            interpolation_method="wrong_method",
+            interpolation_limit="8H",
+        )
+
+
+def test_join_timeseries_with_interpolation_method_wrong_interpolation_limit(dataset):
+    timeseries_list, latest_start, earliest_end = create_timeseries_list()
+    resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
+    resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
+
+    with pytest.raises(ValueError):
+        dataset.join_timeseries(
+            timeseries_list,
+            resampling_start,
+            resampling_end,
+            resolution="10T",
+            interpolation_method="ffill",
+            interpolation_limit="1T",
+        )
+
+
+def test_join_timeseries_with_interpolation_method_linear_interpolation(dataset):
+    timeseries_list, latest_start, earliest_end = create_timeseries_list()
+    resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
+    resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
+
+    all_in_frame = dataset.join_timeseries(
+        timeseries_list,
+        resampling_start,
+        resampling_end,
+        resolution="10T",
+        interpolation_method="linear_interpolation",
+        interpolation_limit="8H",
     )
-    assert list(all_in_frame.index) == list(expected_index)
+    assert len(all_in_frame) == 337
 
 
 def test_row_filter():

@@ -89,6 +89,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         n_samples_threshold: int = 0,
         low_threshold=-1000,
         high_threshold=50000,
+        interpolation_method: str = "linear_interpolation",
+        interpolation_limit: str = "8H",
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -140,6 +142,13 @@ class TimeSeriesDataset(GordoBaseDataset):
             resolvable to a specific asset.
         n_samples_threshold: int = 0
             The threshold at which the generated DataFrame is considered to have too few rows of data.
+        interpolation_method: str
+            How should missing values be interpolated. Either forward fill (`ffill`) or by linear
+            interpolation (default, `linear_interpolation`).
+        interpolation_limit: str
+            Parameter sets how long from last valid data point values will be interpolated/forward filled.
+            Default is eight hours (`8H`).
+            If None, all missing values are interpolated/forward filled.
         """
         self.train_start_date = self._validate_dt(train_start_date)
         self.train_end_date = self._validate_dt(train_end_date)
@@ -168,6 +177,8 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.n_samples_threshold = n_samples_threshold
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
+        self.interpolation_method = interpolation_method
+        self.interpolation_limit = interpolation_limit
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -207,6 +218,8 @@ class TimeSeriesDataset(GordoBaseDataset):
                 self.train_end_date,
                 self.resolution,
                 aggregation_methods=self.aggregation_methods,
+                interpolation_method=self.interpolation_method,
+                interpolation_limit=self.interpolation_limit,
             )
         else:
             data = pd.concat(series_iter, axis=1, join="inner")
@@ -288,7 +301,7 @@ class RandomDataset(TimeSeriesDataset):
         tag_list: list,
         **kwargs,
     ):
-        kwargs.pop("data_provider", None)  # Dont care what you ask for, you get random!
+        kwargs.pop("data_provider", None)  # Don't care what you ask for, you get random
         super().__init__(
             data_provider=RandomDataProvider(),
             train_start_date=train_start_date,
