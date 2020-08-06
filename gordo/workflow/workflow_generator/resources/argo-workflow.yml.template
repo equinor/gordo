@@ -917,7 +917,9 @@ spec:
                                - name: GORDO_LOG_LEVEL
                                  value: "{{log_level}}"{% if gordo_server_workers %}
                                - name: GORDO_SERVER_WORKERS
-                                 value: "{{gordo_server_workers}}"{% endif %}
+                                 value: "{{gordo_server_workers}}"{% endif %}{% if gordo_server_threads %}
+                               - name: GORDO_SERVER_THREADS
+                                 value: "{{gordo_server_threads}}"{% endif %}
                                - name: EXPECTED_MODELS
                                  value: |
                                    [{% for machine in machines %}"{{ machine.name }}",{% endfor %}]

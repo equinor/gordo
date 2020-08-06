@@ -153,6 +153,12 @@ def workflow_cli(gordo_ctx):
     help="The number of worker processes for handling Gordo server requests.",
     envvar=f"{PREFIX}_GORDO_SERVER_WORKERS",
 )
+@click.option(
+    "--gordo-server-threads",
+    type=int,
+    help="The number of worker threads for handling requests.",
+    envvar=f"{PREFIX}_GORDO_SERVER_THREADS",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
