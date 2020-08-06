@@ -69,6 +69,7 @@ class FillGapsPreprocessor(Preprocessor):
         fill_gaps: bool = False,
         resolution: Union[str, pd.Timedelta] = None,
         fill_gaps_in_data: bool = True,
+        replace_nans: bool = True,
     ):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
@@ -83,6 +84,7 @@ class FillGapsPreprocessor(Preprocessor):
                 resolution = pd.Timedelta(resolution)
         self.resolution = resolution
         self.fill_gaps_in_data = fill_gaps_in_data
+        self.replace_nans = replace_nans
         self._gaps: Dict[str, List[Tuple[pd.Timestamp, pd.Timestamp]]] = defaultdict(
             list
         )
@@ -172,4 +174,6 @@ class FillGapsPreprocessor(Preprocessor):
                         (df.index > gap_start) & (df.index < gap_end),
                         df.columns.get_loc(name),
                     ] = replace_value
+        if self.replace_nans:
+            df = df.fillna(self.replace_value)
         return df
