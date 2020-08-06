@@ -915,7 +915,9 @@ spec:
                                - name: MODEL_COLLECTION_DIR
                                  value: /gordo/models/{{project_name}}/models/{{project_revision}}
                                - name: GORDO_LOG_LEVEL
-                                 value: "{{log_level}}"
+                                 value: "{{log_level}}"{% if gordo_server_workers %}
+                               - name: GORDO_SERVER_WORKERS
+                                 value: "{{gordo_server_workers}}"{% endif %}
                                - name: EXPECTED_MODELS
                                  value: |
                                    [{% for machine in machines %}"{{ machine.name }}",{% endfor %}]

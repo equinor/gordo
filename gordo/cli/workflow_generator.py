@@ -147,6 +147,12 @@ def workflow_cli(gordo_ctx):
     help="retryStrategy.backoff.factor for workflow steps",
     envvar=f"{PREFIX}_RETRY_BACKOFF_FACTOR",
 )
+@click.option(
+    "--gordo-server-workers",
+    type=int,
+    help="The number of worker processes for handling Gordo server requests.",
+    envvar=f"{PREFIX}_GORDO_SERVER_WORKERS",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
