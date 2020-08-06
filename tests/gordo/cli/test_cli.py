@@ -410,6 +410,9 @@ def test_mlflow_reporter_set_cli_build(
         ("--port", 0, True),
         ("--port", 70000, True),
         ("--workers", -1, True),
+        ("--threads", 4, False),
+        ("--threads", "auto", True),
+        ("--worker-class", "gthread", False),
         ("--log-level", "badlevel", True),
     ],
 )

@@ -309,6 +309,21 @@ def get_all_score_strings(machine):
     show_default=True,
 )
 @click.option(
+    "--threads",
+    type=int,
+    help="The number of worker threads for handling requests.",
+    default=1,
+    envvar="GORDO_SERVER_THREADS",
+    show_default=True,
+)
+@click.option(
+    "--worker-class",
+    help="The type of workers to use.",
+    default="gthread",
+    envvar="GORDO_SERVER_WORKER_CLASS",
+    show_default=True,
+)
+@click.option(
     "--log-level",
     type=click.Choice(Logger.LOG_LEVELS.keys()),
     help="The log level for the server.",
@@ -316,11 +331,21 @@ def get_all_score_strings(machine):
     envvar="GORDO_SERVER_LOG_LEVEL",
     show_default=True,
 )
-def run_server_cli(host, port, workers, worker_connections, log_level):
+def run_server_cli(
+    host, port, workers, worker_connections, threads, worker_class, log_level
+):
     """
     Run the gordo server app with Gunicorn
     """
-    server.run_server(host, port, workers, worker_connections, log_level.lower())
+    server.run_server(
+        host,
+        port,
+        workers,
+        log_level.lower(),
+        worker_connections=worker_connections,
+        threads=threads,
+        worker_class=worker_class,
+    )
 
 
 gordo.add_command(workflow_cli)
