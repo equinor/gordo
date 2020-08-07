@@ -236,10 +236,13 @@ def run_server(
         "--workers",
         str(workers),
     ]
-    if worker_connections is not None:
-        cmd.extend(("--worker-connections", str(worker_connections)))
-    if threads is not None:
-        cmd.extend(("--threads", str(threads)))
+    if worker_class == "gthread":
+        if threads is not None:
+            cmd.extend(("--threads", str(threads)))
+    else:
+        if worker_connections is not None:
+            cmd.extend(("--worker-connections", str(worker_connections)))
+
     cmd.append("gordo.server.server:app")
     run_cmd(cmd)
 

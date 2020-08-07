@@ -311,10 +311,11 @@ def get_all_score_strings(machine):
 @click.option(
     "--threads",
     type=int,
-    help="The number of worker threads for handling requests.",
-    default=1,
+    help="The number of worker threads for handling requests."
+    "This argument only has affects with --worker-class=gthread. "
+    "Default value is 8 (4 x $(NUM_CORES))",
+    default=8,
     envvar="GORDO_SERVER_THREADS",
-    show_default=True,
 )
 @click.option(
     "--worker-class",
