@@ -17,6 +17,8 @@ from functools import wraps
 import yaml
 from flask import Flask, g, request, current_app, make_response, jsonify
 
+from typing import Optional
+
 from gordo.server import views
 from gordo import __version__
 
@@ -187,7 +189,13 @@ def run_cmd(cmd):
 
 
 def run_server(
-    host: str, port: int, workers: int, worker_connections: int, log_level: str
+    host: str,
+    port: int,
+    workers: int,
+    log_level: str,
+    worker_connections: Optional[int] = None,
+    threads: Optional[int] = None,
+    worker_class: str = "gthread",
 ):
     """
     Run application with Gunicorn server using Gevent Async workers
@@ -200,11 +208,15 @@ def run_server(
         The port to run the server on.
     workers: int
         The number of worker processes for handling requests.
-    worker_connections: int
-        The maximum number of simultaneous clients per worker process.
     log_level: str
         The log level for the `gunicorn` webserver. Valid log level names can be found
         in the [gunicorn documentation](http://docs.gunicorn.org/en/stable/settings.html#loglevel).
+    worker_connections: int
+        The maximum number of simultaneous clients per worker process.
+    threads: str
+        The number of worker threads for handling requests.
+    worker_class: str
+        The type of workers to use.
     """
 
     cmd = [
@@ -218,15 +230,20 @@ def run_server(
         "--access-logfile",
         "-",
         "--worker-class",
-        "gthread",
+        worker_class,
         "--worker-tmp-dir",
         "/dev/shm",
         "--workers",
         str(workers),
-        "--worker-connections",
-        str(worker_connections),
-        "gordo.server.server:app",
     ]
+    if worker_class == "gthread":
+        if threads is not None:
+            cmd.extend(("--threads", str(threads)))
+    else:
+        if worker_connections is not None:
+            cmd.extend(("--worker-connections", str(worker_connections)))
+
+    cmd.append("gordo.server.server:app")
     run_cmd(cmd)
 
 

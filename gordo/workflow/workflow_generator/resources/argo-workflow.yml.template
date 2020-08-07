@@ -904,18 +904,22 @@ spec:
                                  path: /healthcheck
                                  port: http-api
                                initialDelaySeconds: 600 # We give it a lot of time to load the model and start up
-                               timeoutSeconds: 5
+                               timeoutSeconds: {{ gordo_server_probe_timeout|default(5, true) }}
                              readinessProbe:
                                httpGet:
                                  path: /healthcheck
                                  port: http-api
                                initialDelaySeconds: 5
-                               timeoutSeconds: 5
+                               timeoutSeconds: {{ gordo_server_probe_timeout|default(5, true) }}
                              env:
                                - name: MODEL_COLLECTION_DIR
                                  value: /gordo/models/{{project_name}}/models/{{project_revision}}
                                - name: GORDO_LOG_LEVEL
-                                 value: "{{log_level}}"
+                                 value: "{{log_level}}"{% if gordo_server_workers %}
+                               - name: GORDO_SERVER_WORKERS
+                                 value: "{{gordo_server_workers}}"{% endif %}{% if gordo_server_threads %}
+                               - name: GORDO_SERVER_THREADS
+                                 value: "{{gordo_server_threads}}"{% endif %}
                                - name: EXPECTED_MODELS
                                  value: |
                                    [{% for machine in machines %}"{{ machine.name }}",{% endfor %}]
