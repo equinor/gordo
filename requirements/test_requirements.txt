@@ -7,7 +7,6 @@
 adal==1.2.2               # via -c full_requirements.txt, -r test_requirements.in
 apipkg==1.5               # via execnet
 appdirs==1.4.3            # via black
-appnope==0.1.0            # via ipykernel, ipython
 attrs==19.3.0             # via -c full_requirements.txt, black, jsonschema, pytest
 backcall==0.1.0           # via ipython
 black==19.10b0            # via -r test_requirements.in
@@ -23,6 +22,7 @@ defusedxml==0.6.0         # via nbconvert
 docker==4.1.0             # via -c full_requirements.txt, -r test_requirements.in
 entrypoints==0.3          # via -c full_requirements.txt, nbconvert
 execnet==1.7.1            # via pytest-xdist
+filelock==3.0.12          # via pytest-mypy
 idna==2.8                 # via -c full_requirements.txt, requests
 importlib-metadata==1.4.0  # via -c full_requirements.txt, jsonschema, pluggy, pytest
 ipykernel==5.1.3          # via ipywidgets, jupyter, jupyter-console, notebook, qtconsole
@@ -68,7 +68,7 @@ pytest-cov==2.8.1         # via -r test_requirements.in
 pytest-flakes==4.0.0      # via -r test_requirements.in
 pytest-forked==1.1.3      # via pytest-xdist
 pytest-mock==1.13.0       # via -r test_requirements.in
-pytest-mypy==0.4.2        # via -r test_requirements.in
+pytest-mypy==0.6.2        # via -r test_requirements.in
 pytest-timeout==1.3.4     # via -r test_requirements.in
 pytest-xdist==1.31.0      # via -r test_requirements.in
 pytest==5.3.2             # via -r test_requirements.in, pytest-benchmark, pytest-cov, pytest-flakes, pytest-forked, pytest-mock, pytest-mypy, pytest-timeout, pytest-xdist
