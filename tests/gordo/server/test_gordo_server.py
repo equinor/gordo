@@ -111,26 +111,28 @@ def test_run_server_gthread():
             threads=8,
             worker_class="gthread",
         )
-        m.assert_called_once_with([
-            "gunicorn",
-            "--bind",
-            "127.0.0.1:9000",
-            "--log-level",
-            "debug",
-            "--error-logfile",
-            "-",
-            "--access-logfile",
-            "-",
-            "--worker-class",
-            "gthread",
-            "--worker-tmp-dir",
-            "/dev/shm",
-            "--workers",
-            "2",
-            "--threads",
-            "8",
-            "gordo.server.server:app",
-        ])
+        m.assert_called_once_with(
+            [
+                "gunicorn",
+                "--bind",
+                "127.0.0.1:9000",
+                "--log-level",
+                "debug",
+                "--error-logfile",
+                "-",
+                "--access-logfile",
+                "-",
+                "--worker-class",
+                "gthread",
+                "--worker-tmp-dir",
+                "/dev/shm",
+                "--workers",
+                "2",
+                "--threads",
+                "8",
+                "gordo.server.server:app",
+            ]
+        )
 
 
 def test_run_server_gevent():
@@ -146,26 +148,28 @@ def test_run_server_gevent():
             threads=8,
             worker_class="gevent",
         )
-        m.assert_called_once_with([
-            "gunicorn",
-            "--bind",
-            "127.0.0.1:9000",
-            "--log-level",
-            "debug",
-            "--error-logfile",
-            "-",
-            "--access-logfile",
-            "-",
-            "--worker-class",
-            "gevent",
-            "--worker-tmp-dir",
-            "/dev/shm",
-            "--workers",
-            "2",
-            "--worker-connections",
-            "50",
-            "gordo.server.server:app",
-        ])
+        m.assert_called_once_with(
+            [
+                "gunicorn",
+                "--bind",
+                "127.0.0.1:9000",
+                "--log-level",
+                "debug",
+                "--error-logfile",
+                "-",
+                "--access-logfile",
+                "-",
+                "--worker-class",
+                "gevent",
+                "--worker-tmp-dir",
+                "/dev/shm",
+                "--workers",
+                "2",
+                "--worker-connections",
+                "50",
+                "gordo.server.server:app",
+            ]
+        )
 
 
 @pytest.mark.parametrize("revisions", [("1234", "2345", "3456"), ("1234",)])
