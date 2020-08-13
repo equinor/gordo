@@ -37,6 +37,7 @@ cryptography==2.8         # via adal, azureml-core, pyopenssl, secretstorage
 cycler==0.10.0            # via matplotlib
 databricks-cli==0.9.1     # via mlflow
 dataclasses-json==0.3.7   # via -r requirements.in
+dataclasses==0.7          # via dataclasses-json
 dictdiffer==0.8.1         # via -r requirements.in
 docker==4.1.0             # via azureml-core, mlflow
 entrypoints==0.3          # via mlflow
@@ -119,9 +120,9 @@ sqlparse==0.3.0           # via mlflow
 stringcase==1.2.0         # via dataclasses-json
 tabulate==0.8.6           # via databricks-cli
 tensorboard-plugin-wit==1.7.0  # via tensorboard
-tensorboard==2.3.0        # via tensorflow
-tensorflow-estimator==2.3.0  # via tensorflow
-tensorflow==2.3.0         # via -r requirements.in
+tensorboard==2.2.2        # via tensorflow
+tensorflow-estimator==2.2.0  # via tensorflow
+tensorflow==2.2.0         # via -r requirements.in
 termcolor==1.1.0          # via tensorflow
 typing-extensions==3.7.4.1  # via -r requirements.in, typing-inspect
 typing-inspect==0.5.0     # via dataclasses-json
