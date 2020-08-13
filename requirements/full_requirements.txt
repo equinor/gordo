@@ -37,7 +37,6 @@ cryptography==2.8         # via adal, azureml-core, pyopenssl, secretstorage
 cycler==0.10.0            # via matplotlib
 databricks-cli==0.9.1     # via mlflow
 dataclasses-json==0.3.7   # via -r requirements.in
-dataclasses==0.7          # via dataclasses-json
 dictdiffer==0.8.1         # via -r requirements.in
 docker==4.1.0             # via azureml-core, mlflow
 entrypoints==0.3          # via mlflow
