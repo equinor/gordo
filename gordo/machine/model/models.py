@@ -171,7 +171,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 history = History()
                 history.history = self.model.history.history
                 history.params = self.model.history.params
-                history.epoch = self.model.history.epoch
                 state["history"] = history
         return state
 
