@@ -61,11 +61,13 @@ class MarkGapsPreprocessor(Preprocessor):
         self,
         gap_size: Union[str, pd.Timedelta],
         mark_value: float,
+        fill_nan: bool = False,
     ):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
         self.mark_value = mark_value
+        self.fill_nan = fill_nan
 
     def reset(self):
         pass
@@ -88,6 +90,8 @@ class MarkGapsPreprocessor(Preprocessor):
             for ts, _ in gaps:
                 mark_ts = ts + self.gap_size
                 for column in df.columns:
+                    if self.fill_nan:
+                        df[column].fillna(self.mark_value)
                     df.at[mark_ts, column] = self.mark_value
             df = df.sort_index()
         return df
