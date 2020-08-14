@@ -16,11 +16,7 @@ class Preprocessor(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def prepare_series(self, series: Iterable[pd.Series]) -> Iterable[pd.Series]:
-        ...
-
-    @abstractmethod
-    def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
         ...
 
 
@@ -59,38 +55,20 @@ def gap2str(gap_start: pd.Timestamp, gap_end: pd.Timestamp):
     return "from %s to %s" % (gap_start.isoformat(), gap_end.isoformat())
 
 
-@preprocessor("fill_gaps")
-class FillGapsPreprocessor(Preprocessor):
+@preprocessor("mark_gaps")
+class MarkGapsPreprocessor(Preprocessor):
     def __init__(
         self,
         gap_size: Union[str, pd.Timedelta],
-        replace_value: float,
-        replace_lower_values: bool = False,
-        fill_gaps: bool = False,
-        resolution: Union[str, pd.Timedelta] = None,
-        fill_gaps_in_data: bool = True,
-        replace_nans: bool = True,
+        mark_value: float,
     ):
         if isinstance(gap_size, str):
             gap_size = pd.Timedelta(gap_size)
         self.gap_size = gap_size
-        self.replace_value = replace_value
-        self.replace_lower_values = replace_lower_values
-        self.fill_gaps = fill_gaps
-        if resolution is None:
-            resolution = gap_size
-        else:
-            if isinstance(resolution, str):
-                resolution = pd.Timedelta(resolution)
-        self.resolution = resolution
-        self.fill_gaps_in_data = fill_gaps_in_data
-        self.replace_nans = replace_nans
-        self._gaps: Dict[str, List[Tuple[pd.Timestamp, pd.Timestamp]]] = defaultdict(
-            list
-        )
+        self.mark_value = mark_value
 
     def reset(self):
-        self._gaps = defaultdict(list)
+        pass
 
     def find_gaps(self, series):
         name = 'Time'
@@ -99,81 +77,17 @@ class FillGapsPreprocessor(Preprocessor):
         for _, row in filtered_df.iterrows():
             yield row[name], row[name] + row["Diff"]
 
-    def prepare_series(self, series: Iterable[pd.Series]) -> Iterable[pd.Series]:
-        result = []
-        for value in series:
-            result.append(value)
-            name = value.name
-            idx = value.index.to_series()
-            gaps = list(self.find_gaps(idx))
-            self._gaps[name].extend(gaps)
-        for name, gaps in self._gaps.items():  # type: ignore
-            logger.info(
-                "Found %d gap%s in '%s' time-series",
-                len(gaps),  # type: ignore
-                "s" if len(gaps) > 1 else "",  # type: ignore
-                name,
-            )
-            gaps_str = ", ".join(
-                gap2str(gap_start, gap_end) for gap_start, gap_end in gaps
-            )
-            logger.debug("Gaps for '%s': %s", gaps_str)
-        else:
-            logger.info("Have not found any gaps in all time-series")
-        return result
-
-    def prepare_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        replace_value = self.replace_value
+    def prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
         logger.info(
-            "Preparing %d tags data DataFrame with %d gaps",
+            "Preparing %d tags data DataFrame",
             len(self._gaps),
-            sum(len(gaps) for gaps in self._gaps.values()),
         )
-        if self.fill_gaps_in_data:
-            for name in df.columns:
-                gaps = list(self.find_gaps(df[name].index.to_series()))
-                self._gaps[name].extend(gaps)
-        for name, gaps in self._gaps.items():
-            if self.replace_lower_values:
-                condition = df[name] <= replace_value
-            else:
-                condition = df[name] == replace_value
-            values_count = df.loc[condition, name].count()
-            if values_count:
-                logger.warning(
-                    "Found %d values %s to replace_value='%s' in '%s'",
-                    values_count,
-                    "lower or equal" if self.replace_lower_values else "equal",
-                    replace_value,
-                    name,
-                )
-            if self.replace_lower_values:
-                df.loc[df[name] < replace_value, name] = replace_value
-            for gap_start, gap_end in gaps:
-                if self.fill_gaps:
-                    column = df[name]
-                    drop_index = column.iloc[
-                        (column.index > gap_start) & (column.index < gap_end)
-                    ].index
-                    df[name] = column.drop(index=drop_index)
-                    values_count = floor((gap_end - gap_start) / self.resolution)
-                    logger.info(
-                        "name=%s gap_start=%s gap_end=%s len(drop_index)=%d values_count=%d",
-                        name,
-                        gap_start,
-                        gap_end,
-                        len(drop_index),
-                        values_count,
-                    )
-                    curr_ts = deepcopy(gap_start)
-                    for _ in range(values_count):
-                        curr_ts += self.resolution
-                        df.at[curr_ts, name] = replace_value
-                else:
-                    df.iloc[
-                        (df.index > gap_start) & (df.index < gap_end),
-                        df.columns.get_loc(name),
-                    ] = replace_value
-        if self.replace_nans:
-            df = df.fillna(self.replace_value)
+        index_series = df.index.to_series()
+        gaps = list(self.find_gaps(index_series))
+        if gaps:
+            for ts, _ in gaps:
+                mark_ts = ts + self.gap_size
+                for column in df.columns:
+                    df.at[mark_ts, column] = self.mark_value
+            df = df.sort_index()
         return df
