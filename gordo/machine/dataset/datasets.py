@@ -210,9 +210,6 @@ class TimeSeriesDataset(GordoBaseDataset):
             tag_list=list(set(self.tag_list + self.target_tag_list)),
         )
 
-        if preprocessor is not None:
-            series_iter = preprocessor.prepare_series(series_iter)
-
         # Resample if we have a resolution set, otherwise simply join the series.
         if self.resolution:
             data = self.join_timeseries(
@@ -255,7 +252,7 @@ class TimeSeriesDataset(GordoBaseDataset):
                 )
 
         if preprocessor is not None:
-            data = preprocessor.prepare_data(data)
+            data = preprocessor.prepare_df(data)
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
