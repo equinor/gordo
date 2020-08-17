@@ -4,7 +4,7 @@ import abc
 import logging
 import io
 from pprint import pformat
-from typing import Union, Callable, Dict, Any, Optional
+from typing import Union, Callable, Dict, Any, Optional, List, Tuple, Type
 from abc import ABCMeta
 from copy import copy, deepcopy
 
@@ -13,6 +13,7 @@ import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from tensorflow.python.keras.utils import data_utils
 import numpy as np
 import pandas as pd
 
@@ -27,6 +28,8 @@ from gordo.machine.model.base import GordoBase
 from gordo.machine.model.factories import *  # pragma: no flakes
 
 from gordo.machine.model.register import register_model_builder
+
+from dataclasses import dataclass
 
 
 logger = logging.getLogger(__name__)
@@ -399,6 +402,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kind: Union[Callable, str],
         lookback_window: int = 1,
         batch_size: int = 32,
+        generator: Optional[Dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -427,6 +431,9 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         """
         self.lookback_window = lookback_window
         self.batch_size = batch_size
+        if generator is None:
+            generator = {}
+        self.generator = generator
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
@@ -522,6 +529,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=1,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            **self.generator,
         )
 
         primer_x, primer_y = tsg[0]
@@ -534,6 +542,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            **self.generator,
         )
 
         gen_kwargs = {
@@ -642,12 +651,135 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         return 0
 
 
+_timeseries_generator_types: Dict[str, Type[data_utils.Sequence]] = {
+    "default": TimeseriesGenerator
+}
+
+
+def timeseries_generator(generator_type: str):
+    def wrapper(cls: Type[data_utils.Sequence]):
+        if generator_type is not _timeseries_generator_types:
+            raise ValueError(
+                "TimeseriesGenerator with type '%s' has already been added" % generator_type
+            )
+        _timeseries_generator_types[generator_type] = cls
+        return cls
+    return wrapper
+
+
+def create_timeseeries_generator(generator_type: str, *args, **kwargs):
+    if generator_type not in _timeseries_generator_types:
+        raise ValueError("Can't find a TimeseriesGenerator with type '%s'" % generator_type)
+    return _timeseries_generator_types[generator_type](*args, **kwargs)
+
+
+def marked_value_slices(arr: np.ndarray, mark_value: float) -> List[slice]:
+    indexes = np.where(np.all(arr == mark_value, axis=1))
+    slices = []
+    curr_index = 0
+    for index in indexes:
+        slices.append(slice(curr_index, index))
+        curr_index = index+1
+    return slices
+
+
+@dataclass
+class SliceGeneratorContainer:
+    data_slice: slice
+    generator: Optional[data_utils.Sequence] = None
+    length: int = 0
+
+
+@timeseries_generator('split_by_mark_value')
+class SplitByMarkValueTimeseriesGenerator(data_utils.Sequence):
+
+    def __init__(
+        self,
+        data: np.ndarray,
+        targets: np.ndarray,
+        length: int,
+        mark_value: float,
+        batch_size: int = 128,
+        shuffle: bool = False,
+        min_split_size: Optional[int] = None,
+    ):
+        if len(data) != len(targets):
+            raise ValueError(
+                "Data and targets have to be of same length. "
+                f"Data length is {len(data)}"
+                f" while target length is {len(targets)}"
+            )
+        self.succeeded_gen_containers, self.failed_gen_containers = self.create_gen_containers(
+            data, targets, length, mark_value, batch_size, shuffle, min_split_size=min_split_size
+        )
+        logger.debug(
+            "SplitByMarkValueTimeseriesGenerator with succeeded_gen_containers=%s",
+            self.succeeded_gen_containers,
+        )
+        logger.debug(
+            "SplitByMarkValueTimeseriesGenerator with failed_gen_containers=%s",
+            self.failed_gen_containers,
+        )
+        if not self.succeeded_gen_containers:
+            raise ValueError(
+                "Seems like the time series are too small"
+            )
+
+    @staticmethod
+    def create_gen_containers(
+        data: np.ndarray,
+        targets: np.ndarray,
+        length: int,
+        mark_value: float,
+        batch_size: int,
+        shuffle: bool,
+        min_split_size: Optional[int] = None
+    ) -> Tuple[List[SliceGeneratorContainer], List[SliceGeneratorContainer]]:
+        data_slices = marked_value_slices(data, mark_value)
+        succeeded_gen_containers, failed_gen_containers = [], []
+        for data_slice in data_slices:
+            gen_data = data[data_slice]
+            gen_targets = targets[data_slice]
+            try:
+                generator = TimeseriesGenerator(
+                    gen_data,
+                    gen_targets,
+                    length=length,
+                    batch_size=batch_size,
+                    shuffle=shuffle,
+                )
+            except ValueError:
+                failed_gen_containers.append(SliceGeneratorContainer(data_slice))
+            else:
+                length = len(generator)
+                gen_container = SliceGeneratorContainer(data_slice, generator, length)
+                if min_split_size is not None and length < min_split_size:
+                    failed_gen_containers.append(gen_container)
+                else:
+                    succeeded_gen_containers.append(gen_container)
+        return succeeded_gen_containers, failed_gen_containers
+
+    def __len__(self):
+        return sum(gen_container.length for gen_container in self.succeeded_gen_containers)
+
+    def __getitem__(self, index):
+        i = -1
+        for gen_container in self.succeeded_gen_containers:
+            new_i = i + gen_container.length
+            if index <= new_i:
+                gen_i = index - i - 1
+                return gen_container.generator[gen_i]
+            i = new_i
+        raise IndexError(index)
+
+
 def create_keras_timeseriesgenerator(
     X: np.ndarray,
     y: Optional[np.ndarray],
     batch_size: int,
     lookback_window: int,
     lookahead: int,
+    **kwargs,
 ) -> tensorflow.keras.preprocessing.sequence.TimeseriesGenerator:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
@@ -701,26 +833,30 @@ def create_keras_timeseriesgenerator(
     2
     """
     new_length = len(X) + 1 - lookahead
-    kwargs: Dict[str, Any] = dict(length=lookback_window, batch_size=batch_size)
+    gen_kwargs: Dict[str, Any] = dict(length=lookback_window, batch_size=batch_size)
     if lookahead == 1:
-        kwargs.update(dict(data=X, targets=y))
+        gen_kwargs.update(dict(data=X, targets=y))
 
     elif lookahead >= 0:
 
         pad_kw = dict(maxlen=new_length, dtype=X.dtype)
 
         if lookahead == 0:
-            kwargs["data"] = pad_sequences([X], padding="post", **pad_kw)[0]
-            kwargs["targets"] = pad_sequences([y], padding="pre", **pad_kw)[0]
+            gen_kwargs["data"] = pad_sequences([X], padding="post", **pad_kw)[0]
+            gen_kwargs["targets"] = pad_sequences([y], padding="pre", **pad_kw)[0]
 
         elif lookahead > 1:
-            kwargs["data"] = pad_sequences(
+            gen_kwargs["data"] = pad_sequences(
                 [X], padding="post", truncating="post", **pad_kw
             )[0]
-            kwargs["targets"] = pad_sequences(
+            gen_kwargs["targets"] = pad_sequences(
                 [y], padding="pre", truncating="pre", **pad_kw
             )[0]
     else:
         raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
 
-    return TimeseriesGenerator(**kwargs)
+    kwargs = deepcopy(kwargs)
+    generator_type = kwargs.pop("generator_type", "default")
+    kwargs.update(gen_kwargs)
+
+    return create_timeseeries_generator(generator_type, **kwargs)
