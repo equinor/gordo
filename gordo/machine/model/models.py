@@ -434,6 +434,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         if generator is None:
             generator = {}
         self.generator = generator
+        logger.debug("KerasLSTMBaseEstimator generator %s", generator)
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
@@ -871,5 +872,6 @@ def create_keras_timeseriesgenerator(
     kwargs = deepcopy(kwargs)
     generator_type = kwargs.pop("generator_type", "default")
     kwargs.update(gen_kwargs)
+    logger.debug('create_timeseries_generator %s with %s', generator_type, kwargs)
 
     return create_timeseries_generator(generator_type, **kwargs)
