@@ -594,6 +594,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         X = X.values if isinstance(X, pd.DataFrame) else X
 
         X = self._validate_and_fix_size_of_X(X)
+        #TODO custom timeseries generator
         tsg = create_keras_timeseriesgenerator(
             X=X,
             y=X,
