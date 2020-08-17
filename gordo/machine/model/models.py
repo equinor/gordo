@@ -658,7 +658,7 @@ _timeseries_generator_types: Dict[str, Type[data_utils.Sequence]] = {
 
 def timeseries_generator(generator_type: str):
     def wrapper(cls: Type[data_utils.Sequence]):
-        if generator_type is not _timeseries_generator_types:
+        if generator_type in _timeseries_generator_types:
             raise ValueError(
                 "TimeseriesGenerator with type '%s' has already been added" % generator_type
             )
