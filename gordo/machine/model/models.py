@@ -667,7 +667,7 @@ def timeseries_generator(generator_type: str):
     return wrapper
 
 
-def create_timeseeries_generator(generator_type: str, *args, **kwargs):
+def create_timeseries_generator(generator_type: str, *args, **kwargs):
     if generator_type not in _timeseries_generator_types:
         raise ValueError("Can't find a TimeseriesGenerator with type '%s'" % generator_type)
     return _timeseries_generator_types[generator_type](*args, **kwargs)
@@ -859,4 +859,4 @@ def create_keras_timeseriesgenerator(
     generator_type = kwargs.pop("generator_type", "default")
     kwargs.update(gen_kwargs)
 
-    return create_timeseeries_generator(generator_type, **kwargs)
+    return create_timeseries_generator(generator_type, **kwargs)
