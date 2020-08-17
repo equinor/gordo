@@ -73,7 +73,7 @@ class MarkGapsPreprocessor(Preprocessor):
         pass
 
     def find_gaps(self, series):
-        name = 'Time'
+        name = "Time"
         df = pd.concat([series.rename(name), series.diff().rename("Diff")], axis=1)
         filtered_df = df[df["Diff"] > self.gap_size]
         for _, row in filtered_df.iterrows():
@@ -81,8 +81,7 @@ class MarkGapsPreprocessor(Preprocessor):
 
     def prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
         logger.info(
-            "Preparing %d tags data DataFrame",
-            len(self._gaps),
+            "Preparing %d tags data DataFrame", len(self._gaps),
         )
         index_series = df.index.to_series()
         gaps = list(self.find_gaps(index_series))

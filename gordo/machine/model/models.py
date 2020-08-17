@@ -660,16 +660,20 @@ def timeseries_generator(generator_type: str):
     def wrapper(cls: Type[data_utils.Sequence]):
         if generator_type in _timeseries_generator_types:
             raise ValueError(
-                "TimeseriesGenerator with type '%s' has already been added" % generator_type
+                "TimeseriesGenerator with type '%s' has already been added"
+                % generator_type
             )
         _timeseries_generator_types[generator_type] = cls
         return cls
+
     return wrapper
 
 
 def create_timeseries_generator(generator_type: str, *args, **kwargs):
     if generator_type not in _timeseries_generator_types:
-        raise ValueError("Can't find a TimeseriesGenerator with type '%s'" % generator_type)
+        raise ValueError(
+            "Can't find a TimeseriesGenerator with type '%s'" % generator_type
+        )
     return _timeseries_generator_types[generator_type](*args, **kwargs)
 
 
@@ -679,7 +683,7 @@ def marked_value_slices(arr: np.ndarray, mark_value: float) -> List[slice]:
     curr_index = 0
     for index in indexes:
         slices.append(slice(curr_index, index))
-        curr_index = index+1
+        curr_index = index + 1
     return slices
 
 
@@ -690,9 +694,8 @@ class SliceGeneratorContainer:
     length: int = 0
 
 
-@timeseries_generator('split_by_mark_value')
+@timeseries_generator("split_by_mark_value")
 class SplitByMarkValueTimeseriesGenerator(data_utils.Sequence):
-
     def __init__(
         self,
         data: np.ndarray,
@@ -709,8 +712,17 @@ class SplitByMarkValueTimeseriesGenerator(data_utils.Sequence):
                 f"Data length is {len(data)}"
                 f" while target length is {len(targets)}"
             )
-        self.succeeded_gen_containers, self.failed_gen_containers = self.create_gen_containers(
-            data, targets, length, mark_value, batch_size, shuffle, min_split_size=min_split_size
+        (
+            self.succeeded_gen_containers,
+            self.failed_gen_containers,
+        ) = self.create_gen_containers(
+            data,
+            targets,
+            length,
+            mark_value,
+            batch_size,
+            shuffle,
+            min_split_size=min_split_size,
         )
         logger.debug(
             "SplitByMarkValueTimeseriesGenerator with succeeded_gen_containers=%s",
@@ -721,9 +733,7 @@ class SplitByMarkValueTimeseriesGenerator(data_utils.Sequence):
             self.failed_gen_containers,
         )
         if not self.succeeded_gen_containers:
-            raise ValueError(
-                "Seems like the time series are too small"
-            )
+            raise ValueError("Seems like the time series are too small")
 
     @staticmethod
     def create_gen_containers(
@@ -733,7 +743,7 @@ class SplitByMarkValueTimeseriesGenerator(data_utils.Sequence):
         mark_value: float,
         batch_size: int,
         shuffle: bool,
-        min_split_size: Optional[int] = None
+        min_split_size: Optional[int] = None,
     ) -> Tuple[List[SliceGeneratorContainer], List[SliceGeneratorContainer]]:
         data_slices = marked_value_slices(data, mark_value)
         succeeded_gen_containers, failed_gen_containers = [], []
@@ -760,7 +770,9 @@ class SplitByMarkValueTimeseriesGenerator(data_utils.Sequence):
         return succeeded_gen_containers, failed_gen_containers
 
     def __len__(self):
-        return sum(gen_container.length for gen_container in self.succeeded_gen_containers)
+        return sum(
+            gen_container.length for gen_container in self.succeeded_gen_containers
+        )
 
     def __getitem__(self, index):
         i = -1
