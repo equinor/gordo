@@ -83,8 +83,8 @@ class MarkGapsPreprocessor(Preprocessor):
         index_series = df.index.to_series()
         gaps = list(self.find_gaps(index_series))
         if gaps:
-            for ts, gap_size in gaps:
-                logger.debug("Found gap in index on %s for %s", ts, gap_size)
+            for from_ts, to_ts in gaps:
+                logger.debug("Found gap from %s to %s", from_ts, to_ts)
             for ts, _ in gaps:
                 mark_ts = ts + self.gap_size
                 for column in df.columns:
