@@ -80,9 +80,6 @@ class MarkGapsPreprocessor(Preprocessor):
             yield row[name], row[name] + row["Diff"]
 
     def prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
-        logger.info(
-            "Preparing %d tags data DataFrame", len(self._gaps),
-        )
         index_series = df.index.to_series()
         gaps = list(self.find_gaps(index_series))
         if gaps:
