@@ -402,7 +402,6 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kind: Union[Callable, str],
         lookback_window: int = 1,
         batch_size: int = 32,
-        generator: Optional[Dict] = None,
         **kwargs,
     ) -> None:
         """
@@ -431,10 +430,13 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         """
         self.lookback_window = lookback_window
         self.batch_size = batch_size
+
+        generator = kwargs.get("generator")
         if generator is None:
             generator = {}
         self.generator = generator
         logger.debug("KerasLSTMBaseEstimator generator %s", generator)
+
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
