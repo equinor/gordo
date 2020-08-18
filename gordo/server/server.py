@@ -22,6 +22,8 @@ from typing import Optional
 from gordo.server import views
 from gordo import __version__
 
+from .prometheus import GordoServerPrometheusMetrics
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +33,7 @@ class Config:
     def __init__(self):
         self.MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
         self.EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
+        self.ENABLE_PROMETHEUS = os.getenv("ENABLE_PROMETHEUS", "false") != "false"
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
@@ -109,6 +112,19 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
+def create_prometheus_metrics() -> GordoServerPrometheusMetrics:
+    return GordoServerPrometheusMetrics(
+        args_labels=(
+            ('gordo_project', 'project'),
+            ('gordo_name', 'model')
+        ),
+        info={
+            'version': __version__
+        },
+        ignore_paths=['/healthcheck'],
+    )
+
+
 def build_app():
     """
     Build app and any associated routes
@@ -121,6 +137,10 @@ def build_app():
 
     app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)  # type: ignore
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
+
+    if app.config["ENABLE_PROMETHEUS"]:
+        prometheus_metrics = create_prometheus_metrics()
+        prometheus_metrics.prepare_app(app)
 
     @app.before_request
     def _start_timer():
