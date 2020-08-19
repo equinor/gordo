@@ -114,14 +114,9 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
 
 def create_prometheus_metrics() -> GordoServerPrometheusMetrics:
     return GordoServerPrometheusMetrics(
-        args_labels=(
-            ('gordo_project', 'project'),
-            ('gordo_name', 'model')
-        ),
-        info={
-            'version': __version__
-        },
-        ignore_paths=['/healthcheck'],
+        args_labels=(("gordo_project", "project"), ("gordo_name", "model")),
+        info={"version": __version__},
+        ignore_paths=["/healthcheck"],
     )
 
 

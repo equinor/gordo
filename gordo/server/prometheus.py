@@ -31,18 +31,24 @@ def current_time():
 
 
 class GordoServerPrometheusMetrics:
-    PREFIX = 'gordo_server'
+    PREFIX = "gordo_server"
     MAIN_LABELS = ("method", "path", "status_code")
 
     @staticmethod
     def main_label_values(req: Request, resp: Response):
-        return req.method, url_rule_to_str(req.url_rule), to_status_code(resp.status_code)
+        return (
+            req.method,
+            url_rule_to_str(req.url_rule),
+            to_status_code(resp.status_code),
+        )
 
-    def __init__(self,
-                 args_labels: Iterable[Tuple[str, str]],
-                 info: Dict[str, str],
-                 ignore_paths: Optional[Iterable[str]] = None,
-                 registry: Optional[CollectorRegistry] = None):
+    def __init__(
+        self,
+        args_labels: Iterable[Tuple[str, str]],
+        info: Dict[str, str],
+        ignore_paths: Optional[Iterable[str]] = None,
+        registry: Optional[CollectorRegistry] = None,
+    ):
         self.args_labels = args_labels
         if ignore_paths is not None:
             ignore_paths = set(ignore_paths)
@@ -60,13 +66,13 @@ class GordoServerPrometheusMetrics:
             "%s_request_duration_seconds" % self.PREFIX,
             "HTTP request duration, in seconds",
             self.label_names,
-            registry=registry
+            registry=registry,
         )
         self.request_count = Counter(
             "%s_requests_total" % self.PREFIX,
             "Total HTTP requests",
             self.label_names,
-            registry=registry
+            registry=registry,
         )
 
     def init_labels(self):
@@ -76,7 +82,10 @@ class GordoServerPrometheusMetrics:
                 label_names.append(name)
                 label_values.append(value)
             gauge_info = Gauge(
-                self.PREFIX+'_info', "Gordo information", label_names, registry=self.registry
+                self.PREFIX + "_info",
+                "Gordo information",
+                label_names,
+                registry=self.registry,
             )
             gauge_info = gauge_info.labels(*label_values)
             gauge_info.set(1)
@@ -110,7 +119,9 @@ class GordoServerPrometheusMetrics:
             if self.ignore_paths is not None and url_rule in self.ignore_paths:
                 return response
             label_values = self.request_label_values(request, response)
-            self.request_duration_seconds.labels(*label_values).observe(current_time() - g.prometheus_start_time)
+            self.request_duration_seconds.labels(*label_values).observe(
+                current_time() - g.prometheus_start_time
+            )
             self.request_count.labels(*label_values).inc(1)
             del g.prometheus_metrics
             return response
