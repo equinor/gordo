@@ -452,3 +452,22 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         self.base_estimator.fit(X, y)
         self.scaler.fit(y)
         return self
+
+    def _calculate_aggregate_threshold(
+        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
+    ):
+        scaled_mse_per_timestep = self._scaled_mse_per_timestep(y_true, y_pred)
+        rolling_scaled_mse_per_timestep = scaled_mse_per_timestep.rolling(
+            self.window
+        ).median()
+        return self._calculate_threshold(rolling_scaled_mse_per_timestep)
+
+    def _calculate_feature_thresholds(self, y_true: pd.DataFrame, y_pred: pd.DataFrame):
+        absolute_error = self._absolute_error(y_true, y_pred)
+        rolling_absolute_error = absolute_error.rolling(self.window).median()
+        return self._calculate_threshold(rolling_absolute_error)
+
+    def _calculate_threshold(
+        self, validation_metric: Union[pd.DataFrame, pd.Series, np.ndarray]
+    ) -> float:
+        return np.percentile(validation_metric, self.threshold_percentile, axis=0)
