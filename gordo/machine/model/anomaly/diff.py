@@ -241,12 +241,24 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         Returns
         -------
-        panadas.Series
+        pandas.Series
             The MSE calculated from the scaled y and y predicted.
         """
-        scaled_y_true = model.scaler.transform(y_true)
-        scaled_y_pred = model.scaler.transform(y_pred)
+
+        scaled_y_true = pd.DataFrame(
+            model.scaler.transform(y_true.to_numpy()),
+            index=getattr(y_true, "index", None),
+            columns=getattr(y_true, "columns", None),
+        )
+
+        scaled_y_pred = pd.DataFrame(
+            model.scaler.transform(y_pred.to_numpy()),
+            index=getattr(y_pred, "index", None),
+            columns=getattr(y_pred, "columns", None),
+        )
+
         mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
+
         return pd.Series(mse_per_time_step)
 
     def anomaly(
