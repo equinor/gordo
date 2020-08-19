@@ -8,6 +8,7 @@ from datetime import timedelta
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import TimeSeriesSplit, KFold, cross_validate as c_val
+from sklearn.utils import shuffle
 
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model import utils as model_utils
@@ -444,3 +445,10 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         params["n_splits"] = self.n_splits
         params["threshold_percentile"] = self.threshold_percentile
         return params
+
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        if self.shuffle:
+            X, y = shuffle(X, y)
+        self.base_estimator.fit(X, y)
+        self.scaler.fit(y)
+        return self
