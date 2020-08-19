@@ -446,6 +446,21 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         params["threshold_percentile"] = self.threshold_percentile
         return params
 
+    def get_metadata(self):
+        metadata = dict()
+
+        if hasattr(self, "feature_thresholds_"):
+            metadata["feature-thresholds"] = self.feature_thresholds_.tolist()
+        if hasattr(self, "aggregate_threshold_"):
+            metadata["aggregate-threshold"] = self.aggregate_threshold_
+        if isinstance(self.base_estimator, GordoBase):
+            metadata.update(self.base_estimator.get_metadata())
+        else:
+            metadata.update(
+                {"scaler": str(self.scaler), "base_estimator": str(self.base_estimator)}
+            )
+        return metadata
+
     def fit(self, X: np.ndarray, y: np.ndarray):
         if self.shuffle:
             X, y = shuffle(X, y)
