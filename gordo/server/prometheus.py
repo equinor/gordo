@@ -3,15 +3,14 @@ import timeit
 from copy import copy
 from flask import Flask, g, request, Request, Response
 from typing import Optional, Tuple, List, Dict, Iterable
-from prometheus_client import multiprocess
-from prometheus_client import generate_latest, CollectorRegistry, CONTENT_TYPE_LATEST
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client.multiprocess import MultiProcessCollector
+from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
 from http import HTTPStatus
 
 
 def create_registry():
     registry = CollectorRegistry()
-    multiprocess.MultiProcessCollector(registry)
+    MultiProcessCollector(registry)
     return registry
 
 
