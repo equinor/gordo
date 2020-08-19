@@ -453,6 +453,45 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         self.scaler.fit(y)
         return self
 
+    def cross_validate(
+        self,
+        *,
+        X: Union[pd.DataFrame, np.ndarray],
+        y: Union[pd.DataFrame, np.ndarray],
+        **kwargs,
+    ):
+
+        cv = KFold(n_splits=self.n_splits, shuffle=self.shuffle)
+        # Depend on having the trained fold models
+        kwargs.update(dict(return_estimator=True, cv=cv))
+
+        cv_output = c_val(self, X=X, y=y, **kwargs)
+
+        # Create empty dataframe to hold
+        y_pred = pd.DataFrame(
+            np.zeros_like(y),
+            index=getattr(y, "index", None),
+            columns=getattr(y, "columns", None),
+        )
+        y = pd.DataFrame(y)
+
+        for i, ((_, test_idxs), split_model) in enumerate(
+            zip(kwargs["cv"].split(X, y), cv_output["estimator"])
+        ):
+            y_pred.iloc[test_idxs] = split_model.predict(
+                X.iloc[test_idxs].to_numpy()
+                if isinstance(X, pd.DataFrame)
+                else X[test_idxs]
+            )
+
+        # Calculate global threshold
+        self.aggregate_threshold_ = self._calculate_aggregate_threshold(y, y_pred)
+
+        # Calculate tag thresholds
+        self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
+
+        return cv_output
+
     def _calculate_aggregate_threshold(
         self, y_true: pd.DataFrame, y_pred: pd.DataFrame
     ):
