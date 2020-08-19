@@ -424,3 +424,16 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             )
 
         return data
+
+
+class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
+    def __init__(
+        self,
+        shuffle: bool = True,
+        n_splits: int = 5,
+        threshold_percentile: float = 0.975,
+    ):
+        super().__init__()
+        self.shuffle = shuffle
+        self.n_splits = n_splits
+        self.threshold_percentile = threshold_percentile
