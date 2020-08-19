@@ -261,6 +261,15 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         return pd.Series(mse_per_time_step)
 
+    @staticmethod
+    def _absolute_error(
+        model: BaseEstimator,
+        y_true: Union[pd.DataFrame, np.ndarray],
+        y_pred: Union[pd.DataFrame, np.ndarray],
+    ) -> pd.DataFrame:
+
+        return pd.DataFrame(np.abs(y_true - y_pred))
+
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
     ) -> pd.DataFrame:
