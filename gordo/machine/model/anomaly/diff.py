@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import TimeSeriesSplit, KFold, cross_validate as c_val
 from sklearn.utils import shuffle
+from sklearn.exceptions import NotFittedError
 
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model import utils as model_utils
@@ -232,39 +233,27 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     ) -> pd.Series:
         """
         Calculate the scaled MSE per timestep/sample
-
         Parameters
         ----------
         model: BaseEstimator
             Instance of a fitted :class:`~DiffBasedAnomalyDetector`
         y_true: Union[numpy.ndarray, pd.DataFrame]
         y_pred: Union[numpy.ndarray, pd.DataFrame]
-
         Returns
         -------
-        pandas.Series
+        panadas.Series
             The MSE calculated from the scaled y and y predicted.
         """
-
-        scaled_y_true = pd.DataFrame(
-            model.scaler.transform(y_true.to_numpy()),
-            index=getattr(y_true, "index", None),
-            columns=getattr(y_true, "columns", None),
-        )
-
-        scaled_y_pred = pd.DataFrame(
-            model.scaler.transform(y_pred.to_numpy()),
-            index=getattr(y_pred, "index", None),
-            columns=getattr(y_pred, "columns", None),
-        )
-
+        try:
+            scaled_y_true = model.scaler.transform(y_true)
+        except NotFittedError:
+            scaled_y_true = model.scaler.fit_transform(y_true)
+        scaled_y_pred = model.scaler.transform(y_pred)
         mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
-
         return pd.Series(mse_per_time_step)
 
     @staticmethod
     def _absolute_error(
-        model: BaseEstimator,
         y_true: Union[pd.DataFrame, np.ndarray],
         y_pred: Union[pd.DataFrame, np.ndarray],
     ) -> pd.DataFrame:
@@ -430,20 +419,31 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
     def __init__(
         self,
+        base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
+        scaler: TransformerMixin = MinMaxScaler(),
+        require_thresholds: bool = True,
+        window: int = 144,
         shuffle: bool = True,
         n_splits: int = 5,
         threshold_percentile: float = 0.975,
     ):
-        super().__init__()
+        self.base_estimator = base_estimator
+        self.scaler = scaler
+        self.require_thresholds = require_thresholds
+        self.window = window
         self.shuffle = shuffle
         self.n_splits = n_splits
         self.threshold_percentile = threshold_percentile
 
     def get_params(self, deep=True):
-        params = super().get_params()
-        params["shuffle"] = self.shuffle
-        params["n_splits"] = self.n_splits
-        params["threshold_percentile"] = self.threshold_percentile
+        params = {
+            "base_estimator": self.base_estimator,
+            "scaler": self.scaler,
+            "window": self.window,
+            "shuffle": self.shuffle,
+            "n_splits": self.n_splits,
+            "threshold_percentile": self.threshold_percentile,
+        }
         return params
 
     def get_metadata(self):
@@ -500,7 +500,7 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
             )
 
         # Calculate global threshold
-        self.aggregate_threshold_ = self._calculate_aggregate_threshold(y, y_pred)
+        self.aggregate_threshold_ = self._calculate_aggregate_threshold(self, y, y_pred)
 
         # Calculate tag thresholds
         self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
@@ -508,20 +508,24 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         return cv_output
 
     def _calculate_aggregate_threshold(
-        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
-    ):
-        scaled_mse_per_timestep = self._scaled_mse_per_timestep(y_true, y_pred)
+        self, model, y_true: pd.DataFrame, y_pred: pd.DataFrame
+    ) -> float:
+        scaled_mse_per_timestep = self._scaled_mse_per_timestep(model, y_true, y_pred)
         rolling_scaled_mse_per_timestep = scaled_mse_per_timestep.rolling(
             self.window
         ).median()
         return self._calculate_threshold(rolling_scaled_mse_per_timestep)
 
-    def _calculate_feature_thresholds(self, y_true: pd.DataFrame, y_pred: pd.DataFrame):
+    def _calculate_feature_thresholds(
+        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
+    ) -> np.ndarray:
         absolute_error = self._absolute_error(y_true, y_pred)
         rolling_absolute_error = absolute_error.rolling(self.window).median()
         return self._calculate_threshold(rolling_absolute_error)
 
     def _calculate_threshold(
-        self, validation_metric: Union[pd.DataFrame, pd.Series, np.ndarray]
-    ) -> float:
-        return np.percentile(validation_metric, self.threshold_percentile, axis=0)
+        self, validation_metric: Union[pd.DataFrame, pd.Series]
+    ) -> Union[float, np.ndarray]:
+        return np.percentile(
+            validation_metric.dropna(), self.threshold_percentile, axis=0
+        )
