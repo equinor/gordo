@@ -22,13 +22,21 @@ def to_status_code(response_status):
         return response_status
 
 
+def url_rule_to_str(url_rule):
+    return url_rule.rule
+
+
+def current_time():
+    return timeit.default_timer()
+
+
 class GordoServerPrometheusMetrics:
     PREFIX = 'gordo_server'
     MAIN_LABELS = ("method", "path", "status_code")
 
     @staticmethod
     def main_label_values(req: Request, resp: Response):
-        return req.method, req.url_rule, to_status_code(resp.status_code)
+        return req.method, url_rule_to_str(req.url_rule), to_status_code(resp.status_code)
 
     def __init__(self,
                  args_labels: Iterable[Tuple[str, str]],
@@ -39,23 +47,23 @@ class GordoServerPrometheusMetrics:
         if ignore_paths is not None:
             ignore_paths = set(ignore_paths)
         self.ignore_paths = ignore_paths
-
         self.info = info
-        self.label_names, self.label_values = [], []
-        self.args_names = []
-        self.init_labels()
+        self.label_names: List[str] = []
+        self.label_values: List[str] = []
+        self.args_names: List[str] = []
 
         if registry is None:
             registry = create_registry()
         self.registry = registry
+        self.init_labels()
         self.request_duration_seconds = Histogram(
-            self.PREFIX+"_request_duration_seconds",
+            "%s_request_duration_seconds" % self.PREFIX,
             "HTTP request duration, in seconds",
             self.label_names,
             registry=registry
         )
         self.request_count = Counter(
-            self.PREFIX+"_requests_total",
+            "%s_requests_total" % self.PREFIX,
             "Total HTTP requests",
             self.label_names,
             registry=registry
@@ -83,23 +91,26 @@ class GordoServerPrometheusMetrics:
 
     def request_label_values(self, req: Request, resp: Response):
         label_values = copy(self.label_values)
-        args = req.args
+        view_args = req.view_args
         for arg_name in self.args_names:
-            value = args.get(arg_name, None)
-            if value is not None:
-                label_values.append(value)
+            value = view_args.get(arg_name, "") if view_args is not None else ""
+            label_values.append(value)
         label_values.extend(self.main_label_values(req, resp))
         return label_values
 
     def prepare_app(self, app: Flask):
         @app.before_request
         def _start_prometheus():
-            g.prometheus_start_time = timeit.default_timer()
+            g.prometheus_metrics = self
+            g.prometheus_start_time = current_time()
 
         @app.after_request
-        def _end_prometheus(response: Response):
-            if request.url_rule in self.ignore_paths:
-                return
+        def _end_prometheus(response: Response) -> Response:
+            url_rule = url_rule_to_str(request.url_rule)
+            if self.ignore_paths is not None and url_rule in self.ignore_paths:
+                return response
             label_values = self.request_label_values(request, response)
-            self.request_duration_seconds.labels(*label_values).observe(g.prometheus_start_time)
+            self.request_duration_seconds.labels(*label_values).observe(current_time() - g.prometheus_start_time)
             self.request_count.labels(*label_values).inc(1)
+            del g.prometheus_metrics
+            return response
