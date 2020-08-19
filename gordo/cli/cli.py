@@ -332,8 +332,15 @@ def get_all_score_strings(machine):
     envvar="GORDO_SERVER_LOG_LEVEL",
     show_default=True,
 )
+@click.option(
+    "--server-app",
+    help="The application to run",
+    default="gordo.server.server:app",
+    envvar="GORDO_SERVER_APP",
+    show_default=True,
+)
 def run_server_cli(
-    host, port, workers, worker_connections, threads, worker_class, log_level
+    host, port, workers, worker_connections, threads, worker_class, log_level, server_app,
 ):
     """
     Run the gordo server app with Gunicorn
@@ -346,6 +353,7 @@ def run_server_cli(
         worker_connections=worker_connections,
         threads=threads,
         worker_class=worker_class,
+        server_app=server_app,
     )
 
 

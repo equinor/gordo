@@ -211,6 +211,7 @@ def run_server(
     worker_connections: Optional[int] = None,
     threads: Optional[int] = None,
     worker_class: str = "gthread",
+    server_app: str = "gordo.server.server:app"
 ):
     """
     Run application with Gunicorn server using Gevent Async workers
@@ -232,6 +233,8 @@ def run_server(
         The number of worker threads for handling requests.
     worker_class: str
         The type of workers to use.
+    server_app: str
+        The application to run
     """
 
     cmd = [
@@ -258,7 +261,7 @@ def run_server(
         if worker_connections is not None:
             cmd.extend(("--worker-connections", str(worker_connections)))
 
-    cmd.append("gordo.server.server:app")
+    cmd.append(server_app)
     run_cmd(cmd)
 
 
