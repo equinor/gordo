@@ -5,7 +5,7 @@ import pandas as pd
 from typing import Optional, Union
 from datetime import timedelta
 
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import TimeSeriesSplit, KFold, cross_validate as c_val
 
@@ -19,7 +19,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     def __init__(
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
-        scaler: TransformerMixin = RobustScaler(),
+        scaler: TransformerMixin = MinMaxScaler(),
         require_thresholds: bool = True,
         window=None,
     ):
@@ -183,7 +183,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
 
             # Absolute error
-            mae = pd.DataFrame(np.abs(y_pred - y_true))
+            mae = self._absolute_error(y_true, y_pred)
 
             # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
             aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
