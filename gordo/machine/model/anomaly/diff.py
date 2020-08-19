@@ -21,7 +21,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
         scaler: TransformerMixin = MinMaxScaler(),
         require_thresholds: bool = True,
-        window=None,
+        window: Optional[int] = None,
     ):
         """
         Classifier which wraps a ``base_estimator`` and provides a diff error
