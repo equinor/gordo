@@ -31,8 +31,8 @@ def current_time():
 
 
 class GordoServerPrometheusMetrics:
-    PREFIX = "gordo_server"
-    MAIN_LABELS = ("method", "path", "status_code")
+    prefix = "gordo_server"
+    main_labels = ("method", "path", "status_code")
 
     @staticmethod
     def main_label_values(req: Request, resp: Response):
@@ -63,13 +63,13 @@ class GordoServerPrometheusMetrics:
         self.registry = registry
         self.init_labels()
         self.request_duration_seconds = Histogram(
-            "%s_request_duration_seconds" % self.PREFIX,
+            "%s_request_duration_seconds" % self.prefix,
             "HTTP request duration, in seconds",
             self.label_names,
             registry=registry,
         )
         self.request_count = Counter(
-            "%s_requests_total" % self.PREFIX,
+            "%s_requests_total" % self.prefix,
             "Total HTTP requests",
             self.label_names,
             registry=registry,
@@ -82,7 +82,7 @@ class GordoServerPrometheusMetrics:
                 label_names.append(name)
                 label_values.append(value)
             gauge_info = Gauge(
-                self.PREFIX + "_info",
+                self.prefix + "_info",
                 "Gordo information",
                 label_names,
                 registry=self.registry,
@@ -94,7 +94,7 @@ class GordoServerPrometheusMetrics:
             args_names.append(arg_name)
             label_names.append(label_name)
         self.args_names = args_names
-        label_names.extend(self.MAIN_LABELS)
+        label_names.extend(self.main_labels)
         self.label_names = label_names
         self.label_values = label_values
 
