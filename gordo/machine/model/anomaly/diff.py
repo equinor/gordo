@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from sklearn.preprocessing import RobustScaler
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.model_selection import TimeSeriesSplit, cross_validate
+from sklearn.model_selection import TimeSeriesSplit, KFold, cross_validate as c_val
 
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model import utils as model_utils
@@ -159,7 +159,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
-        cv_output = cross_validate(self, X=X, y=y, **kwargs)
+        cv_output = c_val(self, X=X, y=y, **kwargs)
 
         self.feature_thresholds_per_fold_ = pd.DataFrame()
         self.aggregate_thresholds_per_fold_ = {}
