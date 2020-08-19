@@ -437,3 +437,10 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         self.shuffle = shuffle
         self.n_splits = n_splits
         self.threshold_percentile = threshold_percentile
+
+    def get_params(self, deep=True):
+        params = super().get_params()
+        params["shuffle"] = self.shuffle
+        params["n_splits"] = self.n_splits
+        params["threshold_percentile"] = self.threshold_percentile
+        return params
