@@ -339,9 +339,17 @@ def get_all_score_strings(machine):
     envvar="GORDO_SERVER_APP",
     show_default=True,
 )
+@click.option(
+    "--with-prometheus-config",
+    help="Run with custom config for prometheus",
+    is_flag=True,
+)
 def run_server_cli(
-    host, port, workers, worker_connections, threads, worker_class, log_level, server_app,
+    host, port, workers, worker_connections, threads, worker_class, log_level, server_app, with_prometheus_config,
 ):
+    config_module = None
+    if with_prometheus_config:
+        config_module = "gordo.server.prometheus.gunicorn_config"
     """
     Run the gordo server app with Gunicorn
     """
@@ -350,6 +358,7 @@ def run_server_cli(
         port,
         workers,
         log_level.lower(),
+        config_module=config_module,
         worker_connections=worker_connections,
         threads=threads,
         worker_class=worker_class,

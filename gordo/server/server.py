@@ -27,13 +27,17 @@ from .prometheus import GordoServerPrometheusMetrics
 logger = logging.getLogger(__name__)
 
 
+def enable_prometheus():
+    return os.getenv("ENABLE_PROMETHEUS", "false") != "false"
+
+
 class Config:
     """Server config"""
 
     def __init__(self):
         self.MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
         self.EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
-        self.ENABLE_PROMETHEUS = os.getenv("ENABLE_PROMETHEUS", "false") != "false"
+        self.ENABLE_PROMETHEUS = enable_prometheus()
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
@@ -118,6 +122,8 @@ def create_prometheus_metrics() -> GordoServerPrometheusMetrics:
         info={"version": __version__},
         ignore_paths=["/healthcheck"],
     )
+
+
 
 
 def build_app():
@@ -208,6 +214,7 @@ def run_server(
     port: int,
     workers: int,
     log_level: str,
+    config_module: Optional[str] = None,
     worker_connections: Optional[int] = None,
     threads: Optional[int] = None,
     worker_class: str = "gthread",
@@ -227,6 +234,8 @@ def run_server(
     log_level: str
         The log level for the `gunicorn` webserver. Valid log level names can be found
         in the [gunicorn documentation](http://docs.gunicorn.org/en/stable/settings.html#loglevel).
+    config_module: str
+        The config module. Will be passed with `python:` [prefix](https://docs.gunicorn.org/en/stable/settings.html#config).
     worker_connections: int
         The maximum number of simultaneous clients per worker process.
     threads: str
@@ -254,6 +263,8 @@ def run_server(
         "--workers",
         str(workers),
     ]
+    if enable_prometheus():
+        cmd.extend(("--config", "python:"+config_module))
     if worker_class == "gthread":
         if threads is not None:
             cmd.extend(("--threads", str(threads)))
