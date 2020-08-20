@@ -347,12 +347,12 @@ def get_all_score_strings(machine):
 def run_server_cli(
     host, port, workers, worker_connections, threads, worker_class, log_level, server_app, with_prometheus_config,
 ):
-    config_module = None
-    if with_prometheus_config:
-        config_module = "gordo.server.prometheus.gunicorn_config"
     """
     Run the gordo server app with Gunicorn
     """
+    config_module = None
+    if with_prometheus_config:
+        config_module = "gordo.server.prometheus.gunicorn_config"
     server.run_server(
         host,
         port,
