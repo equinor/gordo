@@ -463,7 +463,7 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         if self.shuffle:
-            X, y = shuffle(X, y)
+            X, y = shuffle(X, y, random_state=0)
         self.base_estimator.fit(X, y)
         self.scaler.fit(y)
         return self
@@ -476,7 +476,7 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         **kwargs,
     ):
 
-        cv = KFold(n_splits=self.n_splits, shuffle=self.shuffle)
+        cv = KFold(n_splits=self.n_splits, shuffle=self.shuffle, random_state=0)
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
