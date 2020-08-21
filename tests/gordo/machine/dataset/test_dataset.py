@@ -235,7 +235,7 @@ def test_join_timeseries_with_interpolation_method_linear_interpolation_no_limit
         interpolation_method="linear_interpolation",
         interpolation_limit=None,
     )
-    assert len(all_in_frame) == 337
+    assert len(all_in_frame) == 4177
 
 
 def test_row_filter():
