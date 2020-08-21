@@ -259,6 +259,8 @@ class GordoBaseDataset:
                 raise ValueError(
                     "Interpolation limit must be larger than given resolution"
                 )
+        else:
+            limit = None
 
         if interpolation_method == "linear_interpolation":
             return resampled.interpolate(limit=limit).dropna()
