@@ -109,7 +109,7 @@ def test_output_dir(tmpdir):
     """
     Test building of model will create subdirectories for model saving if needed.
     """
-    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "some", "sub", "directories")
     machine = Machine(
@@ -144,7 +144,7 @@ def test_output_dir(tmpdir):
     sklearn.pipeline.Pipeline:
         steps:
           - sklearn.preprocessing.MinMaxScaler
-          - sklearn.decomposition.pca.PCA:
+          - sklearn.decomposition.PCA:
               svd_solver: auto
     """,
         # Nested pipelilnes
@@ -156,7 +156,7 @@ def test_output_dir(tmpdir):
                     - sklearn.preprocessing.MinMaxScaler
               - sklearn.pipeline.Pipeline:
                   steps:
-                    - sklearn.decomposition.pca.PCA:
+                    - sklearn.decomposition.PCA:
                         svd_solver: auto
         """,
         # Pipeline as a parameter to another estimator
@@ -391,7 +391,7 @@ def test_provide_saved_model_simple_happy_path(tmpdir):
     """
     Test provide_saved_model with no caching
     """
-    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
     machine = Machine(
@@ -407,7 +407,7 @@ def test_provide_saved_model_simple_happy_path(tmpdir):
 def test_provide_saved_model_caching_handle_existing_same_dir(tmpdir):
     """If the model exists in the model register, and the path there is the
     same as output_dir, output_dir is returned"""
-    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
     registry_dir = os.path.join(tmpdir, "registry")
@@ -427,7 +427,7 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmpdir):
     """If the model exists in the model register, but the output_dir is not where
     the model is, the model is copied to the new location, unless the new location
     already exists. If it does then return it"""
-    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir1 = os.path.join(tmpdir, "model1")
     output_dir2 = os.path.join(tmpdir, "model2")
@@ -489,7 +489,7 @@ def test_provide_saved_model_caching(
     if metadata is None:
         metadata = Metadata()
 
-    model_config = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+    model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
     registry_dir = os.path.join(tmpdir, "registry")
@@ -604,7 +604,7 @@ def test_metrics_from_list():
     (
         {
             "sklearn.multioutput.MultiOutputRegressor": {
-                "estimator": "sklearn.ensemble.forest.RandomForestRegressor"
+                "estimator": "sklearn.ensemble.RandomForestRegressor"
             }
         },
         {
@@ -674,7 +674,7 @@ def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
 
     model_config = {
         "sklearn.multioutput.MultiOutputRegressor": {
-            "estimator": "sklearn.ensemble.forest.RandomForestRegressor"
+            "estimator": "sklearn.ensemble.RandomForestRegressor"
         }
     }
 

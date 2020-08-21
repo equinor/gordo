@@ -29,7 +29,7 @@ def test_valid_model():
     myclass.value = {
         "gordo.machine.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}
     }
-    myclass.value = "sklearn.ensemble.forest.RandomForestRegressor"
+    myclass.value = "sklearn.ensemble.RandomForestRegressor"
 
     # Not ok
     with pytest.raises(ValueError):

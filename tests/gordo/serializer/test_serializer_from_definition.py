@@ -29,12 +29,12 @@ logger = logging.getLogger(__name__)
     [
         """ 
     sklearn.multioutput.MultiOutputRegressor:
-      estimator: sklearn.ensemble.forest.RandomForestRegressor
+      estimator: sklearn.ensemble.RandomForestRegressor
     """,
         """ 
     sklearn.multioutput.MultiOutputRegressor:
       estimator: 
-        sklearn.ensemble.forest.RandomForestRegressor:
+        sklearn.ensemble.RandomForestRegressor:
           n_estimators: 20
     """,
         """ 
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
       estimator: 
         sklearn.pipeline.Pipeline:
             steps:
-                - sklearn.ensemble.forest.RandomForestRegressor:
+                - sklearn.ensemble.RandomForestRegressor:
                     n_estimators: 20
     """,
         """
@@ -91,7 +91,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         f"""
                     sklearn.pipeline.Pipeline:
                         steps:
-                            - sklearn.decomposition.pca.PCA:
+                            - sklearn.decomposition.PCA:
                                 n_components: 2
                                 copy: true
                                 whiten: false
@@ -105,7 +105,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                     factor: 1
                             - sklearn.pipeline.FeatureUnion:
                                 transformer_list:
-                                - sklearn.decomposition.pca.PCA:
+                                - sklearn.decomposition.PCA:
                                     n_components: 3
                                     copy: true
                                     whiten: false
@@ -115,7 +115,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                     random_state:
                                 - sklearn.pipeline.Pipeline:
                                     steps:
-                                    - sklearn.preprocessing.data.MinMaxScaler:
+                                    - sklearn.preprocessing.MinMaxScaler:
                                         feature_range:
                                         - 0
                                         - 1
@@ -139,17 +139,17 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         f"""
                     sklearn.pipeline.Pipeline:
                         steps:
-                            - sklearn.decomposition.pca.PCA:
+                            - sklearn.decomposition.PCA:
                                 n_components: 2
                             - sklearn.preprocessing._function_transformer.FunctionTransformer:
                                 func: gordo.machine.model.transformer_funcs.general.multiply_by
                                 kw_args:
                                     factor: 1
                             - sklearn.pipeline.FeatureUnion:
-                                - sklearn.decomposition.pca.PCA:
+                                - sklearn.decomposition.PCA:
                                     n_components: 3
                                 - sklearn.pipeline.Pipeline:
-                                    - sklearn.preprocessing.data.MinMaxScaler:
+                                    - sklearn.preprocessing.MinMaxScaler:
                                         feature_range: [0, 1]
                                     - sklearn.decomposition.truncated_svd.TruncatedSVD:
                                         n_components: 2
@@ -164,7 +164,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                         f"""
                     sklearn.pipeline.Pipeline:
                         steps:
-                        - sklearn.decomposition.pca.PCA:
+                        - sklearn.decomposition.PCA:
                             n_components: 2
                             copy: true
                             whiten: false
@@ -178,7 +178,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                     factor: 1
                         - sklearn.pipeline.FeatureUnion:
                             transformer_list:
-                            - sklearn.decomposition.pca.PCA:
+                            - sklearn.decomposition.PCA:
                                 n_components: 3
                                 copy: true
                                 whiten: false
@@ -188,7 +188,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                 random_state:
                             - sklearn.pipeline.Pipeline:
                                 steps:
-                                - sklearn.preprocessing.data.MinMaxScaler:
+                                - sklearn.preprocessing.MinMaxScaler:
                                     feature_range:
                                     - 0
                                     - 1

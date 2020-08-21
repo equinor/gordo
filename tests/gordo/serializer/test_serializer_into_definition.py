@@ -236,7 +236,7 @@ def test_from_into():
             definition = f"""
                 sklearn.pipeline.Pipeline:
                     steps:
-                        - sklearn.decomposition.pca.PCA:
+                        - sklearn.decomposition.PCA:
                             n_components: 2
                             copy: true
                             whiten: false
@@ -253,7 +253,7 @@ def test_from_into():
                                 factor: 1
                         - sklearn.pipeline.FeatureUnion:
                             transformer_list:
-                            - sklearn.decomposition.pca.PCA:
+                            - sklearn.decomposition.PCA:
                                 n_components: 3
                                 copy: true
                                 whiten: false
@@ -263,7 +263,7 @@ def test_from_into():
                                 random_state:
                             - sklearn.pipeline.Pipeline:
                                 steps:
-                                - sklearn.preprocessing.data.MinMaxScaler:
+                                - sklearn.preprocessing.MinMaxScaler:
                                     feature_range:
                                     - 0
                                     - 1

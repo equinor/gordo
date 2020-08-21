@@ -51,6 +51,6 @@ globals:
   model:
     sklearn.pipeline.Pipeline:
       steps:
-        - sklearn.preprocessing.data.MinMaxScaler
+        - sklearn.preprocessing.MinMaxScaler
         - gordo.machine.model.models.KerasAutoEncoder:
             kind: feedforward_hourglass
