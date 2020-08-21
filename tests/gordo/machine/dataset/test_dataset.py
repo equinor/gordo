@@ -219,7 +219,10 @@ def test_join_timeseries_with_interpolation_method_linear_interpolation(dataset)
     )
     assert len(all_in_frame) == 337
 
-def test_join_timeseries_with_interpolation_method_linear_interpolation_no_limit(dataset):
+
+def test_join_timeseries_with_interpolation_method_linear_interpolation_no_limit(
+    dataset,
+):
     timeseries_list, latest_start, earliest_end = create_timeseries_list()
     resampling_start = dateutil.parser.isoparse("2017-01-01 06:00:00+07:00")
     resampling_end = dateutil.parser.isoparse("2018-02-01 13:07:00+07:00")
@@ -233,6 +236,7 @@ def test_join_timeseries_with_interpolation_method_linear_interpolation_no_limit
         interpolation_limit=None,
     )
     assert len(all_in_frame) == 337
+
 
 def test_row_filter():
     """Tests that row_filter filters away rows"""
