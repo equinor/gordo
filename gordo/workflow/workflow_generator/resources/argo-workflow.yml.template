@@ -854,7 +854,7 @@ spec:
       parameters:
       - name: host-name
     steps:
-      - - name: apply-with-retries
+      - - name: apply-server-with-retries
           template: apply-with-retries
           arguments:
             parameters:
@@ -978,7 +978,7 @@ spec:
                               claimName: "azurefile"{% if not without_prometheus %}
                           - name: metrics
                             emptyDir: {}
-      - - name: apply-with-retries
+      - - name: apply-podmonitor-with-retries
           template: apply-with-retries
           arguments:
             parameters:
