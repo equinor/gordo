@@ -124,8 +124,6 @@ def create_prometheus_metrics() -> GordoServerPrometheusMetrics:
     )
 
 
-
-
 def build_app():
     """
     Build app and any associated routes

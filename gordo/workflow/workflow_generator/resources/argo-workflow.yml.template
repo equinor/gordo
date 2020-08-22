@@ -895,7 +895,10 @@ spec:
                              name: "gordoserver-{{ project_name }}"
                              volumeMounts:
                                - mountPath: "/gordo"
-                                 name: gstor
+                                 name: gstor{% if not without_prometheus %}
+                               - name: metrics
+                                 mountPath: /metrics
+                             {% endif %}
                              ports:
                                - name: http-api
                                  containerPort: 5555
@@ -923,20 +926,89 @@ spec:
                                - name: EXPECTED_MODELS
                                  value: |
                                    [{% for machine in machines %}"{{ machine.name }}",{% endfor %}]
-
+                               - name: ENABLE_PROMETHEUS
+                                 value: "{% if not without_prometheus %}true{% else %}false{% endif %}"{% if not without_prometheus %}
+                               - name: prometheus_multiproc_dir
+                                 value: "/metrics"{% endif %}
+                             command: ["gordo", "run-server"{% if not without_prometheus %}, "--with-prometheus-config"{% endif %}]
                              resources:
                                requests:
                                  memory: "{{ server_resources['requests']['memory'] }}M"
                                  cpu: "{{ server_resources['requests']['cpu'] }}m"
                                limits:
                                  memory: "{{ server_resources['limits']['memory'] }}M"
-                                 cpu: "{{ server_resources['limits']['cpu'] }}m"
+                                 cpu: "{{ server_resources['limits']['cpu'] }}m"{% if not without_prometheus %}
+                           - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"
+                             imagePullPolicy: "IfNotPresent"
+                             name: "gordoserver-prometheus-{{ project_name }}"
+                             volumeMounts:
+                               - name: metrics
+                                 mountPath: /metrics
+                             ports:
+                               - name: metrics
+                                 containerPort: 5000
+                             livenessProbe:
+                               httpGet:
+                                 path: /healthcheck
+                                 port: metrics
+                               initialDelaySeconds: 60
+                               timeoutSeconds: 5
+                             readinessProbe:
+                               httpGet:
+                                 path: /healthcheck
+                                 port: metrics
+                               initialDelaySeconds: 5
+                               timeoutSeconds: 5
+                             env:
+                               - name: prometheus_multiproc_dir
+                                 value: "/metrics"
+                             command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--server-app", "gordo.server.prometheus.server:app"]
+                             resources:
+                               requests:
+                                 memory: "50M"
+                                 cpu: "5m"
+                               limits:
+                                 memory: "200M"
+                                 cpu: "50m"
+                           {% endif %}
                         terminationGracePeriodSeconds: 1
                         volumes:
                           - name: gstor
                             persistentVolumeClaim:
-                              claimName: "azurefile"
-
+                              claimName: "azurefile"{% if not without_prometheus %}
+                          - name: metrics
+                            emptyDir: {}
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: monitoring.coreos.com/v1
+                  kind: PodMonitor
+                  metadata:
+                    name: "{{'{{inputs.parameters.host-name}}'}}-podmonitor"
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server-podmonitor
+                      app.kubernetes.io/component: PodMonitor
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    podMetricsEndpoints:
+                    - path: /metrics
+                      port: metrics
+                    selector:
+                      matchLabels:
+                        app: "{{'{{inputs.parameters.host-name}}'}}"
+                        applications.gordo.equinor.com/project-name: "{{project_name}}"
+                        applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% endif %}
   - name: gordo-server
     inputs:
       parameters:
