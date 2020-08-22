@@ -965,10 +965,10 @@ spec:
                              command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--server-app", "gordo.server.prometheus.server:app"]
                              resources:
                                requests:
-                                 memory: "50M"
+                                 memory: "100M"
                                  cpu: "5m"
                                limits:
-                                 memory: "200M"
+                                 memory: "1000M"
                                  cpu: "50m"
                            {% endif %}
                         terminationGracePeriodSeconds: 1
