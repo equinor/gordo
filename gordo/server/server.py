@@ -17,7 +17,7 @@ from functools import wraps
 import yaml
 from flask import Flask, g, request, current_app, make_response, jsonify
 
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from gordo.server import views
 from gordo import __version__
@@ -131,12 +131,14 @@ def create_prometheus_metrics(project: Optional[str] = None) -> GordoServerProme
     )
 
 
-def build_app():
+def build_app(config: Optional[Dict[str, Any]] = None):
     """
     Build app and any associated routes
     """
     app = Flask(__name__)
     app.config.from_object(Config())
+    if config is not None:
+        app.config.update(**config)
 
     app.register_blueprint(views.base_blueprint)
     app.register_blueprint(views.anomaly_blueprint)
