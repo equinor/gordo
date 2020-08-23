@@ -772,7 +772,10 @@ spec:
                     ports:
                     - port: 80
                       name: http-gordo
-                      targetPort: http-api
+                      targetPort: http-api{% if not without_prometheus %}
+                    - port: 5000
+                      name: metrics-gordo
+                      targetPort: metrics{% endif %}
 
   - name: gordo-server-istio
     inputs:
@@ -854,7 +857,7 @@ spec:
       parameters:
       - name: host-name
     steps:
-      - - name: apply-server-with-retries
+      - - name: apply-with-retries
           template: apply-with-retries
           arguments:
             parameters:
@@ -963,13 +966,13 @@ spec:
                              env:
                                - name: prometheus_multiproc_dir
                                  value: "/metrics"
-                             command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--server-app", "gordo.server.prometheus.server:app"]
+                             command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--threads", "4", "--server-app", "gordo.server.prometheus.server:app"]
                              resources:
                                requests:
-                                 memory: "100M"
+                                 memory: "50M"
                                  cpu: "5m"
                                limits:
-                                 memory: "1000M"
+                                 memory: "500M"
                                  cpu: "50m"
                            {% endif %}
                         terminationGracePeriodSeconds: 1
@@ -978,8 +981,14 @@ spec:
                             persistentVolumeClaim:
                               claimName: "azurefile"{% if not without_prometheus %}
                           - name: metrics
-                            emptyDir: {}
-      - - name: apply-podmonitor-with-retries
+                            emptyDir: {}{% endif %}
+
+  - name: gordo-server-monitor
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
           template: apply-with-retries
           arguments:
             parameters:
@@ -987,13 +996,13 @@ spec:
                 value:  |
                   ---
                   apiVersion: monitoring.coreos.com/v1
-                  kind: PodMonitor
+                  kind: ServiceMonitor
                   metadata:
-                    name: "{{'{{inputs.parameters.host-name}}'}}-podmonitor"
+                    name: "{{'{{inputs.parameters.host-name}}'}}-monitor"
                     labels:
                       app: "{{'{{inputs.parameters.host-name}}'}}"
-                      app.kubernetes.io/name: model-server-podmonitor
-                      app.kubernetes.io/component: PodMonitor
+                      app.kubernetes.io/name: model-server-monitor
+                      app.kubernetes.io/component: ServiceMonitor
                       app.kubernetes.io/part-of: gordo
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
@@ -1002,13 +1011,13 @@ spec:
                     ownerReferences: {{owner_references}}
                     {% endif %}
                   spec:
-                    podMetricsEndpoints:
+                    endpoints:
                     - path: /metrics
-                      port: metrics
+                      port: metrics-gordo
                     selector:
                       matchLabels:
                         app: "{{'{{inputs.parameters.host-name}}'}}"
-                        project: "{{project_name}}"{% endif %}
+
   - name: gordo-server
     inputs:
       parameters:
@@ -1025,7 +1034,11 @@ spec:
       - name: gordo-server-svc
         template: gordo-server-svc
         arguments:
-          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% if not without_prometheus %}
+      - name: gordo-server-monitor
+        template: gordo-server-monitor
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% endif %}
       - name: gordo-server-istio
         template: gordo-server-istio
         arguments:
