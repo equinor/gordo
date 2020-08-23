@@ -25,4 +25,4 @@ simplejson~=3.17
 catboost~=0.20
 typing_extensions~=3.7
 wrapt~=1.11
-prometheus_client~=0.8.0
+prometheus_client~=0.7.1

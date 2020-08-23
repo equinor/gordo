@@ -87,7 +87,7 @@ pandas==1.0.0             # via -r requirements.in, catboost, mlflow
 pathspec==0.7.0           # via azureml-core
 peewee==3.13.1            # via -r postgres_requirements.in
 plotly==4.4.1             # via catboost
-prometheus-client==0.8.0  # via -r requirements.in, prometheus-flask-exporter
+prometheus-client==0.7.1  # via -r requirements.in, prometheus-flask-exporter
 prometheus-flask-exporter==0.12.1  # via mlflow
 protobuf==3.11.2          # via mlflow, tensorboard, tensorflow
 psycopg2-binary==2.8.4    # via -r postgres_requirements.in
