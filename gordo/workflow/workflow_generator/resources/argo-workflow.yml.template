@@ -930,6 +930,8 @@ spec:
                                - name: EXPECTED_MODELS
                                  value: |
                                    [{% for machine in machines %}"{{ machine.name }}",{% endfor %}]
+                               - name: PROJECT
+                                 value: "{{project_name}}"
                                - name: ENABLE_PROMETHEUS
                                  value: "{% if not without_prometheus %}true{% else %}false{% endif %}"{% if not without_prometheus %}
                                - name: prometheus_multiproc_dir

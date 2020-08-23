@@ -38,6 +38,7 @@ class Config:
         self.MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
         self.EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
         self.ENABLE_PROMETHEUS = enable_prometheus()
+        self.PROJECT = os.getenv("PROJECT")
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
@@ -116,10 +117,16 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
-def create_prometheus_metrics() -> GordoServerPrometheusMetrics:
+def create_prometheus_metrics(project: Optional[str] = None) -> GordoServerPrometheusMetrics:
+    arg_labels = [("gordo_name", "model")]
+    info = {"version": __version__}
+    if project is not None:
+        info['project'] = project
+    else:
+        arg_labels.append(("gordo_project", "project"))
     return GordoServerPrometheusMetrics(
-        args_labels=(("gordo_project", "project"), ("gordo_name", "model")),
-        info={"version": __version__},
+        args_labels=arg_labels,
+        info=info,
         ignore_paths=["/healthcheck"],
     )
 
@@ -138,7 +145,7 @@ def build_app():
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
 
     if app.config["ENABLE_PROMETHEUS"]:
-        prometheus_metrics = create_prometheus_metrics()
+        prometheus_metrics = create_prometheus_metrics(app.config.get('PROJECT'))
         prometheus_metrics.prepare_app(app)
 
     @app.before_request
