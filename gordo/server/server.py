@@ -261,7 +261,7 @@ def run_server(
         "--workers",
         str(workers),
     ]
-    if enable_prometheus():
+    if config_module is not None:
         cmd.extend(("--config", "python:"+config_module))
     if worker_class == "gthread":
         if threads is not None:

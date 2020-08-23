@@ -887,6 +887,7 @@ spec:
                       metadata:
                         labels:
                           app: "{{'{{inputs.parameters.host-name}}'}}"
+                          project: "{{project_name}}"
                       spec:
                         priorityClassName: server-priority
                         containers:
@@ -1007,8 +1008,7 @@ spec:
                     selector:
                       matchLabels:
                         app: "{{'{{inputs.parameters.host-name}}'}}"
-                        applications.gordo.equinor.com/project-name: "{{project_name}}"
-                        applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% endif %}
+                        project: "{{project_name}}"{% endif %}
   - name: gordo-server
     inputs:
       parameters:
