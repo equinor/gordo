@@ -17,12 +17,19 @@ from functools import wraps
 import yaml
 from flask import Flask, g, request, current_app, make_response, jsonify
 
-from typing import Optional
+from typing import Optional, Any, Dict
 
 from gordo.server import views
 from gordo import __version__
 
+from prometheus_client import CollectorRegistry
+from .prometheus import GordoServerPrometheusMetrics
+
 logger = logging.getLogger(__name__)
+
+
+def enable_prometheus():
+    return os.getenv("ENABLE_PROMETHEUS", "false") != "false"
 
 
 class Config:
@@ -31,6 +38,8 @@ class Config:
     def __init__(self):
         self.MODEL_COLLECTION_DIR_ENV_VAR = "MODEL_COLLECTION_DIR"
         self.EXPECTED_MODELS = yaml.safe_load(os.getenv("EXPECTED_MODELS", "[]"))
+        self.ENABLE_PROMETHEUS = enable_prometheus()
+        self.PROJECT = os.getenv("PROJECT")
 
 
 def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
@@ -109,18 +118,48 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
-def build_app():
+def create_prometheus_metrics(
+    project: Optional[str] = None, registry: Optional[CollectorRegistry] = None,
+) -> GordoServerPrometheusMetrics:
+    arg_labels = [("gordo_name", "model")]
+    info = {"version": __version__}
+    if project is not None:
+        info["project"] = project
+    else:
+        arg_labels.append(("gordo_project", "project"))
+    return GordoServerPrometheusMetrics(
+        args_labels=arg_labels,
+        info=info,
+        ignore_paths=["/healthcheck"],
+        registry=registry,
+    )
+
+
+def build_app(
+    config: Optional[Dict[str, Any]] = None,
+    prometheus_registry: Optional[CollectorRegistry] = None,
+):
     """
     Build app and any associated routes
     """
     app = Flask(__name__)
     app.config.from_object(Config())
+    if config is not None:
+        app.config.update(**config)
 
     app.register_blueprint(views.base_blueprint)
     app.register_blueprint(views.anomaly_blueprint)
 
     app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)  # type: ignore
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
+
+    if app.config["ENABLE_PROMETHEUS"]:
+        prometheus_metrics = create_prometheus_metrics(
+            project=app.config.get("PROJECT"), registry=prometheus_registry,
+        )
+        prometheus_metrics.prepare_app(app)
+    elif prometheus_registry is not None:
+        logger.warning("Ignoring non empty prometheus_registry argument")
 
     @app.before_request
     def _start_timer():
@@ -193,9 +232,11 @@ def run_server(
     port: int,
     workers: int,
     log_level: str,
+    config_module: Optional[str] = None,
     worker_connections: Optional[int] = None,
     threads: Optional[int] = None,
     worker_class: str = "gthread",
+    server_app: str = "gordo.server.server:build_app()",
 ):
     """
     Run application with Gunicorn server using Gevent Async workers
@@ -211,12 +252,16 @@ def run_server(
     log_level: str
         The log level for the `gunicorn` webserver. Valid log level names can be found
         in the [gunicorn documentation](http://docs.gunicorn.org/en/stable/settings.html#loglevel).
+    config_module: str
+        The config module. Will be passed with `python:` [prefix](https://docs.gunicorn.org/en/stable/settings.html#config).
     worker_connections: int
         The maximum number of simultaneous clients per worker process.
     threads: str
         The number of worker threads for handling requests.
     worker_class: str
         The type of workers to use.
+    server_app: str
+        The application to run
     """
 
     cmd = [
@@ -236,6 +281,8 @@ def run_server(
         "--workers",
         str(workers),
     ]
+    if config_module is not None:
+        cmd.extend(("--config", "python:" + config_module))
     if worker_class == "gthread":
         if threads is not None:
             cmd.extend(("--threads", str(threads)))
@@ -243,12 +290,12 @@ def run_server(
         if worker_connections is not None:
             cmd.extend(("--worker-connections", str(worker_connections)))
 
-    cmd.append("gordo.server.server:app")
+    cmd.append(server_app)
     run_cmd(cmd)
 
 
-app = build_app()
-
 if __name__ == "__main__":
+    app = build_app()
+
     # Run development webserver
     app.run("0.0.0.0", 5555, debug=True, threaded=False)

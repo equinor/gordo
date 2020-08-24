@@ -165,6 +165,12 @@ def workflow_cli(gordo_ctx):
     help="timeoutSeconds value for livenessProbe and readinessProbe of Gordo server Deployment",
     envvar=f"{PREFIX}_GORDO_SERVER_PROBE_TIMEOUT",
 )
+@click.option(
+    "--without-prometheus",
+    is_flag=True,
+    help="Do not deploy prometheus for Gordo servers monitoring",
+    envvar=f"{PREFIX}_WITHOUT_PROMETHEUS",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """

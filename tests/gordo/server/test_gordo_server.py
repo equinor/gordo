@@ -14,6 +14,8 @@ from gordo.server.server import run_cmd
 from gordo import serializer, __version__
 from gordo.server import server
 
+from prometheus_client.registry import CollectorRegistry
+
 import tests.utils as tu
 
 
@@ -130,7 +132,7 @@ def test_run_server_gthread():
                 "2",
                 "--threads",
                 "8",
-                "gordo.server.server:app",
+                "gordo.server.server:build_app()",
             ]
         )
 
@@ -167,7 +169,7 @@ def test_run_server_gevent():
                 "2",
                 "--worker-connections",
                 "50",
-                "gordo.server.server:app",
+                "gordo.server.server:build_app()",
             ]
         )
 
@@ -188,7 +190,7 @@ def test_list_revisions(tmpdir, revisions: List[str]):
 
     # Request from the server what revisions it can serve, should match
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=model_dir):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
         resp = client.get("/gordo/v0/test-project/revisions")
@@ -222,7 +224,7 @@ def test_list_revisions_listdir_fail(caplog):
     with patch.object(os, "listdir", side_effect=listdir_fail) as mocked_listdir:
         with caplog.at_level(logging.CRITICAL):
             with tu.temp_env_vars(MODEL_COLLECTION_DIR=expected_revision):
-                app = server.build_app()
+                app = server.build_app({"ENABLE_PROMETHEUS": False})
                 app.testing = True
                 client = app.test_client()
                 resp = client.get("/gordo/v0/test-project/revisions")
@@ -236,7 +238,7 @@ def test_list_revisions_listdir_fail(caplog):
 
 def test_model_list_view_non_existant_proj():
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=os.path.join("does", "not", "exist")):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
         resp = client.get("/gordo/v0/test-project/models")
@@ -276,7 +278,7 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
             os.makedirs(os.path.join(tmpdir, revision, model), exist_ok=True)
 
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
         for revision in revision_to_models:
@@ -317,7 +319,7 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
             json.dump({"revision": revision, "model": model_name}, fp)
 
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
         for revision in revisions:
@@ -357,7 +359,7 @@ def test_server_version_route(model_collection_directory, gordo_revision):
     Simple route which returns the current version
     """
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=model_collection_directory):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
 
@@ -371,7 +373,7 @@ def test_non_existant_model_metadata(tmpdir, gordo_project, api_version):
     Simple route which returns the current version
     """
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=str(tmpdir)):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
 
@@ -390,9 +392,29 @@ def test_expected_models_route(tmpdir):
         MODEL_COLLECTION_DIR=str(tmpdir),
         EXPECTED_MODELS=json.dumps(["model-a", "model-b"]),
     ):
-        app = server.build_app()
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
 
         resp = client.get("/gordo/v0/test-project/expected-models")
         assert resp.json["expected-models"] == ["model-a", "model-b"]
+
+
+def test_with_prometheus():
+    prometheus_registry = CollectorRegistry()
+    app = server.build_app({"ENABLE_PROMETHEUS": True}, prometheus_registry)
+    app.testing = True
+    client = app.test_client()
+
+    client.get("/server-version")
+
+    samples = []
+    for metric in prometheus_registry.collect():
+        for sample in metric.samples:
+            if sample.name == "gordo_server_requests_total":
+                samples.append(sample)
+
+    assert (
+        len(samples) != 0
+    ), "Could not found any 'gordo_server_requests_total' metrics"
+    assert len(samples) == 1, "Found more then 1 'gordo_server_requests_total' metric"
