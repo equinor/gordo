@@ -411,8 +411,10 @@ def test_with_prometheus():
     samples = []
     for metric in prometheus_registry.collect():
         for sample in metric.samples:
-            if sample.name == 'gordo_server_requests_total':
+            if sample.name == "gordo_server_requests_total":
                 samples.append(sample)
 
-    assert len(samples) != 0, "Could not found any 'gordo_server_requests_total' metrics"
+    assert (
+        len(samples) != 0
+    ), "Could not found any 'gordo_server_requests_total' metrics"
     assert len(samples) == 1, "Found more then 1 'gordo_server_requests_total' metric"

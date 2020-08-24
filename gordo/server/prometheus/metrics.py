@@ -44,6 +44,7 @@ class GordoServerPrometheusMetrics:
     >>> prometheus_metrics = GordoServerPrometheusMetrics(registry=CollectorRegistry())
     >>> prometheus_metrics.prepare_app(app)
     """
+
     prefix = "gordo_server"
     main_labels = ("method", "path", "status_code")
 

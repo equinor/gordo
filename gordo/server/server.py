@@ -119,8 +119,7 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
 
 
 def create_prometheus_metrics(
-    project: Optional[str] = None,
-    registry: Optional[CollectorRegistry] = None,
+    project: Optional[str] = None, registry: Optional[CollectorRegistry] = None,
 ) -> GordoServerPrometheusMetrics:
     arg_labels = [("gordo_name", "model")]
     info = {"version": __version__}
@@ -129,11 +128,17 @@ def create_prometheus_metrics(
     else:
         arg_labels.append(("gordo_project", "project"))
     return GordoServerPrometheusMetrics(
-        args_labels=arg_labels, info=info, ignore_paths=["/healthcheck"], registry=registry,
+        args_labels=arg_labels,
+        info=info,
+        ignore_paths=["/healthcheck"],
+        registry=registry,
     )
 
 
-def build_app(config: Optional[Dict[str, Any]] = None, prometheus_registry: Optional[CollectorRegistry] = None):
+def build_app(
+    config: Optional[Dict[str, Any]] = None,
+    prometheus_registry: Optional[CollectorRegistry] = None,
+):
     """
     Build app and any associated routes
     """
@@ -150,8 +155,7 @@ def build_app(config: Optional[Dict[str, Any]] = None, prometheus_registry: Opti
 
     if app.config["ENABLE_PROMETHEUS"]:
         prometheus_metrics = create_prometheus_metrics(
-            project=app.config.get("PROJECT"),
-            registry=prometheus_registry,
+            project=app.config.get("PROJECT"), registry=prometheus_registry,
         )
         prometheus_metrics.prepare_app(app)
     elif prometheus_registry is not None:
