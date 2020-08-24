@@ -971,11 +971,11 @@ spec:
                              command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--threads", "4", "--server-app", "gordo.server.prometheus.server:build_app()"]
                              resources:
                                requests:
-                                 memory: "50M"
-                                 cpu: "5m"
+                                 memory: "{{ prometheus_metrics_server_resources['requests']['memory'] }}M"
+                                 cpu: "{{ prometheus_metrics_server_resources['requests']['cpu'] }}m"
                                limits:
-                                 memory: "750M"
-                                 cpu: "50m"
+                                 memory: "{{ prometheus_metrics_server_resources['limits']['memory'] }}M"
+                                 cpu: "{{ prometheus_metrics_server_resources['limits']['cpu'] }}m"
                            {% endif %}
                         terminationGracePeriodSeconds: 1
                         volumes:

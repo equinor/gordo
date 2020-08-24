@@ -38,6 +38,12 @@ class NormalizedConfig:
                     "limits": {"memory": 6000, "cpu": 2000},
                 }
             },
+            "prometheus_metrics_server": {
+                "resources": {
+                    "requests": {"memory": 200, "cpu": 100},
+                    "limits": {"memory": 1000, "cpu": 200},
+                }
+            },
             "builder": {
                 "resources": {
                     "requests": {"memory": 3900, "cpu": 1001},
