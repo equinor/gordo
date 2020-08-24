@@ -375,7 +375,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             )
             index = data["smooth-tag-anomaly-scaled"].index
         elif hasattr(self, "feature_thresholds_"):
-            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
+            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.to_numpy()
             index = tag_anomaly_scaled.index
 
         if confidence is not None and index is not None:
@@ -530,7 +530,5 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
 
     def _calculate_threshold(
         self, validation_metric: Union[pd.DataFrame, pd.Series]
-    ) -> Union[float, np.ndarray]:
-        return np.percentile(
-            validation_metric.dropna(), self.threshold_percentile, axis=0
-        )
+    ) -> Union[float, pd.Series]:
+        return validation_metric.quantile(self.threshold_percentile)
