@@ -22,6 +22,7 @@ from typing import Optional, Any, Dict
 from gordo.server import views
 from gordo import __version__
 
+from prometheus_client import CollectorRegistry
 from .prometheus import GordoServerPrometheusMetrics
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,7 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
 
 def create_prometheus_metrics(
     project: Optional[str] = None,
+    registry: Optional[CollectorRegistry] = None,
 ) -> GordoServerPrometheusMetrics:
     arg_labels = [("gordo_name", "model")]
     info = {"version": __version__}
@@ -127,11 +129,11 @@ def create_prometheus_metrics(
     else:
         arg_labels.append(("gordo_project", "project"))
     return GordoServerPrometheusMetrics(
-        args_labels=arg_labels, info=info, ignore_paths=["/healthcheck"],
+        args_labels=arg_labels, info=info, ignore_paths=["/healthcheck"], registry=registry,
     )
 
 
-def build_app(config: Optional[Dict[str, Any]] = None):
+def build_app(config: Optional[Dict[str, Any]] = None, prometheus_registry: Optional[CollectorRegistry] = None):
     """
     Build app and any associated routes
     """
@@ -147,8 +149,13 @@ def build_app(config: Optional[Dict[str, Any]] = None):
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
 
     if app.config["ENABLE_PROMETHEUS"]:
-        prometheus_metrics = create_prometheus_metrics(app.config.get("PROJECT"))
+        prometheus_metrics = create_prometheus_metrics(
+            project=app.config.get("PROJECT"),
+            registry=prometheus_registry,
+        )
         prometheus_metrics.prepare_app(app)
+    elif prometheus_registry is not None:
+        logger.warning("Ignoring non empty prometheus_registry argument")
 
     @app.before_request
     def _start_timer():

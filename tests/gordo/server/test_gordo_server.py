@@ -14,6 +14,8 @@ from gordo.server.server import run_cmd
 from gordo import serializer, __version__
 from gordo.server import server
 
+from prometheus_client.registry import CollectorRegistry
+
 import tests.utils as tu
 
 
@@ -396,3 +398,21 @@ def test_expected_models_route(tmpdir):
 
         resp = client.get("/gordo/v0/test-project/expected-models")
         assert resp.json["expected-models"] == ["model-a", "model-b"]
+
+
+def test_with_prometheus():
+    prometheus_registry = CollectorRegistry()
+    app = server.build_app({"ENABLE_PROMETHEUS": True}, prometheus_registry)
+    app.testing = True
+    client = app.test_client()
+
+    client.get("/server-version")
+
+    samples = []
+    for metric in prometheus_registry.collect():
+        for sample in metric.samples:
+            if sample.name == 'gordo_server_requests_total':
+                samples.append(sample)
+
+    assert len(samples) != 0, "Could not found any 'gordo_server_requests_total' metrics"
+    assert len(samples) == 1, "Found more then 1 'gordo_server_requests_total' metric"
