@@ -123,7 +123,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         return self.base_estimator.score(X, y)
 
     def get_params(self, deep=True):
-        params = {"base_estimator": self.base_estimator, "scaler": self.scaler}
+        params = {
+            "base_estimator": self.base_estimator,
+            "scaler": self.scaler,
+            "require_thresholds": self.require_thresholds,
+        }
         if self.window is not None:
             params["window"] = self.window
         return params
@@ -439,6 +443,7 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         params = {
             "base_estimator": self.base_estimator,
             "scaler": self.scaler,
+            "require_thresholds": self.require_thresholds,
             "window": self.window,
             "shuffle": self.shuffle,
             "n_splits": self.n_splits,
