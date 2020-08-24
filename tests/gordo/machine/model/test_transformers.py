@@ -140,11 +140,10 @@ def test_infimputer_fill_values():
     imputer = InfImputer(inf_fill_value=9999.0, neg_inf_fill_value=-9999.0)
     X = imputer.fit_transform(base_x)
     np.equal(
-        X.ravel()[tuple(pos_inf_idxs)],
-        np.array([9999.0, 9999.0, 9999.0, 9999.0, 9999.0]),
+        X.ravel()[[pos_inf_idxs]], np.array([9999.0, 9999.0, 9999.0, 9999.0, 9999.0]),
     )
     np.equal(
-        X.ravel()[tuple(neg_inf_idxs)],
+        X.ravel()[[neg_inf_idxs]],
         np.array([-9999.0, -9999.0, -9999.0, -9999.0, -9999.0]),
     )
 
