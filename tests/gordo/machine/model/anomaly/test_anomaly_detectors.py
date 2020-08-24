@@ -11,12 +11,15 @@ from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import cross_validate
-from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit, KFold
 
 from gordo import serializer
 from gordo.machine.model import utils as model_utils
-from gordo.machine.model.anomaly import DiffBasedAnomalyDetector
 from gordo.machine.model.anomaly.base import AnomalyDetectorBase
+from gordo.machine.model.anomaly.diff import (
+    DiffBasedAnomalyDetector,
+    DiffBasedKFCVAnomalyDetector,
+)
 
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
@@ -38,12 +41,16 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
     model = DiffBasedAnomalyDetector(
-        base_estimator=base_estimator, scaler=scaler, require_thresholds=False
+        base_estimator=base_estimator, scaler=scaler, require_thresholds=with_thresholds
     )
 
     assert isinstance(model, AnomalyDetectorBase)
 
-    assert model.get_params() == dict(base_estimator=base_estimator, scaler=scaler)
+    assert model.get_params() == dict(
+        base_estimator=base_estimator,
+        scaler=scaler,
+        require_thresholds=with_thresholds,
+    )
 
     if with_thresholds:
         model.cross_validate(X=X, y=y)
@@ -115,7 +122,7 @@ def test_diff_detector_with_window(
     scaler, len_x_y: int, time_index: bool, lookback: int, with_thresholds: bool
 ):
     """
-    Test the functionality of the DiffBasedAnomalyDetector
+    Test the functionality of the DiffBasedAnomalyDetector with window
     """
 
     # Some dataset.
@@ -133,14 +140,17 @@ def test_diff_detector_with_window(
     model = DiffBasedAnomalyDetector(
         base_estimator=base_estimator,
         scaler=scaler,
-        require_thresholds=False,
+        require_thresholds=with_thresholds,
         window=144,
     )
 
     assert isinstance(model, AnomalyDetectorBase)
 
     assert model.get_params() == dict(
-        base_estimator=base_estimator, scaler=scaler, window=144
+        base_estimator=base_estimator,
+        scaler=scaler,
+        require_thresholds=with_thresholds,
+        window=144,
     )
 
     if with_thresholds:
@@ -266,6 +276,120 @@ def test_diff_detector_with_window(
         assert "total-anomaly-confidence" not in anomaly_df.columns
 
 
+@pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
+@pytest.mark.parametrize(
+    "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
+)
+@pytest.mark.parametrize("lookback", (0, 5))
+@pytest.mark.parametrize("with_thresholds", (True, False))
+@pytest.mark.parametrize("shuffle", (True, False))
+@pytest.mark.parametrize("window", (6, 144))
+@pytest.mark.parametrize("n_splits", (3, 5))
+@pytest.mark.parametrize("threshold_percentile", (0.975, 1.0))
+def test_diff_ff_detector(
+    scaler,
+    index,
+    lookback,
+    with_thresholds: bool,
+    shuffle: bool,
+    window,
+    n_splits,
+    threshold_percentile,
+):
+    """
+    Test the functionality of the DiffBasedKFCVAnomalyDetector
+    """
+
+    # Some dataset.
+    X, y = (
+        pd.DataFrame(np.random.random((10, 3))),
+        pd.DataFrame(np.random.random((10, 3))),
+    )
+
+    base_estimator = MultiOutputRegressor(estimator=LinearRegression())
+    model = DiffBasedKFCVAnomalyDetector(
+        base_estimator=base_estimator,
+        scaler=scaler,
+        require_thresholds=with_thresholds,
+        shuffle=shuffle,
+        n_splits=n_splits,
+        window=window,
+        threshold_percentile=threshold_percentile,
+    )
+
+    assert isinstance(model, AnomalyDetectorBase)
+
+    assert model.get_params() == dict(
+        base_estimator=base_estimator,
+        scaler=scaler,
+        require_thresholds=with_thresholds,
+        window=window,
+        shuffle=shuffle,
+        n_splits=n_splits,
+        threshold_percentile=threshold_percentile,
+    )
+
+    if with_thresholds:
+        model.cross_validate(X=X, y=y)
+
+    model.fit(X, y)
+
+    output: np.ndarray = model.predict(X)
+    base_df = model_utils.make_base_dataframe(
+        tags=["A", "B", "C"], model_input=X, model_output=output, index=index
+    )
+
+    # Base prediction dataframe has none of these columns
+    assert not any(
+        col in base_df.columns
+        for col in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+        )
+    )
+
+    # Apply the anomaly detection logic on the base prediction df
+    anomaly_df = model.anomaly(X, y, timedelta(days=1))
+
+    # Should have these added error calculated columns now.
+    assert all(
+        col in anomaly_df.columns
+        for col in (
+            "total-anomaly-scaled",
+            "total-anomaly-unscaled",
+            "tag-anomaly-scaled",
+            "tag-anomaly-unscaled",
+        )
+    )
+
+    # Verify calculation for unscaled data
+    feature_error_unscaled = np.abs(base_df["model-output"].values - y.values)
+    total_anomaly_unscaled = np.square(feature_error_unscaled).mean(axis=1)
+    assert np.allclose(
+        feature_error_unscaled, anomaly_df["tag-anomaly-unscaled"].values
+    )
+    assert np.allclose(
+        total_anomaly_unscaled, anomaly_df["total-anomaly-unscaled"].values
+    )
+
+    # Verify calculations for scaled data
+    feature_error_scaled = np.abs(
+        scaler.transform(base_df["model-output"].values) - scaler.transform(y)
+    )
+    total_anomaly_scaled = np.square(feature_error_scaled).mean(axis=1)
+    assert np.allclose(feature_error_scaled, anomaly_df["tag-anomaly-scaled"].values)
+    assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].values)
+
+    if with_thresholds:
+        assert "anomaly-confidence" in anomaly_df.columns
+        assert "total-anomaly-confidence" in anomaly_df.columns
+    else:
+        assert "anomaly-confidence" not in anomaly_df.columns
+        assert "total-anomaly-confidence" not in anomaly_df.columns
+
+
 @pytest.mark.parametrize(
     "config",
     (
@@ -286,7 +410,7 @@ def test_diff_detector_with_window(
                     kind: feedforward_hourglass
     """,
         """
-        gordo.machine.model.anomaly.diff.DiffBasedFFAnomalyDetector:
+        gordo.machine.model.anomaly.diff.DiffBasedKFCVAnomalyDetector:
             base_estimator:
                 sklearn.compose.TransformedTargetRegressor:
                     transformer:
@@ -333,17 +457,20 @@ def test_diff_detector_serializability(config):
 
 @pytest.mark.parametrize("n_features_y", range(1, 3))
 @pytest.mark.parametrize("n_features_x", range(1, 3))
-def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
+@pytest.mark.parametrize("mode", ("tscv", "kfcv"))
+def test_diff_detector_threshold(mode: str, n_features_x: int, n_features_y: int):
     """
     Basic construction logic of thresholds_ attribute in the
-    DiffBasedAnomalyDetector
+    DiffBasedAnomalyDetector and DiffBasedKFCVAnomalyDetector
     """
-    X = np.random.random((100, n_features_x))
-    y = np.random.random((100, n_features_y))
+    X = np.random.random((300, n_features_x))
+    y = np.random.random((300, n_features_y))
 
-    model = DiffBasedAnomalyDetector(
-        base_estimator=MultiOutputRegressor(estimator=LinearRegression())
-    )
+    base_estimator = MultiOutputRegressor(estimator=LinearRegression())
+    if mode == "tscv":
+        model = DiffBasedAnomalyDetector(base_estimator=base_estimator)
+    elif mode == "kfcv":
+        model = DiffBasedKFCVAnomalyDetector(base_estimator=base_estimator)
 
     # Model has own implementation of cross_validate
     assert hasattr(model, "cross_validate")
@@ -368,13 +495,15 @@ def test_diff_detector_threshold(n_features_y: int, n_features_x: int):
     # Now we have calculated thresholds based on cross validation folds
     assert hasattr(model, "feature_thresholds_")
     assert hasattr(model, "aggregate_threshold_")
-    assert hasattr(model, "feature_thresholds_per_fold_")
-    assert hasattr(model, "aggregate_thresholds_per_fold_")
     assert isinstance(model.feature_thresholds_, pd.Series)
     assert len(model.feature_thresholds_) == y.shape[1]
     assert all(model.feature_thresholds_.notna())
-    assert isinstance(model.feature_thresholds_per_fold_, pd.DataFrame)
-    assert isinstance(model.aggregate_thresholds_per_fold_, dict)
+
+    if not isinstance(model, DiffBasedKFCVAnomalyDetector):
+        assert hasattr(model, "feature_thresholds_per_fold_")
+        assert hasattr(model, "aggregate_thresholds_per_fold_")
+        assert isinstance(model.feature_thresholds_per_fold_, pd.DataFrame)
+        assert isinstance(model.aggregate_thresholds_per_fold_, dict)
 
 
 @pytest.mark.parametrize("n_features_y", range(1, 3))
@@ -448,7 +577,11 @@ def test_diff_detector_threshold_with_window(
 
 
 @pytest.mark.parametrize("return_estimator", (True, False))
-def test_diff_detector_cross_validate(return_estimator: bool):
+@pytest.mark.parametrize("n_features_y", (1, 10))
+@pytest.mark.parametrize("mode", ("tscv", "kfcv"))
+def test_diff_detector_cross_validate(
+    mode: str, n_features_y: int, return_estimator: bool
+):
     """
     DiffBasedAnomalyDetector.cross_validate implementation should be the
     same as sklearn.model_selection.cross_validate if called the same.
@@ -457,11 +590,16 @@ def test_diff_detector_cross_validate(return_estimator: bool):
     the intermediate models to calculate the thresholds
     """
     X = np.random.random((100, 10))
-    y = np.random.random((100, 1))
+    y = np.random.random((100, n_features_y))
 
-    model = DiffBasedAnomalyDetector(base_estimator=LinearRegression())
+    base_estimator = MultiOutputRegressor(LinearRegression())
+    if mode == "tscv":
+        model = DiffBasedAnomalyDetector(base_estimator=base_estimator)
+        cv = TimeSeriesSplit(n_splits=3)
+    elif mode == "kfcv":
+        model = DiffBasedKFCVAnomalyDetector(base_estimator=base_estimator)
+        cv = KFold(n_splits=5, shuffle=True, random_state=0)
 
-    cv = TimeSeriesSplit(n_splits=3)
     cv_results_da = model.cross_validate(
         X=X, y=y, cv=cv, return_estimator=return_estimator
     )
@@ -471,18 +609,23 @@ def test_diff_detector_cross_validate(return_estimator: bool):
 
 
 @pytest.mark.parametrize("require_threshold", (True, False))
-def test_diff_detector_require_thresholds(require_threshold: bool):
+@pytest.mark.parametrize("mode", ("tscv", "kfcv"))
+def test_diff_detector_require_thresholds(mode: str, require_threshold: bool):
     """
     Should fail if requiring thresholds, but not calling cross_validate
     """
-    X = pd.DataFrame(np.random.random((100, 5)))
-    y = pd.DataFrame(np.random.random((100, 2)))
+    X = pd.DataFrame(np.random.random((200, 5)))
+    y = pd.DataFrame(np.random.random((200, 2)))
 
-    model = DiffBasedAnomalyDetector(
-        base_estimator=MultiOutputRegressor(LinearRegression()),
-        require_thresholds=require_threshold,
-    )
-
+    base_estimator = MultiOutputRegressor(LinearRegression())
+    if mode == "tscv":
+        model = DiffBasedAnomalyDetector(
+            base_estimator=base_estimator, require_thresholds=require_threshold,
+        )
+    elif mode == "kfcv":
+        model = DiffBasedKFCVAnomalyDetector(
+            base_estimator=base_estimator, require_thresholds=require_threshold,
+        )
     model.fit(X, y)
 
     if require_threshold:

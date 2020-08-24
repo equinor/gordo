@@ -250,7 +250,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         """
         try:
             scaled_y_true = model.scaler.transform(y_true)
-        except NotFittedError:
+        except (NotFittedError, ValueError):
             scaled_y_true = model.scaler.fit_transform(y_true)
         scaled_y_pred = model.scaler.transform(y_pred)
         mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
@@ -420,7 +420,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         return data
 
 
-class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
+class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
     def __init__(
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
@@ -481,7 +481,11 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         **kwargs,
     ):
 
-        cv = KFold(n_splits=self.n_splits, shuffle=self.shuffle, random_state=0)
+        cv = KFold(
+            n_splits=self.n_splits,
+            shuffle=self.shuffle,
+            random_state=self._set_random_state(),
+        )
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
@@ -511,6 +515,11 @@ class DiffBasedFFAnomalyDetector(DiffBasedAnomalyDetector):
         self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
 
         return cv_output
+
+    def _set_random_state(self):
+        if self.shuffle:
+            return 0
+        return
 
     def _calculate_aggregate_threshold(
         self, model, y_true: pd.DataFrame, y_pred: pd.DataFrame
