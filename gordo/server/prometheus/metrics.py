@@ -4,7 +4,8 @@ from copy import copy
 from flask import Flask, g, request, Request, Response
 from typing import Optional, Tuple, List, Dict, Iterable
 from prometheus_client.multiprocess import MultiProcessCollector
-from prometheus_client import CollectorRegistry, Counter, Histogram, Gauge
+from prometheus_client.registry import CollectorRegistry
+from prometheus_client import Counter, Histogram, Gauge
 from http import HTTPStatus
 
 

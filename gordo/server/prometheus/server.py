@@ -1,6 +1,6 @@
 from flask import Flask
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
-from prometheus_client import make_wsgi_app
+from prometheus_client.exposition import make_wsgi_app
 from .metrics import create_registry
 
 
