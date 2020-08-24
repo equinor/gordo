@@ -58,15 +58,15 @@ class GordoServerPrometheusMetrics:
 
     def __init__(
         self,
-        args_labels: Iterable[Tuple[str, str]],
-        info: Dict[str, str],
+        args_labels: Optional[Iterable[Tuple[str, str]]] = None,
+        info: Optional[Dict[str, str]] = None,
         ignore_paths: Optional[Iterable[str]] = None,
         registry: Optional[CollectorRegistry] = None,
     ):
-        self.args_labels = args_labels
+        self.args_labels = args_labels if args_labels is not None else []
         if ignore_paths is not None:
             ignore_paths = set(ignore_paths)
-        self.ignore_paths = ignore_paths
+        self.ignore_paths = ignore_paths if ignore_paths is not None else {}
         self.info = info
         self.label_names: List[str] = []
         self.label_values: List[str] = []
