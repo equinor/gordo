@@ -283,8 +283,8 @@ def run_server(
     run_cmd(cmd)
 
 
-app = build_app()
-
 if __name__ == "__main__":
+    app = build_app()
+
     # Run development webserver
     app.run("0.0.0.0", 5555, debug=True, threaded=False)

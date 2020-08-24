@@ -335,7 +335,7 @@ def get_all_score_strings(machine):
 @click.option(
     "--server-app",
     help="The application to run",
-    default="gordo.server.server:app",
+    default="gordo.server.server:build_app()",
     envvar="GORDO_SERVER_APP",
     show_default=True,
 )

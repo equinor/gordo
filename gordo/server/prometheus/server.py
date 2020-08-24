@@ -18,6 +18,3 @@ def build_app():
         return "", 200
 
     return curr_app
-
-
-app = build_app()

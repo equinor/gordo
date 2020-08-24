@@ -968,7 +968,7 @@ spec:
                              env:
                                - name: prometheus_multiproc_dir
                                  value: "/metrics"
-                             command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--threads", "4", "--server-app", "gordo.server.prometheus.server:app"]
+                             command: ["gordo", "run-server", "--port", "5000", "--workers", "1", "--threads", "4", "--server-app", "gordo.server.prometheus.server:build_app()"]
                              resources:
                                requests:
                                  memory: "50M"
