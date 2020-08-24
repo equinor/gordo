@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
@@ -285,6 +284,38 @@ def test_diff_detector_with_window(
             base_estimator:
                 gordo.machine.model.models.KerasAutoEncoder:
                     kind: feedforward_hourglass
+    """,
+        """
+        gordo.machine.model.anomaly.diff.DiffBasedFFAnomalyDetector:
+            base_estimator:
+                sklearn.compose.TransformedTargetRegressor:
+                    transformer:
+                        sklearn.preprocessing.MinMaxScaler
+                    regressor:
+                        sklearn.pipeline.Pipeline:
+                            steps:
+                            - sklearn.preprocessing.MinMaxScaler
+                            - gordo.machine.model.models.KerasAutoEncoder:
+                                kind: feedforward_hourglass
+                                batch_size: 128
+                                compression_factor: 0.5
+                                encoding_layers: 1
+                                func: tanh
+                                out_func: linear
+                                optimizer: Adam
+                                loss: mse
+                                epochs: 1000
+                                validation_split: 0.1
+                                callbacks:
+                                    - tensorflow.keras.callbacks.EarlyStopping:
+                                        monitor: val_loss
+                                        patience: 10
+                                        restore_best_weights: true
+            scaler: sklearn.preprocessing.MinMaxScaler
+            window: 144
+            shuffle: true
+            n_splits: 5
+            threshold_percentile: 0.975
     """,
     ),
 )
