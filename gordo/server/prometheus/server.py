@@ -9,9 +9,9 @@ def build_app():
 
     registry = create_registry()
 
-    curr_app.wsgi_app = DispatcherMiddleware(curr_app.wsgi_app, {
-        '/metrics': make_wsgi_app(registry)
-    })
+    curr_app.wsgi_app = DispatcherMiddleware(
+        curr_app.wsgi_app, {"/metrics": make_wsgi_app(registry)}
+    )
 
     @curr_app.route("/healthcheck")
     def health_check():

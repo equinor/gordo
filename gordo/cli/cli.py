@@ -345,7 +345,15 @@ def get_all_score_strings(machine):
     is_flag=True,
 )
 def run_server_cli(
-    host, port, workers, worker_connections, threads, worker_class, log_level, server_app, with_prometheus_config,
+    host,
+    port,
+    workers,
+    worker_connections,
+    threads,
+    worker_class,
+    log_level,
+    server_app,
+    with_prometheus_config,
 ):
     """
     Run the gordo server app with Gunicorn

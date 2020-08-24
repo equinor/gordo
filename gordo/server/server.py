@@ -117,17 +117,17 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
     return wrapper
 
 
-def create_prometheus_metrics(project: Optional[str] = None) -> GordoServerPrometheusMetrics:
+def create_prometheus_metrics(
+    project: Optional[str] = None,
+) -> GordoServerPrometheusMetrics:
     arg_labels = [("gordo_name", "model")]
     info = {"version": __version__}
     if project is not None:
-        info['project'] = project
+        info["project"] = project
     else:
         arg_labels.append(("gordo_project", "project"))
     return GordoServerPrometheusMetrics(
-        args_labels=arg_labels,
-        info=info,
-        ignore_paths=["/healthcheck"],
+        args_labels=arg_labels, info=info, ignore_paths=["/healthcheck"],
     )
 
 
@@ -147,7 +147,7 @@ def build_app(config: Optional[Dict[str, Any]] = None):
     app.url_map.strict_slashes = False  # /path and /path/ are ok.
 
     if app.config["ENABLE_PROMETHEUS"]:
-        prometheus_metrics = create_prometheus_metrics(app.config.get('PROJECT'))
+        prometheus_metrics = create_prometheus_metrics(app.config.get("PROJECT"))
         prometheus_metrics.prepare_app(app)
 
     @app.before_request
@@ -225,7 +225,7 @@ def run_server(
     worker_connections: Optional[int] = None,
     threads: Optional[int] = None,
     worker_class: str = "gthread",
-    server_app: str = "gordo.server.server:app"
+    server_app: str = "gordo.server.server:app",
 ):
     """
     Run application with Gunicorn server using Gevent Async workers
@@ -271,7 +271,7 @@ def run_server(
         str(workers),
     ]
     if config_module is not None:
-        cmd.extend(("--config", "python:"+config_module))
+        cmd.extend(("--config", "python:" + config_module))
     if worker_class == "gthread":
         if threads is not None:
             cmd.extend(("--threads", str(threads)))
