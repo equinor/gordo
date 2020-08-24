@@ -130,7 +130,7 @@ def test_run_server_gthread():
                 "2",
                 "--threads",
                 "8",
-                "gordo.server.server:app",
+                "gordo.server.server:build_app()",
             ]
         )
 
@@ -167,7 +167,7 @@ def test_run_server_gevent():
                 "2",
                 "--worker-connections",
                 "50",
-                "gordo.server.server:app",
+                "gordo.server.server:build_app()",
             ]
         )
 
