@@ -14,7 +14,7 @@ def build_app() -> Flask:
 
     registry = create_registry()
 
-    curr_app.wsgi_app = DispatcherMiddleware(
+    curr_app.wsgi_app = DispatcherMiddleware(   # type: ignore
         curr_app.wsgi_app, {"/metrics": make_wsgi_app(registry)}
     )
 
