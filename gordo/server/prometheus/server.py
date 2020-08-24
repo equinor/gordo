@@ -4,7 +4,12 @@ from prometheus_client import make_wsgi_app
 from .metrics import create_registry
 
 
-def build_app():
+def build_app() -> Flask:
+    """
+    Creating Flask application in order to serve all Prometheus metrics
+
+    :return: Flask
+    """
     curr_app = Flask("gordoserver_prometheus")
 
     registry = create_registry()

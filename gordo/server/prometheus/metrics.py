@@ -30,6 +30,19 @@ def current_time():
 
 
 class GordoServerPrometheusMetrics:
+    """
+    Container for encapsulating all Prometheus related logic
+    The simplest way to use with preexisting Flask application:
+
+    >>> from flask import Flask
+    >>> from prometheus_client.registry import CollectorRegistry
+    >>> app = Flask("test")
+    >>> @app.route('/hello')
+    ... def hello():
+    ...     return 'Hello, World'
+    >>> prometheus_metrics = GordoServerPrometheusMetrics(registry=CollectorRegistry())
+    >>> prometheus_metrics.prepare_app(app)
+    """
     prefix = "gordo_server"
     main_labels = ("method", "path", "status_code")
 
