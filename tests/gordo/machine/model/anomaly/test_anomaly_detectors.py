@@ -250,7 +250,7 @@ def test_diff_detector_with_window(
     )
 
     # Check number of NA's is consistent with window size
-    if len_x_y >= model.window:
+    if model.window is not None and len_x_y >= model.window:
         assert (
             anomaly_df["smooth-tag-anomaly-scaled"].isna().sum().sum()
             == (model.window - 1) * anomaly_df["smooth-tag-anomaly-scaled"].shape[1]
@@ -408,7 +408,7 @@ def test_diff_detector_threshold_with_window(
     assert hasattr(model, "smooth_aggregate_thresholds_per_fold_")
     assert isinstance(model.smooth_feature_thresholds_, pd.Series)
     assert len(model.smooth_feature_thresholds_) == y.shape[1]
-    if len_x_y <= model.window:
+    if model.window is not None and len_x_y <= model.window:
         assert all(model.smooth_feature_thresholds_.isna())
     else:
         assert all(model.smooth_feature_thresholds_.notna())
