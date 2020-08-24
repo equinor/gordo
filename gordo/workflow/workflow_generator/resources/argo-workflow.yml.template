@@ -974,7 +974,7 @@ spec:
                                  memory: "50M"
                                  cpu: "5m"
                                limits:
-                                 memory: "500M"
+                                 memory: "750M"
                                  cpu: "50m"
                            {% endif %}
                         terminationGracePeriodSeconds: 1
