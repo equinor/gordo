@@ -14,9 +14,9 @@
   },
   "editable": true,
   "gnetId": null,
-  "graphTooltip": 0,
-  "id": 104,
-  "iteration": 1598201611860,
+  "graphTooltip": 1,
+  "id": 112,
+  "iteration": 1598277214992,
   "links": [],
   "panels": [
     {
@@ -812,6 +812,6 @@
   },
   "timezone": "",
   "title": "Gordo servers",
-  "uid": "qT2AQkIMk",
-  "version": 24
+  "uid": "_eX4mpl3",
+  "version": 20
 }
