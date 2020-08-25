@@ -812,13 +812,12 @@ spec:
                     - istio-system/istio-gateway
                     http:
                     - match:
-                      - uri:
+                      - port: 5555
+                        uri:
                           regex: "/gordo/v0/{{project_name}}/.+"
                       route:
                       - destination:
                           host: "{{'{{inputs.parameters.host-name}}'}}"
-                          port:
-                            number: 5555
 
   # Model resource to notify server that a model has been built and can be served by the ML Server
   - name: gordo-model
