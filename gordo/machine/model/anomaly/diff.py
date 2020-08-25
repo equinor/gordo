@@ -462,7 +462,12 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             metadata.update(self.base_estimator.get_metadata())
         else:
             metadata.update(
-                {"scaler": str(self.scaler), "base_estimator": str(self.base_estimator)}
+                {
+                    "scaler": str(self.scaler),
+                    "base_estimator": str(self.base_estimator),
+                    "window": self.window,
+                    "threshold_percentile": self.threshold_percentile,
+                }
             )
         return metadata
 

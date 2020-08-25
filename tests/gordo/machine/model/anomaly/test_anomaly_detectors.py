@@ -15,6 +15,7 @@ from sklearn.model_selection import TimeSeriesSplit, KFold
 
 from gordo import serializer
 from gordo.machine.model import utils as model_utils
+from gordo.machine.model.base import GordoBase
 from gordo.machine.model.anomaly.base import AnomalyDetectorBase
 from gordo.machine.model.anomaly.diff import (
     DiffBasedAnomalyDetector,
@@ -574,6 +575,66 @@ def test_diff_detector_threshold_with_window(
         assert all(model.smooth_feature_thresholds_.notna())
     assert isinstance(model.smooth_feature_thresholds_per_fold_, pd.DataFrame)
     assert isinstance(model.smooth_aggregate_thresholds_per_fold_, dict)
+
+
+@pytest.mark.parametrize("mode", ("tscv", "tscv_win", "kfcv"))
+def test_diff_detector_get_metadata(mode):
+    """
+    Test if metadata is generated as expected.
+    """
+    X = pd.DataFrame(np.random.random((200, 5)))
+    y = pd.DataFrame(np.random.random((200, 2)))
+
+    base_estimator = MultiOutputRegressor(LinearRegression())
+    if mode == "tscv":
+        model = DiffBasedAnomalyDetector(base_estimator=base_estimator)
+    elif mode == "tscv_win":
+        model = DiffBasedAnomalyDetector(base_estimator=base_estimator, window=144)
+    elif mode == "kfcv":
+        model = DiffBasedKFCVAnomalyDetector(base_estimator=base_estimator)
+
+    metadata = model.get_metadata()
+    assert isinstance(metadata, dict)
+
+    if not isinstance(model, GordoBase):
+        assert "base_estimator" in metadata.keys()
+        assert "scaler" in metadata.keys()
+
+    # When initialized it should not have a threshold calculated.
+    assert "feature-thresholds" not in metadata.keys()
+    assert "aggregate-threshold" not in metadata.keys()
+    assert "feature-thresholds-per-fold" not in metadata.keys()
+    assert "aggregate-thresholds-per-fold" not in metadata.keys()
+
+    # Calling cross validate should set the threshold for it.
+    model.cross_validate(X=X, y=y)
+    metadata = model.get_metadata()
+
+    if not isinstance(model, GordoBase):
+        assert "base_estimator" in metadata.keys()
+        assert "scaler" in metadata.keys()
+
+    # Now we have calculated thresholds based on cross validation folds
+    assert "feature-thresholds" in metadata.keys()
+    assert "aggregate-threshold" in metadata.keys()
+    assert isinstance(metadata["feature-thresholds"], list)
+    assert len(metadata["feature-thresholds"]) == y.shape[1]
+
+    if mode != "kfcv":
+        assert "feature-thresholds-per-fold" in metadata.keys()
+        assert "aggregate-thresholds-per-fold" in metadata.keys()
+
+    if mode != "tscv":
+        assert "window" in metadata.keys()
+
+    if mode == "tscv_win":
+        assert "smooth-feature-thresholds" in metadata.keys()
+        assert "smooth-aggregate-threshold" in metadata.keys()
+        assert "smooth-feature-thresholds-per-fold" in metadata.keys()
+        assert "smooth-aggregate-thresholds-per-fold" in metadata.keys()
+
+    if mode == "kfcv":
+        assert "threshold_percentile" in metadata.keys()
 
 
 @pytest.mark.parametrize("return_estimator", (True, False))
