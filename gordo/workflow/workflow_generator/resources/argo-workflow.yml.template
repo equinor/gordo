@@ -817,6 +817,8 @@ spec:
                       route:
                       - destination:
                           host: "{{'{{inputs.parameters.host-name}}'}}"
+                          port:
+                            number: 5555
 
   # Model resource to notify server that a model has been built and can be served by the ML Server
   - name: gordo-model
