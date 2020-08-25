@@ -168,8 +168,14 @@ def workflow_cli(gordo_ctx):
 @click.option(
     "--without-prometheus",
     is_flag=True,
-    help="Do not deploy prometheus for Gordo servers monitoring",
+    help="Do not deploy Prometheus for Gordo servers monitoring",
     envvar=f"{PREFIX}_WITHOUT_PROMETHEUS",
+)
+@click.option(
+    "--prometheus-metrics-server-workers",
+    help="Number of workers for Prometheus metrics servers",
+    envvar=f"{PREFIX}_PROMETHEUS_METRICS_SERVER_WORKERS",
+    default=1,
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
