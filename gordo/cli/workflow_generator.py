@@ -215,7 +215,9 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["model_builder_resources_limits_cpu"] = builder_resources["limits"]["cpu"]
 
     context["server_resources"] = config.globals["runtime"]["server"]["resources"]
-    context["prometheus_metrics_server_resources"] = config.globals["runtime"]["prometheus_metrics_server"]["resources"]
+    context["prometheus_metrics_server_resources"] = config.globals["runtime"][
+        "prometheus_metrics_server"
+    ]["resources"]
 
     # These are also set in the default globals, and guaranteed to exist
     client_resources = config.globals["runtime"]["client"]["resources"]
