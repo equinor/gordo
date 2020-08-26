@@ -16,6 +16,7 @@ from gordo.machine.dataset.data_provider.providers import (
 from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.filter_rows import pandas_filter_rows
+from gordo.machine.dataset.filter_periods import filter_periods
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.util import capture_args
@@ -91,6 +92,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         high_threshold=50000,
         interpolation_method: str = "linear_interpolation",
         interpolation_limit: str = "8H",
+        filter_periods={},
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -149,6 +151,9 @@ class TimeSeriesDataset(GordoBaseDataset):
             Parameter sets how long from last valid data point values will be interpolated/forward filled.
             Default is eight hours (`8H`).
             If None, all missing values are interpolated/forward filled.
+        fiter_periods: dict
+            Performs a series of algorithms that drops noisy data is specified.
+            See `filter_periods` class for details.
         """
         self.train_start_date = self._validate_dt(train_start_date)
         self.train_end_date = self._validate_dt(train_end_date)
@@ -179,6 +184,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.high_threshold = high_threshold
         self.interpolation_method = interpolation_method
         self.interpolation_limit = interpolation_limit
+        self.filter_periods = filter_periods
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -254,13 +260,11 @@ class TimeSeriesDataset(GordoBaseDataset):
                 )
 
         if self.filter_periods:
-            filter_method = self.filter_periods.get("filter_method")
-
-            self.filter_periopds.get("filter")
-            filter_periods(data=X, method=self.filter_period_method)
-
-
-
+            filtered_periods = filter_periods(
+                data=data, granularity=self.resolution, kwargs=self.filter_periods
+            )
+            data = filtered_periods.data
+            self._metadata["filtered_periods"] = filtered_periods.drop_periods
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]

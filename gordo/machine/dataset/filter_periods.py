@@ -2,8 +2,8 @@ from pprint import pformat
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
+from gordo.machine.dataset.datasets import pandas_filter_rows
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,9 @@ class filter_periods:
     data: pandas.DataFrame
         Data frame containing already filtered data (global max/min + dropped known periods).
         Time consecutively is not required.
-
+    granularity: str
+        The bucket size for grouping all incoming time data (e.g. "10T").
+        Available strings come from https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
     **kwargs:
         See below.
 
@@ -34,13 +36,9 @@ class filter_periods:
         algorithm is run.
     """
 
-    def __init__(
-        self,
-        data,
-        **kwargs
-
-    ):
-        self.data = data
+    def __init__(self, data, granularity, **kwargs):
+        self.data = data.copy()
+        self.granularity = granularity
         self.filter_method = kwargs.get("filter_method", "median")
         assert self.filter_method in ["median", "iforest", "all"]
 
@@ -57,6 +55,8 @@ class filter_periods:
             self._predict()
 
         self._drop_periods()
+        if len(self.drop_periods) > 0:
+            self._filter_data()
 
     def _init_model(self):
         """Return a new instance of the models.
@@ -66,7 +66,7 @@ class filter_periods:
             max_samples=min(
                 1000, self.data.shape[0]
             ),  # Samples to draw from X to train each base estimator
-            contamination=self._contamination, # default = "auto"
+            contamination=self._contamination,  # default = "auto"
             max_features=1.0,  # Features to draw from X to train each base estimator.
             bootstrap=False,
             n_jobs=-1,  # ``-1`` means using all processors
@@ -113,8 +113,6 @@ class filter_periods:
         logger.info("Anomaly ratio: %s", list(pred).count(-1) / pred.shape[0])
 
     def _rolling_median(self):
-
-
         logger.info("Calculating predictions for rolling median")
         roll = self.data.rolling(self._window, center=True)
         r_md = roll.median()
@@ -139,11 +137,11 @@ class filter_periods:
         logger.info("Creating list of drop period dicts")
         drop_periods = {}
 
-        if self.method == "all":
+        if self.filter_method == "all":
             pred_types = ["iforest", "median"]
 
         else:
-            pred_types = [self.method]
+            pred_types = [self.filter_method]
 
         for pred_type in pred_types:
             t = self.predictions[pred_type].query("pred == -1")[["timestamp"]]
@@ -156,9 +154,8 @@ class filter_periods:
             )
             t = t.reset_index(drop=True)
 
-            granularity = int(
-                re.findall(r"\d+", self.config["dataset"].get("resolution", "10T"))[0]
-            )
+            # get granularity in minutes
+            granularity = pd.Timedelta(self.granularity).total_seconds() / 60
 
             start = []
             end = []
@@ -174,13 +171,26 @@ class filter_periods:
                 if (i + 1 == len(t)) or (t["delta_t"][i + 1] > granularity):
                     end.append(str(t["timestamp"][i]))
             drop_periods[pred_type] = pd.DataFrame(
-                {"model_id": self.model_id, "drop_start": start, "drop_end": end}
+                {"drop_start": start, "drop_end": end}
             ).to_dict("records")
 
-        if self.method == "all":
+        if self.filter_method == "all":
             self.drop_periods = drop_periods
         else:
-            self.drop_periods = drop_periods[self.method]
+            self.drop_periods = drop_periods[self.filter_method]
+
+    def _filter_data(self):
+        """Drops periods defined previously from dataset"""
+
+        row_filter = []
+        for row in self.drop_periods:
+            row_filter.append(
+                f"~('{row['drop_start']}' <= index <= '{row['drop_end']}')"
+            )
+
+        self.data = pandas_filter_rows(
+            df=self.data, filter_str=row_filter, buffer_size=0
+        )
 
     @staticmethod
     def _describe(score):

@@ -136,8 +136,6 @@ def test_machine_from_config(default_globals: dict):
                 "type": "DataLakeProvider",
             },
             "default_asset": None,
-
-
             "high_threshold": 50000,
             "interpolation_limit": "8H",
             "interpolation_method": "linear_interpolation",
