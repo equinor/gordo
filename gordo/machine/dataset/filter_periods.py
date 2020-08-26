@@ -55,8 +55,7 @@ class filter_periods:
             self._predict()
 
         self._drop_periods()
-        if len(self.drop_periods) > 0:
-            self._filter_data()
+        self._filter_data()
 
     def _init_model(self):
         """Return a new instance of the models.
@@ -174,19 +173,17 @@ class filter_periods:
                 {"drop_start": start, "drop_end": end}
             ).to_dict("records")
 
-        if self.filter_method == "all":
-            self.drop_periods = drop_periods
-        else:
-            self.drop_periods = drop_periods[self.filter_method]
+        self.drop_periods = drop_periods
 
     def _filter_data(self):
         """Drops periods defined previously from dataset"""
 
         row_filter = []
-        for row in self.drop_periods:
-            row_filter.append(
-                f"~('{row['drop_start']}' <= index <= '{row['drop_end']}')"
-            )
+        for drop_method, p in self.drop_periods.items():
+            for line in p:
+                row_filter.append(
+                    f"~('{line['drop_start']}' <= index <= '{line['drop_end']}')"
+                )
 
         self.data = pandas_filter_rows(
             df=self.data, filter_str=row_filter, buffer_size=0
