@@ -501,22 +501,19 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
             will be raised.
         shuffle: bool
-            Flag to shuffle or not data in two situations:
-                - in ``.fit`` so that the model, if relevant, will be trained on a mix
-                of data and not just the last elements according to parameter
-                ``validation_split``.
-                - in ``.cross_validate`` so that the data is shuffled before being split
-                into folds using ``Kfold``.
+            Flag to shuffle or not data in two situations: in ``.fit`` so that
+            the model, if relevant, will be trained on a sample of data accross
+            the time range and not just the last elements according to model arg
+            ``validation_split``; in ``.cross_validate`` so that the data is shuffled
+            before being split into folds using ``Kfold``.
         n_splits: int
             Number of folds to split the data into in ``.cross_validate``.
         window: int
             Window size for smooth metrics and threshold calculation.
         smoothing_method: str
             Method to be used together with ``window`` to smooth metrics.
-            Must be one of:
-                - ``'smm'``: simple moving median
-                - ``'sma'``: simple moving average
-                - ``'ewma'``: exponential weighted moving average
+            Must be one of: 'smm': simple moving median, 'sma': simple moving average or
+            'ewma': exponential weighted moving average.
         threshold_percentile: float
             Percentile of the validation data to be used to calculate the threshold.
         """
