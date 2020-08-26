@@ -253,6 +253,15 @@ class TimeSeriesDataset(GordoBaseDataset):
                     f"specified required threshold for number of rows ({self.n_samples_threshold})."
                 )
 
+        if self.filter_periods:
+            filter_method = self.filter_periods.get("filter_method")
+
+            self.filter_periopds.get("filter")
+            filter_periods(data=X, method=self.filter_period_method)
+
+
+
+
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
 
