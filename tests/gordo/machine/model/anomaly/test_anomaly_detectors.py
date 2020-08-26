@@ -27,9 +27,8 @@ from gordo.machine.model.anomaly.diff import (
 @pytest.mark.parametrize(
     "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
 )
-@pytest.mark.parametrize("lookback", (0, 5))
 @pytest.mark.parametrize("with_thresholds", (True, False))
-def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
+def test_diff_detector(scaler, index, with_thresholds: bool):
     """
     Test the functionality of the DiffBasedAnomalyDetector
     """
@@ -50,7 +49,7 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
     assert model.get_params() == dict(
         base_estimator=base_estimator,
         scaler=scaler,
-        require_thresholds=with_thresholds,
+        # require_thresholds=with_thresholds,
     )
 
     if with_thresholds:
@@ -117,10 +116,10 @@ def test_diff_detector(scaler, index, lookback, with_thresholds: bool):
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
 @pytest.mark.parametrize("len_x_y", (100, 144, 1440))
 @pytest.mark.parametrize("time_index", (True, False))
-@pytest.mark.parametrize("lookback", (0, 5))
 @pytest.mark.parametrize("with_thresholds", (True, False))
+@pytest.mark.parametrize("smoothing_method", (None, "smm", "sma", "ewma"))
 def test_diff_detector_with_window(
-    scaler, len_x_y: int, time_index: bool, lookback: int, with_thresholds: bool
+    scaler, len_x_y: int, time_index: bool, with_thresholds: bool, smoothing_method
 ):
     """
     Test the functionality of the DiffBasedAnomalyDetector with window
@@ -143,20 +142,28 @@ def test_diff_detector_with_window(
         scaler=scaler,
         require_thresholds=with_thresholds,
         window=144,
+        smoothing_method=smoothing_method,
     )
 
     assert isinstance(model, AnomalyDetectorBase)
 
-    assert model.get_params() == dict(
-        base_estimator=base_estimator,
-        scaler=scaler,
-        require_thresholds=with_thresholds,
-        window=144,
-    )
+    if smoothing_method is None:
+        assert model.get_params() == dict(
+            base_estimator=base_estimator, scaler=scaler, window=144,
+        )
+
+    else:
+        assert model.get_params() == dict(
+            base_estimator=base_estimator,
+            scaler=scaler,
+            window=144,
+            smoothing_method=smoothing_method,
+        )
 
     if with_thresholds:
         model.cross_validate(X=X, y=y)
-
+        if smoothing_method is None:
+            assert model.smoothing_method == "smm"
     model.fit(X, y)
 
     output: np.ndarray = model.predict(X)
@@ -213,12 +220,29 @@ def test_diff_detector_with_window(
         anomaly_df["total-anomaly-unscaled"].to_numpy(),
     )
 
-    smooth_feature_error_unscaled = (
-        feature_error_unscaled.rolling(model.window).median().dropna()
-    )
-    smooth_total_anomaly_unscaled = (
-        total_anomaly_unscaled.rolling(model.window).median().dropna()
-    )
+    if smoothing_method is None or smoothing_method == "smm":
+        smooth_feature_error_unscaled = (
+            feature_error_unscaled.rolling(model.window).median().dropna()
+        )
+        smooth_total_anomaly_unscaled = (
+            total_anomaly_unscaled.rolling(model.window).median().dropna()
+        )
+
+    elif smoothing_method == "sma":
+        smooth_feature_error_unscaled = (
+            feature_error_unscaled.rolling(model.window).mean().dropna()
+        )
+        smooth_total_anomaly_unscaled = (
+            total_anomaly_unscaled.rolling(model.window).mean().dropna()
+        )
+    elif smoothing_method == "ewma":
+        smooth_feature_error_unscaled = feature_error_unscaled.ewm(
+            span=model.window
+        ).mean()
+        smooth_total_anomaly_unscaled = total_anomaly_unscaled.ewm(
+            span=model.window
+        ).mean()
+
     assert np.allclose(
         smooth_feature_error_unscaled.to_numpy(),
         anomaly_df["smooth-tag-anomaly-unscaled"].dropna().to_numpy(),
@@ -244,12 +268,24 @@ def test_diff_detector_with_window(
         total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].to_numpy()
     )
 
-    smooth_feature_error_scaled = (
-        feature_error_scaled.rolling(model.window).median().dropna()
-    )
-    smooth_total_anomaly_scaled = (
-        total_anomaly_scaled.rolling(model.window).median().dropna()
-    )
+    if smoothing_method is None or smoothing_method == "smm":
+        smooth_feature_error_scaled = (
+            feature_error_scaled.rolling(model.window).median().dropna()
+        )
+        smooth_total_anomaly_scaled = (
+            total_anomaly_scaled.rolling(model.window).median().dropna()
+        )
+    elif smoothing_method == "sma":
+        smooth_feature_error_scaled = (
+            feature_error_scaled.rolling(model.window).mean().dropna()
+        )
+        smooth_total_anomaly_scaled = (
+            total_anomaly_scaled.rolling(model.window).mean().dropna()
+        )
+    elif smoothing_method == "ewma":
+        smooth_feature_error_scaled = feature_error_scaled.ewm(span=model.window).mean()
+        smooth_total_anomaly_scaled = total_anomaly_scaled.ewm(span=model.window).mean()
+
     assert np.allclose(
         smooth_feature_error_scaled.to_numpy(),
         anomaly_df["smooth-tag-anomaly-scaled"].dropna().to_numpy(),
@@ -260,7 +296,11 @@ def test_diff_detector_with_window(
     )
 
     # Check number of NA's is consistent with window size
-    if model.window is not None and len_x_y >= model.window:
+    if (
+        smoothing_method != "ewma"
+        and model.window is not None
+        and len_x_y >= model.window
+    ):
         assert (
             anomaly_df["smooth-tag-anomaly-scaled"].isna().sum().sum()
             == (model.window - 1) * anomaly_df["smooth-tag-anomaly-scaled"].shape[1]
@@ -281,21 +321,21 @@ def test_diff_detector_with_window(
 @pytest.mark.parametrize(
     "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
 )
-@pytest.mark.parametrize("lookback", (0, 5))
 @pytest.mark.parametrize("with_thresholds", (True, False))
 @pytest.mark.parametrize("shuffle", (True, False))
 @pytest.mark.parametrize("window", (6, 144))
 @pytest.mark.parametrize("n_splits", (3, 5))
+@pytest.mark.parametrize("smoothing_method", ("smm", "sma", "ewma"))
 @pytest.mark.parametrize("threshold_percentile", (0.975, 1.0))
-def test_diff_ff_detector(
+def test_diff_kfcv_detector(
     scaler,
     index,
-    lookback,
     with_thresholds: bool,
     shuffle: bool,
-    window,
-    n_splits,
-    threshold_percentile,
+    window: int,
+    smoothing_method: str,
+    n_splits: int,
+    threshold_percentile: float,
 ):
     """
     Test the functionality of the DiffBasedKFCVAnomalyDetector
@@ -315,6 +355,7 @@ def test_diff_ff_detector(
         shuffle=shuffle,
         n_splits=n_splits,
         window=window,
+        smoothing_method=smoothing_method,
         threshold_percentile=threshold_percentile,
     )
 
@@ -323,8 +364,8 @@ def test_diff_ff_detector(
     assert model.get_params() == dict(
         base_estimator=base_estimator,
         scaler=scaler,
-        require_thresholds=with_thresholds,
         window=window,
+        smoothing_method=smoothing_method,
         shuffle=shuffle,
         n_splits=n_splits,
         threshold_percentile=threshold_percentile,
@@ -623,18 +664,16 @@ def test_diff_detector_get_metadata(mode):
     if mode != "kfcv":
         assert "feature-thresholds-per-fold" in metadata.keys()
         assert "aggregate-thresholds-per-fold" in metadata.keys()
-
     if mode != "tscv":
         assert "window" in metadata.keys()
-
+        assert "smoothing-method" in metadata.keys()
     if mode == "tscv_win":
         assert "smooth-feature-thresholds" in metadata.keys()
         assert "smooth-aggregate-threshold" in metadata.keys()
         assert "smooth-feature-thresholds-per-fold" in metadata.keys()
         assert "smooth-aggregate-thresholds-per-fold" in metadata.keys()
-
     if mode == "kfcv":
-        assert "threshold_percentile" in metadata.keys()
+        assert "threshold-percentile" in metadata.keys()
 
 
 @pytest.mark.parametrize("return_estimator", (True, False))
