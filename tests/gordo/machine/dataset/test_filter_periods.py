@@ -34,9 +34,9 @@ def test_filter_periods(dataset):
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="iforest", iforest_smooth=True
     )
-    assert data_filtered.data.shape == (1649, 2)
+    assert data_filtered.data.shape == (1663, 2)
 
     data_filtered = filter_periods(
-        data=data, granularity="10T", filter_method="all", n_iqr=1
+        data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=False
     )
     assert data_filtered.data.shape == (1588, 2)
