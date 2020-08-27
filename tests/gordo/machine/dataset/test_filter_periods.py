@@ -24,19 +24,19 @@ def test_filter_periods(dataset):
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="median", n_iqr=1
     )
-    assert data_filtered.data.shape == (1460, 2)
+    assert data_filtered.data.shape == (1634, 2)
 
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="iforest", iforest_smooth=False
     )
-    assert data_filtered.data.shape == (1775, 2)
+    assert data_filtered.data.shape == (1816, 2)
 
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="iforest", iforest_smooth=True
     )
-    assert data_filtered.data.shape == (1584, 2)
+    assert data_filtered.data.shape == (1638, 2)
 
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="all", n_iqr=1
     )
-    assert data_filtered.data.shape == (1436, 2)
+    assert data_filtered.data.shape == (1588, 2)
