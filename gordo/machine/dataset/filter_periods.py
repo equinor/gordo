@@ -64,8 +64,7 @@ class filter_periods:
         self._filter_data()
 
     def _init_model(self):
-        """Return a new instance of the models.
-        """
+        """Return a new instance of the models."""
         self.isolationforest = IsolationForest(
             n_estimators=300,  # The number of base estimators in the ensemble.
             max_samples=min(
@@ -118,6 +117,7 @@ class filter_periods:
         logger.info("Anomaly ratio: %s", list(pred).count(-1) / pred.shape[0])
 
     def _rolling_median(self):
+        """Function for filtering using a rolling median approach."""
         logger.info("Calculating predictions for rolling median")
         roll = self.data.rolling(self._window, center=True)
         r_md = roll.median()
@@ -182,8 +182,7 @@ class filter_periods:
         self.drop_periods = drop_periods
 
     def _filter_data(self):
-        """Drops periods defined previously from dataset """
-
+        """Drops periods defined previously from dataset."""
         row_filter = []
         for drop_method, p in self.drop_periods.items():
             for line in p:
@@ -192,12 +191,15 @@ class filter_periods:
                 )
 
         if row_filter:
+            n_prior = len(data)
             self.data = pandas_filter_rows(
                 df=self.data, filter_str=row_filter, buffer_size=0
             )
+            logger.info(f"Dropped {n_prior - len(self.data)} rows")
+        else:
+            logger.info("No rows dropped")
 
     @staticmethod
     def _describe(score):
-        """Format array-like for logging summary statistics.
-        """
+        """Format array-like for logging summary statistics."""
         return pformat(pd.Series(score).describe().round(3).to_dict())
