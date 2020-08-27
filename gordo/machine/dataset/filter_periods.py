@@ -191,7 +191,7 @@ class filter_periods:
                 )
 
         if row_filter:
-            n_prior = len(data)
+            n_prior = len(self.data)
             self.data = pandas_filter_rows(
                 df=self.data, filter_str=row_filter, buffer_size=0
             )
