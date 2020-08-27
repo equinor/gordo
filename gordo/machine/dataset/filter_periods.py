@@ -8,6 +8,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class WrongFilterMethodType(TypeError):
+    pass
+
 class filter_periods:
     """Model class with methods for data pre-processing.
     Performs a series of algorithms that drops noisy data.
@@ -40,7 +43,9 @@ class filter_periods:
         self.data = data.copy()
         self.granularity = granularity
         self.filter_method = kwargs.get("filter_method", "median")
-        assert self.filter_method in ["median", "iforest", "all"]
+
+        if self.filter_method not in ["median", "iforest", "all"]:
+            raise WrongFilterMethodType
 
         self.predictions = {}
         if self.filter_method in ["median", "all"]:
@@ -176,7 +181,7 @@ class filter_periods:
         self.drop_periods = drop_periods
 
     def _filter_data(self):
-        """Drops periods defined previously from dataset"""
+        """Drops periods defined previously from dataset """
 
         row_filter = []
         for drop_method, p in self.drop_periods.items():
@@ -185,9 +190,10 @@ class filter_periods:
                     f"~('{line['drop_start']}' <= index <= '{line['drop_end']}')"
                 )
 
-        self.data = pandas_filter_rows(
-            df=self.data, filter_str=row_filter, buffer_size=0
-        )
+        if row_filter:
+            self.data = pandas_filter_rows(
+                df=self.data, filter_str=row_filter, buffer_size=0
+            )
 
     @staticmethod
     def _describe(score):
