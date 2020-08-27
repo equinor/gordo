@@ -50,6 +50,6 @@ def test_filter_periods_wiht_smoothing_all(dataset):
     data, _ = dataset.get_data()
 
     data_filtered = filter_periods(
-        data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=False
+        data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=True
     )
     assert data_filtered.data.shape == (1446, 2)
