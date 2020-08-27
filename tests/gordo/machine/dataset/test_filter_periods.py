@@ -17,6 +17,7 @@ def dataset():
 
 def test_filter_periods(dataset):
     data, _ = dataset.get_data()
+    assert data.shape == (1361, 2)
 
     with pytest.raises(TypeError):
         filter_periods(data=data, granularity="10T", filter_method="abc", n_iqr=1)
@@ -43,6 +44,7 @@ def test_filter_periods_with_smoothing(dataset):
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="iforest", iforest_smooth=True
     )
+    assert data.shape == (1361, 2)
     assert data_filtered.data.shape == (2008, 2)
 
 
@@ -52,4 +54,5 @@ def test_filter_periods_wiht_smoothing_all(dataset):
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=True
     )
+    assert data.shape == (1361, 2)
     assert data_filtered.data.shape == (1317, 2)
