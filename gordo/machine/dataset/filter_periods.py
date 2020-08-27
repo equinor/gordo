@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class WrongFilterMethodType(TypeError):
     pass
 
+
 class filter_periods:
     """Model class with methods for data pre-processing.
     Performs a series of algorithms that drops noisy data.
