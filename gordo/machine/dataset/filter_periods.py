@@ -88,7 +88,7 @@ class filter_periods:
         """
         data = self.data.copy()
         if self._iforest_smooth:
-            data = data.ewm(halflife=6).mean()
+            data = data.ewm(halflife=6).mean().round(4)
 
         logger.info("Fitting model")
         self._init_model()
