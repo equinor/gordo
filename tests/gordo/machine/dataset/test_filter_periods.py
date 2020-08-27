@@ -35,7 +35,6 @@ def test_filter_periods(dataset):
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=False
     )
-    print(len(data_filtered.data))
     assert 1580 < len(data_filtered.data) < 1600
 
 
@@ -46,7 +45,6 @@ def test_filter_periods_with_smoothing(dataset):
         data=data, granularity="10T", filter_method="iforest", iforest_smooth=True
     )
     assert data.shape == (2364, 2)
-    print(len(data_filtered.data))
     assert 2000 < len(data_filtered.data) < 2025
 
 
@@ -57,5 +55,4 @@ def test_filter_periods_wiht_smoothing_all(dataset):
         data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=True
     )
     assert data.shape == (1837, 2)
-    print(len(data_filtered.data))
     assert 1315 < len(data_filtered.data) < 1330
