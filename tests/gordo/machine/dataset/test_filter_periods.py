@@ -32,7 +32,7 @@ def test_filter_periods(dataset):
     assert data_filtered.data.shape == (1816, 2)
 
     data_filtered = filter_periods(
-        data=data, granularity="10T", filter_method="all", iforest_smooth=False
+        data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=False
     )
     assert data_filtered.data.shape == (1816, 2)
 
