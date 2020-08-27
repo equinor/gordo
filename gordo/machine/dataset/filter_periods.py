@@ -74,7 +74,7 @@ class filter_periods:
             max_features=1.0,  # Features to draw from X to train each base estimator.
             bootstrap=False,
             n_jobs=-1,  # ``-1`` means using all processors
-            random_state=42,
+            random_state=0,
             verbose=0,
         )
         self.minmaxscaler = MinMaxScaler()
@@ -87,7 +87,7 @@ class filter_periods:
         """
         data = self.data.copy()
         if self._iforest_smooth:
-            data = data.ewm(halflife=6).mean().round(4)
+            data = data.ewm(halflife=6).mean()
 
         logger.info("Fitting model")
         self._init_model()
