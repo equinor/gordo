@@ -32,11 +32,24 @@ def test_filter_periods(dataset):
     assert data_filtered.data.shape == (1816, 2)
 
     data_filtered = filter_periods(
+        data=data, granularity="10T", filter_method="all", iforest_smooth=False
+    )
+    assert data_filtered.data.shape == (1816, 2)
+
+
+def test_filter_periods_with_smoothing(dataset):
+    data, _ = dataset.get_data()
+
+    data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="iforest", iforest_smooth=True
     )
-    assert True  # data_filtered.data.shape == (1649, 2)
+    assert data_filtered.data.shape == (1649, 2)
+
+
+def test_filter_periods_wiht_smoothing_all(dataset):
+    data, _ = dataset.get_data()
 
     data_filtered = filter_periods(
         data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=False
     )
-    assert True  # data_filtered.data.shape == (1589, 2)
+    assert data_filtered.data.shape == (1589, 2)
