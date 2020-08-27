@@ -36,7 +36,7 @@ def test_filter_periods(dataset):
         data=data, granularity="10T", filter_method="all", n_iqr=1, iforest_smooth=False
     )
     print(len(data_filtered.data))
-    assert 1580 < len(data_filtered.data) > 1600
+    assert 1580 < len(data_filtered.data) < 1600
 
 
 def test_filter_periods_with_smoothing(dataset):
