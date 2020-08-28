@@ -35,6 +35,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         error calculations. The underlying ``base_estimator`` is trained
         with the original, unscaled, ``y``.
 
+        Threshold calculation is based on a rolling statistic of the validation errors
+        on the last fold of cross-validation.
+
         Parameters
         ----------
         base_estimator: sklearn.base.BaseEstimator
@@ -53,7 +56,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             an ``AttributeError`` will be raised.
         shuffle: bool
             Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
-            will be trained on a sample of data accross the time range and not just 
+            will be trained on a sample of data accross the time range and not just
             the last elements according to model arg ``validation_split``.
         window: int
             Window size for smoothed thresholds
@@ -488,7 +491,7 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         shuffle: bool = True,
         window: int = 144,
         smoothing_method: str = "smm",
-        threshold_percentile: float = 0.975,
+        threshold_percentile: float = 0.99,
     ):
         """
         Estimator which wraps a ``base_estimator`` and provides a diff error
@@ -497,6 +500,9 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         It trains a ``scaler`` to the target **after** training, purely for
         error calculations. The underlying ``base_estimator`` is trained
         with the original, unscaled, ``y``.
+
+        Threshold calculation is based on a percentile of the smoothed validation
+        errors as calculated from cross-validation predictions.
 
         Parameters
         ----------
@@ -517,7 +523,7 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             will be raised.
         shuffle: bool
             Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
-            will be trained on a sample of data accross the time range and not just 
+            will be trained on a sample of data accross the time range and not just
             the last elements according to model arg ``validation_split``.
         window: int
             Window size for smooth metrics and threshold calculation.
