@@ -470,7 +470,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         scaler: TransformerMixin = MinMaxScaler(),
         require_thresholds: bool = True,
         shuffle: bool = True,
-        n_splits: int = 5,
         window: int = 144,
         smoothing_method: str = "smm",
         threshold_percentile: float = 0.975,
@@ -506,8 +505,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             the time range and not just the last elements according to model arg
             ``validation_split``; in ``.cross_validate`` so that the data is shuffled
             before being split into folds using ``Kfold``.
-        n_splits: int
-            Number of folds to split the data into in ``.cross_validate``.
         window: int
             Window size for smooth metrics and threshold calculation.
         smoothing_method: str
@@ -522,7 +519,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         self.require_thresholds = require_thresholds
         self.window = window
         self.shuffle = shuffle
-        self.n_splits = n_splits
         self.smoothing_method = smoothing_method
         self.threshold_percentile = threshold_percentile
 
@@ -540,7 +536,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             "window": self.window,
             "smoothing_method": self.smoothing_method,
             "shuffle": self.shuffle,
-            "n_splits": self.n_splits,
             "threshold_percentile": self.threshold_percentile,
         }
         return params
@@ -573,18 +568,12 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             )
         return metadata
 
-    def fit(self, X: np.ndarray, y: np.ndarray):
-        if self.shuffle:
-            X, y = shuffle(X, y, random_state=0)
-        self.base_estimator.fit(X, y)
-        self.scaler.fit(y)
-        return self
-
     def cross_validate(
         self,
         *,
         X: Union[pd.DataFrame, np.ndarray],
         y: Union[pd.DataFrame, np.ndarray],
+        cv=KFold(n_splits=5, shuffle=True, random_state=0),
         **kwargs,
     ):
         """
@@ -605,11 +594,7 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         -------
         dict
         """
-        cv = KFold(
-            n_splits=self.n_splits,
-            shuffle=self.shuffle,
-            random_state=self._set_random_state(),
-        )
+
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
