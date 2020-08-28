@@ -51,8 +51,16 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate` was not
             called before calling :func:`~DiffBasedAnomalyDetector.anomaly`
             an ``AttributeError`` will be raised.
+        shuffle: bool
+            Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
+            will be trained on a sample of data accross the time range and not just 
+            the last elements according to model arg ``validation_split``.
         window: int
             Window size for smoothed thresholds
+        smoothing_method: str
+            Method to be used together with ``window`` to smooth metrics.
+            Must be one of: 'smm': simple moving median, 'sma': simple moving average or
+            'ewma': exponential weighted moving average.
         """
         self.base_estimator = base_estimator
         self.scaler = scaler
@@ -508,11 +516,9 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
             will be raised.
         shuffle: bool
-            Flag to shuffle or not data in two situations: in ``.fit`` so that
-            the model, if relevant, will be trained on a sample of data accross
-            the time range and not just the last elements according to model arg
-            ``validation_split``; in ``.cross_validate`` so that the data is shuffled
-            before being split into folds using ``Kfold``.
+            Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
+            will be trained on a sample of data accross the time range and not just 
+            the last elements according to model arg ``validation_split``.
         window: int
             Window size for smooth metrics and threshold calculation.
         smoothing_method: str
