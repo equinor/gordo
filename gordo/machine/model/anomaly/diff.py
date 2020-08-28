@@ -134,7 +134,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             metadata.update(self.base_estimator.get_metadata())
         else:
             metadata.update(
-                {"scaler": str(self.scaler), "base_estimator": str(self.base_estimator)}
+                {
+                    "scaler": str(self.scaler),
+                    "base_estimator": str(self.base_estimator),
+                    "shuffle": self.shuffle,
+                }
             )
         return metadata
 
@@ -581,6 +585,7 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
                 {
                     "scaler": str(self.scaler),
                     "base_estimator": str(self.base_estimator),
+                    "shuffle": self.shuffle,
                     "window": self.window,
                     "smoothing-method": self.smoothing_method,
                     "threshold-percentile": self.threshold_percentile,
