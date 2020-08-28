@@ -23,6 +23,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
         scaler: TransformerMixin = MinMaxScaler(),
         require_thresholds: bool = True,
+        shuffle: bool = False,
         window: Optional[int] = None,
         smoothing_method: Optional[str] = None,
     ):
@@ -56,6 +57,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self.base_estimator = base_estimator
         self.scaler = scaler
         self.require_thresholds = require_thresholds
+        self.shuffle = shuffle
         self.window = window
         self.smoothing_method = smoothing_method
 
@@ -141,7 +143,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         -------
         dict
         """
-        params = {"base_estimator": self.base_estimator, "scaler": self.scaler}
+        params = {
+            "base_estimator": self.base_estimator,
+            "scaler": self.scaler,
+            "shuffle": self.shuffle,
+        }
         if self.window is not None:
             params["window"] = self.window
         if self.smoothing_method is not None:
@@ -149,6 +155,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         return params
 
     def fit(self, X: np.ndarray, y: np.ndarray):
+        if self.shuffle:
+            X, y = shuffle(X, y, random_state=0)
         self.base_estimator.fit(X, y)
         self.scaler.fit(y)  # Scaler is used for calculating errors in .anomaly()
         return self
@@ -624,11 +632,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
 
         return cv_output
-
-    def _set_random_state(self):
-        if self.shuffle:
-            return 0
-        return
 
     def _calculate_aggregate_threshold(
         self, model, y_true: pd.DataFrame, y_pred: pd.DataFrame
