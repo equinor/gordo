@@ -28,7 +28,8 @@ from gordo.machine.model.anomaly.diff import (
     "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
 )
 @pytest.mark.parametrize("with_thresholds", (True, False))
-def test_diff_detector(scaler, index, with_thresholds: bool):
+@pytest.mark.parametrize("shuffle", (True, False))
+def test_diff_detector(scaler, index, with_thresholds: bool, shuffle: bool):
     """
     Test the functionality of the DiffBasedAnomalyDetector
     """
@@ -41,15 +42,16 @@ def test_diff_detector(scaler, index, with_thresholds: bool):
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
     model = DiffBasedAnomalyDetector(
-        base_estimator=base_estimator, scaler=scaler, require_thresholds=with_thresholds
+        base_estimator=base_estimator,
+        scaler=scaler,
+        require_thresholds=with_thresholds,
+        shuffle=shuffle,
     )
 
     assert isinstance(model, AnomalyDetectorBase)
 
     assert model.get_params() == dict(
-        base_estimator=base_estimator,
-        scaler=scaler,
-        # require_thresholds=with_thresholds,
+        base_estimator=base_estimator, scaler=scaler, shuffle=shuffle,
     )
 
     if with_thresholds:
@@ -117,9 +119,15 @@ def test_diff_detector(scaler, index, with_thresholds: bool):
 @pytest.mark.parametrize("len_x_y", (100, 144, 1440))
 @pytest.mark.parametrize("time_index", (True, False))
 @pytest.mark.parametrize("with_thresholds", (True, False))
+@pytest.mark.parametrize("shuffle", (True, False))
 @pytest.mark.parametrize("smoothing_method", (None, "smm", "sma", "ewma"))
 def test_diff_detector_with_window(
-    scaler, len_x_y: int, time_index: bool, with_thresholds: bool, smoothing_method
+    scaler,
+    len_x_y: int,
+    time_index: bool,
+    with_thresholds: bool,
+    shuffle: bool,
+    smoothing_method,
 ):
     """
     Test the functionality of the DiffBasedAnomalyDetector with window
@@ -141,6 +149,7 @@ def test_diff_detector_with_window(
         base_estimator=base_estimator,
         scaler=scaler,
         require_thresholds=with_thresholds,
+        shuffle=shuffle,
         window=144,
         smoothing_method=smoothing_method,
     )
@@ -149,13 +158,14 @@ def test_diff_detector_with_window(
 
     if smoothing_method is None:
         assert model.get_params() == dict(
-            base_estimator=base_estimator, scaler=scaler, window=144,
+            base_estimator=base_estimator, scaler=scaler, shuffle=shuffle, window=144,
         )
 
     else:
         assert model.get_params() == dict(
             base_estimator=base_estimator,
             scaler=scaler,
+            shuffle=shuffle,
             window=144,
             smoothing_method=smoothing_method,
         )
@@ -324,7 +334,6 @@ def test_diff_detector_with_window(
 @pytest.mark.parametrize("with_thresholds", (True, False))
 @pytest.mark.parametrize("shuffle", (True, False))
 @pytest.mark.parametrize("window", (6, 144))
-@pytest.mark.parametrize("n_splits", (3, 5))
 @pytest.mark.parametrize("smoothing_method", ("smm", "sma", "ewma"))
 @pytest.mark.parametrize("threshold_percentile", (0.975, 1.0))
 def test_diff_kfcv_detector(
@@ -334,7 +343,6 @@ def test_diff_kfcv_detector(
     shuffle: bool,
     window: int,
     smoothing_method: str,
-    n_splits: int,
     threshold_percentile: float,
 ):
     """
@@ -353,7 +361,6 @@ def test_diff_kfcv_detector(
         scaler=scaler,
         require_thresholds=with_thresholds,
         shuffle=shuffle,
-        n_splits=n_splits,
         window=window,
         smoothing_method=smoothing_method,
         threshold_percentile=threshold_percentile,
@@ -367,7 +374,6 @@ def test_diff_kfcv_detector(
         window=window,
         smoothing_method=smoothing_method,
         shuffle=shuffle,
-        n_splits=n_splits,
         threshold_percentile=threshold_percentile,
     )
 
@@ -480,7 +486,6 @@ def test_diff_kfcv_detector(
             scaler: sklearn.preprocessing.MinMaxScaler
             window: 144
             shuffle: true
-            n_splits: 5
             threshold_percentile: 0.975
     """,
     ),
@@ -640,6 +645,7 @@ def test_diff_detector_get_metadata(mode):
     if not isinstance(model, GordoBase):
         assert "base_estimator" in metadata.keys()
         assert "scaler" in metadata.keys()
+        assert "shuffle" in metadata.keys()
 
     # When initialized it should not have a threshold calculated.
     assert "feature-thresholds" not in metadata.keys()
@@ -654,6 +660,7 @@ def test_diff_detector_get_metadata(mode):
     if not isinstance(model, GordoBase):
         assert "base_estimator" in metadata.keys()
         assert "scaler" in metadata.keys()
+        assert "shuffle" in metadata.keys()
 
     # Now we have calculated thresholds based on cross validation folds
     assert "feature-thresholds" in metadata.keys()
