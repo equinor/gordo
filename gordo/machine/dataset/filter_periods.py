@@ -58,7 +58,7 @@ class FilterPeriods:
         self._iforest_smooth = iforest_smooth
         self._contamination = contamination
 
-    def filter_df(self, data):
+    def filter_data(self, data):
         predictions = {}
         if self.filter_method in ["median", "all"]:
             predictions["median"] = self._rolling_median(data)
@@ -69,7 +69,7 @@ class FilterPeriods:
 
         drop_periods = self._drop_periods(predictions)
         data = self._filter_data(data, drop_periods)
-        return data, drop_periods
+        return data, drop_periods, predictions
 
     def _init_model(self, data):
         """Return a new instance of the models."""
@@ -82,7 +82,7 @@ class FilterPeriods:
             max_features=1.0,  # Features to draw from X to train each base estimator.
             bootstrap=False,
             n_jobs=-1,  # ``-1`` means using all processors
-            random_state=0,
+            random_state=42,
             verbose=0,
         )
         self.minmaxscaler = MinMaxScaler()
@@ -188,7 +188,7 @@ class FilterPeriods:
 
         return drop_periods
 
-    def _filter_data(data, drop_periods):
+    def _filter_data(self, data, drop_periods):
         """Drops periods defined previously from dataset."""
         row_filter = []
         for drop_method, p in drop_periods.items():
@@ -201,8 +201,10 @@ class FilterPeriods:
             n_prior = len(data)
             data = pandas_filter_rows(df=data, filter_str=row_filter, buffer_size=0)
             logger.info(f"Dropped {n_prior - len(data)} rows")
+            return data
         else:
             logger.info("No rows dropped")
+            return data
 
     @staticmethod
     def _describe(score):

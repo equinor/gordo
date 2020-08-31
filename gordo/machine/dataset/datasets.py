@@ -264,7 +264,7 @@ class TimeSeriesDataset(GordoBaseDataset):
                 )
 
         if self.filter_periods:
-            data, drop_periods = self.filter_periods.filter_df(data)
+            data, drop_periods, _ = self.filter_periods.filter_data(data)
             self._metadata["filtered_periods"] = drop_periods
 
         x_tag_names = [tag.name for tag in self.tag_list]
