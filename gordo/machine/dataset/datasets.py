@@ -16,7 +16,7 @@ from gordo.machine.dataset.data_provider.providers import (
 from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.filter_rows import pandas_filter_rows
-from gordo.machine.dataset.filter_periods import filter_periods
+from gordo.machine.dataset.filter_periods import FilterPeriods
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.util import capture_args
@@ -184,7 +184,11 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.high_threshold = high_threshold
         self.interpolation_method = interpolation_method
         self.interpolation_limit = interpolation_limit
-        self.filter_periods = filter_periods
+        self.filter_periods = (
+            FilterPeriods(granularity=self.resolution, **filter_periods)
+            if filter_periods
+            else None
+        )
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -260,11 +264,8 @@ class TimeSeriesDataset(GordoBaseDataset):
                 )
 
         if self.filter_periods:
-            filtered_periods = filter_periods(
-                data=data, granularity=self.resolution, kwargs=self.filter_periods
-            )
-            data = filtered_periods.data
-            self._metadata["filtered_periods"] = filtered_periods.drop_periods
+            data, drop_periods = self.filter_periods.filter_df(data)
+            self._metadata["filtered_periods"] = drop_periods
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
