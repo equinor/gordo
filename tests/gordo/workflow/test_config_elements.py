@@ -97,6 +97,10 @@ def test_machine_from_config(default_globals: dict):
           target_tag_list: [GRA-TE -123-456]
           train_start_date: 2018-01-01T09:00:30Z
           train_end_date: 2018-01-02T09:00:30Z
+          filter_periods:
+            filter_method: "median"
+            n_iqr: 1
+            window: 72
         model:
           sklearn.pipeline.Pipeline:
             steps:
@@ -136,6 +140,7 @@ def test_machine_from_config(default_globals: dict):
                 "type": "DataLakeProvider",
             },
             "default_asset": None,
+            "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
             "high_threshold": 50000,
             "interpolation_limit": "8H",
             "interpolation_method": "linear_interpolation",

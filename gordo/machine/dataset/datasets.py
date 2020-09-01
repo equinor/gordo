@@ -16,6 +16,7 @@ from gordo.machine.dataset.data_provider.providers import (
 from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.filter_rows import pandas_filter_rows
+from gordo.machine.dataset.filter_periods import FilterPeriods
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.util import capture_args
@@ -91,6 +92,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         high_threshold=50000,
         interpolation_method: str = "linear_interpolation",
         interpolation_limit: str = "8H",
+        filter_periods={},
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -149,6 +151,9 @@ class TimeSeriesDataset(GordoBaseDataset):
             Parameter sets how long from last valid data point values will be interpolated/forward filled.
             Default is eight hours (`8H`).
             If None, all missing values are interpolated/forward filled.
+        fiter_periods: dict
+            Performs a series of algorithms that drops noisy data is specified.
+            See `filter_periods` class for details.
         """
         self.train_start_date = self._validate_dt(train_start_date)
         self.train_end_date = self._validate_dt(train_end_date)
@@ -179,6 +184,11 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.high_threshold = high_threshold
         self.interpolation_method = interpolation_method
         self.interpolation_limit = interpolation_limit
+        self.filter_periods = (
+            FilterPeriods(granularity=self.resolution, **filter_periods)
+            if filter_periods
+            else None
+        )
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -252,6 +262,10 @@ class TimeSeriesDataset(GordoBaseDataset):
                     f"The length of the generated DataFrame ({len(data)}) does not exceed the "
                     f"specified required threshold for number of rows ({self.n_samples_threshold})."
                 )
+
+        if self.filter_periods:
+            data, drop_periods, _ = self.filter_periods.filter_data(data)
+            self._metadata["filtered_periods"] = drop_periods
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]
