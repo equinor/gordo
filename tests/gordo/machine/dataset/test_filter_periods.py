@@ -63,7 +63,7 @@ def test_filter_periods_all(dataset):
     assert sum(predictions["iforest"]["pred"]) == 1424
     assert len(drop_periods["median"]) == 16
     assert len(drop_periods["iforest"]) == 10
-    assert data_filtered.shape == (1219, 2)
+    assert data_filtered.shape == (1218, 2)
 
 
 def test_filter_periods_iforest_smoothing(dataset):
@@ -77,7 +77,7 @@ def test_filter_periods_iforest_smoothing(dataset):
 
     assert sum(predictions["iforest"]["pred"]) == 985
     assert len(drop_periods["iforest"]) == 18
-    assert data_filtered.shape == (1200, 2)
+    assert data_filtered.shape == (1210, 2)
 
 
 def test_filter_periods_all_smoothing(dataset):
@@ -92,4 +92,4 @@ def test_filter_periods_all_smoothing(dataset):
     assert sum(predictions["iforest"]["pred"]) == 648
     assert len(drop_periods["median"]) == 15
     assert len(drop_periods["iforest"]) == 24
-    assert data_filtered.shape == (767, 2)
+    assert data_filtered.shape == (770, 2)
