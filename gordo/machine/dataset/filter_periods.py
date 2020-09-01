@@ -59,6 +59,10 @@ class FilterPeriods:
         self._contamination = contamination
 
     def filter_data(self, data):
+        """Method for filtering data.
+        Returns the filtered dataset, a dict containing the different periods that have been dropped arranged
+        by filtering method and the actual predictions from the filter model.
+        """
         predictions = {}
         if self.filter_method in ["median", "all"]:
             predictions["median"] = self._rolling_median(data)
