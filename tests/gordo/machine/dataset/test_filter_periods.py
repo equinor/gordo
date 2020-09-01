@@ -77,7 +77,7 @@ def test_filter_periods_iforest_smoothing(dataset):
 
     assert sum(predictions["iforest"]["pred"]) == 8552
     assert len(drop_periods["iforest"]) == 41
-    assert data_filtered.shape == (9110, 1)
+    assert data_filtered.shape == (9113, 1)
 
 
 def test_filter_periods_all_smoothing(dataset):
