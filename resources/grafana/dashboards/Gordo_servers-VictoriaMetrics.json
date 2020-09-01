@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 1,
   "id": 112,
-  "iteration": 1598277214992,
+  "iteration": 1598967620250,
   "links": [],
   "panels": [
     {
@@ -70,7 +70,7 @@
       "targets": [
         {
           "$$hashKey": "object:214",
-          "expr": "rate(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\"}[30s])",
+          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\"}[30s]) by (path))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -123,7 +123,7 @@
     },
     {
       "aliasColors": {},
-      "bars": false,
+      "bars": true,
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
@@ -156,7 +156,7 @@
         "total": false,
         "values": true
       },
-      "lines": true,
+      "lines": false,
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
@@ -172,11 +172,11 @@
       "targets": [
         {
           "$$hashKey": "object:214",
-          "expr": "rate(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",model!=\"\"}[30s])",
+          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",model!=\"\"}[30s]) by (project))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "{{ model }}",
+          "legendFormat": "{{ project }}",
           "refId": "A"
         }
       ],
@@ -184,7 +184,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Requests per model",
+      "title": "Requests per project",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -225,110 +225,6 @@
     },
     {
       "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "VictoriaMetrics",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {}
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 0,
-        "y": 7
-      },
-      "hiddenSeries": false,
-      "id": 4,
-      "legend": {
-        "avg": true,
-        "current": true,
-        "max": true,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "percentage": false,
-      "pluginVersion": "7.1.3",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "$$hashKey": "object:1922",
-          "alias": "errors",
-          "color": "#c15c17"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "$$hashKey": "object:766",
-          "expr": "sum(rate(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code!=\"200\"}[30s]))",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "errors",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Errors per second",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "$$hashKey": "object:890",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "$$hashKey": "object:891",
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
       "bars": true,
       "dashLength": 10,
       "dashes": false,
@@ -344,7 +240,7 @@
       "gridPos": {
         "h": 7,
         "w": 8,
-        "x": 8,
+        "x": 0,
         "y": 7
       },
       "hiddenSeries": false,
@@ -380,7 +276,7 @@
       "targets": [
         {
           "$$hashKey": "object:140",
-          "expr": "increase(gordo_server_requests_total{cluster=~\"$cluster\",project=~\"$project\"}[1m])",
+          "expr": "increase(sum(gordo_server_requests_total{cluster=~\"$cluster\",project=~\"$project\"}[1m]) by (status_code))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -449,11 +345,11 @@
       "gridPos": {
         "h": 7,
         "w": 8,
-        "x": 16,
+        "x": 8,
         "y": 7
       },
       "hiddenSeries": false,
-      "id": 6,
+      "id": 16,
       "legend": {
         "alignAsTable": true,
         "avg": false,
@@ -483,7 +379,7 @@
       "targets": [
         {
           "$$hashKey": "object:146",
-          "expr": "rate(gordo_server_request_duration_seconds_sum{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\"}[1m])\n/\nrate(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\"}[1m])",
+          "expr": "avg(rate(gordo_server_request_duration_seconds_sum{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",path!~\".*prediction\"}[1m])\n/\nrate(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",path!~\".*prediction\"}[1m]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -495,7 +391,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Average response time [30s]",
+      "title": "API response time [1m]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -541,6 +437,7 @@
       "dashLength": 10,
       "dashes": false,
       "datasource": "VictoriaMetrics",
+      "decimals": null,
       "fieldConfig": {
         "defaults": {
           "custom": {}
@@ -551,8 +448,168 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 7,
-        "w": 12,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
+      "hiddenSeries": false,
+      "id": 6,
+      "legend": {
+        "alignAsTable": true,
+        "avg": false,
+        "current": true,
+        "max": false,
+        "min": false,
+        "rightSide": true,
+        "show": true,
+        "sort": "avg",
+        "sortDesc": true,
+        "total": false,
+        "values": true
+      },
+      "lines": true,
+      "linewidth": 1,
+      "links": [],
+      "nullPointMode": "null",
+      "percentage": false,
+      "pluginVersion": "7.1.3",
+      "pointradius": 5,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "$$hashKey": "object:146",
+          "expr": "avg(rate(gordo_server_request_duration_seconds_sum{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",path=~\".*prediction\"}[1m])\n/\nrate(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",path=~\".*prediction\"}[1m]))",
+          "format": "time_series",
+          "interval": "",
+          "intervalFactor": 1,
+          "legendFormat": "{{ path }}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Prediction response time [1m]",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:1004",
+          "decimals": null,
+          "format": "s",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:1005",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "datasource": "VictoriaMetrics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 2,
         "x": 0,
+        "y": 14
+      },
+      "id": 18,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "7.1.3",
+      "targets": [
+        {
+          "expr": "sum(kube_deployment_status_replicas{cluster=~\"$cluster\",namespace=\"gordo\",deployment=~\"gordo-srv-$project\"})",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Numbers of replicas",
+      "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 10,
+        "x": 2,
         "y": 14
       },
       "hiddenSeries": false,
@@ -582,7 +639,7 @@
       "targets": [
         {
           "$$hashKey": "object:638",
-          "expr": "container_memory_usage_bytes{cluster=~\"$cluster\",container=\"gordoserver-$project\"}",
+          "expr": "sum(container_memory_usage_bytes{cluster=~\"$cluster\",container=~\"gordoserver-$project\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -648,7 +705,7 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 12,
         "x": 12,
         "y": 14
@@ -680,7 +737,7 @@
       "targets": [
         {
           "$$hashKey": "object:638",
-          "expr": "rate(container_cpu_usage_seconds_total{cluster=~\"$cluster\",container=\"gordoserver-$project\"}[30s])",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{cluster=~\"$cluster\",container=~\"gordoserver-$project\"}[30s]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -732,7 +789,7 @@
       }
     }
   ],
-  "refresh": "5s",
+  "refresh": false,
   "schemaVersion": 26,
   "style": "dark",
   "tags": [],
@@ -741,9 +798,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": "gordo23poc",
-          "value": "gordo23poc"
+          "selected": false,
+          "text": "deli12",
+          "value": "deli12"
         },
         "datasource": "VictoriaMetrics",
         "definition": "label_values(kube_pod_info, cluster)",
@@ -765,7 +822,7 @@
         "useTags": false
       },
       {
-        "allValue": null,
+        "allValue": ".*",
         "current": {
           "selected": false,
           "text": "All",
@@ -783,7 +840,7 @@
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
+        "sort": 1,
         "tagValuesQuery": "",
         "tags": [],
         "tagsQuery": "",
@@ -813,5 +870,5 @@
   "timezone": "",
   "title": "Gordo servers",
   "uid": "_eX4mpl3",
-  "version": 20
+  "version": 29
 }
