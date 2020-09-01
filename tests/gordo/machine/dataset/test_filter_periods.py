@@ -46,7 +46,7 @@ def test_filter_periods_iforest(dataset):
     assert data["Tag 1"].mean() == 0.5144733352386245
 
     assert sum(predictions["iforest"]["pred"]) == 12066
-    assert len(drop_periods["iforest"]) == 51
+    assert len(drop_periods["iforest"]) == 61
     assert data_filtered.shape == (12452, 1)
 
 
@@ -62,7 +62,7 @@ def test_filter_periods_all(dataset):
     assert sum(predictions["median"]["pred"]) == -449
     assert sum(predictions["iforest"]["pred"]) == 7542
     assert len(drop_periods["median"]) == 39
-    assert len(drop_periods["iforest"]) == 30
+    assert len(drop_periods["iforest"]) == 29
     assert data_filtered.shape == (7356, 1)
 
 
@@ -75,7 +75,7 @@ def test_filter_periods_iforest_smoothing(dataset):
     assert data.shape == (9674, 1)
     assert data["Tag 1"].mean() == 0.5019862352609169
 
-    assert sum(predictions["iforest"]["pred"]) == 8546
+    assert sum(predictions["iforest"]["pred"]) == 8552
     assert len(drop_periods["iforest"]) == 38
     assert data_filtered.shape == (9110, 1)
 
