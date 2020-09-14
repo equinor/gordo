@@ -259,9 +259,7 @@ class NcsReader(GordoBaseDataProvider):
                 yield filtered
 
     @staticmethod
-    def _verify_tag_path_exist(
-        fs: FileSystem, path: str
-    ):
+    def _verify_tag_path_exist(fs: FileSystem, path: str):
         """
         Verify that the tag path exists, if not the `fs.info` will raise a FileNotFound error.
 
@@ -319,18 +317,14 @@ class NcsReader(GordoBaseDataProvider):
         logger.info(f"Downloading tag: {tag} for years: {years}")
         tag_name_encoded = quote(tag.name, safe=" ")
 
-        NcsReader._verify_tag_path_exist(
-            fs, f"{tag_base_path}/{tag_name_encoded}/"
-        )
+        NcsReader._verify_tag_path_exist(fs, f"{tag_base_path}/{tag_name_encoded}/")
 
         dir_path = f"{tag_base_path}/{tag_name_encoded}"
         for year in years:
             file_path = None
             file_lookup = None
             for v in self.file_lookups:
-                file_path = v.lookup(
-                    fs, dir_path, tag_name_encoded, year
-                )
+                file_path = v.lookup(fs, dir_path, tag_name_encoded, year)
                 if file_path is not None:
                     file_lookup = v
                     break

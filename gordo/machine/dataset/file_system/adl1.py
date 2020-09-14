@@ -22,7 +22,10 @@ def time_from_info(info: dict, time_key: str) -> Optional[datetime]:
 class ADLGen1FileSystem(FileSystem):
     @classmethod
     def create_from_env(
-        cls, store_name: str, dl_service_auth: Optional[str] = None, interactive: bool = False
+        cls,
+        store_name: str,
+        dl_service_auth: Optional[str] = None,
+        interactive: bool = False,
     ) -> "ADLGen1FileSystem":
         """
         Creates ADL Gen1 file system client.
@@ -50,7 +53,9 @@ class ADLGen1FileSystem(FileSystem):
             if dl_service_auth is None:
                 dl_service_auth = os.environ.get("DL_SERVICE_AUTH_STR")
                 if not dl_service_auth:
-                    raise ValueError("Environment variable DL_SERVICE_AUTH_STR is empty")
+                    raise ValueError(
+                        "Environment variable DL_SERVICE_AUTH_STR is empty"
+                    )
             data = dl_service_auth.split(":")
             if len(data) != 3:
                 raise ValueError(
