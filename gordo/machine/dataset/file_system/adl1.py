@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from io import IOBase, TextIOWrapper
 from azure.datalake.store import core, lib
-from typing import Optional, Iterable, Tuple, List
+from typing import Optional, Iterable
 
 from .base import FileSystem, FileInfo, FileType
 
@@ -22,7 +22,7 @@ def time_from_info(info: dict, time_key: str) -> Optional[datetime]:
 class ADLGen1FileSystem(FileSystem):
     @classmethod
     def create_from_env(
-        cls, store_name: str, dl_service_auth: Optional[str], interactive: bool = False
+        cls, store_name: str, dl_service_auth: Optional[str] = None, interactive: bool = False
     ) -> "ADLGen1FileSystem":
         """
         Creates ADL Gen1 file system client.
