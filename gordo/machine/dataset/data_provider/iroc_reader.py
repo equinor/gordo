@@ -8,8 +8,8 @@ from typing import Iterable, List, Optional
 import pandas as pd
 from azure.datalake.store import core
 
-from gordo.machine.dataset.data_provider.azure_utils import walk_azure
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
+from gordo.machine.dataset.file_system.base import FileSystem
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import to_list_of_strings
 from gordo.util import capture_args
@@ -27,11 +27,11 @@ class IrocReader(GordoBaseDataProvider):
         return IrocReader.base_path_from_asset(tag.asset) is not None
 
     @capture_args
-    def __init__(self, client: core.AzureDLFileSystem, threads: int = 50, **kwargs):
+    def __init__(self, fs: FileSystem, threads: int = 50, **kwargs):
         """
         Creates a reader for tags from IROC.
         """
-        self.client = client
+        self.fs = fs
         self.threads = threads
         if self.threads is None:
             self.threads = 50
@@ -114,7 +114,7 @@ class IrocReader(GordoBaseDataProvider):
         # Generator over all files in all of the base_paths
         def _all_files():
             for b_path in all_base_paths:
-                for f in walk_azure(client=self.client, base_path=b_path):
+                for f in self.fs.walk(b_path):
                     yield f
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
@@ -138,12 +138,12 @@ class IrocReader(GordoBaseDataProvider):
     def _read_iroc_df_from_azure(
         self, file_path, train_start_date: datetime, train_end_date: datetime, tag_list
     ):
-        adls_file_system_client = self.client
+        fs = self.fs
 
         logger.info("Attempting to open IROC file {}".format(file_path))
 
         try:
-            with adls_file_system_client.open(file_path, "rb") as f:
+            with fs.open(file_path, "rb") as f:
                 logger.info("Parsing file {}".format(file_path))
                 df = read_iroc_file(f, train_start_date, train_end_date, tag_list)
             return df
