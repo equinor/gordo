@@ -19,6 +19,7 @@ def adl_client_mock():
         adl_client.open = Mock(return_value=BytesIO())
         adl_client.info = Mock()
         adl_client.exists = Mock()
+        adl_client.ls = Mock()
         yield adl_client
 
 
@@ -127,3 +128,33 @@ def test_info_directory(adl_client_mock):
     assert info.size == 0
     assert info.access_time is None
     assert info.modify_time is None
+
+
+def test_walk(adl_client_mock):
+    dirs = {
+        "/path": ("DIRECTORY", [
+            "/path/to",
+            "/path/out.json",
+        ]),
+        "/path/to": ("DIRECTORY", [
+            "/path/to/file.json"
+        ]),
+        "/path/to/file.json": ("FILE", []),
+        "/path/out.json": ("FILE", []),
+    }
+
+    def ls_side_effect(path, **kwargs):
+        file_type, child = dirs[path]
+        ls_result = []
+        for c in child:
+            ls_result.append({"name": c, "type": dirs[c][0]})
+        return ls_result
+    adl_client_mock.ls.side_effect = ls_side_effect
+    assert adl_client_mock.ls("/path"), [
+        {'name': '/path/to', 'type': 'DIRECTORY'},
+        {'name': '/path/out.json', 'type': 'FILE'}
+    ]
+
+    fs = ADLGen1FileSystem(adl_client_mock)
+    result = list(fs.walk("/path"))
+    assert result, ["/path/out.json", "/path/to/file.json"]
