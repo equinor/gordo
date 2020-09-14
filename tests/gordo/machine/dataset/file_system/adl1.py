@@ -16,6 +16,7 @@ def auth_mock():
 def adl_client_mock():
     with patch("azure.datalake.store.core.AzureDLFileSystem") as adl_client:
         adl_client.open = Mock(return_value=BytesIO())
+        adl_client.info = Mock()
         yield adl_client
 
 
@@ -73,3 +74,17 @@ def test_open_in_text_mode(adl_client_mock):
     f = fs.open("/path/to/file.json", mode="r")
     adl_client_mock.open.assert_called_once_with("/path/to/file.json", mode="rb")
     assert isinstance(f, TextIOWrapper)
+
+
+def test_isfile(adl_client_mock):
+    adl_client_mock.info.return_value = {"type": "FILE"}
+    fs = ADLGen1FileSystem(adl_client_mock)
+    assert fs.info("/path/to/file.json")
+    adl_client_mock.info.assert_called_once_with("/path/to/file.json")
+
+
+def test_isdir(adl_client_mock):
+    adl_client_mock.info.return_value = {"type": "DIRECTORY"}
+    fs = ADLGen1FileSystem(adl_client_mock)
+    assert fs.info("/path/to/file.json")
+    adl_client_mock.info.assert_called_once_with("/path/to/file.json")
