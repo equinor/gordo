@@ -1,5 +1,6 @@
 import pytest
-from mock import patch
+from mock import patch, Mock
+from io import BytesIO, TextIOWrapper
 
 from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
 
@@ -14,6 +15,7 @@ def auth_mock():
 @pytest.fixture
 def adl_client_mock():
     with patch("azure.datalake.store.core.AzureDLFileSystem") as adl_client:
+        adl_client.open = Mock(return_value=BytesIO())
         yield adl_client
 
 
@@ -57,3 +59,17 @@ def test_create_from_env_with_empty_dl_service_auth_env(auth_mock, adl_client_mo
         get.return_value = None
         with pytest.raises(ValueError):
             ADLGen1FileSystem.create_from_env("dlstore")
+
+
+def test_open_in_bin_mode(adl_client_mock):
+    fs = ADLGen1FileSystem(adl_client_mock)
+    f = fs.open("/path/to/file.json", mode="rb")
+    adl_client_mock.open.assert_called_once_with("/path/to/file.json", mode="rb")
+    assert isinstance(f, BytesIO)
+
+
+def test_open_in_text_mode(adl_client_mock):
+    fs = ADLGen1FileSystem(adl_client_mock)
+    f = fs.open("/path/to/file.json", mode="r")
+    adl_client_mock.open.assert_called_once_with("/path/to/file.json", mode="rb")
+    assert isinstance(f, TextIOWrapper)
