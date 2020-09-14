@@ -30,7 +30,9 @@ def test_create_from_env_interactive(auth_mock, adl_client_mock):
 
 
 def test_create_from_env_with_dl_service_auth(auth_mock, adl_client_mock):
-    ADLGen1FileSystem.create_from_env("dlstore", dl_service_auth="tenant_id:client_id:client_secret")
+    ADLGen1FileSystem.create_from_env(
+        "dlstore", dl_service_auth="tenant_id:client_id:client_secret"
+    )
     auth_mock.assert_called_once_with(
         tenant_id="tenant_id",
         client_id="client_id",
@@ -55,7 +57,9 @@ def test_create_from_env_with_dl_service_auth_env(auth_mock, adl_client_mock):
 
 def test_create_from_env_with_invalid_dl_service(auth_mock, adl_client_mock):
     with pytest.raises(ValueError):
-        ADLGen1FileSystem.create_from_env("dlstore", dl_service_auth="tenant_id:client_id")
+        ADLGen1FileSystem.create_from_env(
+            "dlstore", dl_service_auth="tenant_id:client_id"
+        )
 
 
 def test_create_from_env_with_empty_dl_service_auth_env(auth_mock, adl_client_mock):
@@ -132,13 +136,8 @@ def test_info_directory(adl_client_mock):
 
 def test_walk(adl_client_mock):
     dirs = {
-        "/path": ("DIRECTORY", [
-            "/path/to",
-            "/path/out.json",
-        ]),
-        "/path/to": ("DIRECTORY", [
-            "/path/to/file.json"
-        ]),
+        "/path": ("DIRECTORY", ["/path/to", "/path/out.json",]),
+        "/path/to": ("DIRECTORY", ["/path/to/file.json"]),
         "/path/to/file.json": ("FILE", []),
         "/path/out.json": ("FILE", []),
     }
@@ -149,10 +148,11 @@ def test_walk(adl_client_mock):
         for c in child:
             ls_result.append({"name": c, "type": dirs[c][0]})
         return ls_result
+
     adl_client_mock.ls.side_effect = ls_side_effect
     assert adl_client_mock.ls("/path"), [
-        {'name': '/path/to', 'type': 'DIRECTORY'},
-        {'name': '/path/out.json', 'type': 'FILE'}
+        {"name": "/path/to", "type": "DIRECTORY"},
+        {"name": "/path/out.json", "type": "FILE"},
     ]
 
     fs = ADLGen1FileSystem(adl_client_mock)
