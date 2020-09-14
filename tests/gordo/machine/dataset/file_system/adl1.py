@@ -3,6 +3,7 @@ from mock import patch, Mock
 from io import BytesIO, TextIOWrapper
 
 from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
+from gordo.machine.dataset.file_system.base import FileType
 
 
 @pytest.fixture
@@ -17,6 +18,7 @@ def adl_client_mock():
     with patch("azure.datalake.store.core.AzureDLFileSystem") as adl_client:
         adl_client.open = Mock(return_value=BytesIO())
         adl_client.info = Mock()
+        adl_client.exists = Mock()
         yield adl_client
 
 
@@ -76,15 +78,52 @@ def test_open_in_text_mode(adl_client_mock):
     assert isinstance(f, TextIOWrapper)
 
 
+def test_exists(adl_client_mock):
+    adl_client_mock.exists.return_value = True
+    fs = ADLGen1FileSystem(adl_client_mock)
+    assert fs.exists("/path/to/file.json")
+    adl_client_mock.exists.assert_called_once_with("/path/to/file.json")
+
+
 def test_isfile(adl_client_mock):
     adl_client_mock.info.return_value = {"type": "FILE"}
     fs = ADLGen1FileSystem(adl_client_mock)
-    assert fs.info("/path/to/file.json")
+    assert fs.isfile("/path/to/file.json")
     adl_client_mock.info.assert_called_once_with("/path/to/file.json")
 
 
 def test_isdir(adl_client_mock):
     adl_client_mock.info.return_value = {"type": "DIRECTORY"}
     fs = ADLGen1FileSystem(adl_client_mock)
-    assert fs.info("/path/to/file.json")
+    assert fs.isdir("/path/to/file.json")
     adl_client_mock.info.assert_called_once_with("/path/to/file.json")
+
+
+def test_info_file(adl_client_mock):
+    adl_client_mock.info.return_value = {
+        "type": "FILE",
+        "length": 304254,
+        "accessTime": 1599631062424,
+        "modificationTime": 1599631097160,
+    }
+    fs = ADLGen1FileSystem(adl_client_mock)
+    info = fs.info("/path/to/file.json")
+    adl_client_mock.info.assert_called_once_with("/path/to/file.json")
+    assert info.file_type == FileType.FILE
+    assert info.size == 304254
+    assert info.access_time.isoformat() == "2020-09-09T05:57:42.424000"
+    assert info.modify_time.isoformat() == "2020-09-09T05:58:17.160000"
+
+
+def test_info_directory(adl_client_mock):
+    adl_client_mock.info.return_value = {
+        "type": "DIRECTORY",
+        "length": 0,
+    }
+    fs = ADLGen1FileSystem(adl_client_mock)
+    info = fs.info("/path/to/file.json")
+    adl_client_mock.info.assert_called_once_with("/path/to/file.json")
+    assert info.file_type == FileType.DIRECTORY
+    assert info.size == 0
+    assert info.access_time is None
+    assert info.modify_time is None
