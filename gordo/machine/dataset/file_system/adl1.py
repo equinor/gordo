@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def time_from_info(info: dict, time_key: str) -> Optional[datetime]:
     if time_key in info:
         unix_timestamp = info[time_key]
-        return datetime.utcfromtimestamp(unix_timestamp)
+        return datetime.utcfromtimestamp(unix_timestamp / 1000)
     else:
         return None
 
