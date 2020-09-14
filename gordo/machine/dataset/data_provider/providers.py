@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
 
-from gordo.machine.dataset.data_provider.azure_utils import create_adls_client
+from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.util import capture_args
 
@@ -159,9 +159,9 @@ class DataLakeProvider(GordoBaseDataProvider):
         logger.debug("Acquiring threading lock for Datalake authentication.")
         with self.lock:
             if not self.client:
-                self.client = create_adls_client(
-                    storename=self.storename,
-                    dl_service_auth_str=self.dl_service_auth_str,
+                self.client = ADLGen1FileSystem.create_from_env(
+                    store_name=self.storename,
+                    dl_service_auth=self.dl_service_auth_str,
                     interactive=self.interactive,
                 )
         logger.debug("Released threading lock for Datalake authentication.")

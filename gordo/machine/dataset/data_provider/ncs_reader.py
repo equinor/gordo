@@ -11,13 +11,13 @@ import pandas as pd
 from azure.datalake.store import core
 
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
+from gordo.machine.dataset.file_system.base import FileSystem
 from gordo.machine.dataset.data_provider.file_type import (
     FileType,
     CsvFileType,
     ParquetFileType,
     TimeSeriesColumns,
 )
-from gordo.machine.dataset.data_provider.azure_utils import is_file
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.util import capture_args
 
@@ -42,15 +42,15 @@ class NcsFileLookup:
         self.file_type = file_type
 
     def lookup(
-        self, client: core.AzureDLFileSystem, dir_path: str, tag_name: str, year: int
+        self, fs: FileSystem, dir_path: str, tag_name: str, year: int
     ) -> Optional[str]:
         """
         Find files with a given file type in Azure Data Lake
 
         Parameters
         ----------
-        client: core.AzureDLFileSystem
-            Azure Data Lake client
+        fs: FileSystem
+            Azure Data Lake file system
         dir_path: str
             Base directory for finding files
         tag_name
@@ -71,11 +71,11 @@ class NcsCsvLookup(NcsFileLookup):
         super().__init__(CsvFileType(header, time_series_columns))
 
     def lookup(
-        self, client: core.AzureDLFileSystem, dir_path: str, tag_name: str, year: int
+        self, fs: FileSystem, dir_path: str, tag_name: str, year: int
     ) -> Optional[str]:
         file_extension = self.file_type.file_extension
         path = f"{dir_path}/{tag_name}_{year}{file_extension}"
-        return path if is_file(client, path) else None
+        return path if fs.isfile(path) else None
 
 
 class NcsParquetLookup(NcsFileLookup):
@@ -87,11 +87,11 @@ class NcsParquetLookup(NcsFileLookup):
         super().__init__(ParquetFileType(time_series_columns))
 
     def lookup(
-        self, client: core.AzureDLFileSystem, dir_path: str, tag_name: str, year: int
+        self, fs: FileSystem, dir_path: str, tag_name: str, year: int
     ) -> Optional[str]:
         file_extension = self.file_type.file_extension
         path = f"{dir_path}/parquet/{tag_name}_{year}{file_extension}"
-        return path if is_file(client, path) else None
+        return path if fs.isfile(path) else None
 
 
 class NcsReader(GordoBaseDataProvider):
@@ -169,7 +169,7 @@ class NcsReader(GordoBaseDataProvider):
     @capture_args
     def __init__(
         self,
-        client: core.AzureDLFileSystem,
+        fs: FileSystem,
         threads: Optional[int] = 1,
         remove_status_codes: Optional[list] = [0, 64, 60, 8, 24, 3, 32768],
         dl_base_path: Optional[str] = None,
@@ -199,7 +199,7 @@ class NcsReader(GordoBaseDataProvider):
         the reader will prefer to find CSV files over Parquet
 
         """
-        self.client = client
+        self.fs = fs
         self.threads = threads
         self.remove_status_codes = remove_status_codes
         self.dl_base_path = dl_base_path
@@ -234,14 +234,14 @@ class NcsReader(GordoBaseDataProvider):
             raise ValueError(
                 f"NCS reader called with train_end_date: {train_end_date} before train_start_date: {train_start_date}"
             )
-        adls_file_system_client = self.client
+        fs = self.fs
 
         years = range(train_start_date.year, train_end_date.year + 1)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             fetched_tags = executor.map(
                 lambda tag: self.read_tag_files(
-                    adls_file_system_client=adls_file_system_client,
+                    fs=fs,
                     tag=tag,
                     years=years,
                     dry_run=dry_run,
@@ -260,23 +260,23 @@ class NcsReader(GordoBaseDataProvider):
 
     @staticmethod
     def _verify_tag_path_exist(
-        adls_file_system_client: core.AzureDLFileSystem, path: str
+        fs: FileSystem, path: str
     ):
         """
-        Verify that the tag path exists, if not the `adls_file_system_client.info` will raise a FileNotFound error.
+        Verify that the tag path exists, if not the `fs.info` will raise a FileNotFound error.
 
         Parameters
         ----------
-        adls_file_system_client: core.AzureDLFileSystem
-            the AzureDLFileSystem client to use
+        fs: FileSystem
+            File system
         path : str
             Path of tag to be checked if exists.
         """
-        adls_file_system_client.info(f"{path}")
+        fs.info(path)
 
     def read_tag_files(
         self,
-        adls_file_system_client: core.AzureDLFileSystem,
+        fs: FileSystem,
         tag: SensorTag,
         years: range,
         dry_run: Optional[bool] = False,
@@ -289,8 +289,8 @@ class NcsReader(GordoBaseDataProvider):
 
         Parameters
         ----------
-        adls_file_system_client: core.AzureDLFileSystem
-            the AzureDLFileSystem client to use
+        fs: FileSystem
+            File system
         tag: SensorTag
             the tag to download data for
         years: range
@@ -320,7 +320,7 @@ class NcsReader(GordoBaseDataProvider):
         tag_name_encoded = quote(tag.name, safe=" ")
 
         NcsReader._verify_tag_path_exist(
-            adls_file_system_client, f"{tag_base_path}/{tag_name_encoded}/"
+            fs, f"{tag_base_path}/{tag_name_encoded}/"
         )
 
         dir_path = f"{tag_base_path}/{tag_name_encoded}"
@@ -329,7 +329,7 @@ class NcsReader(GordoBaseDataProvider):
             file_lookup = None
             for v in self.file_lookups:
                 file_path = v.lookup(
-                    adls_file_system_client, dir_path, tag_name_encoded, year
+                    fs, dir_path, tag_name_encoded, year
                 )
                 if file_path is not None:
                     file_lookup = v
@@ -340,15 +340,15 @@ class NcsReader(GordoBaseDataProvider):
             logger.info(f"Parsing file {file_path}")
 
             try:
-                info = adls_file_system_client.info(file_path)
-                file_size = info.get("length") / (1024 ** 2)
+                info = fs.info(file_path)
+                file_size = info.size / (1024 ** 2)
                 logger.debug(f"File size for file {file_path}: {file_size:.2f}MB")
 
                 if dry_run:
                     logger.info("Dry run only, returning empty frame early")
                     return pd.Series()
                 before_downloading = timeit.default_timer()
-                with adls_file_system_client.open(file_path, "rb") as f:
+                with fs.open(file_path, "rb") as f:
                     df = file_type.read_df(f)
                     df = df.rename(columns={"Value": tag.name})
                     df = df[~df["Status"].isin(remove_status_codes)]
