@@ -171,8 +171,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
     def fit(self, X: np.ndarray, y: np.ndarray):
         if self.shuffle:
-            X, y = shuffle(X, y, random_state=0)
-        self.base_estimator.fit(X, y)
+            X_shuff, y_shuff = shuffle(X, y, random_state=0)
+            self.base_estimator.fit(X_shuff, y_shuff)
+        else:
+            self.base_estimator.fit(X, y)
+
         self.scaler.fit(y)  # Scaler is used for calculating errors in .anomaly()
         return self
 
