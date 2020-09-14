@@ -42,11 +42,10 @@ class ADLGen1FileSystem(FileSystem):
         ADLGen1FileSystem
         """
 
-        token = None
         if interactive:
             logger.info("Attempting to use interactive azure authentication")
             token = lib.auth()
-        elif dl_service_auth:
+        else:
             logger.info(f"Attempting to use datalake service authentication")
             if dl_service_auth is None:
                 dl_service_auth = os.environ.get("DL_SERVICE_AUTH_STR")
@@ -64,11 +63,6 @@ class ADLGen1FileSystem(FileSystem):
                 client_id=client_id,
                 client_secret=client_secret,
                 resource="https://datalake.azure.net/",
-            )
-        if token is None:
-            raise ValueError(
-                f"Either interactive (value: {interactive}) must be True, "
-                f"or dl_service_auth (value: {dl_service_auth}) must be set. "
             )
 
         adl_client = core.AzureDLFileSystem(token, store_name=store_name)
