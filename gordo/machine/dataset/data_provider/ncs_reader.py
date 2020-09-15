@@ -4,11 +4,10 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import timeit
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, cast
 from urllib.parse import quote
 
 import pandas as pd
-from azure.datalake.store import core
 
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.file_system.base import FileSystem
@@ -326,6 +325,7 @@ class NcsReader(GordoBaseDataProvider):
             for v in self.file_lookups:
                 file_path = v.lookup(fs, dir_path, tag_name_encoded, year)
                 if file_path is not None:
+                    file_path = cast(file_path, str)
                     file_lookup = v
                     break
             if file_lookup is None:

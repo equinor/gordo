@@ -4,6 +4,7 @@ import numpy as np
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import BinaryIO, Optional
+from io import IOBase
 
 
 @dataclass
@@ -32,7 +33,7 @@ class FileType(metaclass=ABCMeta):
     file_extension: Optional[str] = None
 
     @abstractmethod
-    def read_df(self, f: BinaryIO) -> pd.DataFrame:
+    def read_df(self, f: IOBase) -> pd.DataFrame:
         """
         Read `DataFrame` from file object
 
@@ -66,7 +67,7 @@ class CsvFileType(FileType):
         self.time_series_columns = time_series_columns
         self.sep = sep
 
-    def read_df(self, f: BinaryIO) -> pd.DataFrame:
+    def read_df(self, f: IOBase) -> pd.DataFrame:
         datetime_column = self.time_series_columns.datetime_column
         value_column = self.time_series_columns.value_column
         return pd.read_csv(
@@ -96,7 +97,7 @@ class ParquetFileType(FileType):
         """
         self.time_series_columns = time_series_columns
 
-    def read_df(self, f: BinaryIO) -> pd.DataFrame:
+    def read_df(self, f: IOBase) -> pd.DataFrame:
         columns = self.time_series_columns.columns
         datetime_column = self.time_series_columns.datetime_column
         df = pd.read_parquet(f, engine="pyarrow", columns=columns).set_index(

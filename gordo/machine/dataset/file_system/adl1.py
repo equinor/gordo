@@ -106,7 +106,7 @@ class ADLGen1FileSystem(FileSystem):
         else:
             return False
 
-    def info(self, path: str) -> Optional[FileInfo]:
+    def info(self, path: str) -> FileInfo:
         info = self.adl_client.info(path)
         if info["type"] == "FILE":
             file_type = FileType.FILE

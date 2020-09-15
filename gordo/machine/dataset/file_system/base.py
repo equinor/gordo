@@ -53,7 +53,7 @@ class FileSystem(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def info(self, path: str) -> Optional[FileInfo]:
+    def info(self, path: str) -> FileInfo:
         ...
 
     @abstractmethod
