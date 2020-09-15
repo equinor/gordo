@@ -116,7 +116,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     )
     def test_load_series_no_data(self, _mocked_method):
         """load_series will raise ValueError if it does not find any tags"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -128,7 +128,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
 
     def test_load_series_no_tag_list(self):
         """load_series will return an empty generator when called with no tags"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         res = list(
             iroc_reader.load_series(
                 train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
@@ -139,21 +139,21 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         self.assertEqual([], res)
 
     def test_can_handle_tag_ok(self):
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         assert iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UON_EF"))
 
     def test_can_handle_tag_unknown_asset(self):
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UNKNOWǸ_ASSET"))
 
     def test_can_handle_tag_no_asset(self):
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", None))
 
     def test_load_series_many_assets(self):
         """load_series will return an empty generator when called with tags
         related to several assets"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -166,7 +166,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     def test_load_series_no_asset_found(self):
         """load_series will return an empty generator when called with tags
         that cannot be related to any asset"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -178,7 +178,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
 
     def test_load_series_checks_date(self):
         """load_series will raise ValueError if train_end_date<train_start_date"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -203,7 +203,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     def test_load_series_missing_columns_data(self, _mocked_method):
         """load_series will raise ValueError if there is a single tag it can not
         find"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -228,7 +228,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     )
     def test_load_series_happy_path(self, _mocked_method):
         """Happy-path testing of load_dataframe"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         res = list(
             iroc_reader.load_series(
                 train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
@@ -253,7 +253,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     )
     def test_load_series_happy_path_different_timezones(self, _mocked_method):
         """Happy-path testing of load_dataframe"""
-        iroc_reader = IrocReader(client=None, threads=1)
+        iroc_reader = IrocReader(fs=None, threads=1)
         res = list(
             iroc_reader.load_series(
                 train_start_date=isoparse("2018-05-02T01:56:00+02:00"),
@@ -265,7 +265,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         self.assertEqual(3, len(res))
 
     def test_load_series_dry_run_raises(self):
-        iroc_reader = IrocReader(client=None)
+        iroc_reader = IrocReader(fs=None)
 
         with self.assertRaises(NotImplementedError):
             list(

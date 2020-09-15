@@ -27,7 +27,7 @@ class IrocReader(GordoBaseDataProvider):
         return IrocReader.base_path_from_asset(tag.asset) is not None
 
     @capture_args
-    def __init__(self, fs: FileSystem, threads: int = 50, **kwargs):
+    def __init__(self, fs: Optional[FileSystem], threads: int = 50, **kwargs):
         """
         Creates a reader for tags from IROC.
         """

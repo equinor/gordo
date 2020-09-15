@@ -91,12 +91,20 @@ class ADLGen1FileSystem(FileSystem):
         return self.adl_client.exists(path)
 
     def isfile(self, path: str) -> bool:
-        info = self.adl_client.info(path)
-        return info["type"] == "FILE"
+        adl_client = self.adl_client
+        if adl_client.exists(path):
+            info = adl_client.info(path)
+            return info["type"] == "FILE"
+        else:
+            return False
 
     def isdir(self, path: str) -> bool:
-        info = self.adl_client.info(path)
-        return info["type"] == "DIRECTORY"
+        adl_client = self.adl_client
+        if adl_client.exists(path):
+            info = adl_client.info(path)
+            return info["type"] == "DIRECTORY"
+        else:
+            return False
 
     def info(self, path: str) -> Optional[FileInfo]:
         info = self.adl_client.info(path)
