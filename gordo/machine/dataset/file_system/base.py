@@ -1,11 +1,10 @@
 import posixpath
 
-from typing import Optional, Iterable
+from typing import Optional, Iterable, IO
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from io import IOBase
 from enum import Enum
 
 
@@ -24,7 +23,7 @@ class FileInfo:
 
 class FileSystem(metaclass=ABCMeta):
     @abstractmethod
-    def open(self, path: str, mode: str = "r") -> IOBase:
+    def open(self, path: str, mode: str = "r") -> IO:
         """
         Open a file
 
