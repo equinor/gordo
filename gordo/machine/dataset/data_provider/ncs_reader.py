@@ -325,7 +325,7 @@ class NcsReader(GordoBaseDataProvider):
             for v in self.file_lookups:
                 lookup_file_path = v.lookup(fs, dir_path, tag_name_encoded, year)
                 if lookup_file_path is not None:
-                    file_path = cast(lookup_file_path, str)
+                    file_path = cast(str, lookup_file_path)
                     file_lookup = v
                     break
             if file_lookup is None:
