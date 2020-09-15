@@ -26,6 +26,7 @@ class ADLGen1FileSystem(FileSystem):
         store_name: str,
         dl_service_auth: Optional[str] = None,
         interactive: bool = False,
+        dl_service_auth_env: str = "DL_SERVICE_AUTH_STR",
     ) -> "ADLGen1FileSystem":
         """
         Creates ADL Gen1 file system client.
@@ -36,9 +37,10 @@ class ADLGen1FileSystem(FileSystem):
             Name of datalake store.
         dl_service_auth: str
             Authentication string to use. `:` separated values of: tenant_id, client_id, client_secret.
-            Replaced with a value from DL_SERVICE_AUTH_STR environment variable if None
         interactive: bool
             If true then use interactive authentication
+        dl_service_auth_env: str
+            Environment variable which contains dl_service_auth. DL_SERVICE_AUTH_STR by default
 
         Returns
         -------
@@ -51,10 +53,10 @@ class ADLGen1FileSystem(FileSystem):
         else:
             logger.info(f"Attempting to use datalake service authentication")
             if dl_service_auth is None:
-                dl_service_auth = os.environ.get("DL_SERVICE_AUTH_STR")
+                dl_service_auth = os.environ.get(dl_service_auth_env)
                 if not dl_service_auth:
                     raise ValueError(
-                        "Environment variable DL_SERVICE_AUTH_STR is empty"
+                        "Environment variable %s is empty" % dl_service_auth_env
                     )
             data = dl_service_auth.split(":")
             if len(data) != 3:
