@@ -60,5 +60,5 @@ class FileSystem(metaclass=ABCMeta):
     def walk(self, base_path: str) -> Iterable[str]:
         ...
 
-    def join(self, *p):
-        posixpath.join(*p)
+    def join(self, *p) -> str:
+        return posixpath.join(*p)
