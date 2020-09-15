@@ -27,9 +27,9 @@ NCS Reader
     :undoc-members:
     :show-inheritance:
 
-Azure Utils
+File System
 -----------
-.. automodule:: gordo.machine.dataset.data_provider.azure_utils
+.. automodule:: gordo.machine.dataset.file_system
     :members:
     :undoc-members:
     :show-inheritance:
