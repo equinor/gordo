@@ -2,9 +2,9 @@ import os
 import logging
 
 from datetime import datetime
-from io import IOBase, TextIOWrapper
+from io import TextIOWrapper
 from azure.datalake.store import core, lib
-from typing import Optional, Iterable
+from typing import Optional, Iterable, IO
 
 from .base import FileSystem, FileInfo, FileType
 
@@ -76,7 +76,7 @@ class ADLGen1FileSystem(FileSystem):
     def __init__(self, adl_client: core.AzureDLFileSystem):
         self.adl_client = adl_client
 
-    def open(self, path: str, mode: str = "r") -> IOBase:
+    def open(self, path: str, mode: str = "r") -> IO:
         for m in mode:
             if m not in "rb":
                 raise ValueError("Unsupported file open mode '%s'" % m)

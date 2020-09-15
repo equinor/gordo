@@ -320,12 +320,12 @@ class NcsReader(GordoBaseDataProvider):
 
         dir_path = f"{tag_base_path}/{tag_name_encoded}"
         for year in years:
-            file_path = None
+            file_path = ""
             file_lookup = None
             for v in self.file_lookups:
-                file_path = v.lookup(fs, dir_path, tag_name_encoded, year)
-                if file_path is not None:
-                    file_path = cast(file_path, str)
+                lookup_file_path = v.lookup(fs, dir_path, tag_name_encoded, year)
+                if lookup_file_path is not None:
+                    file_path = cast(lookup_file_path, str)
                     file_lookup = v
                     break
             if file_lookup is None:
