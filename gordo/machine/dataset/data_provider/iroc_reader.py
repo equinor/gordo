@@ -6,7 +6,6 @@ from dateutil import tz
 from typing import Iterable, List, Optional
 
 import pandas as pd
-from azure.datalake.store import core
 
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.file_system.base import FileSystem
