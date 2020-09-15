@@ -112,9 +112,10 @@ class IrocReader(GordoBaseDataProvider):
     ):
         # Generator over all files in all of the base_paths
         def _all_files():
-            for b_path in all_base_paths:
-                for f in self.fs.walk(b_path):
-                    yield f
+            if self.fs is not None:
+                for b_path in all_base_paths:
+                    for f in self.fs.walk(b_path):
+                        yield f
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             # Pandas.concat makes the generator into a list anyway, so no extra memory
@@ -138,6 +139,8 @@ class IrocReader(GordoBaseDataProvider):
         self, file_path, train_start_date: datetime, train_end_date: datetime, tag_list
     ):
         fs = self.fs
+        if fs is None:
+            return None
 
         logger.info("Attempting to open IROC file {}".format(file_path))
 
