@@ -1,6 +1,6 @@
 import os
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import pytest
 
 import dateutil.parser
@@ -9,9 +9,13 @@ from gordo.machine.dataset.data_provider.ncs_reader import NcsReader, NcsParquet
 from gordo.machine.dataset.data_provider.providers import DataLakeProvider
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
 
 
 class AzureDLFileSystemMock:
+    def exists(self, file_path):
+        return os.path.exists(file_path)
+
     def info(self, file_path):
         info = {"length": os.path.getsize(file_path)}
         if os.path.isfile(file_path):
@@ -26,7 +30,7 @@ class AzureDLFileSystemMock:
 
 @pytest.fixture
 def ncs_reader():
-    return NcsReader(AzureDLFileSystemMock())
+    return NcsReader(ADLGen1FileSystem(AzureDLFileSystemMock()))
 
 
 @pytest.fixture
@@ -62,7 +66,7 @@ def test_can_handle_tag_non_supported_asset_with_base_path(ncs_reader):
     assert not ncs_reader.can_handle_tag(tag)
 
     ncs_reader_with_base = NcsReader(
-        AzureDLFileSystemMock(), dl_base_path="/this/is/a/base/path"
+        ADLGen1FileSystem(AzureDLFileSystemMock()), dl_base_path="/this/is/a/base/path"
     )
     assert ncs_reader_with_base.can_handle_tag(tag)
 
@@ -80,7 +84,8 @@ def test_load_series_need_base_path(ncs_reader, dates):
         "base_path_asset",
     )
     ncs_reader_with_base = NcsReader(
-        AzureDLFileSystemMock(), dl_base_path=path_to_weird_base_path_asset
+        ADLGen1FileSystem(AzureDLFileSystemMock()),
+        dl_base_path=path_to_weird_base_path_asset,
     )
     for tag_series in ncs_reader_with_base.load_series(dates[0], dates[1], [tag]):
         assert len(tag_series) == 20
@@ -162,7 +167,9 @@ def test_load_series_invalid_year(start_date, end_date, frame_len, ncs_reader):
 
 def test_ncs_reader_valid_tag_path():
     with pytest.raises(FileNotFoundError):
-        NcsReader._verify_tag_path_exist(AzureDLFileSystemMock(), "not/valid/path")
+        NcsReader._verify_tag_path_exist(
+            ADLGen1FileSystem(AzureDLFileSystemMock()), "not/valid/path"
+        )
 
 
 @patch(
@@ -193,7 +200,8 @@ def test_load_series_dry_run(dates, ncs_reader):
 def test_load_series_with_filter_bad_data(dates, remove_status_codes):
 
     ncs_reader = NcsReader(
-        AzureDLFileSystemMock(), remove_status_codes=remove_status_codes
+        ADLGen1FileSystem(AzureDLFileSystemMock()),
+        remove_status_codes=remove_status_codes,
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-322"])
@@ -205,23 +213,6 @@ def test_load_series_with_filter_bad_data(dates, remove_status_codes):
     assert all(len(series) == n_expected for series in series_gen)
 
 
-@pytest.mark.parametrize("remove_status_codes", [[], [0]])
-def test_ncs_reader_kwargs_contains_remove_status_codes(remove_status_codes):
-    # Creates a DataLakeProvider with remove_status_codes as kwargs
-    data_provider = DataLakeProvider(
-        interactive=False, remove_status_codes=remove_status_codes
-    )
-
-    # Set the data_provider's client to the AzureDLFileSystemMock as interactive can be False.
-    data_provider.client = AzureDLFileSystemMock()
-    # Get the ncs_reader from data_provider.
-    ncs_reader = data_provider._get_sub_dataproviders()[0]
-
-    # Cheks that the kwargs remove_status_codes has been passed to the sub_provider
-    expected = [] if remove_status_codes == [] else [0]
-    assert ncs_reader.remove_status_codes == expected
-
-
 @patch(
     "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
     {
@@ -231,7 +222,9 @@ def test_ncs_reader_kwargs_contains_remove_status_codes(remove_status_codes):
     },
 )
 def test_parquet_files_lookup(dates):
-    ncs_reader = NcsReader(AzureDLFileSystemMock(), remove_status_codes=[0])
+    ncs_reader = NcsReader(
+        ADLGen1FileSystem(AzureDLFileSystemMock()), remove_status_codes=[0]
+    )
 
     valid_tag_list = normalize_sensor_tags(["TRC-323"])
     series_gen = ncs_reader.load_series(dates[0], dates[1], valid_tag_list)
@@ -262,7 +255,9 @@ def test_get_file_lookups():
     },
 )
 def test_with_conflicted_file_types(dates):
-    ncs_reader = NcsReader(AzureDLFileSystemMock(), remove_status_codes=[0])
+    ncs_reader = NcsReader(
+        ADLGen1FileSystem(AzureDLFileSystemMock()), remove_status_codes=[0]
+    )
 
     valid_tag_list = normalize_sensor_tags(["TRC-324"])
     series_gen = ncs_reader.load_series(dates[0], dates[1], valid_tag_list)
@@ -283,7 +278,9 @@ def test_with_conflicted_file_types(dates):
 )
 def test_with_conflicted_file_types_with_preferable_csv(dates):
     ncs_reader = NcsReader(
-        AzureDLFileSystemMock(), remove_status_codes=[0], lookup_for=["csv"]
+        ADLGen1FileSystem(AzureDLFileSystemMock()),
+        remove_status_codes=[0],
+        lookup_for=["csv"],
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-324"])
