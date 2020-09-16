@@ -22,6 +22,12 @@ class FileInfo:
 
 
 class FileSystem(metaclass=ABCMeta):
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        ...
+
     @abstractmethod
     def open(self, path: str, mode: str = "r") -> IO:
         """
