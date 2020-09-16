@@ -73,10 +73,15 @@ class ADLGen1FileSystem(FileSystem):
             )
 
         adl_client = core.AzureDLFileSystem(token, store_name=store_name)
-        return cls(adl_client)
+        return cls(adl_client, store_name)
 
-    def __init__(self, adl_client: core.AzureDLFileSystem):
+    def __init__(self, adl_client: core.AzureDLFileSystem, store_name: str):
         self.adl_client = adl_client
+        self.store_name = store_name
+
+    @property
+    def name(self):
+        return self.store_name
 
     def open(self, path: str, mode: str = "r") -> IO:
         for m in mode:

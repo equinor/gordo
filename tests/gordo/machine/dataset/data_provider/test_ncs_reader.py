@@ -30,7 +30,7 @@ class AzureDLFileSystemMock:
 
 @pytest.fixture
 def ncs_reader():
-    return NcsReader(ADLGen1FileSystem(AzureDLFileSystemMock()))
+    return NcsReader(ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'))
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def test_can_handle_tag_non_supported_asset_with_base_path(ncs_reader):
     assert not ncs_reader.can_handle_tag(tag)
 
     ncs_reader_with_base = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock()), dl_base_path="/this/is/a/base/path"
+        ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'), dl_base_path="/this/is/a/base/path"
     )
     assert ncs_reader_with_base.can_handle_tag(tag)
 
@@ -84,7 +84,7 @@ def test_load_series_need_base_path(ncs_reader, dates):
         "base_path_asset",
     )
     ncs_reader_with_base = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock()),
+        ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'),
         dl_base_path=path_to_weird_base_path_asset,
     )
     for tag_series in ncs_reader_with_base.load_series(dates[0], dates[1], [tag]):
@@ -168,7 +168,7 @@ def test_load_series_invalid_year(start_date, end_date, frame_len, ncs_reader):
 def test_ncs_reader_valid_tag_path():
     with pytest.raises(FileNotFoundError):
         NcsReader._verify_tag_path_exist(
-            ADLGen1FileSystem(AzureDLFileSystemMock()), "not/valid/path"
+            ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'), "not/valid/path"
         )
 
 
@@ -200,7 +200,7 @@ def test_load_series_dry_run(dates, ncs_reader):
 def test_load_series_with_filter_bad_data(dates, remove_status_codes):
 
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock()),
+        ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'),
         remove_status_codes=remove_status_codes,
     )
 
@@ -223,7 +223,7 @@ def test_load_series_with_filter_bad_data(dates, remove_status_codes):
 )
 def test_parquet_files_lookup(dates):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock()), remove_status_codes=[0]
+        ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'), remove_status_codes=[0]
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-323"])
@@ -256,7 +256,7 @@ def test_get_file_lookups():
 )
 def test_with_conflicted_file_types(dates):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock()), remove_status_codes=[0]
+        ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'), remove_status_codes=[0]
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-324"])
@@ -278,7 +278,7 @@ def test_with_conflicted_file_types(dates):
 )
 def test_with_conflicted_file_types_with_preferable_csv(dates):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock()),
+        ADLGen1FileSystem(AzureDLFileSystemMock(), 'adl1'),
         remove_status_codes=[0],
         lookup_for=["csv"],
     )
