@@ -1,4 +1,3 @@
-import os
 import logging
 
 from datetime import datetime
@@ -7,6 +6,7 @@ from azure.datalake.store import core, lib
 from typing import Optional, Iterable, IO
 
 from .base import FileSystem, FileInfo, FileType
+from .utils import get_env_secret_values
 
 logger = logging.getLogger(__name__)
 
@@ -52,19 +52,7 @@ class ADLGen1FileSystem(FileSystem):
             token = lib.auth()
         else:
             logger.info(f"Attempting to use datalake service authentication")
-            if dl_service_auth is None:
-                dl_service_auth = os.environ.get(dl_service_auth_env)
-                if not dl_service_auth:
-                    raise ValueError(
-                        "Environment variable %s is empty" % dl_service_auth_env
-                    )
-            data = dl_service_auth.split(":")
-            if len(data) != 3:
-                raise ValueError(
-                    "dl_service_auth has %d fields, but 3 is required" % len(data)
-                )
-
-            tenant_id, client_id, client_secret = data
+            tenant_id, client_id, client_secret = get_env_secret_values(dl_service_auth, dl_service_auth_env)
             token = lib.auth(
                 tenant_id=tenant_id,
                 client_id=client_id,
