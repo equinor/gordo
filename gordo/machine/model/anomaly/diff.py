@@ -646,7 +646,7 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             )
 
         # Calculate global threshold
-        self.aggregate_threshold_ = self._calculate_aggregate_threshold(self, y, y_pred)
+        self.aggregate_threshold_ = self._calculate_aggregate_threshold(y, y_pred)
 
         # Calculate tag thresholds
         self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
@@ -654,9 +654,9 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
         return cv_output
 
     def _calculate_aggregate_threshold(
-        self, model, y_true: pd.DataFrame, y_pred: pd.DataFrame
+        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
     ) -> float:
-        scaled_mse_per_timestep = self._scaled_mse_per_timestep(model, y_true, y_pred)
+        scaled_mse_per_timestep = self._scaled_mse_per_timestep(self, y_true, y_pred)
         moving_average_scaled_mse_per_timestep = self._smoothing(
             scaled_mse_per_timestep
         )
