@@ -12,7 +12,6 @@ from gordo.machine.dataset.data_provider.providers import NoSuitableDataProvider
 from gordo.machine.dataset.sensor_tag import SensorTagNormalizationError
 from gordo.machine.dataset.datasets import (
     InsufficientDataError,
-    InsufficientDataAfterRowFilteringError,
 )
 from gunicorn.glogging import Logger
 from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
@@ -43,7 +42,6 @@ _exceptions_reporter = ExceptionsReporter(
         (SensorTagNormalizationError, 60),
         (NoSuitableDataProviderError, 70),
         (InsufficientDataError, 80),
-        (InsufficientDataAfterRowFilteringError, 81),
         (ReporterException, 90),
     )
 )
