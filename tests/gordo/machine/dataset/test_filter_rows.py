@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 from pandas.core.computation.ops import UndefinedVariableError
 from gordo.machine.dataset.filter_rows import pandas_filter_rows, apply_buffer
 

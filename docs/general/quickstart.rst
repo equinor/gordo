@@ -34,7 +34,7 @@ A typical config file might look like this:
             model:
               sklearn.pipeline.Pipeline:
                 steps:
-                  - sklearn.preprocessing.data.MinMaxScaler
+                  - sklearn.preprocessing.MinMaxScaler
                   - gordo.model.models.KerasAutoEncoder:
                       kind: feedforward_hourglass
             metadata:
@@ -60,7 +60,7 @@ A typical config file might look like this:
           model:
             sklearn.pipeline.Pipeline:
               steps:
-                - sklearn.preprocessing.data.MinMaxScaler
+                - sklearn.preprocessing.MinMaxScaler
                 - gordo.model.models.KerasAutoEncoder:
                     kind: feedforward_model
 

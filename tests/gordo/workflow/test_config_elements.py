@@ -104,7 +104,7 @@ def test_machine_from_config(default_globals: dict):
         model:
           sklearn.pipeline.Pipeline:
             steps:
-              - sklearn.preprocessing.data.MinMaxScaler
+              - sklearn.preprocessing.MinMaxScaler
               - gordo.machine.model.models.KerasAutoEncoder:
                   kind: feedforward_hourglass
         evaluation:
@@ -194,7 +194,7 @@ def test_machine_from_config(default_globals: dict):
         "model": {
             "sklearn.pipeline.Pipeline": {
                 "steps": [
-                    "sklearn.preprocessing.data.MinMaxScaler",
+                    "sklearn.preprocessing.MinMaxScaler",
                     {
                         "gordo.machine.model.models.KerasAutoEncoder": {
                             "kind": "feedforward_hourglass"
@@ -234,7 +234,7 @@ def test_invalid_model(default_globals: dict):
         model:
           sklearn.pipeline.Pipeline:
             step:
-              - sklearn.preprocessing.data.MinMaxScaler
+              - sklearn.preprocessing.MinMaxScaler
               - gordo.machine.model.models.KerasAutoEncoder:
                   kind: feedforward_hourglass
         evaluation:

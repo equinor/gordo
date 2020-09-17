@@ -168,7 +168,7 @@ def config_str(gordo_name: str, sensors: List[SensorTag]):
                     base_estimator:
                       sklearn.pipeline.Pipeline:
                         steps:
-                        - sklearn.preprocessing.data.MinMaxScaler
+                        - sklearn.preprocessing.MinMaxScaler
                         - gordo.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                 name: {gordo_name}
