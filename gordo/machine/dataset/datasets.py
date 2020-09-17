@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from typing import Tuple, List, Dict, Union, Optional, Iterable, Callable, Sequence
+from typing import Tuple, List, Dict, Optional, Iterable, Callable, Sequence
 from datetime import datetime
 from dateutil.parser import isoparse
 from functools import wraps
@@ -119,8 +119,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             See :func:`gordo.machine.dataset.filter_rows.pandas_filter_rows` for
             further documentation of the filter format.
         known_filter_periods: list
-            List of periods to drop in the format [~('2020-04-08 04:00:00+00:00'
-          < index < '2020-04-08 10:00:00+00:00')].
+            List of periods to drop in the format [~('2020-04-08 04:00:00+00:00' < index < '2020-04-08 10:00:00+00:00')].
             Note the time-zone suffix (+00:00), which is required.
         aggregation_methods
             Aggregation method(s) to use for the resampled buckets. If a single
