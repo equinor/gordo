@@ -52,7 +52,9 @@ class ADLGen1FileSystem(FileSystem):
             token = lib.auth()
         else:
             logger.info(f"Attempting to use datalake service authentication")
-            tenant_id, client_id, client_secret = get_env_secret_values(dl_service_auth, dl_service_auth_env)
+            tenant_id, client_id, client_secret = get_env_secret_values(
+                dl_service_auth, dl_service_auth_env
+            )
             token = lib.auth(
                 tenant_id=tenant_id,
                 client_id=client_id,

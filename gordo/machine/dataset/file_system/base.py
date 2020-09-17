@@ -22,7 +22,6 @@ class FileInfo:
 
 
 class FileSystem(metaclass=ABCMeta):
-
     @property
     @abstractmethod
     def name(self) -> str:
