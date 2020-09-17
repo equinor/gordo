@@ -52,7 +52,7 @@ def apply_buffer(mask: pd.Series, buffer_size: int = 0):
 
 
 def pandas_filter_rows(
-    df: pd.DataFrame, filter: Union[str, list], buffer_size: int = 0
+    df: pd.DataFrame, filter_str: Union[str, list], buffer_size: int = 0
 ):
     """ Filter pandas data frame based on list or string of conditions.
 
@@ -138,15 +138,15 @@ def pandas_filter_rows(
     8  2  2
     """
     logger.info("Applying numerical filtering to data of shape %s", df.shape)
-    if isinstance(filter, str):
+    if isinstance(filter_str, str):
         # split up parts of the row filter if it is a concatenated string
         # for later to re-assemble in batches
-        filter = filter.split("&")
+        filter_str = filter_str.split("&")
 
-    filter = [part.strip() for part in filter]
+    filter_str = [part.strip() for part in filter_str]
 
     mask = []
-    for filter_i in _batch(iterable=filter, n=30):
+    for filter_i in _batch(iterable=filter_str, n=30):
         mask.append(df.eval(" & ".join(filter_i)))
 
     mask = pd.concat(mask, axis=1).all(axis=1)
