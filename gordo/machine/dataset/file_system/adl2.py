@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 class ADLGen2FileSystem(FileSystem):
     @classmethod
     def create_from_env(
-            cls,
-            account_name: str,
-            file_system_name: str,
-            dl_service_auth: Optional[str] = None,
-            interactive: bool = False,
-            dl_service_auth_env: str = "DL2_SERVICE_AUTH_STR",
-            **kwargs
+        cls,
+        account_name: str,
+        file_system_name: str,
+        dl_service_auth: Optional[str] = None,
+        interactive: bool = False,
+        dl_service_auth_env: str = "DL2_SERVICE_AUTH_STR",
+        **kwargs,
     ) -> "ADLGen2FileSystem":
         """
         Creates ADL Gen2 file system client.
@@ -48,21 +48,19 @@ class ADLGen2FileSystem(FileSystem):
             credential = InteractiveBrowserCredential()
         else:
             logger.info(f"Attempting to use datalake service authentication")
-            tenant_id, client_id, client_secret = get_env_secret_values(dl_service_auth, dl_service_auth_env)
-            credential = ClientSecretCredential(
-                tenant_id=tenant_id,
-                client_id=client_id,
-                client_secret=client_secret
+            tenant_id, client_id, client_secret = get_env_secret_values(
+                dl_service_auth, dl_service_auth_env
             )
-        return cls.create_from_credential(account_name, file_system_name, credential, **kwargs)
+            credential = ClientSecretCredential(
+                tenant_id=tenant_id, client_id=client_id, client_secret=client_secret
+            )
+        return cls.create_from_credential(
+            account_name, file_system_name, credential, **kwargs
+        )
 
     @classmethod
     def create_from_credential(
-            cls,
-            account_name: str,
-            file_system_name: str,
-            credential: Any,
-            **kwargs
+        cls, account_name: str, file_system_name: str, credential: Any, **kwargs
     ) -> "ADLGen2FileSystem":
         """
         Creates ADL Gen2 file system client.
@@ -82,12 +80,20 @@ class ADLGen2FileSystem(FileSystem):
         """
         service_client = DataLakeServiceClient(
             account_url="https://{}.dfs.core.windows.net" % account_name,
-            credential=credential
+            credential=credential,
         )
-        file_system_client = service_client.get_file_system_client(file_system=file_system_name)
+        file_system_client = service_client.get_file_system_client(
+            file_system=file_system_name
+        )
         return cls(file_system_client, account_name, file_system_name, **kwargs)
 
-    def __init__(self, file_system_client: FileSystemClient, account_name: str, file_system_name: str, max_concurrency: int = 1):
+    def __init__(
+        self,
+        file_system_client: FileSystemClient,
+        account_name: str,
+        file_system_name: str,
+        max_concurrency: int = 1,
+    ):
         self.file_system_client = file_system_client
         self.account_name = account_name
         self.file_system_name = file_system_name
@@ -95,7 +101,7 @@ class ADLGen2FileSystem(FileSystem):
 
     @property
     def name(self):
-        return self.file_system_name+'@'+self.account_name
+        return self.file_system_name + "@" + self.account_name
 
     def open(self, path: str, mode: str = "r") -> IO:
         for m in mode:
@@ -137,16 +143,13 @@ class ADLGen2FileSystem(FileSystem):
             properties = file_client.get_file_properties()
         except ResourceNotFoundError:
             raise FileNotFoundError(path)
-        content_settings = properties['content_settings']
+        content_settings = properties["content_settings"]
         if content_settings.get("content_type", None):
             file_type = FileType.FILE
         else:
             file_type = FileType.DIRECTORY
         return FileInfo(
-            file_type,
-            properties.get("size", 0),
-            None,
-            properties['last_modified'],
+            file_type, properties.get("size", 0), None, properties["last_modified"],
         )
 
     def walk(self, base_path: str) -> Iterable[str]:
