@@ -47,10 +47,10 @@ def test_create_from_env_client_secret_credential():
 
 
 def test_open(downloader_mock, fs_client_mock):
-    downloader_mock.readall.return_value = b'\x7fELF\x02'
+    downloader_mock.readall.return_value = b"\x7fELF\x02"
     fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
-    with fs.open("/path/to/file", 'rb') as f:
-        assert f.read() == b'\x7fELF\x02'
+    with fs.open("/path/to/file", "rb") as f:
+        assert f.read() == b"\x7fELF\x02"
     fs_client_mock.get_file_client.assert_called_once_with("/path/to/file")
 
 
@@ -64,10 +64,8 @@ def test_exists_file(fs_client_mock, file_client_mock):
     last_modified = datetime(2020, 9, 17, 0, 0, 0, 0)
     file_client_mock.get_file_properties.return_value = {
         "size": 1000,
-        "content_settings": {
-            "content_type": "application/json"
-        },
-        "last_modified": last_modified
+        "content_settings": {"content_type": "application/json"},
+        "last_modified": last_modified,
     }
     fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
     info = fs.info("/path/to/file.json")
@@ -85,10 +83,8 @@ def test_exists_directory(fs_client_mock, file_client_mock):
     last_modified = datetime(2020, 9, 16, 0, 0, 0, 0)
     file_client_mock.get_file_properties.return_value = {
         "size": 0,
-        "content_settings": {
-            "content_type": None
-        },
-        "last_modified": last_modified
+        "content_settings": {"content_type": None},
+        "last_modified": last_modified,
     }
     fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
     info = fs.info("/path/to")
@@ -102,7 +98,7 @@ def test_exists_directory(fs_client_mock, file_client_mock):
     assert fs_client_mock.get_file_client.call_count == 4
 
 
-PathProperties = namedtuple("PathProperties", ('name', 'is_directory'))
+PathProperties = namedtuple("PathProperties", ("name", "is_directory"))
 
 
 def test_walk(fs_client_mock):
@@ -112,4 +108,4 @@ def test_walk(fs_client_mock):
     ]
     fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
     result = list(fs.walk("/path"))
-    assert result == ['/path/to/file.json']
+    assert result == ["/path/to/file.json"]
