@@ -23,43 +23,6 @@ def apply_buffer(mask: pd.Series, buffer_size: int = 0):
     --------
     >>> import pandas as pd
     >>> series = pd.Series([True, True, False, True, True])
-    >>> apply_buffer(series, buffer_size=1)
-    >>> series
-    0     True
-    1    False
-    2    False
-    3    False
-    4     True
-    dtype: bool
-
-    Returns
-    -------
-    None
-    """
-    idxs, *_rows = np.where(mask == False)
-    for idx in idxs:
-        mask.values[
-            range(max((0, idx - buffer_size)), min((len(mask), idx + buffer_size + 1)))
-        ] = False
-
-
-def apply_buffer(mask: pd.Series, buffer_size: int = 0):
-    """
-    Take a mask (boolean series) where True indicates keeping a value, and False
-    represents removing the value. This will 'expand' those indexes marked as `False`
-    to the symmetrical bounds of ``buffer_size``
-
-    Parameters
-    ----------
-    mask: pandas.core.Series
-        Boolean pandas series
-    buffer_size: int
-        Size to buffer around ``False`` values
-
-    Examples
-    --------
-    >>> import pandas as pd
-    >>> series = pd.Series([True, True, False, True, True])
     >>> series = apply_buffer(series, buffer_size=1)
     >>> series
     0     True
