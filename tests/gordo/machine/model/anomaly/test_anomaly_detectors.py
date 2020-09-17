@@ -120,6 +120,7 @@ def test_diff_detector(scaler, index, with_thresholds: bool, shuffle: bool):
 @pytest.mark.parametrize("time_index", (True, False))
 @pytest.mark.parametrize("with_thresholds", (True, False))
 @pytest.mark.parametrize("shuffle", (True, False))
+@pytest.mark.parametrize("window", (None, 144))
 @pytest.mark.parametrize("smoothing_method", (None, "smm", "sma", "ewma"))
 def test_diff_detector_with_window(
     scaler,
@@ -127,6 +128,7 @@ def test_diff_detector_with_window(
     time_index: bool,
     with_thresholds: bool,
     shuffle: bool,
+    window,
     smoothing_method,
 ):
     """
@@ -150,15 +152,24 @@ def test_diff_detector_with_window(
         scaler=scaler,
         require_thresholds=with_thresholds,
         shuffle=shuffle,
-        window=144,
+        window=window,
         smoothing_method=smoothing_method,
     )
 
     assert isinstance(model, AnomalyDetectorBase)
 
-    if smoothing_method is None:
+    if window is None:
         assert model.get_params() == dict(
-            base_estimator=base_estimator, scaler=scaler, shuffle=shuffle, window=144,
+            base_estimator=base_estimator, scaler=scaler, shuffle=shuffle,
+        )
+
+    elif window is not None and smoothing_method is None:
+        assert model.get_params() == dict(
+            base_estimator=base_estimator,
+            scaler=scaler,
+            shuffle=shuffle,
+            window=window,
+            smoothing_method="smm",
         )
 
     else:
@@ -166,14 +177,13 @@ def test_diff_detector_with_window(
             base_estimator=base_estimator,
             scaler=scaler,
             shuffle=shuffle,
-            window=144,
+            window=window,
             smoothing_method=smoothing_method,
         )
 
     if with_thresholds:
         model.cross_validate(X=X, y=y)
-        if smoothing_method is None:
-            assert model.smoothing_method == "smm"
+
     model.fit(X, y)
 
     output: np.ndarray = model.predict(X)
@@ -199,19 +209,39 @@ def test_diff_detector_with_window(
     anomaly_df = model.anomaly(X, y)
 
     # Should have these added error calculated columns now.
-    assert all(
-        col in anomaly_df.columns
-        for col in (
-            "total-anomaly-scaled",
-            "total-anomaly-unscaled",
-            "tag-anomaly-scaled",
-            "tag-anomaly-unscaled",
-            "smooth-total-anomaly-scaled",
-            "smooth-total-anomaly-unscaled",
-            "smooth-tag-anomaly-scaled",
-            "smooth-tag-anomaly-unscaled",
+    if window is not None:
+        assert all(
+            col in anomaly_df.columns
+            for col in (
+                "total-anomaly-scaled",
+                "total-anomaly-unscaled",
+                "tag-anomaly-scaled",
+                "tag-anomaly-unscaled",
+                "smooth-total-anomaly-scaled",
+                "smooth-total-anomaly-unscaled",
+                "smooth-tag-anomaly-scaled",
+                "smooth-tag-anomaly-unscaled",
+            )
         )
-    )
+    else:
+        assert all(
+            col in anomaly_df.columns
+            for col in (
+                "total-anomaly-scaled",
+                "total-anomaly-unscaled",
+                "tag-anomaly-scaled",
+                "tag-anomaly-unscaled",
+            )
+        )
+        assert not any(
+            col in base_df.columns
+            for col in (
+                "smooth-total-anomaly-scaled",
+                "smooth-total-anomaly-unscaled",
+                "smooth-tag-anomaly-scaled",
+                "smooth-tag-anomaly-unscaled",
+            )
+        )
 
     # Verify calculation for unscaled data
     feature_error_unscaled = pd.DataFrame(
@@ -230,37 +260,38 @@ def test_diff_detector_with_window(
         anomaly_df["total-anomaly-unscaled"].to_numpy(),
     )
 
-    if smoothing_method is None or smoothing_method == "smm":
-        smooth_feature_error_unscaled = (
-            feature_error_unscaled.rolling(model.window).median().dropna()
-        )
-        smooth_total_anomaly_unscaled = (
-            total_anomaly_unscaled.rolling(model.window).median().dropna()
-        )
+    if window is not None:
+        if smoothing_method is None or smoothing_method == "smm":
+            smooth_feature_error_unscaled = (
+                feature_error_unscaled.rolling(model.window).median().dropna()
+            )
+            smooth_total_anomaly_unscaled = (
+                total_anomaly_unscaled.rolling(model.window).median().dropna()
+            )
 
-    elif smoothing_method == "sma":
-        smooth_feature_error_unscaled = (
-            feature_error_unscaled.rolling(model.window).mean().dropna()
-        )
-        smooth_total_anomaly_unscaled = (
-            total_anomaly_unscaled.rolling(model.window).mean().dropna()
-        )
-    elif smoothing_method == "ewma":
-        smooth_feature_error_unscaled = feature_error_unscaled.ewm(
-            span=model.window
-        ).mean()
-        smooth_total_anomaly_unscaled = total_anomaly_unscaled.ewm(
-            span=model.window
-        ).mean()
+        elif smoothing_method == "sma":
+            smooth_feature_error_unscaled = (
+                feature_error_unscaled.rolling(model.window).mean().dropna()
+            )
+            smooth_total_anomaly_unscaled = (
+                total_anomaly_unscaled.rolling(model.window).mean().dropna()
+            )
+        elif smoothing_method == "ewma":
+            smooth_feature_error_unscaled = feature_error_unscaled.ewm(
+                span=model.window
+            ).mean()
+            smooth_total_anomaly_unscaled = total_anomaly_unscaled.ewm(
+                span=model.window
+            ).mean()
 
-    assert np.allclose(
-        smooth_feature_error_unscaled.to_numpy(),
-        anomaly_df["smooth-tag-anomaly-unscaled"].dropna().to_numpy(),
-    )
-    assert np.allclose(
-        smooth_total_anomaly_unscaled.to_numpy(),
-        anomaly_df["smooth-total-anomaly-unscaled"].dropna().to_numpy(),
-    )
+        assert np.allclose(
+            smooth_feature_error_unscaled.to_numpy(),
+            anomaly_df["smooth-tag-anomaly-unscaled"].dropna().to_numpy(),
+        )
+        assert np.allclose(
+            smooth_total_anomaly_unscaled.to_numpy(),
+            anomaly_df["smooth-total-anomaly-unscaled"].dropna().to_numpy(),
+        )
 
     # Verify calculations for scaled data
     feature_error_scaled = pd.DataFrame(
@@ -278,32 +309,37 @@ def test_diff_detector_with_window(
         total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].to_numpy()
     )
 
-    if smoothing_method is None or smoothing_method == "smm":
-        smooth_feature_error_scaled = (
-            feature_error_scaled.rolling(model.window).median().dropna()
-        )
-        smooth_total_anomaly_scaled = (
-            total_anomaly_scaled.rolling(model.window).median().dropna()
-        )
-    elif smoothing_method == "sma":
-        smooth_feature_error_scaled = (
-            feature_error_scaled.rolling(model.window).mean().dropna()
-        )
-        smooth_total_anomaly_scaled = (
-            total_anomaly_scaled.rolling(model.window).mean().dropna()
-        )
-    elif smoothing_method == "ewma":
-        smooth_feature_error_scaled = feature_error_scaled.ewm(span=model.window).mean()
-        smooth_total_anomaly_scaled = total_anomaly_scaled.ewm(span=model.window).mean()
+    if window is not None:
+        if smoothing_method is None or smoothing_method == "smm":
+            smooth_feature_error_scaled = (
+                feature_error_scaled.rolling(model.window).median().dropna()
+            )
+            smooth_total_anomaly_scaled = (
+                total_anomaly_scaled.rolling(model.window).median().dropna()
+            )
+        elif smoothing_method == "sma":
+            smooth_feature_error_scaled = (
+                feature_error_scaled.rolling(model.window).mean().dropna()
+            )
+            smooth_total_anomaly_scaled = (
+                total_anomaly_scaled.rolling(model.window).mean().dropna()
+            )
+        elif smoothing_method == "ewma":
+            smooth_feature_error_scaled = feature_error_scaled.ewm(
+                span=model.window
+            ).mean()
+            smooth_total_anomaly_scaled = total_anomaly_scaled.ewm(
+                span=model.window
+            ).mean()
 
-    assert np.allclose(
-        smooth_feature_error_scaled.to_numpy(),
-        anomaly_df["smooth-tag-anomaly-scaled"].dropna().to_numpy(),
-    )
-    assert np.allclose(
-        smooth_total_anomaly_scaled.to_numpy(),
-        anomaly_df["smooth-total-anomaly-scaled"].dropna().to_numpy(),
-    )
+        assert np.allclose(
+            smooth_feature_error_scaled.to_numpy(),
+            anomaly_df["smooth-tag-anomaly-scaled"].dropna().to_numpy(),
+        )
+        assert np.allclose(
+            smooth_total_anomaly_scaled.to_numpy(),
+            anomaly_df["smooth-total-anomaly-scaled"].dropna().to_numpy(),
+        )
 
     # Check number of NA's is consistent with window size
     if (

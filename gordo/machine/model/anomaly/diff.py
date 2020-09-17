@@ -71,6 +71,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self.shuffle = shuffle
         self.window = window
         self.smoothing_method = smoothing_method
+        if self.window is not None and self.smoothing_method is None:
+            self.smoothing_method = "smm"
 
     def __getattr__(self, item):
         """
@@ -165,7 +167,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         }
         if self.window is not None:
             params["window"] = self.window
-        if self.smoothing_method is not None:
             params["smoothing_method"] = self.smoothing_method
         return params
 
@@ -216,8 +217,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         self.smooth_aggregate_thresholds_per_fold_ = {}
         smooth_aggregate_threshold_fold = None
         smooth_tag_thresholds_fold = None
-        if self.window is not None and self.smoothing_method is None:
-            self.smoothing_method = "smm"
 
         for i, ((_, test_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
@@ -390,9 +389,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             axis=1
         )
 
-        if self.window is not None:
-            if self.smoothing_method is None:
-                self.smoothing_method = "smm"
+        if self.window is not None and self.smoothing_method is not None:
             # Calculate scaled tag-level smoothed anomaly scores
             smooth_tag_anomaly_scaled = self._smoothing(tag_anomaly_scaled)
             smooth_tag_anomaly_scaled.columns = smooth_tag_anomaly_scaled.columns.set_levels(
