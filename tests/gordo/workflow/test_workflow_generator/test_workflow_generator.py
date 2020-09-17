@@ -129,7 +129,7 @@ def test_basic_generation(path_to_config_files):
     """
 
     project_name = "some-fancy-project-name"
-    model_config = '{"sklearn.pipeline.Pipeline": {"steps": ["sklearn.preprocessing.data.MinMaxScaler", {"gordo.machine.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}}]}}'
+    model_config = '{"sklearn.pipeline.Pipeline": {"steps": ["sklearn.preprocessing.MinMaxScaler", {"gordo.machine.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}}]}}'
 
     config_filename = "config-test-with-models.yml"
     expanded_template = _generate_test_workflow_str(

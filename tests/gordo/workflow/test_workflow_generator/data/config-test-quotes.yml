@@ -17,7 +17,7 @@ globals:
   model:
     sklearn.pipeline.Pipeline:
       steps:
-        - sklearn.preprocessing.data.MinMaxScaler
+        - sklearn.preprocessing.MinMaxScaler
         - sklearn.compose.ColumnTransformer:
             transformers:
               - - dropper

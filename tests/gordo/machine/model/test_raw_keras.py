@@ -68,7 +68,7 @@ def test_raw_keras_part_of_pipeline():
     config_str = """
     sklearn.pipeline.Pipeline:
         steps:
-            - sklearn.decomposition.pca.PCA:
+            - sklearn.decomposition.PCA:
                 n_components: 4
             - gordo.machine.model.models.KerasRawModelRegressor:
                 kind:

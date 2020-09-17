@@ -5,9 +5,11 @@ import pandas as pd
 from typing import Optional, Union
 from datetime import timedelta
 
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.model_selection import TimeSeriesSplit, cross_validate
+from sklearn.model_selection import TimeSeriesSplit, KFold, cross_validate as c_val
+from sklearn.utils import shuffle
+from sklearn.exceptions import NotFittedError
 
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model import utils as model_utils
@@ -19,17 +21,22 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     def __init__(
         self,
         base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
-        scaler: TransformerMixin = RobustScaler(),
+        scaler: TransformerMixin = MinMaxScaler(),
         require_thresholds: bool = True,
-        window=None,
+        shuffle: bool = False,
+        window: Optional[int] = None,
+        smoothing_method: Optional[str] = None,
     ):
         """
-        Classifier which wraps a ``base_estimator`` and provides a diff error
+        Estimator which wraps a ``base_estimator`` and provides a diff error
         based approach to anomaly detection.
 
         It trains a ``scaler`` to the target **after** training, purely for
         error calculations. The underlying ``base_estimator`` is trained
         with the original, unscaled, ``y``.
+
+        Threshold calculation is based on a rolling statistic of the validation errors
+        on the last fold of cross-validation.
 
         Parameters
         ----------
@@ -42,17 +49,30 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
         require_thresholds: bool
-            Requires calculating ``thresholds_`` via a call to :func:`~DiffBasedAnomalyDetector.cross_validate`.
-            If this is set (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate`
-            was not called before calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
-            will be raised.
+            Requires calculating ``thresholds_`` via a call to
+            :func:`~DiffBasedAnomalyDetector.cross_validate`. If this is set
+            (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate` was not
+            called before calling :func:`~DiffBasedAnomalyDetector.anomaly`
+            an ``AttributeError`` will be raised.
+        shuffle: bool
+            Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
+            will be trained on a sample of data accross the time range and not just
+            the last elements according to model arg ``validation_split``.
         window: int
             Window size for smoothed thresholds
+        smoothing_method: str
+            Method to be used together with ``window`` to smooth metrics.
+            Must be one of: 'smm': simple moving median, 'sma': simple moving average or
+            'ewma': exponential weighted moving average.
         """
         self.base_estimator = base_estimator
         self.scaler = scaler
         self.require_thresholds = require_thresholds
+        self.shuffle = shuffle
         self.window = window
+        self.smoothing_method = smoothing_method
+        if self.window is not None and self.smoothing_method is None:
+            self.smoothing_method = "smm"
 
     def __getattr__(self, item):
         """
@@ -65,8 +85,14 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             return getattr(self.base_estimator, item)
 
     def get_metadata(self):
-        metadata = dict()
+        """
+        Generates model metadata.
 
+        Returns
+        -------
+        dict
+        """
+        metadata = dict()
         if hasattr(self, "feature_thresholds_"):
             metadata["feature-thresholds"] = self.feature_thresholds_.tolist()
         if hasattr(self, "aggregate_threshold_"):
@@ -82,6 +108,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Window threshold metadata
         if hasattr(self, "window"):
             metadata["window"] = self.window
+        if hasattr(self, "smoothing_method"):
+            metadata["smoothing-method"] = self.smoothing_method
         if (
             hasattr(self, "smooth_feature_thresholds_")
             and self.smooth_aggregate_threshold_ is not None
@@ -108,7 +136,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             metadata.update(self.base_estimator.get_metadata())
         else:
             metadata.update(
-                {"scaler": str(self.scaler), "base_estimator": str(self.base_estimator)}
+                {
+                    "scaler": str(self.scaler),
+                    "base_estimator": str(self.base_estimator),
+                    "shuffle": self.shuffle,
+                }
             )
         return metadata
 
@@ -121,13 +153,30 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         return self.base_estimator.score(X, y)
 
     def get_params(self, deep=True):
-        params = {"base_estimator": self.base_estimator, "scaler": self.scaler}
+        """
+        Get parameters for this estimator.
+
+        Returns
+        -------
+        dict
+        """
+        params = {
+            "base_estimator": self.base_estimator,
+            "scaler": self.scaler,
+            "shuffle": self.shuffle,
+        }
         if self.window is not None:
             params["window"] = self.window
+            params["smoothing_method"] = self.smoothing_method
         return params
 
     def fit(self, X: np.ndarray, y: np.ndarray):
-        self.base_estimator.fit(X, y)
+        if self.shuffle:
+            X_shuff, y_shuff = shuffle(X, y, random_state=0)
+            self.base_estimator.fit(X_shuff, y_shuff)
+        else:
+            self.base_estimator.fit(X, y)
+
         self.scaler.fit(y)  # Scaler is used for calculating errors in .anomaly()
         return self
 
@@ -140,8 +189,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         **kwargs,
     ):
         """
-        Run cross validation on the model, and will update the model's threshold value based
-        on the cross validation folds
+        Run TimeSeries cross validation on the model, and will update the model's
+        threshold values based on the cross validation folds.
 
         Parameters
         ----------
@@ -150,7 +199,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         y: Union[pd.DataFrame, np.ndarray]
             Target data
         kwargs: dict
-            Any additional kwargs to be passed to :func:`sklearn.model_selection.cross_validate`
+            Any additional kwargs to be passed to
+            :func:`sklearn.model_selection.cross_validate`
 
         Returns
         -------
@@ -159,7 +209,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
 
-        cv_output = cross_validate(self, X=X, y=y, **kwargs)
+        cv_output = c_val(self, X=X, y=y, **kwargs)
 
         self.feature_thresholds_per_fold_ = pd.DataFrame()
         self.aggregate_thresholds_per_fold_ = {}
@@ -183,9 +233,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             scaled_mse = self._scaled_mse_per_timestep(split_model, y_true, y_pred)
 
             # Absolute error
-            mae = pd.DataFrame(np.abs(y_pred - y_true))
+            mae = self._absolute_error(y_true, y_pred)
 
-            # For the aggregate threshold for the fold model, use the mse of scaled residuals per timestep
+            # For the aggregate threshold for the fold model,
+            # use the mse of scaled residuals per timestep
             aggregate_threshold_fold = scaled_mse.rolling(6).min().max()
             self.aggregate_thresholds_per_fold_[f"fold-{i}"] = aggregate_threshold_fold
 
@@ -231,23 +282,40 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     ) -> pd.Series:
         """
         Calculate the scaled MSE per timestep/sample
-
         Parameters
         ----------
         model: BaseEstimator
             Instance of a fitted :class:`~DiffBasedAnomalyDetector`
         y_true: Union[numpy.ndarray, pd.DataFrame]
         y_pred: Union[numpy.ndarray, pd.DataFrame]
-
         Returns
         -------
         panadas.Series
             The MSE calculated from the scaled y and y predicted.
         """
-        scaled_y_true = model.scaler.transform(y_true)
+        try:
+            scaled_y_true = model.scaler.transform(y_true)
+        except (NotFittedError, ValueError):
+            scaled_y_true = model.scaler.fit_transform(y_true)
         scaled_y_pred = model.scaler.transform(y_pred)
         mse_per_time_step = ((scaled_y_pred - scaled_y_true) ** 2).mean(axis=1)
         return pd.Series(mse_per_time_step)
+
+    @staticmethod
+    def _absolute_error(
+        y_true: Union[pd.DataFrame, np.ndarray],
+        y_pred: Union[pd.DataFrame, np.ndarray],
+    ) -> pd.DataFrame:
+
+        return pd.DataFrame(np.abs(y_true - y_pred))
+
+    def _smoothing(self, metric: Union[pd.DataFrame, pd.Series]):
+        if self.smoothing_method == "smm":
+            return metric.rolling(self.window).median()
+        elif self.smoothing_method == "sma":
+            return metric.rolling(self.window).mean()
+        elif self.smoothing_method == "ewma":
+            return metric.ewm(span=self.window).mean()
 
     def anomaly(
         self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
@@ -291,7 +359,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         )
 
         # Calculate the absolute scaled tag anomaly
-        # Ensure to offset the y to match model out, which could be less if it was an LSTM
+        # Ensure to offset the y to match model out, which could be less if it is a LSTM
         scaled_y = self.scaler.transform(y)
         tag_anomaly_scaled = np.abs(model_out_scaled - scaled_y[-len(data) :, :])
         tag_anomaly_scaled.columns = pd.MultiIndex.from_product(
@@ -321,31 +389,30 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             axis=1
         )
 
-        if self.window is not None:
+        if self.window is not None and self.smoothing_method is not None:
             # Calculate scaled tag-level smoothed anomaly scores
-            smooth_tag_anomaly_scaled = tag_anomaly_scaled.rolling(self.window).median()
+            smooth_tag_anomaly_scaled = self._smoothing(tag_anomaly_scaled)
             smooth_tag_anomaly_scaled.columns = smooth_tag_anomaly_scaled.columns.set_levels(
                 ["smooth-tag-anomaly-scaled"], level=0
             )
             data = data.join(smooth_tag_anomaly_scaled)
 
             # Calculate scaled smoothed total anomaly score
-            data["smooth-total-anomaly-scaled"] = (
-                data["total-anomaly-scaled"].rolling(self.window).median()
+            data["smooth-total-anomaly-scaled"] = self._smoothing(
+                data["total-anomaly-scaled"]
             )
 
             # Calculate unscaled tag-level smoothed anomaly scores
-            smooth_tag_anomaly_unscaled = unscaled_abs_diff.rolling(
-                self.window
-            ).median()
+            smooth_tag_anomaly_unscaled = self._smoothing(unscaled_abs_diff)
+
             smooth_tag_anomaly_unscaled.columns = smooth_tag_anomaly_unscaled.columns.set_levels(
                 ["smooth-tag-anomaly-unscaled"], level=0
             )
             data = data.join(smooth_tag_anomaly_unscaled)
 
             # Calculate unscaled smoothed total anomaly score
-            data["smooth-total-anomaly-unscaled"] = (
-                data["total-anomaly-unscaled"].rolling(self.window).median()
+            data["smooth-total-anomaly-unscaled"] = self._smoothing(
+                data["total-anomaly-unscaled"]
             )
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
@@ -359,8 +426,15 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
                 / self.smooth_feature_thresholds_.to_numpy()
             )
             index = data["smooth-tag-anomaly-scaled"].index
+        elif hasattr(self, "feature_thresholds_") and self.window is not None:
+            confidence = (
+                data["smooth-tag-anomaly-scaled"].to_numpy()
+                / self.feature_thresholds_.to_numpy()
+            )
+            index = data["smooth-tag-anomaly-scaled"].index
+
         elif hasattr(self, "feature_thresholds_"):
-            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
+            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.to_numpy()
             index = tag_anomaly_scaled.index
 
         if confidence is not None and index is not None:
@@ -383,6 +457,12 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             total_anomaly_confidence = (
                 data["smooth-total-anomaly-scaled"] / self.smooth_aggregate_threshold_
             )
+
+        elif hasattr(self, "aggregate_threshold_") and self.window is not None:
+            total_anomaly_confidence = (
+                data["smooth-total-anomaly-scaled"] / self.aggregate_threshold_
+            )
+
         elif hasattr(self, "aggregate_threshold_"):
             total_anomaly_confidence = (
                 data["total-anomaly-scaled"] / self.aggregate_threshold_
@@ -398,8 +478,195 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             for attr in ("feature_thresholds_", "aggregate_threshold_")
         ):
             raise AttributeError(
-                f"`require_thresholds={self.require_thresholds}` however `.cross_validate`"
-                f"needs to be called in order to calculate these thresholds before calling `.anomaly`"
+                f"`require_thresholds={self.require_thresholds}` however "
+                f"`.cross_validate` needs to be called in order to calculate these"
+                f"thresholds before calling `.anomaly`"
             )
 
         return data
+
+
+class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
+    def __init__(
+        self,
+        base_estimator: BaseEstimator = KerasAutoEncoder(kind="feedforward_hourglass"),
+        scaler: TransformerMixin = MinMaxScaler(),
+        require_thresholds: bool = True,
+        shuffle: bool = True,
+        window: int = 144,
+        smoothing_method: str = "smm",
+        threshold_percentile: float = 0.99,
+    ):
+        """
+        Estimator which wraps a ``base_estimator`` and provides a diff error
+        based approach to anomaly detection.
+
+        It trains a ``scaler`` to the target **after** training, purely for
+        error calculations. The underlying ``base_estimator`` is trained
+        with the original, unscaled, ``y``.
+
+        Threshold calculation is based on a percentile of the smoothed validation
+        errors as calculated from cross-validation predictions.
+
+        Parameters
+        ----------
+        base_estimator: sklearn.base.BaseEstimator
+            The model to which normal ``.fit``, ``.predict`` methods will be used.
+            defaults to py:class:`gordo.machine.model.models.KerasAutoEncoder` with
+            ``kind='feedforward_hourglass``
+        scaler: sklearn.base.TransformerMixin
+            Defaults to ``sklearn.preprocessing.RobustScaler``
+            Used for transforming model output and the original ``y`` to calculate
+            the difference/error in model output vs expected.
+        require_thresholds: bool
+            Requires calculating ``thresholds_`` via a call to
+            :func:`~DiffBasedAnomalyDetector.cross_validate`.
+            If this is set (default True), but
+            :func:`~DiffBasedAnomalyDetector.cross_validate` was not called before
+            calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
+            will be raised.
+        shuffle: bool
+            Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
+            will be trained on a sample of data accross the time range and not just
+            the last elements according to model arg ``validation_split``.
+        window: int
+            Window size for smooth metrics and threshold calculation.
+        smoothing_method: str
+            Method to be used together with ``window`` to smooth metrics.
+            Must be one of: 'smm': simple moving median, 'sma': simple moving average or
+            'ewma': exponential weighted moving average.
+        threshold_percentile: float
+            Percentile of the validation data to be used to calculate the threshold.
+        """
+        self.base_estimator = base_estimator
+        self.scaler = scaler
+        self.require_thresholds = require_thresholds
+        self.window = window
+        self.shuffle = shuffle
+        self.smoothing_method = smoothing_method
+        self.threshold_percentile = threshold_percentile
+
+    def get_params(self, deep=True):
+        """
+        Get parameters for this estimator.
+
+        Returns
+        -------
+        dict
+        """
+        params = {
+            "base_estimator": self.base_estimator,
+            "scaler": self.scaler,
+            "window": self.window,
+            "smoothing_method": self.smoothing_method,
+            "shuffle": self.shuffle,
+            "threshold_percentile": self.threshold_percentile,
+        }
+        return params
+
+    def get_metadata(self):
+        """
+        Generates model metadata.
+
+        Returns
+        -------
+        dict
+        """
+        metadata = dict()
+
+        if hasattr(self, "feature_thresholds_"):
+            metadata["feature-thresholds"] = self.feature_thresholds_.tolist()
+        if hasattr(self, "aggregate_threshold_"):
+            metadata["aggregate-threshold"] = self.aggregate_threshold_
+        if isinstance(self.base_estimator, GordoBase):
+            metadata.update(self.base_estimator.get_metadata())
+        else:
+            metadata.update(
+                {
+                    "scaler": str(self.scaler),
+                    "base_estimator": str(self.base_estimator),
+                    "shuffle": self.shuffle,
+                    "window": self.window,
+                    "smoothing-method": self.smoothing_method,
+                    "threshold-percentile": self.threshold_percentile,
+                }
+            )
+        return metadata
+
+    def cross_validate(
+        self,
+        *,
+        X: Union[pd.DataFrame, np.ndarray],
+        y: Union[pd.DataFrame, np.ndarray],
+        cv=KFold(n_splits=5, shuffle=True, random_state=0),
+        **kwargs,
+    ):
+        """
+        Run Kfold cross validation on the model, and will update the model's threshold
+        values based on a percentile of the validation metrics.
+
+        Parameters
+        ----------
+        X: Union[pd.DataFrame, np.ndarray]
+            Input data to the model
+        y: Union[pd.DataFrame, np.ndarray]
+            Target data
+        kwargs: dict
+            Any additional kwargs to be passed to
+            :func:`sklearn.model_selection.cross_validate`
+
+        Returns
+        -------
+        dict
+        """
+
+        # Depend on having the trained fold models
+        kwargs.update(dict(return_estimator=True, cv=cv))
+
+        cv_output = c_val(self, X=X, y=y, **kwargs)
+
+        # Create empty dataframe to hold
+        y_pred = pd.DataFrame(
+            np.zeros_like(y),
+            index=getattr(y, "index", None),
+            columns=getattr(y, "columns", None),
+        )
+        y = pd.DataFrame(y)
+
+        for i, ((_, test_idxs), split_model) in enumerate(
+            zip(kwargs["cv"].split(X, y), cv_output["estimator"])
+        ):
+            y_pred.iloc[test_idxs] = split_model.predict(
+                X.iloc[test_idxs].to_numpy()
+                if isinstance(X, pd.DataFrame)
+                else X[test_idxs]
+            )
+
+        # Calculate global threshold
+        self.aggregate_threshold_ = self._calculate_aggregate_threshold(y, y_pred)
+
+        # Calculate tag thresholds
+        self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
+
+        return cv_output
+
+    def _calculate_aggregate_threshold(
+        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
+    ) -> float:
+        scaled_mse_per_timestep = self._scaled_mse_per_timestep(self, y_true, y_pred)
+        moving_average_scaled_mse_per_timestep = self._smoothing(
+            scaled_mse_per_timestep
+        )
+        return self._calculate_threshold(moving_average_scaled_mse_per_timestep)
+
+    def _calculate_feature_thresholds(
+        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
+    ) -> np.ndarray:
+        absolute_error = self._absolute_error(y_true, y_pred)
+        moving_average_absolute_error = self._smoothing(absolute_error)
+        return self._calculate_threshold(moving_average_absolute_error)
+
+    def _calculate_threshold(
+        self, validation_metric: Union[pd.DataFrame, pd.Series]
+    ) -> Union[float, pd.Series]:
+        return validation_metric.quantile(self.threshold_percentile)

@@ -29,7 +29,7 @@ DEFAULT_MODEL_CONFIG = {
 }
 
 
-MODEL_CONFIG = {"sklearn.decomposition.pca.PCA": {"svd_solver": "auto"}}
+MODEL_CONFIG = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
 MODEL_CONFIG_WITH_PREDICT = {
     "gordo.machine.model.models.KerasAutoEncoder": {"kind": "feedforward_hourglass"}
 }
@@ -158,7 +158,7 @@ def test_build_model_with_parameters(runner, tmpdir, machine):
     machine._strict = False
     machine.model = """
     {
-     "sklearn.decomposition.pca.PCA":
+     "sklearn.decomposition.PCA":
       {
         "svd_solver": "{{svd_solver}}",
         "n_components": {{n_components}}
