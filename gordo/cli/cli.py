@@ -10,9 +10,7 @@ import traceback
 
 from gordo.machine.dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo.machine.dataset.sensor_tag import SensorTagNormalizationError
-from gordo.machine.dataset.datasets import (
-    InsufficientDataError,
-)
+from gordo.machine.dataset.datasets import InsufficientDataError
 from gunicorn.glogging import Logger
 from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 
