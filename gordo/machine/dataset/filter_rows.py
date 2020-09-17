@@ -58,7 +58,7 @@ def pandas_filter_rows(
 
     Note:
     pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items
-    therefore split in n=30 (to be safe) and evaluate iterative, keeping the sparse evaluation with numexpr
+    therefore split in n=15 (to be safe) and evaluate iterative, keeping the sparse evaluation with numexpr
     pd.DataFrame.eval of a combined string logic, can only consist of
     a maximum 32 (current dependency) or 242 logical parts (latest release) and returns a pd.Series
 
@@ -146,7 +146,7 @@ def pandas_filter_rows(
     filter_str = [part.strip() for part in filter_str]
 
     mask = []
-    for filter_i in _batch(iterable=filter_str, n=30):
+    for filter_i in _batch(iterable=filter_str, n=15):
         mask.append(df.eval(" & ".join(filter_i)))
 
     mask = pd.concat(mask, axis=1).all(axis=1)
