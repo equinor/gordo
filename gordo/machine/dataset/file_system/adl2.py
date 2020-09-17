@@ -79,7 +79,7 @@ class ADLGen2FileSystem(FileSystem):
         ADLGen2FileSystem
         """
         service_client = DataLakeServiceClient(
-            account_url="https://{}.dfs.core.windows.net" % account_name,
+            account_url="https://%s.dfs.core.windows.net" % account_name,
             credential=credential,
         )
         file_system_client = service_client.get_file_system_client(
