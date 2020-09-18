@@ -14,7 +14,11 @@ from gordo.machine.dataset.data_provider.providers import (
     RandomDataProvider,
     DataLakeProvider,
 )
-from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError, ConfigurationError
+from gordo.machine.dataset.base import (
+    GordoBaseDataset,
+    InsufficientDataError,
+    ConfigurationError,
+)
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.filter_rows import pandas_filter_rows
 from gordo.machine.dataset.filter_periods import FilterPeriods
@@ -260,7 +264,9 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         if isinstance(self.low_threshold, int) and isinstance(self.high_threshold, int):
             if self.low_threshold >= self.high_threshold:
-                raise ConfigurationError("Low threshold need to be larger than high threshold")
+                raise ConfigurationError(
+                    "Low threshold need to be larger than high threshold"
+                )
             logger.info("Applying global min/max filtering")
             mask = ((data > self.low_threshold) & (data < self.high_threshold)).all(1)
             data = data[mask]
