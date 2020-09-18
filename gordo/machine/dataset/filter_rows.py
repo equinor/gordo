@@ -57,10 +57,10 @@ def pandas_filter_rows(
     """ Filter pandas data frame based on list or string of conditions.
 
     Note:
-    pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items
-    therefore split in n=15 (to be safe) and evaluate iterative, keeping the sparse evaluation with numexpr
-    pd.DataFrame.eval of a combined string logic, can only consist of
+    pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items.
+    The sparse evaluation with numexpr pd.DataFrame.eval of a combined string logic, can only consist of
     a maximum 32 (current dependency) or 242 logical parts (latest release) and returns a pd.Series
+    Therefore, list elements are evaluated in batches of n=15 (to be safe) and evaluate iterative.
 
     Parameters
     ----------
@@ -138,18 +138,16 @@ def pandas_filter_rows(
     8  2  2
     """
     logger.info("Applying numerical filtering to data of shape %s", df.shape)
+
     if isinstance(filter_str, str):
-        # split up parts of the row filter if it is a concatenated string
-        # for later to re-assemble in batches
-        filter_str = filter_str.split("&")
+        mask = df.eval(filter_str)
 
-    filter_str = [part.strip() for part in filter_str]
+    if isinstance(filter_str, list):
+        mask = []
+        for filter_i in _batch(iterable=filter_str, n=15):
+            mask.append(df.eval(" & ".join(filter_i)))
 
-    mask = []
-    for filter_i in _batch(iterable=filter_str, n=15):
-        mask.append(df.eval(" & ".join(filter_i)))
-
-    mask = pd.concat(mask, axis=1).all(axis=1)
+        mask = pd.concat(mask, axis=1).all(axis=1)
 
     if buffer_size != 0:
         mask = apply_buffer(mask, buffer_size=buffer_size)
