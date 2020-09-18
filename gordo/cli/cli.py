@@ -40,7 +40,8 @@ _exceptions_reporter = ExceptionsReporter(
         (SensorTagNormalizationError, 60),
         (NoSuitableDataProviderError, 70),
         (InsufficientDataError, 80),
-        (ConfigurationError, 81)(ReporterException, 90),
+        (ConfigurationError, 81),
+        (ReporterException, 90),
     )
 )
 
