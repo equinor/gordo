@@ -76,17 +76,17 @@ class TimeSeriesDataset(GordoBaseDataset):
         data_provider: Union[GordoBaseDataProvider, dict] = DataLakeProvider(),
         resolution: Optional[str] = "10T",
         row_filter: Union[str, list] = "",
-        known_filter_periods: list = [],
+        known_filter_periods: Optional[list] = [],
         aggregation_methods: Union[str, List[str], Callable] = "mean",
         row_filter_buffer_size: int = 0,
         asset: Optional[str] = None,
         default_asset: Optional[str] = None,
         n_samples_threshold: int = 0,
-        low_threshold=-1000,
-        high_threshold=50000,
+        low_threshold: Optional[int] = -1000,
+        high_threshold: Optional[int] = 50000,
         interpolation_method: str = "linear_interpolation",
         interpolation_limit: str = "8H",
-        filter_periods={},
+        filter_periods: Optional[dict] = {},
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -258,7 +258,10 @@ class TimeSeriesDataset(GordoBaseDataset):
                     f" after applying the specified numerical row-filter."
                 )
 
-        if self.low_threshold and self.high_threshold:
+        if isinstance(self.low_threshold, int) and isinstance(self.high_threshold, int):
+            assert (
+                self.low_threshold < self.high_threshold
+            ), "Low threshold need to be larger than high threshold"
             logger.info("Applying global min/max filtering")
             mask = ((data > self.low_threshold) & (data < self.high_threshold)).all(1)
             data = data[mask]
