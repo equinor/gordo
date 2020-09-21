@@ -74,11 +74,51 @@ class AssetsConfig:
     def load_from_yaml(
         cls, f: IO[str], file_path: Optional[str] = None
     ) -> "AssetsConfig":
+        """
+        Loading AssetsConfig from YAML file
+
+        Parameters
+        ----------
+        f: IO[str]
+        file_path
+            Source file path. Using only for exception messages
+
+        Returns
+        -------
+
+        """
         raw_config = yaml.safe_load(f)
         return cls.load(raw_config, file_path=file_path)
 
     @classmethod
     def load(cls, raw_config: dict, file_path: Optional[str] = None) -> "AssetsConfig":
+        """
+        Loading AssetsConfig from a dictionary. See ``load_from_yaml`` method for loading from YAML file
+
+        Examples
+        --------
+        >>> raw_config = {'storages': {'adlstore': [{'assets': [{'name': 'asset1',
+        ...                            'path': 'path/to/asset1'},
+        ...                           {'name': 'asset2',
+        ...                            'path': 'path/to/asset2'}],
+        ...                 'base_dir': '/ncs_data',
+        ...                 'reader': 'ncs_reader'}]}}
+        >>> AssetsConfig.load(raw_config)
+
+
+        Parameters
+        ----------
+        raw_config: dict
+            Config source
+        file_path
+            Source file path. Using only for exception messages
+
+
+        Returns
+        -------
+        AssetsConfig
+
+        """
         try:
             valid_config = cls.schema.load(raw_config)
         except ValidationError as e:
