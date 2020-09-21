@@ -127,7 +127,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         self.dl_service_auth_str = dl_service_auth_str or os.environ.get(
             "DL_SERVICE_AUTH_STR"
         )
-        self.client = None
+        self.fs = None
         self.kwargs = kwargs
         self.lock = threading.Lock()
 
@@ -155,22 +155,22 @@ class DataLakeProvider(GordoBaseDataProvider):
             data_providers, train_start_date, train_end_date, tag_list, dry_run
         )
 
-    def _get_client(self):
+    def _get_fs(self):
         logger.debug("Acquiring threading lock for Datalake authentication.")
         with self.lock:
-            if not self.client:
-                self.client = ADLGen1FileSystem.create_from_env(
+            if not self.fs:
+                self.fs = ADLGen1FileSystem.create_from_env(
                     store_name=self.storename,
                     dl_service_auth=self.dl_service_auth_str,
                     interactive=self.interactive,
                 )
         logger.debug("Released threading lock for Datalake authentication.")
 
-        return self.client
+        return self.fs
 
     def _get_sub_dataproviders(self):
         data_providers = [
-            t_reader(fs=self._get_client(), **self.kwargs)
+            t_reader(fs=self._get_fs(), **self.kwargs)
             for t_reader in DataLakeProvider._SUB_READER_CLASSES
         ]
         return data_providers

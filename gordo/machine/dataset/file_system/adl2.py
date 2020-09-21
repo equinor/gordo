@@ -107,10 +107,7 @@ class ADLGen2FileSystem(FileSystem):
         for m in mode:
             if m not in "rb":
                 raise ValueError("Unsupported file open mode '%s'" % m)
-        wrap_as_text = False
-        if "b" not in mode:
-            wrap_as_text = True
-            mode += "b"
+        wrap_as_text = "b" not in mode
         file_client = self.file_system_client.get_file_client(path)
         downloader = file_client.download_file()
         fd = BytesIO(downloader.readall())
