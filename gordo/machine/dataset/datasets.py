@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from typing import Tuple, List, Dict, Union, Optional, Iterable, Callable, Sequence
+from typing import Tuple, List, Dict, Optional, Iterable, Callable, Sequence
 from datetime import datetime
 from dateutil.parser import isoparse
 from functools import wraps
+from typing import Union
 
 import pandas as pd
 import numpy as np
@@ -13,7 +14,11 @@ from gordo.machine.dataset.data_provider.providers import (
     RandomDataProvider,
     DataLakeProvider,
 )
-from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
+from gordo.machine.dataset.base import (
+    GordoBaseDataset,
+    InsufficientDataError,
+    ConfigurationError,
+)
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.filter_rows import pandas_filter_rows
 from gordo.machine.dataset.filter_periods import FilterPeriods
@@ -28,14 +33,6 @@ from gordo.machine.validators import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class InsufficientDataAfterRowFilteringError(InsufficientDataError):
-    pass
-
-
-class InsufficientDataAfterGlobalFilteringError(InsufficientDataError):
-    pass
 
 
 def compat(init):
@@ -82,17 +79,18 @@ class TimeSeriesDataset(GordoBaseDataset):
         target_tag_list: Optional[Sequence[Union[str, Dict, SensorTag]]] = None,
         data_provider: Union[GordoBaseDataProvider, dict] = DataLakeProvider(),
         resolution: Optional[str] = "10T",
-        row_filter: str = "",
+        row_filter: Union[str, list] = "",
+        known_filter_periods: Optional[list] = [],
         aggregation_methods: Union[str, List[str], Callable] = "mean",
         row_filter_buffer_size: int = 0,
         asset: Optional[str] = None,
         default_asset: Optional[str] = None,
         n_samples_threshold: int = 0,
-        low_threshold=-1000,
-        high_threshold=50000,
+        low_threshold: Optional[int] = -1000,
+        high_threshold: Optional[int] = 50000,
         interpolation_method: str = "linear_interpolation",
         interpolation_limit: str = "8H",
-        filter_periods={},
+        filter_periods: Optional[dict] = {},
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -120,10 +118,13 @@ class TimeSeriesDataset(GordoBaseDataset):
             The bucket size for grouping all incoming time data (e.g. "10T").
             Available strings come from https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
             **Note**: If this parameter is ``None`` or ``False``, then _no_ aggregation/resampling is applied to the data.
-        row_filter: str
+        row_filter: str or list
             Filter on the rows. Only rows satisfying the filter will be in the dataset.
             See :func:`gordo.machine.dataset.filter_rows.pandas_filter_rows` for
             further documentation of the filter format.
+        known_filter_periods: list
+            List of periods to drop in the format [~('2020-04-08 04:00:00+00:00' < index < '2020-04-08 10:00:00+00:00')].
+            Note the time-zone suffix (+00:00), which is required.
         aggregation_methods
             Aggregation method(s) to use for the resampled buckets. If a single
             resample method is provided then the resulting dataframe will have names
@@ -189,6 +190,7 @@ class TimeSeriesDataset(GordoBaseDataset):
             if filter_periods
             else None
         )
+        self.known_filter_periods = known_filter_periods
 
         if not self.train_start_date.tzinfo or not self.train_end_date.tzinfo:
             raise ValueError(
@@ -240,32 +242,51 @@ class TimeSeriesDataset(GordoBaseDataset):
                 f"specified required threshold for number of rows ({self.n_samples_threshold})."
             )
 
+        if self.known_filter_periods:
+            data = pandas_filter_rows(data, self.known_filter_periods, buffer_size=0)
+            if len(data) <= self.n_samples_threshold:
+                raise InsufficientDataError(
+                    f"The length of the filtered DataFrame ({len(data)}) does not exceed the "
+                    f"specified required threshold for number of rows ({self.n_samples_threshold})"
+                    f" after dropping known periods."
+                )
+
         if self.row_filter:
             data = pandas_filter_rows(
                 data, self.row_filter, buffer_size=self.row_filter_buffer_size
             )
-
             if len(data) <= self.n_samples_threshold:
-                raise InsufficientDataAfterRowFilteringError(
-                    f"The length of the genrated DataFrame ({len(data)}) does not exceed the "
+                raise InsufficientDataError(
+                    f"The length of the filtered DataFrame ({len(data)}) does not exceed the "
                     f"specified required threshold for the number of rows ({self.n_samples_threshold}), "
-                    f" after applying the specified row-filter."
+                    f" after applying the specified numerical row-filter."
                 )
 
-        if self.low_threshold and self.high_threshold:
+        if isinstance(self.low_threshold, int) and isinstance(self.high_threshold, int):
+            if self.low_threshold >= self.high_threshold:
+                raise ConfigurationError(
+                    "Low threshold need to be larger than high threshold"
+                )
             logger.info("Applying global min/max filtering")
             mask = ((data > self.low_threshold) & (data < self.high_threshold)).all(1)
             data = data[mask]
             logger.info("Shape of data after global min/max filtering: %s", data.shape)
             if len(data) <= self.n_samples_threshold:
-                raise InsufficientDataAfterGlobalFilteringError(
-                    f"The length of the generated DataFrame ({len(data)}) does not exceed the "
-                    f"specified required threshold for number of rows ({self.n_samples_threshold})."
+                raise InsufficientDataError(
+                    f"The length of the filtered DataFrame ({len(data)}) does not exceed the "
+                    f"specified required threshold for number of rows ({self.n_samples_threshold})"
+                    f" after filtering global extrema."
                 )
 
         if self.filter_periods:
             data, drop_periods, _ = self.filter_periods.filter_data(data)
             self._metadata["filtered_periods"] = drop_periods
+            if len(data) <= self.n_samples_threshold:
+                raise InsufficientDataError(
+                    f"The length of the filtered DataFrame ({len(data)}) does not exceed the "
+                    f"specified required threshold for number of rows ({self.n_samples_threshold})"
+                    f" after applying nuisance filtering algorithm."
+                )
 
         x_tag_names = [tag.name for tag in self.tag_list]
         y_tag_names = [tag.name for tag in self.target_tag_list]

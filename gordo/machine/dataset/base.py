@@ -17,6 +17,10 @@ class InsufficientDataError(ValueError):
     pass
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 class GordoBaseDataset:
 
     _params: Dict[Any, Any] = dict()  # provided by @capture_args on child's __init__

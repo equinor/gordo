@@ -1,6 +1,7 @@
 import logging
 import pandas as pd
 import numpy as np
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ def apply_buffer(mask: pd.Series, buffer_size: int = 0):
     --------
     >>> import pandas as pd
     >>> series = pd.Series([True, True, False, True, True])
-    >>> apply_buffer(series, buffer_size=1)
+    >>> series = apply_buffer(series, buffer_size=1)
     >>> series
     0     True
     1    False
@@ -35,15 +36,31 @@ def apply_buffer(mask: pd.Series, buffer_size: int = 0):
     -------
     None
     """
-    idxs, *_rows = np.where(mask == False)
-    for idx in idxs:
-        mask.values[
-            range(max((0, idx - buffer_size)), min((len(mask), idx + buffer_size + 1)))
-        ] = False
+    if (not any(mask)) or (buffer_size == 0):
+        return mask
+
+    array = 1 - np.array(mask.to_numpy(), dtype=float)
+    kernel = np.ones(buffer_size * 2 + 1, dtype=float)
+
+    if len(kernel) > len(array):
+        mask.values[:] = False
+        return mask
+
+    ans = np.convolve(a=array, v=kernel, mode="same")
+    mask.values[:] = ans < 1
+    return mask
 
 
-def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
-    """
+def pandas_filter_rows(
+    df: pd.DataFrame, filter_str: Union[str, list], buffer_size: int = 0
+):
+    """ Filter pandas data frame based on list or string of conditions.
+
+    Note:
+    pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items.
+    The sparse evaluation with numexpr pd.DataFrame.eval of a combined string logic, can only consist of
+    a maximum 32 (current dependency) or 242 logical parts (latest release) and returns a pd.Series
+    Therefore, list elements are evaluated in batches of n=15 (to be safe) and evaluate iterative.
 
     Parameters
     ----------
@@ -121,22 +138,21 @@ def pandas_filter_rows(df, filter_str: str, buffer_size: int = 0):
     8  2  2
     """
     logger.info("Applying numerical filtering to data of shape %s", df.shape)
-    # pd.DataFrame.eval of a list returns a numpy.ndarray and is limited to 100 list items
-    # therefore split in n=30 (to be safe) and evaluate iterative, keeping the sparse evaluation with numexpr
+
+    if isinstance(filter_str, str):
+        mask = df.eval(filter_str)
+
     if isinstance(filter_str, list):
-        pandas_filter = []
-        for x in _batch(iterable=filter_str, n=30):
-            pandas_filter.append(pd.DataFrame(df.eval(x)).transpose().all(axis=1))
-        pandas_filter = pd.concat(pandas_filter, axis=1).all(axis=1)
+        mask = []
+        for filter_i in _batch(iterable=filter_str, n=15):
+            mask.append(df.eval(" & ".join(filter_i)))
 
-    # pd.DataFrame.eval of a combined string logic, can only consist of
-    # a maximum 32 (current dependency) or 242 logical parts (latest release)
-    # and returns a pd.Series
-    else:
-        pandas_filter = df.eval(filter_str)
+        mask = pd.concat(mask, axis=1).all(axis=1)
 
-    apply_buffer(pandas_filter, buffer_size=buffer_size)
-    df = df[list(pandas_filter)]
+    if buffer_size != 0:
+        mask = apply_buffer(mask, buffer_size=buffer_size)
+
+    df = df[list(mask)]
     logger.info("Shape of data after numerical filtering: %s", df.shape)
     return df
 

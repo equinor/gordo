@@ -4,6 +4,7 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import MinMaxScaler
 from gordo.machine.dataset.datasets import pandas_filter_rows
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,8 @@ class FilterPeriods:
 
     def __init__(
         self,
-        granularity,
-        filter_method,
+        granularity: Optional[str] = "10T",
+        filter_method: Optional[str] = "median",
         window=144,
         n_iqr=5,
         iforest_smooth=False,

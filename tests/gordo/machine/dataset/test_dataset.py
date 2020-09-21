@@ -12,7 +12,6 @@ from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.datasets import (
     RandomDataset,
     TimeSeriesDataset,
-    InsufficientDataAfterRowFilteringError,
 )
 from gordo.machine.dataset.base import GordoBaseDataset, InsufficientDataError
 from gordo.machine.dataset.sensor_tag import SensorTag
@@ -429,7 +428,7 @@ def test_timeseries_dataset_compat():
 def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value):
     """
     Test that dataframe after row_filter scenarios raise appropriate
-    InsufficientDataAfterRowFilteringError
+    InsufficientDataError
     """
 
     kwargs = dict(
@@ -444,5 +443,83 @@ def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value
         n_samples_threshold=n_samples_threshold,
     )
 
-    with pytest.raises(InsufficientDataAfterRowFilteringError):
+    with pytest.raises(InsufficientDataError):
         TimeSeriesDataset(row_filter=f"`Tag 1` < {filter_value}", **kwargs).get_data()
+
+
+@pytest.mark.parametrize(
+    "n_samples_threshold, high_threshold, low_threshold",
+    [(10, 5000, -1000), (0, 100, 0)],
+)
+def test_insufficient_data_after_global_filtering(
+    n_samples_threshold, high_threshold, low_threshold
+):
+    """
+    Test that dataframe after row_filter scenarios raise appropriate
+    InsufficientDataError
+    """
+
+    kwargs = dict(
+        data_provider=MockDataProvider(),
+        tag_list=[
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ],
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        n_samples_threshold=n_samples_threshold,
+        high_threshold=high_threshold,
+        low_threshold=low_threshold,
+    )
+
+    with pytest.raises(InsufficientDataError):
+        TimeSeriesDataset(**kwargs).get_data()
+
+
+def test_insufficient_data_after_known_filter_periods_filtering():
+    """
+    Test that dataframe after row_filter scenarios raise appropriate
+    InsufficientDataError
+    """
+
+    kwargs = dict(
+        data_provider=MockDataProvider(),
+        tag_list=[
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ],
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        n_samples_threshold=10,
+        known_filter_periods=[
+            "~('2017-12-25 07:00:00+00:00' <= index <= '2017-12-29 06:00:00+00:00')"
+        ],
+    )
+
+    with pytest.raises(InsufficientDataError):
+        TimeSeriesDataset(**kwargs).get_data()
+
+
+def test_insufficient_data_after_automatic_filtering():
+    """
+    Test that dataframe after row_filter scenarios raise appropriate
+    InsufficientDataError
+    """
+
+    kwargs = dict(
+        data_provider=MockDataProvider(),
+        tag_list=[
+            SensorTag("Tag 1", None),
+            SensorTag("Tag 2", None),
+            SensorTag("Tag 3", None),
+        ],
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        n_samples_threshold=84,
+        filter_periods={"filter_method": "median"},
+    )
+
+    with pytest.raises(InsufficientDataError):
+        TimeSeriesDataset(**kwargs).get_data()
