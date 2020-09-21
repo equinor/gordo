@@ -75,7 +75,7 @@ mako==1.1.1               # via alembic
 markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2, mako
 marshmallow-enum==1.5.1   # via dataclasses-json
-marshmallow==3.3.0        # via dataclasses-json, marshmallow-enum
+marshmallow==3.3.0        # via -r requirements.in, dataclasses-json, marshmallow-enum
 matplotlib==3.1.2         # via catboost
 mlflow==1.5.0             # via -r mlflow_requirements.in, azureml-mlflow
 more-itertools==8.1.0     # via zipp
