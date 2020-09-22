@@ -62,7 +62,7 @@ class NormalizedConfig:
         },
         "evaluation": {
             "cv_mode": "full_build",
-            "scoring_scaler": "sklearn.preprocessing.RobustScaler",
+            "scoring_scaler": "sklearn.preprocessing.MinMaxScaler",
             "metrics": [
                 "explained_variance_score",
                 "r2_score",
