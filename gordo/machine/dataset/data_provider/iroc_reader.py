@@ -26,14 +26,23 @@ class IrocReader(GordoBaseDataProvider):
         return IrocReader.base_path_from_asset(tag.asset) is not None
 
     @capture_args
-    def __init__(self, fs: Optional[FileSystem], threads: int = 50, **kwargs):
+    def __init__(
+        self,
+        storage: Optional[FileSystem],
+        threads: int = 50,
+        storage_name: Optional[str] = None,
+        **kwargs,
+    ):
         """
         Creates a reader for tags from IROC.
         """
-        self.fs = fs
+        self.storage = storage
         self.threads = threads
         if self.threads is None:
             self.threads = 50
+        if storage_name is None:
+            storage_name = storage.name
+        self.storage_name = storage_name
         logger.info(f"Starting IROC reader with {self.threads} threads")
 
     def load_series(
@@ -112,9 +121,9 @@ class IrocReader(GordoBaseDataProvider):
     ):
         # Generator over all files in all of the base_paths
         def _all_files():
-            if self.fs is not None:
+            if self.storage is not None:
                 for b_path in all_base_paths:
-                    for f in self.fs.walk(b_path):
+                    for f in self.storage.walk(b_path):
                         yield f
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
@@ -138,14 +147,14 @@ class IrocReader(GordoBaseDataProvider):
     def _read_iroc_df_from_azure(
         self, file_path, train_start_date: datetime, train_end_date: datetime, tag_list
     ):
-        fs = self.fs
-        if fs is None:
+        storage = self.storage
+        if storage is None:
             return None
 
         logger.info("Attempting to open IROC file {}".format(file_path))
 
         try:
-            with fs.open(file_path, "rb") as f:
+            with storage.open(file_path, "rb") as f:
                 logger.info("Parsing file {}".format(file_path))
                 df = read_iroc_file(f, train_start_date, train_end_date, tag_list)
             return df

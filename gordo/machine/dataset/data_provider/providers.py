@@ -7,6 +7,8 @@ import timeit
 
 from datetime import datetime
 import typing
+from typing import Dict, Union, Any, Optional
+from copy import copy
 
 from cachetools import cached, TTLCache
 import numpy as np
@@ -14,12 +16,15 @@ import pandas as pd
 from influxdb import DataFrameClient
 
 from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
+from gordo.machine.dataset.file_system.adl2 import ADLGen2FileSystem
+from gordo.machine.dataset.file_system import FileSystem
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.util import capture_args
 
 from gordo.machine.dataset.data_provider.iroc_reader import IrocReader
 from gordo.machine.dataset.data_provider.ncs_reader import NcsReader
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.exceptions import ConfigException
 
 
 logger = logging.getLogger(__name__)
@@ -83,6 +88,27 @@ def load_series_from_multiple_providers(
     )
 
 
+DEFAULT_STORAGE_TYPE = "adl2"
+
+
+def create_storage(storage_type: Optional[str] = None, **kwargs) -> FileSystem:
+    if storage_type is None:
+        storage_type = DEFAULT_STORAGE_TYPE
+    if storage_type == "adl1":
+        if "store_name" not in kwargs:
+            kwargs["store_name"] = "dataplatformdlsprod"
+        storage = ADLGen1FileSystem.create_from_env(**kwargs)
+    elif storage_type == "adl2":
+        if "account_name" not in kwargs:
+            kwargs["account_name"] = ""
+        if "file_system_name" not in kwargs:
+            kwargs["file_system_name"] = ""
+        storage = ADLGen2FileSystem.create_from_env(**kwargs)
+    else:
+        raise ConfigException("Unknown storage type '%s'" % storage_type)
+    return storage
+
+
 class DataLakeProvider(GordoBaseDataProvider):
 
     _SUB_READER_CLASSES = [
@@ -100,9 +126,10 @@ class DataLakeProvider(GordoBaseDataProvider):
     @capture_args
     def __init__(
         self,
-        storename: str = "dataplatformdlsprod",
-        interactive: bool = False,
-        dl_service_auth_str: str = None,
+        storage: Optional[Union[FileSystem, Dict[str, Any]]] = None,
+        interactive: Optional[bool] = None,
+        storename: Optional[str] = None,
+        dl_service_auth_str: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -110,26 +137,35 @@ class DataLakeProvider(GordoBaseDataProvider):
 
         Parameters
         ----------
-        storename
-            The store name to read data from
+        storage: Optional[Union[FileSystem, Dict[str, Any]]]
+            DataLake config. The structure depends on which DataLake you are going to use.
+            Filed `type`
         interactive: bool
             To perform authentication interactively, or attempt to do it a
             automatically, in such a case must provide 'del_service_authS_tr'
-            parameter or as 'DL_SERVICE_AUTH_STR' env var.
+            parameter or as 'DL_SERVICE_AUTH_STR' env var. Only for DataLake Gen1 and will be deprecated in new versions
+        storename
+            The store name to read data from. Only for DataLake Gen1 and will be deprecated in new versions
         dl_service_auth_str: Optional[str]
             string on the format 'tenant_id:service_id:service_secret'. To
             perform authentication automatically; will default to
-            DL_SERVICE_AUTH_STR env var or None
+            DL_SERVICE_AUTH_STR env var or None. Only for DataLake Gen1 and will be deprecated in new versions
 
+        .. deprecated::
+            Arguments `interactive`, `storename`, `dl_service_auth_str`
         """
-        self.storename = storename
-        self.interactive = interactive
-        self.dl_service_auth_str = dl_service_auth_str or os.environ.get(
-            "DL_SERVICE_AUTH_STR"
-        )
-        self.fs = None
+        self.storage = storage
         self.kwargs = kwargs
         self.lock = threading.Lock()
+
+        # This arguments only preserved for back-compatibility reasons and will be removed in future versions of gordo
+        self.adl1_kwargs = {}
+        if interactive is not None:
+            self.adl1_kwargs["interactive"] = interactive
+        if storename is not None:
+            self.adl1_kwargs["store_name"] = storename
+        if dl_service_auth_str is not None:
+            self.adl1_kwargs["dl_service_auth_str"] = dl_service_auth_str
 
     def load_series(
         self,
@@ -155,22 +191,44 @@ class DataLakeProvider(GordoBaseDataProvider):
             data_providers, train_start_date, train_end_date, tag_list, dry_run
         )
 
-    def _get_fs(self):
-        logger.debug("Acquiring threading lock for Datalake authentication.")
-        with self.lock:
-            if not self.fs:
-                self.fs = ADLGen1FileSystem.create_from_env(
-                    store_name=self.storename,
-                    dl_service_auth=self.dl_service_auth_str,
-                    interactive=self.interactive,
+    def _adl1_back_compatible_kwarg(self, storage_type: str, kwarg: dict):
+        if storage_type == "adl1":
+            if self.adl1_kwargs:
+                adl1_kwarg = copy(self.adl1_kwargs)
+                adl1_kwarg.update(kwarg)
+                return adl1_kwarg
+        else:
+            if self.adl1_kwargs:
+                arguments = ", ".join(self.adl1_kwargs.keys())
+                raise ConfigException(
+                    "%s does no support by storage '%s'" % (arguments, storage_type)
                 )
+        return kwarg
+
+    def _normalize_storage(self):
+        storage = self.storage
+        if isinstance(self.storage, dict):
+            storage_type = storage.pop("type", DEFAULT_STORAGE_TYPE)
+            storage = self._adl1_back_compatible_kwarg(storage_type, storage)
+            return create_storage(storage_type, **storage)
+        return storage
+
+    def _get_storage(self):
+        logger.debug("Acquiring threading lock for Datalake authentication.")
+        # TODO do we need this lock for ADL Gen2?.
+        #  Looks like all authorization stuff happening in a lazy way for this case,
+        #  so all race conditions should be resolved somewhere in azure.storage.filedatalake module?
+        with self.lock:
+            if not self.storage:
+                self.storage = self._normalize_storage()
         logger.debug("Released threading lock for Datalake authentication.")
 
-        return self.fs
+        return self.storage
 
     def _get_sub_dataproviders(self):
+        storage = self._get_storage()
         data_providers = [
-            t_reader(fs=self._get_fs(), **self.kwargs)
+            t_reader(storage=storage, **self.kwargs)
             for t_reader in DataLakeProvider._SUB_READER_CLASSES
         ]
         return data_providers

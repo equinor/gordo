@@ -56,7 +56,7 @@ storages:
 
 def test_exception_message():
     message = exception_message("Error", "/path/to/config.yaml")
-    assert message == 'Error. Config path: /path/to/config.yaml'
+    assert message == "Error. Config path: /path/to/config.yaml"
 
 
 def test_load_succeeded():

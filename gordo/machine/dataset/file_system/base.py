@@ -17,8 +17,8 @@ class FileType(Enum):
 class FileInfo:
     file_type: FileType
     size: int
-    access_time: Optional[datetime]
-    modify_time: Optional[datetime]
+    access_time: Optional[datetime] = None
+    modify_time: Optional[datetime] = None
 
 
 class FileSystem(metaclass=ABCMeta):

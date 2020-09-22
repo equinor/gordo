@@ -1,13 +1,43 @@
 import os
+from typing import Iterable, IO
+
 import dateutil.parser
 import logging
 
 import pytest
 import adal
 
+from io import BytesIO
+
 from gordo.machine.dataset.data_provider.providers import DataLakeProvider
 from gordo.machine.dataset import dataset
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
+from gordo.machine.dataset.file_system import FileSystem, FileInfo, FileType
+
+
+class MockFileSystem(FileSystem):
+
+    @property
+    def name(self) -> str:
+        return "mock"
+
+    def open(self, path: str, mode: str = "r") -> IO:
+        return BytesIO()
+
+    def exists(self, path: str) -> bool:
+        return False
+
+    def isfile(self, path: str) -> bool:
+        return False
+
+    def isdir(self, path: str) -> bool:
+        return False
+
+    def info(self, path: str) -> FileInfo:
+        raise FileNotFoundError(path)
+
+    def walk(self, base_path: str) -> Iterable[str]:
+        return []
 
 
 def _get_default_dataset_config():
@@ -18,7 +48,7 @@ def _get_default_dataset_config():
         "train_start_date": train_start_date,
         "train_end_date": train_end_date,
         "tag_list": normalize_sensor_tags(["TRC-FIQ -39-0706", "GRA-EM-23-0003ARV.PV"]),
-        "data_provider": DataLakeProvider(),
+        "data_provider": DataLakeProvider(storage=MockFileSystem()),
     }
 
 
