@@ -70,14 +70,14 @@ def test_create_from_env_with_empty_dl_service_auth_env(auth_mock, adl_client_mo
 
 
 def test_open_in_bin_mode(adl_client_mock):
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     f = fs.open("/path/to/file.json", mode="rb")
     adl_client_mock.open.assert_called_once_with("/path/to/file.json", mode="rb")
     assert isinstance(f, BytesIO)
 
 
 def test_open_in_text_mode(adl_client_mock):
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     f = fs.open("/path/to/file.json", mode="r")
     adl_client_mock.open.assert_called_once_with("/path/to/file.json", mode="rb")
     assert isinstance(f, TextIOWrapper)
@@ -85,21 +85,21 @@ def test_open_in_text_mode(adl_client_mock):
 
 def test_exists(adl_client_mock):
     adl_client_mock.exists.return_value = True
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     assert fs.exists("/path/to/file.json")
     adl_client_mock.exists.assert_called_once_with("/path/to/file.json")
 
 
 def test_isfile(adl_client_mock):
     adl_client_mock.info.return_value = {"type": "FILE"}
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     assert fs.isfile("/path/to/file.json")
     adl_client_mock.info.assert_called_once_with("/path/to/file.json")
 
 
 def test_isdir(adl_client_mock):
     adl_client_mock.info.return_value = {"type": "DIRECTORY"}
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     assert fs.isdir("/path/to/file.json")
     adl_client_mock.info.assert_called_once_with("/path/to/file.json")
 
@@ -111,7 +111,7 @@ def test_info_file(adl_client_mock):
         "accessTime": 1599631062424,
         "modificationTime": 1599631097160,
     }
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     info = fs.info("/path/to/file.json")
     adl_client_mock.info.assert_called_once_with("/path/to/file.json")
     assert info.file_type == FileType.FILE
@@ -125,7 +125,7 @@ def test_info_directory(adl_client_mock):
         "type": "DIRECTORY",
         "length": 0,
     }
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     info = fs.info("/path/to/file.json")
     adl_client_mock.info.assert_called_once_with("/path/to/file.json")
     assert info.file_type == FileType.DIRECTORY
@@ -155,6 +155,6 @@ def test_walk(adl_client_mock):
         {"name": "/path/out.json", "type": "FILE"},
     ]
 
-    fs = ADLGen1FileSystem(adl_client_mock)
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
     result = list(fs.walk("/path"))
     assert result, ["/path/out.json", "/path/to/file.json"]

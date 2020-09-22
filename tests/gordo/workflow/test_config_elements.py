@@ -135,8 +135,9 @@ def test_machine_from_config(default_globals: dict):
             "asset": "global-asset",
             "data_provider": {
                 "dl_service_auth_str": None,
-                "interactive": False,
-                "storename": "dataplatformdlsprod",
+                "storage": None,
+                "interactive": None,
+                "storename": None,
                 "type": "DataLakeProvider",
             },
             "default_asset": None,

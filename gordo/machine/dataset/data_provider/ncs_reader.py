@@ -41,7 +41,7 @@ class NcsFileLookup:
         self.file_type = file_type
 
     def lookup(
-        self, fs: FileSystem, dir_path: str, tag_name: str, year: int
+        self, storage: FileSystem, dir_path: str, tag_name: str, year: int
     ) -> Optional[str]:
         """
         Find files with a given file type in Azure Data Lake
@@ -70,11 +70,11 @@ class NcsCsvLookup(NcsFileLookup):
         super().__init__(CsvFileType(header, time_series_columns))
 
     def lookup(
-        self, fs: FileSystem, dir_path: str, tag_name: str, year: int
+        self, storage: FileSystem, dir_path: str, tag_name: str, year: int
     ) -> Optional[str]:
         file_extension = self.file_type.file_extension
         path = f"{dir_path}/{tag_name}_{year}{file_extension}"
-        return path if fs.isfile(path) else None
+        return path if storage.isfile(path) else None
 
 
 class NcsParquetLookup(NcsFileLookup):
@@ -86,11 +86,11 @@ class NcsParquetLookup(NcsFileLookup):
         super().__init__(ParquetFileType(time_series_columns))
 
     def lookup(
-        self, fs: FileSystem, dir_path: str, tag_name: str, year: int
+        self, storage: FileSystem, dir_path: str, tag_name: str, year: int
     ) -> Optional[str]:
         file_extension = self.file_type.file_extension
         path = f"{dir_path}/parquet/{tag_name}_{year}{file_extension}"
-        return path if fs.isfile(path) else None
+        return path if storage.isfile(path) else None
 
 
 class NcsReader(GordoBaseDataProvider):
@@ -168,12 +168,12 @@ class NcsReader(GordoBaseDataProvider):
     @capture_args
     def __init__(
         self,
-        fs: FileSystem,
+        storage: FileSystem,
         threads: Optional[int] = 1,
         remove_status_codes: Optional[list] = [0, 64, 60, 8, 24, 3, 32768],
         dl_base_path: Optional[str] = None,
         lookup_for: Optional[List[str]] = None,
-        **kwargs,
+        storage_name: Optional[str] = None,
     ):
         """
         Creates a reader for tags from the Norwegian Continental Shelf. Currently
@@ -181,6 +181,8 @@ class NcsReader(GordoBaseDataProvider):
 
         Parameters
         ----------
+        storage: FileSystem
+            Storage file system
         threads : Optional[int]
             Number of threads to use. If None then use 1 thread
         remove_status_codes: Optional[list]
@@ -191,6 +193,8 @@ class NcsReader(GordoBaseDataProvider):
             and other non-production settings.
         lookup_for:  Optional[List[str]]
             List of file finders by the file type name. Value by default: ``['parquet', 'csv']``
+        storage_name: Optional[str]
+            Used by ``AssetsConfig``
 
         Notes
         -----
@@ -198,7 +202,7 @@ class NcsReader(GordoBaseDataProvider):
         the reader will prefer to find CSV files over Parquet
 
         """
-        self.fs = fs
+        self.storage = storage
         self.threads = threads
         self.remove_status_codes = remove_status_codes
         self.dl_base_path = dl_base_path
@@ -208,6 +212,9 @@ class NcsReader(GordoBaseDataProvider):
         else:
             file_lookups = self.get_file_lookups(lookup_for)
         self.file_lookups = file_lookups
+        if storage_name is None:
+            storage_name = storage.name
+        self.storage_name = storage_name
         logger.info(f"Starting NCS reader with {self.threads} threads")
 
     def can_handle_tag(self, tag: SensorTag):
@@ -233,14 +240,14 @@ class NcsReader(GordoBaseDataProvider):
             raise ValueError(
                 f"NCS reader called with train_end_date: {train_end_date} before train_start_date: {train_start_date}"
             )
-        fs = self.fs
+        storage = self.storage
 
         years = range(train_start_date.year, train_end_date.year + 1)
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             fetched_tags = executor.map(
                 lambda tag: self.read_tag_files(
-                    fs=fs,
+                    storage=storage,
                     tag=tag,
                     years=years,
                     dry_run=dry_run,
@@ -273,7 +280,7 @@ class NcsReader(GordoBaseDataProvider):
 
     def read_tag_files(
         self,
-        fs: FileSystem,
+        storage: FileSystem,
         tag: SensorTag,
         years: range,
         dry_run: Optional[bool] = False,
@@ -286,7 +293,7 @@ class NcsReader(GordoBaseDataProvider):
 
         Parameters
         ----------
-        fs: FileSystem
+        storage: FileSystem
             File system
         tag: SensorTag
             the tag to download data for
@@ -316,14 +323,16 @@ class NcsReader(GordoBaseDataProvider):
         logger.info(f"Downloading tag: {tag} for years: {years}")
         tag_name_encoded = quote(tag.name, safe=" ")
 
-        NcsReader._verify_tag_path_exist(fs, f"{tag_base_path}/{tag_name_encoded}/")
+        NcsReader._verify_tag_path_exist(
+            storage, f"{tag_base_path}/{tag_name_encoded}/"
+        )
 
         dir_path = f"{tag_base_path}/{tag_name_encoded}"
         for year in years:
             file_path = ""
             file_lookup = None
             for v in self.file_lookups:
-                lookup_file_path = v.lookup(fs, dir_path, tag_name_encoded, year)
+                lookup_file_path = v.lookup(storage, dir_path, tag_name_encoded, year)
                 if lookup_file_path is not None:
                     file_path = cast(str, lookup_file_path)
                     file_lookup = v
@@ -334,7 +343,7 @@ class NcsReader(GordoBaseDataProvider):
             logger.info(f"Parsing file {file_path}")
 
             try:
-                info = fs.info(file_path)
+                info = storage.info(file_path)
                 file_size = info.size / (1024 ** 2)
                 logger.debug(f"File size for file {file_path}: {file_size:.2f}MB")
 
@@ -342,7 +351,7 @@ class NcsReader(GordoBaseDataProvider):
                     logger.info("Dry run only, returning empty frame early")
                     return pd.Series()
                 before_downloading = timeit.default_timer()
-                with fs.open(file_path, "rb") as f:
+                with storage.open(file_path, "rb") as f:
                     df = file_type.read_df(f)
                     df = df.rename(columns={"Value": tag.name})
                     df = df[~df["Status"].isin(remove_status_codes)]

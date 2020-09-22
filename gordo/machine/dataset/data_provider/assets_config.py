@@ -103,8 +103,8 @@ class AssetsConfig:
         ...                            'path': 'path/to/asset2'}],
         ...                 'base_dir': '/ncs_data',
         ...                 'reader': 'ncs_reader'}]}}
-        >>> AssetsConfig.load(raw_config)
-
+        >>> type(AssetsConfig.load(raw_config))
+        <class 'gordo.machine.dataset.data_provider.assets_config.AssetsConfig'>
 
         Parameters
         ----------
