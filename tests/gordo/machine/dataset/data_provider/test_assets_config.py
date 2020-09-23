@@ -8,7 +8,9 @@ from gordo.machine.dataset.data_provider.assets_config import (
     validation_error_exception_message,
     exception_message,
 )
+from gordo.machine.dataset.data_provider.resource_assets_config import load_assets_config
 from marshmallow import ValidationError
+
 
 succeeded_config = """
 storages:
@@ -112,3 +114,8 @@ def test_duplicate_error():
     f = StringIO(duplicate_error_config)
     with pytest.raises(ConfigException):
         AssetsConfig.load_from_yaml(f)
+
+
+def test_load_assets_config():
+    assets_config = load_assets_config()
+    assert type(assets_config) is AssetsConfig
