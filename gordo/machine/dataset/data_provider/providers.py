@@ -100,9 +100,9 @@ def create_storage(storage_type: Optional[str] = None, **kwargs) -> FileSystem:
         storage = ADLGen1FileSystem.create_from_env(**kwargs)
     elif storage_type == "adl2":
         if "account_name" not in kwargs:
-            kwargs["account_name"] = ""
+            kwargs["account_name"] = "omniadlseun"
         if "file_system_name" not in kwargs:
-            kwargs["file_system_name"] = ""
+            kwargs["file_system_name"] = "dls"
         storage = ADLGen2FileSystem.create_from_env(**kwargs)
     else:
         raise ConfigException("Unknown storage type '%s'" % storage_type)
