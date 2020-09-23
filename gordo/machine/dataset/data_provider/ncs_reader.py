@@ -214,8 +214,6 @@ class NcsReader(GordoBaseDataProvider):
             file_lookups = self.get_file_lookups(lookup_for)
         self.file_lookups = file_lookups
         if storage_name is None:
-            if storage is None:
-                traceback.print_stack()
             storage_name = storage.name
         self.storage_name = storage_name
         logger.info(f"Starting NCS reader with {self.threads} threads")
