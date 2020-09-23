@@ -16,7 +16,6 @@ from gordo.machine.dataset.file_system import FileSystem, FileInfo, FileType
 
 
 class MockFileSystem(FileSystem):
-
     @property
     def name(self) -> str:
         return "mock"
@@ -38,6 +37,7 @@ class MockFileSystem(FileSystem):
 
     def walk(self, base_path: str) -> Iterable[str]:
         return []
+
 
 @pytest.fixture
 def mock_file_system():
@@ -64,8 +64,7 @@ def test_get_data_serviceauth_fail(caplog, dataset_config, mock_file_system):
     dataset_config["train_start_date"] = train_start_date
     dataset_config["train_end_date"] = train_end_date
     dataset_config["data_provider"] = DataLakeProvider(
-        storage=mock_file_system,
-        dl_service_auth_str="TENTANT_UNKNOWN:BOGUS:PASSWORD"
+        storage=mock_file_system, dl_service_auth_str="TENTANT_UNKNOWN:BOGUS:PASSWORD"
     )
 
     dl_backed = dataset._get_dataset(dataset_config)
@@ -101,8 +100,7 @@ def test_get_data_interactive(dataset_config):
 def test_get_data_serviceauth_in_config(mock_file_system, default_config):
     dataset_config = default_config
     dataset_config["data_provider"] = DataLakeProvider(
-        storage=mock_file_system,
-        dl_service_auth_str=os.getenv("TEST_SERVICE_AUTH")
+        storage=mock_file_system, dl_service_auth_str=os.getenv("TEST_SERVICE_AUTH")
     )
     dataset_config["resolution"] = "10T"
     dl_backed = dataset._get_dataset(dataset_config)
