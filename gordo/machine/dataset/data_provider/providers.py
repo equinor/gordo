@@ -94,6 +94,7 @@ DEFAULT_STORAGE_TYPE = "adl2"
 def create_storage(storage_type: Optional[str] = None, **kwargs) -> FileSystem:
     if storage_type is None:
         storage_type = DEFAULT_STORAGE_TYPE
+    storage: FileSystem
     if storage_type == "adl1":
         if "store_name" not in kwargs:
             kwargs["store_name"] = "dataplatformdlsprod"
@@ -158,7 +159,7 @@ class DataLakeProvider(GordoBaseDataProvider):
         self.lock = threading.Lock()
 
         # This arguments only preserved for back-compatibility reasons and will be removed in future versions of gordo
-        self.adl1_kwargs = {}
+        self.adl1_kwargs: Dict[str, Any] = {}
         if interactive is not None:
             self.adl1_kwargs["interactive"] = interactive
         if storename is not None:

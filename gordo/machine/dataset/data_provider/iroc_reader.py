@@ -40,7 +40,7 @@ class IrocReader(GordoBaseDataProvider):
         self.threads = threads
         if self.threads is None:
             self.threads = 50
-        if storage_name is None:
+        if storage_name is None and storage is not None:
             storage_name = storage.name
         self.storage_name = storage_name
         logger.info(f"Starting IROC reader with {self.threads} threads")
