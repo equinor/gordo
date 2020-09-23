@@ -3,7 +3,7 @@ import logging
 from azure.core.exceptions import ResourceNotFoundError
 from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 from azure.identity import ClientSecretCredential, InteractiveBrowserCredential
-from typing import Optional, Any, IO, Iterable
+from typing import Optional, Any, IO, Iterable, cast
 from io import BytesIO, TextIOWrapper
 
 from .base import FileSystem, FileInfo, FileType
@@ -110,8 +110,9 @@ class ADLGen2FileSystem(FileSystem):
         wrap_as_text = "b" not in mode
         file_client = self.file_system_client.get_file_client(path)
         downloader = file_client.download_file()
-        fd = BytesIO(downloader.readall())
-        return TextIOWrapper(fd) if wrap_as_text else fd
+        stream = BytesIO(downloader.readall())
+        fd = cast(IO, TextIOWrapper(stream) if wrap_as_text else stream)
+        return fd
 
     def exists(self, path: str) -> bool:
         try:
