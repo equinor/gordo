@@ -1,6 +1,8 @@
 storages:
   dataplatformdlsprod:
-  - assets:
+  - base_dir: /raw/corporate
+    reader: ncs_reader
+    assets:
     - name: 1100-sfa
       path: IMS Statfjord/sensordata/1100-SFA
     - name: 1101-sfb
@@ -97,12 +99,11 @@ storages:
       path: PI System Operation Johan Sverdrup/sensordata/1903-JSV
     - name: 1904-jsv
       path: PI System Operation Johan Sverdrup/sensordata/1904-JSV
-    base_dir: /raw/corporate
-    reader: ncs_reader
-  - assets:
+  - base_dir: /raw/plant/uon/cygnet
+    reader: iroc_reader
+    assets:
     - name: ninenine
       path: ninenine/history
     - name: uon_ef
       path: efd/history
-    base_dir: /raw/plant/uon/cygnet
-    reader: iroc_reader
+
