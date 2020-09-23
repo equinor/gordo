@@ -226,10 +226,10 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def _get_sub_dataproviders(self):
         storage = self._get_storage()
-        data_providers = [
-            t_reader(storage=storage, **self.kwargs)
-            for t_reader in DataLakeProvider._SUB_READER_CLASSES
-        ]
+        data_providers = []
+        for t_reader in DataLakeProvider._SUB_READER_CLASSES:
+            print('storage', storage)
+            data_providers.append(t_reader(storage=storage, **self.kwargs))
         return data_providers
 
 
