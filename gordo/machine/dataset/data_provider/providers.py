@@ -26,6 +26,9 @@ from gordo.machine.dataset.data_provider.ncs_reader import NcsReader
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.exceptions import ConfigException
 
+from .assets_config import AssetsConfig
+from .resource_assets_config import load_assets_config
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +62,8 @@ def load_series_from_multiple_providers(
         reader: [] for reader in data_providers
     }  # type: typing.Dict[GordoBaseDataProvider, typing.List[SensorTag]]
 
+    for tag_reader in data_providers:
+        print(vars(tag_reader))
     for tag in tag_list:
         for tag_reader in data_providers:
             if tag_reader.can_handle_tag(tag):
@@ -128,6 +133,7 @@ class DataLakeProvider(GordoBaseDataProvider):
     def __init__(
         self,
         storage: Optional[Union[FileSystem, Dict[str, Any]]] = None,
+        assets_config: Optional[AssetsConfig] = None,
         interactive: Optional[bool] = None,
         storename: Optional[str] = None,
         dl_service_auth_str: Optional[str] = None,
@@ -155,6 +161,9 @@ class DataLakeProvider(GordoBaseDataProvider):
             Arguments `interactive`, `storename`, `dl_service_auth_str`
         """
         self.storage = storage
+        if assets_config is None:
+            assets_config = load_assets_config()
+        self.assets_config = assets_config
         self.kwargs = kwargs
         self.lock = threading.Lock()
 
@@ -201,7 +210,7 @@ class DataLakeProvider(GordoBaseDataProvider):
             if self.adl1_kwargs:
                 arguments = ", ".join(self.adl1_kwargs.keys())
                 raise ConfigException(
-                    "%s does no support by storage '%s'" % (arguments, storage_type)
+                    "%s does no support%s by storage '%s'" % (arguments, "s" if len(arguments) > 1 else "", storage_type)
                 )
         return kwarg
 
@@ -227,9 +236,10 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def _get_sub_dataproviders(self):
         storage = self._get_storage()
+        assets_config = self.assets_config
         data_providers = []
         for t_reader in DataLakeProvider._SUB_READER_CLASSES:
-            data_providers.append(t_reader(storage=storage, **self.kwargs))
+            data_providers.append(t_reader(storage=storage, assets_config=assets_config, **self.kwargs))
         return data_providers
 
 
