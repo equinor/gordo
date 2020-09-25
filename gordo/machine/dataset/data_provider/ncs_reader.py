@@ -357,7 +357,5 @@ class NcsReader(GordoBaseDataProvider):
             return None
         full_path = path_spec.full_path(self.storage)
 
-        logger.debug(
-            f"Found asset code {asset}, returning {full_path}"
-        )
+        logger.debug(f"Found asset code {asset}, returning {full_path}")
         return full_path

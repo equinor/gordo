@@ -210,7 +210,8 @@ class DataLakeProvider(GordoBaseDataProvider):
             if self.adl1_kwargs:
                 arguments = ", ".join(self.adl1_kwargs.keys())
                 raise ConfigException(
-                    "%s does no support%s by storage '%s'" % (arguments, "s" if len(arguments) > 1 else "", storage_type)
+                    "%s does no support%s by storage '%s'"
+                    % (arguments, "s" if len(arguments) > 1 else "", storage_type)
                 )
         return kwarg
 
@@ -239,7 +240,9 @@ class DataLakeProvider(GordoBaseDataProvider):
         assets_config = self.assets_config
         data_providers = []
         for t_reader in DataLakeProvider._SUB_READER_CLASSES:
-            data_providers.append(t_reader(storage=storage, assets_config=assets_config, **self.kwargs))
+            data_providers.append(
+                t_reader(storage=storage, assets_config=assets_config, **self.kwargs)
+            )
         return data_providers
 
 
