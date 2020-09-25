@@ -1,12 +1,15 @@
 import unittest
-from io import StringIO
+from io import StringIO, BytesIO
 from unittest import mock
 
 from dateutil.parser import isoparse  # type: ignore
+from typing import IO, Iterable
 
 from gordo.machine.dataset.data_provider.iroc_reader import IrocReader, read_iroc_file
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.data_provider.resource_assets_config import load_assets_config
+from gordo.machine.dataset.file_system.base import FileSystem, FileInfo
 
 IROC_HAPPY_TAG_LIST = [
     SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1410J0", "NINENINE"),
@@ -55,6 +58,29 @@ IROC_MANY_ASSETS_SENSOR_TAG_LIST = [
     SensorTag("UON_EF.OPCIS::LO006-B1H_M1.RTGASDIN", "uon_ef"),
 ]
 
+
+class MockFileSystem(FileSystem):
+    @property
+    def name(self) -> str:
+        return "dlstore"
+
+    def open(self, path: str, mode: str = "r") -> IO:
+        return BytesIO()
+
+    def exists(self, path: str) -> bool:
+        return False
+
+    def isfile(self, path: str) -> bool:
+        return False
+
+    def isdir(self, path: str) -> bool:
+        return False
+
+    def info(self, path: str) -> FileInfo:
+        raise FileNotFoundError(path)
+
+    def walk(self, base_path: str) -> Iterable[str]:
+        return []
 
 def test_normalize_iroc_tags():
     normalized_tags = normalize_sensor_tags(IROC_MANY_ASSETS_TAG_LIST)
@@ -116,7 +142,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     )
     def test_load_series_no_data(self, _mocked_method):
         """load_series will raise ValueError if it does not find any tags"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -128,7 +154,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
 
     def test_load_series_no_tag_list(self):
         """load_series will return an empty generator when called with no tags"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         res = list(
             iroc_reader.load_series(
                 train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
@@ -139,21 +165,21 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         self.assertEqual([], res)
 
     def test_can_handle_tag_ok(self):
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=MockFileSystem(), assets_config=load_assets_config(), threads=1, storage_name="dataplatformdlsprod")
         assert iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UON_EF"))
 
     def test_can_handle_tag_unknown_asset(self):
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UNKNOWǸ_ASSET"))
 
     def test_can_handle_tag_no_asset(self):
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", None))
 
     def test_load_series_many_assets(self):
         """load_series will return an empty generator when called with tags
         related to several assets"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -166,7 +192,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     def test_load_series_no_asset_found(self):
         """load_series will return an empty generator when called with tags
         that cannot be related to any asset"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -178,7 +204,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
 
     def test_load_series_checks_date(self):
         """load_series will raise ValueError if train_end_date<train_start_date"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -203,7 +229,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     def test_load_series_missing_columns_data(self, _mocked_method):
         """load_series will raise ValueError if there is a single tag it can not
         find"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod")
         with self.assertRaises(ValueError):
             list(
                 iroc_reader.load_series(
@@ -228,7 +254,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     )
     def test_load_series_happy_path(self, _mocked_method):
         """Happy-path testing of load_dataframe"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=MockFileSystem(), assets_config=load_assets_config(), threads=1, storage_name="dataplatformdlsprod")
         res = list(
             iroc_reader.load_series(
                 train_start_date=isoparse("2018-05-02T01:56:00+00:00"),
@@ -253,7 +279,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     )
     def test_load_series_happy_path_different_timezones(self, _mocked_method):
         """Happy-path testing of load_dataframe"""
-        iroc_reader = IrocReader(storage=None, threads=1, storage_name="iroc")
+        iroc_reader = IrocReader(storage=MockFileSystem(), assets_config=load_assets_config(), threads=1, storage_name="dataplatformdlsprod")
         res = list(
             iroc_reader.load_series(
                 train_start_date=isoparse("2018-05-02T01:56:00+02:00"),
@@ -265,7 +291,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
         self.assertEqual(3, len(res))
 
     def test_load_series_dry_run_raises(self):
-        iroc_reader = IrocReader(storage=None, storage_name="iroc")
+        iroc_reader = IrocReader(storage=None, assets_config=load_assets_config(), storage_name="dataplatformdlsprod")
 
         with self.assertRaises(NotImplementedError):
             list(
