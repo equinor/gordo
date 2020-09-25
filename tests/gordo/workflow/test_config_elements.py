@@ -136,6 +136,7 @@ def test_machine_from_config(default_globals: dict):
             "data_provider": {
                 "dl_service_auth_str": None,
                 "storage": None,
+                "assets_config": None,
                 "interactive": None,
                 "storename": None,
                 "type": "DataLakeProvider",
