@@ -71,7 +71,7 @@ class IrocReader(GordoBaseDataProvider):
             )
 
         base_paths_from_assets = list(
-            map(lambda tag: IrocReader.base_path_from_asset(tag.asset), tag_list)
+            map(lambda tag: self.base_path_from_asset(tag.asset), tag_list)
         )
         if len(set(base_paths_from_assets)) != 1:
             raise ValueError(
