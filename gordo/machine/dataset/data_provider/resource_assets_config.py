@@ -9,5 +9,7 @@ def load_assets_config() -> AssetsConfig:
     with pkg_resources.resource_stream(
         "gordo.machine.dataset.data_provider.resources", "assets_config.yaml"
     ) as f:
-        assets_config = AssetsConfig.load_from_yaml(TextIOWrapper(f), "assets_config.yaml")
+        assets_config = AssetsConfig.load_from_yaml(
+            TextIOWrapper(f), "assets_config.yaml"
+        )
     return assets_config

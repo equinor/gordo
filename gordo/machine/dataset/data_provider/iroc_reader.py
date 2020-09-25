@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class IrocReader(GordoBaseDataProvider):
-
     def can_handle_tag(self, tag: SensorTag):
         return self.base_path_from_asset(tag.asset) is not None
 
@@ -181,16 +180,16 @@ class IrocReader(GordoBaseDataProvider):
         logger.debug(f"Looking for match for asset {asset}")
         asset = asset.lower()
         assets_config = self.assets_config
-        path_spec = cast(AssetsConfig, assets_config).get_path(cast(str, self.storage_name), asset)
+        path_spec = cast(AssetsConfig, assets_config).get_path(
+            cast(str, self.storage_name), asset
+        )
         if path_spec is None:
             return None
         if path_spec.reader != self.reader_name:
             return None
         full_path = path_spec.full_path(cast(FileSystem, self.storage))
 
-        logger.debug(
-            f"Found asset code {asset}, returning {full_path}"
-        )
+        logger.debug(f"Found asset code {asset}, returning {full_path}")
         return full_path
 
 
