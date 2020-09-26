@@ -6,6 +6,7 @@ import pytest
 import dateutil.parser
 
 from gordo.machine.dataset.data_provider.ncs_reader import NcsReader, NcsParquetLookup
+from gordo.machine.dataset.data_provider.assets_config import AssetsConfig, PathSpec
 from gordo.machine.dataset.data_provider.providers import DataLakeProvider
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.dataset.sensor_tag import SensorTag
@@ -29,8 +30,22 @@ class AzureDLFileSystemMock:
 
 
 @pytest.fixture
-def ncs_reader():
-    return NcsReader(ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"))
+def assets_config():
+    base_dir = os.path.dirname(os.path.realpath(__file__))
+    assets_paths = [
+        ("gordoplatform", os.path.join("data", "datalake", "gordoplatform")),
+        ("1776-troc", os.path.join("data", "datalake"))
+    ]
+    adl1_assets = {asset: PathSpec("ncs_reader", base_dir, path) for asset, path in assets_paths}
+    storages = {
+        "adl1": adl1_assets
+    }
+    return AssetsConfig(storages)
+
+
+@pytest.fixture
+def ncs_reader(assets_config):
+    return NcsReader(ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config)
 
 
 @pytest.fixture
@@ -61,18 +76,19 @@ def test_can_handle_tag_unknow_prefix_raise(ncs_reader):
         ncs_reader.can_handle_tag(normalize_sensor_tags(["XYZ-123"])[0])
 
 
-def test_can_handle_tag_non_supported_asset_with_base_path(ncs_reader):
+def test_can_handle_tag_non_supported_asset_with_base_path(ncs_reader, assets_config):
     tag = SensorTag("WEIRD-123", "UNKNOWN-ASSET")
     assert not ncs_reader.can_handle_tag(tag)
 
     ncs_reader_with_base = NcsReader(
         ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"),
+        assets_config=assets_config,
         dl_base_path="/this/is/a/base/path",
     )
     assert ncs_reader_with_base.can_handle_tag(tag)
 
 
-def test_load_series_need_base_path(ncs_reader, dates):
+def test_load_series_need_base_path(ncs_reader, dates, assets_config):
     tag = SensorTag("WEIRD-123", "BASE-PATH-ASSET")
     with pytest.raises(ValueError):
         for _ in ncs_reader.load_series(dates[0], dates[1], [tag]):
@@ -86,6 +102,7 @@ def test_load_series_need_base_path(ncs_reader, dates):
     )
     ncs_reader_with_base = NcsReader(
         ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"),
+        assets_config=assets_config,
         dl_base_path=path_to_weird_base_path_asset,
     )
     for tag_series in ncs_reader_with_base.load_series(dates[0], dates[1], [tag]):
@@ -108,42 +125,19 @@ def test_load_series_need_asset_hint(dates, ncs_reader):
         ):
             pass
 
-    path_to_xyz = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "data", "datalake", "gordoplatform"
-    )
-    with patch(
-        "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-        {"gordoplatform": path_to_xyz},
+    valid_tag_list_with_asset = [SensorTag("XYZ-123", "gordoplatform")]
+    for frame in ncs_reader.load_series(
+        dates[0], dates[1], valid_tag_list_with_asset
     ):
-        valid_tag_list_with_asset = [SensorTag("XYZ-123", "gordoplatform")]
-        for frame in ncs_reader.load_series(
-            dates[0], dates[1], valid_tag_list_with_asset
-        ):
-            assert len(frame) == 20
+        assert len(frame) == 20
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
 def test_load_series_known_prefix(dates, ncs_reader):
     valid_tag_list_no_asset = normalize_sensor_tags(["TRC-123", "TRC-321"])
     for frame in ncs_reader.load_series(dates[0], dates[1], valid_tag_list_no_asset):
         assert len(frame) == 20
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
 @pytest.mark.parametrize(
     "start_date, end_date, frame_len",
     [
@@ -173,14 +167,6 @@ def test_ncs_reader_valid_tag_path():
         )
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
 def test_load_series_dry_run(dates, ncs_reader):
     valid_tag_list_no_asset = normalize_sensor_tags(["TRC-123", "TRC-321"])
     for frame in ncs_reader.load_series(
@@ -189,19 +175,12 @@ def test_load_series_dry_run(dates, ncs_reader):
         assert len(frame) == 0
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
 @pytest.mark.parametrize("remove_status_codes", [[], [0]])
-def test_load_series_with_filter_bad_data(dates, remove_status_codes):
+def test_load_series_with_filter_bad_data(dates, remove_status_codes, assets_config):
 
     ncs_reader = NcsReader(
         ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"),
+        assets_config=assets_config,
         remove_status_codes=remove_status_codes,
     )
 
@@ -214,17 +193,9 @@ def test_load_series_with_filter_bad_data(dates, remove_status_codes):
     assert all(len(series) == n_expected for series in series_gen)
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
-def test_parquet_files_lookup(dates):
+def test_parquet_files_lookup(dates, assets_config):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), remove_status_codes=[0]
+        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config, remove_status_codes=[0]
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-323"])
@@ -247,17 +218,9 @@ def test_get_file_lookups():
     assert isinstance(file_lookups[0], NcsParquetLookup)
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
-def test_with_conflicted_file_types(dates):
+def test_with_conflicted_file_types(dates, assets_config):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), remove_status_codes=[0]
+        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config, remove_status_codes=[0]
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-324"])
@@ -269,17 +232,10 @@ def test_with_conflicted_file_types(dates):
     assert len(trc_324_series) == 15
 
 
-@patch(
-    "gordo.machine.dataset.data_provider.ncs_reader.NcsReader.ASSET_TO_PATH",
-    {
-        "1776-troc": os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), "data", "datalake"
-        )
-    },
-)
-def test_with_conflicted_file_types_with_preferable_csv(dates):
+def test_with_conflicted_file_types_with_preferable_csv(dates, assets_config):
     ncs_reader = NcsReader(
         ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"),
+        assets_config=assets_config,
         remove_status_codes=[0],
         lookup_for=["csv"],
     )
