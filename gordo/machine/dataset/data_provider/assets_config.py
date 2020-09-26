@@ -105,7 +105,7 @@ class AssetsConfig:
         ...                 'reader': 'ncs_reader'}]}}
         >>> config = AssetsConfig.load(raw_config)
         >>> config.get_path("adlstore", "asset2")
-        path/to/asset2
+        PathSpec(reader='ncs_reader', base_dir='/ncs_data', path='path/to/asset2')
 
         Parameters
         ----------
