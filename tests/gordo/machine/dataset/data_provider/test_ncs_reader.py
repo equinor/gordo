@@ -34,18 +34,20 @@ def assets_config():
     base_dir = os.path.dirname(os.path.realpath(__file__))
     assets_paths = [
         ("gordoplatform", os.path.join("data", "datalake", "gordoplatform")),
-        ("1776-troc", os.path.join("data", "datalake"))
+        ("1776-troc", os.path.join("data", "datalake")),
     ]
-    adl1_assets = {asset: PathSpec("ncs_reader", base_dir, path) for asset, path in assets_paths}
-    storages = {
-        "adl1": adl1_assets
+    adl1_assets = {
+        asset: PathSpec("ncs_reader", base_dir, path) for asset, path in assets_paths
     }
+    storages = {"adl1": adl1_assets}
     return AssetsConfig(storages)
 
 
 @pytest.fixture
 def ncs_reader(assets_config):
-    return NcsReader(ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config)
+    return NcsReader(
+        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config
+    )
 
 
 @pytest.fixture
@@ -126,9 +128,7 @@ def test_load_series_need_asset_hint(dates, ncs_reader):
             pass
 
     valid_tag_list_with_asset = [SensorTag("XYZ-123", "gordoplatform")]
-    for frame in ncs_reader.load_series(
-        dates[0], dates[1], valid_tag_list_with_asset
-    ):
+    for frame in ncs_reader.load_series(dates[0], dates[1], valid_tag_list_with_asset):
         assert len(frame) == 20
 
 
@@ -195,7 +195,9 @@ def test_load_series_with_filter_bad_data(dates, remove_status_codes, assets_con
 
 def test_parquet_files_lookup(dates, assets_config):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config, remove_status_codes=[0]
+        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"),
+        assets_config=assets_config,
+        remove_status_codes=[0],
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-323"])
@@ -220,7 +222,9 @@ def test_get_file_lookups():
 
 def test_with_conflicted_file_types(dates, assets_config):
     ncs_reader = NcsReader(
-        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"), assets_config=assets_config, remove_status_codes=[0]
+        ADLGen1FileSystem(AzureDLFileSystemMock(), "adl1"),
+        assets_config=assets_config,
+        remove_status_codes=[0],
     )
 
     valid_tag_list = normalize_sensor_tags(["TRC-324"])
