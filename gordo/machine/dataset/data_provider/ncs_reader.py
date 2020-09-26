@@ -4,7 +4,6 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import timeit
-import traceback
 from typing import Iterable, List, Optional, cast
 from urllib.parse import quote
 
