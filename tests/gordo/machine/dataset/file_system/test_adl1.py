@@ -1,9 +1,11 @@
 import pytest
 from mock import patch, Mock
 from io import BytesIO, TextIOWrapper
+from copy import copy
+from datetime import datetime
 
 from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
-from gordo.machine.dataset.file_system.base import FileType
+from gordo.machine.dataset.file_system.base import FileType, FileInfo
 
 
 @pytest.fixture
@@ -14,13 +16,74 @@ def auth_mock():
 
 
 @pytest.fixture
-def adl_client_mock():
+def dirs_tree():
+    return {
+        "/path": (
+            {
+                "length": 0,
+                "type": "DIRECTORY",
+                "accessTime": 1592124051659,
+                "modificationTime": 1592127183911,
+            },
+            ["/path/to", "/path/out.json"],
+        ),
+        "/path/to": ({"length": 0, "type": "DIRECTORY",}, ["/path/to/file.json"]),
+        "/path/to/file.json": (
+            {
+                "length": 142453,
+                "type": "FILE",
+                "accessTime": 1599603699143,
+                "modificationTime": 1599604856564,
+            },
+            [],
+        ),
+        "/path/out.json": (
+            {
+                "length": 983432,
+                "type": "FILE",
+                "accessTime": 1592127206477,
+                "modificationTime": 1599636974996,
+            },
+            [],
+        ),
+    }
+
+
+@pytest.fixture
+def adl_client_mock(dirs_tree):
+    def ls_side_effect(path, **kwargs):
+        _, children = dirs_tree[path]
+        detail = kwargs.get("detail", False)
+        if detail:
+            ls_result = []
+            for child in children:
+                info = copy(dirs_tree[child][0])
+                info["name"] = child
+                ls_result.append(info)
+            return ls_result
+        else:
+            return children
+
     with patch("azure.datalake.store.core.AzureDLFileSystem") as adl_client:
         adl_client.open = Mock(return_value=BytesIO())
         adl_client.info = Mock()
         adl_client.exists = Mock()
-        adl_client.ls = Mock()
+        adl_client.ls = Mock(side_effect=ls_side_effect)
         yield adl_client
+
+
+def test_ls_side_effect(adl_client_mock):
+    assert adl_client_mock.ls("/path") == ["/path/to", "/path/out.json"]
+    assert adl_client_mock.ls("/path", detail=True) == [
+        {"length": 0, "type": "DIRECTORY", "name": "/path/to"},
+        {
+            "length": 983432,
+            "type": "FILE",
+            "accessTime": 1592127206477,
+            "modificationTime": 1599636974996,
+            "name": "/path/out.json",
+        },
+    ]
 
 
 def test_create_from_env_interactive(auth_mock, adl_client_mock):
@@ -134,27 +197,71 @@ def test_info_directory(adl_client_mock):
     assert info.modify_time is None
 
 
-def test_walk(adl_client_mock):
-    dirs = {
-        "/path": ("DIRECTORY", ["/path/to", "/path/out.json",]),
-        "/path/to": ("DIRECTORY", ["/path/to/file.json"]),
-        "/path/to/file.json": ("FILE", []),
-        "/path/out.json": ("FILE", []),
-    }
+def test_ls_without_info(adl_client_mock):
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
+    result = list(fs.ls("/path", with_info=False))
+    assert result == [("/path/to", None), ("/path/out.json", None)]
 
-    def ls_side_effect(path, **kwargs):
-        file_type, child = dirs[path]
-        ls_result = []
-        for c in child:
-            ls_result.append({"name": c, "type": dirs[c][0]})
-        return ls_result
 
-    adl_client_mock.ls.side_effect = ls_side_effect
-    assert adl_client_mock.ls("/path"), [
-        {"name": "/path/to", "type": "DIRECTORY"},
-        {"name": "/path/out.json", "type": "FILE"},
+def test_ls_with_info(adl_client_mock):
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
+    result = list(fs.ls("/path", with_info=True))
+    assert result == [
+        (
+            "/path/to",
+            FileInfo(
+                file_type=FileType.DIRECTORY, size=0, access_time=None, modify_time=None
+            ),
+        ),
+        (
+            "/path/out.json",
+            FileInfo(
+                file_type=FileType.FILE,
+                size=983432,
+                access_time=datetime(2020, 6, 14, 9, 33, 26, 477000),
+                modify_time=datetime(2020, 9, 9, 7, 36, 14, 996000),
+            ),
+        ),
     ]
 
+
+def test_walk_without_info(adl_client_mock):
     fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
-    result = list(fs.walk("/path"))
-    assert result, ["/path/out.json", "/path/to/file.json"]
+    result = list(fs.walk("/path", with_info=False))
+    assert result == [
+        ("/path/to", None),
+        ("/path/out.json", None),
+        ("/path/to/file.json", None),
+    ]
+
+
+def test_walk_with_info(adl_client_mock):
+    fs = ADLGen1FileSystem(adl_client_mock, store_name="dlstore")
+    result = list(fs.walk("/path", with_info=True))
+    expected = [
+        (
+            "/path/to",
+            FileInfo(
+                file_type=FileType.DIRECTORY, size=0, access_time=None, modify_time=None
+            ),
+        ),
+        (
+            "/path/out.json",
+            FileInfo(
+                file_type=FileType.FILE,
+                size=983432,
+                access_time=datetime(2020, 6, 14, 9, 33, 26, 477000),
+                modify_time=datetime(2020, 9, 9, 7, 36, 14, 996000),
+            ),
+        ),
+        (
+            "/path/to/file.json",
+            FileInfo(
+                file_type=FileType.FILE,
+                size=142453,
+                access_time=datetime(2020, 9, 8, 22, 21, 39, 143000),
+                modify_time=datetime(2020, 9, 8, 22, 40, 56, 564000),
+            ),
+        ),
+    ]
+    assert result == expected
