@@ -118,8 +118,8 @@ class ADLGen1FileSystem(FileSystem):
         return FileInfo(
             file_type,
             info.get("length", 0),
-            time_from_info(info, "accessTime"),
-            time_from_info(info, "modificationTime"),
+            access_time=time_from_info(info, "accessTime"),
+            modify_time=time_from_info(info, "modificationTime"),
         )
 
     def ls(
