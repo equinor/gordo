@@ -1,6 +1,6 @@
 import posixpath
 
-from typing import Optional, Iterable, IO
+from typing import Optional, Iterable, IO, Tuple
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
@@ -61,7 +61,11 @@ class FileSystem(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def walk(self, base_path: str) -> Iterable[str]:
+    def ls(self, path: str) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+        ...
+
+    @abstractmethod
+    def walk(self, base_path: str) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         ...
 
     def join(self, *p) -> str:

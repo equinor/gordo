@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from io import TextIOWrapper
 from azure.datalake.store import core, lib
-from typing import Optional, Iterable, IO
+from typing import Optional, Iterable, IO, Tuple
 
 from .base import FileSystem, FileInfo, FileType
 from .utils import get_env_secret_values
@@ -105,6 +105,10 @@ class ADLGen1FileSystem(FileSystem):
 
     def info(self, path: str) -> FileInfo:
         info = self.adl_client.info(path)
+        return self.prepare_info(info)
+
+    @staticmethod
+    def prepare_info(info: dict) -> FileInfo:
         if info["type"] == "FILE":
             file_type = FileType.FILE
         elif info["type"] == "DIRECTORY":
@@ -118,15 +122,26 @@ class ADLGen1FileSystem(FileSystem):
             time_from_info(info, "modificationTime"),
         )
 
-    def walk(self, base_path: str) -> Iterable[str]:
+    def ls(
+        self, path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+        for info in self.adl_client.ls(path, detail=with_info):
+            file_path = info["name"] if with_info else info
+            file_info = self.prepare_info(info) if with_info else None
+            yield file_path, file_info
+
+    def walk(
+        self, base_path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         child_directories = []
 
         for info in self.adl_client.ls(base_path, detail=True):
+            file_path = info["name"]
+            file_info = self.prepare_info(info) if with_info else None
             if info["type"] == "DIRECTORY":
-                child_directories.append(info["name"])
-            if info["type"] == "FILE":
-                yield info["name"]
+                child_directories.append(file_path)
+            yield file_path, file_info
 
         for child_directory in child_directories:
-            for tup in self.walk(child_directory):
+            for tup in self.walk(child_directory, with_info=with_info):
                 yield tup
