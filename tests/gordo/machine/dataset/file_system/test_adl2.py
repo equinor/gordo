@@ -6,7 +6,7 @@ from datetime import datetime
 
 from azure.storage.filedatalake import PathProperties
 from gordo.machine.dataset.file_system.adl2 import ADLGen2FileSystem
-from gordo.machine.dataset.file_system.base import FileType
+from gordo.machine.dataset.file_system.base import FileType, FileInfo
 from azure.identity import ClientSecretCredential, InteractiveBrowserCredential
 
 
@@ -111,11 +111,95 @@ def create_path_properties(name: str, is_directory: bool, content_length: int = 
     return properties
 
 
+def test_ls_without_info(fs_client_mock):
+    fs_client_mock.get_paths.return_value = [
+        create_path_properties(name="/path/to", is_directory=True),
+        create_path_properties(
+            name="/path/file.json", is_directory=False, content_length=12430
+        ),
+    ]
+    fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
+    result = list(fs.ls("/path", with_info=False))
+    assert result == [("/path/to", None), ("/path/file.json", None)]
+    fs_client_mock.get_paths.assert_called_once_with("/path", recursive=False)
+
+
+def test_ls_with_info(fs_client_mock):
+    fs_client_mock.get_paths.return_value = [
+        create_path_properties(name="/path/to", is_directory=True),
+        create_path_properties(
+            name="/path/file.json", is_directory=False, content_length=12430
+        ),
+    ]
+    fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
+    result = list(fs.ls("/path", with_info=True))
+    assert result == [
+        (
+            "/path/to",
+            FileInfo(
+                file_type=FileType.DIRECTORY,
+                size=0,
+                access_time=None,
+                modify_time=None,
+                create_time=None,
+            ),
+        ),
+        (
+            "/path/file.json",
+            FileInfo(
+                file_type=FileType.FILE,
+                size=12430,
+                access_time=None,
+                modify_time=None,
+                create_time=None,
+            ),
+        ),
+    ]
+    fs_client_mock.get_paths.assert_called_once_with("/path", recursive=False)
+
+
 def test_walk_without_info(fs_client_mock):
     fs_client_mock.get_paths.return_value = [
         create_path_properties(name="/path/to", is_directory=True),
-        create_path_properties(name="/path/to/file.json", is_directory=False, content_length=12430),
+        create_path_properties(
+            name="/path/to/file.json", is_directory=False, content_length=12430
+        ),
     ]
     fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
     result = list(fs.walk("/path", with_info=False))
     assert result == [("/path/to", None), ("/path/to/file.json", None)]
+    fs_client_mock.get_paths.assert_called_once_with("/path")
+
+
+def test_walk_with_info(fs_client_mock):
+    fs_client_mock.get_paths.return_value = [
+        create_path_properties(name="/path/to", is_directory=True),
+        create_path_properties(
+            name="/path/to/file.json", is_directory=False, content_length=12430
+        ),
+    ]
+    fs = ADLGen2FileSystem(fs_client_mock, "dlaccount", "fs")
+    result = list(fs.walk("/path", with_info=True))
+    assert result == [
+        (
+            "/path/to",
+            FileInfo(
+                file_type=FileType.DIRECTORY,
+                size=0,
+                access_time=None,
+                modify_time=None,
+                create_time=None,
+            ),
+        ),
+        (
+            "/path/to/file.json",
+            FileInfo(
+                file_type=FileType.FILE,
+                size=12430,
+                access_time=None,
+                modify_time=None,
+                create_time=None,
+            ),
+        ),
+    ]
+    fs_client_mock.get_paths.assert_called_once_with("/path")
