@@ -1,9 +1,13 @@
 import logging
 
 from azure.core.exceptions import ResourceNotFoundError
-from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
+from azure.storage.filedatalake import (
+    DataLakeServiceClient,
+    FileSystemClient,
+    PathProperties,
+)
 from azure.identity import ClientSecretCredential, InteractiveBrowserCredential
-from typing import Optional, Any, IO, Iterable, cast
+from typing import Optional, Any, IO, Iterable, cast, Tuple
 from io import BytesIO, TextIOWrapper
 
 from .base import FileSystem, FileInfo, FileType
@@ -109,7 +113,7 @@ class ADLGen2FileSystem(FileSystem):
                 raise ValueError("Unsupported file open mode '%s'" % m)
         wrap_as_text = "b" not in mode
         file_client = self.file_system_client.get_file_client(path)
-        downloader = file_client.download_file()
+        downloader = file_client.download_file(max_concurrency=self.max_concurrency)
         stream = BytesIO(downloader.readall())
         fd = cast(IO, TextIOWrapper(stream) if wrap_as_text else stream)
         return fd
@@ -147,12 +151,36 @@ class ADLGen2FileSystem(FileSystem):
         else:
             file_type = FileType.DIRECTORY
         return FileInfo(
-            file_type, properties.get("size", 0), None, properties["last_modified"],
+            file_type,
+            properties.get("size", 0),
+            modify_time=properties["last_modified"],
+            create_time=properties["creation_time"],
         )
 
-    def walk(self, base_path: str) -> Iterable[str]:
+    @staticmethod
+    def path_properties_to_info(path_properties: PathProperties) -> FileInfo:
+        if path_properties.is_directory:
+            file_type = FileType.DIRECTORY
+        else:
+            file_type = FileType.FILE
+        size = path_properties.content_length if path_properties.content_length else 0
+        # TODO taking into account path_properties.last_modified. Example: 'Mon, 07 Sep 2020 12:01:14 GMT'
+        return FileInfo(file_type, size)
+
+    def ls(
+        self, path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+        dir_iterator = self.file_system_client.get_paths(path, recursive=False)
+
+        for properties in dir_iterator:
+            file_info = self.path_properties_to_info(properties) if with_info else None
+            yield properties.name, file_info
+
+    def walk(
+        self, base_path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         dir_iterator = self.file_system_client.get_paths(base_path)
 
         for properties in dir_iterator:
-            if not properties.is_directory:
-                yield properties.name
+            file_info = self.path_properties_to_info(properties) if with_info else None
+            yield properties.name, file_info

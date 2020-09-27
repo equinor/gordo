@@ -19,6 +19,7 @@ class FileInfo:
     size: int
     access_time: Optional[datetime] = None
     modify_time: Optional[datetime] = None
+    create_time: Optional[datetime] = None
 
 
 class FileSystem(metaclass=ABCMeta):
