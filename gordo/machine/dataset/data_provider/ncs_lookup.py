@@ -75,6 +75,7 @@ class NcsLookup:
             for location in locations[year]:
                 if location is not None:
                     yield location
+                    found = True
                     break
             if not found:
                 yield TagLocation(tag, year, exists=False)

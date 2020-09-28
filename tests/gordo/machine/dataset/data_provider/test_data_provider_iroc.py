@@ -1,9 +1,8 @@
 import unittest
-from io import StringIO, BytesIO
+from io import StringIO
 from unittest import mock
 
 from dateutil.parser import isoparse  # type: ignore
-from typing import IO, Iterable
 
 from gordo.machine.dataset.data_provider.iroc_reader import IrocReader, read_iroc_file
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
@@ -11,7 +10,8 @@ from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.data_provider.resource_assets_config import (
     load_assets_config,
 )
-from gordo.machine.dataset.file_system.base import FileSystem, FileInfo
+
+from .mock_file_system import MockFileSystem
 
 IROC_HAPPY_TAG_LIST = [
     SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1410J0", "NINENINE"),
@@ -59,30 +59,6 @@ IROC_MANY_ASSETS_SENSOR_TAG_LIST = [
     SensorTag("UON_EF.OPCIS::LO006-B1H_M1.PRSTAXIN", "uon_ef"),
     SensorTag("UON_EF.OPCIS::LO006-B1H_M1.RTGASDIN", "uon_ef"),
 ]
-
-
-class MockFileSystem(FileSystem):
-    @property
-    def name(self) -> str:
-        return "dlstore"
-
-    def open(self, path: str, mode: str = "r") -> IO:
-        return BytesIO()
-
-    def exists(self, path: str) -> bool:
-        return False
-
-    def isfile(self, path: str) -> bool:
-        return False
-
-    def isdir(self, path: str) -> bool:
-        return False
-
-    def info(self, path: str) -> FileInfo:
-        raise FileNotFoundError(path)
-
-    def walk(self, base_path: str) -> Iterable[str]:
-        return []
 
 
 def test_normalize_iroc_tags():
