@@ -8,7 +8,7 @@ from typing import Iterable, List, Optional, cast
 import pandas as pd
 
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
-from gordo.machine.dataset.file_system.base import FileSystem
+from gordo.machine.dataset.file_system.base import FileSystem, FileType
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import to_list_of_strings
 from gordo.util import capture_args
@@ -128,8 +128,9 @@ class IrocReader(GordoBaseDataProvider):
         def _all_files():
             if self.storage is not None:
                 for b_path in all_base_paths:
-                    for f in self.storage.walk(b_path):
-                        yield f
+                    for path, file_info in self.storage.walk(b_path):
+                        if file_info.file_type == FileType.FILE:
+                            yield path
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             # Pandas.concat makes the generator into a list anyway, so no extra memory
