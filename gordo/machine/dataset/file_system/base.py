@@ -62,12 +62,15 @@ class FileSystem(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def ls(self, path: str) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+    def ls(self, path: str, with_info: bool = True) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         ...
 
     @abstractmethod
-    def walk(self, base_path: str) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+    def walk(self, base_path: str, with_info: bool = True) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         ...
 
     def join(self, *p) -> str:
         return posixpath.join(*p)
+
+    def split(self, p) -> Tuple[str, str]:
+        return posixpath.split(p)
