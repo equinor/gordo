@@ -107,6 +107,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
     # and there are only 3 distinct timestamps left.
     assert 3 == len(res_df)
 
+
 @mock.patch.object(
     IrocReader,
     "_fetch_all_iroc_files_from_paths",
@@ -122,10 +123,7 @@ NINENINE.OPCIS::NNFCDPC01.AI1840E1J0,-0.497645,2018-05-02T06:44:29.7830000Z,Anal
 def test_load_series_no_data(_mocked_method):
     """load_series will raise ValueError if it does not find any tags"""
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     with pytest.raises(ValueError):
         list(
@@ -140,10 +138,7 @@ def test_load_series_no_data(_mocked_method):
 def test_load_series_no_tag_list():
     """load_series will return an empty generator when called with no tags"""
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     res = list(
         iroc_reader.load_series(
@@ -167,20 +162,14 @@ def test_can_handle_tag_ok(mock_file_system):
 
 def test_can_handle_tag_unknown_asset():
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", "UNKNOWǸ_ASSET"))
 
 
 def test_can_handle_tag_no_asset():
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     assert not iroc_reader.can_handle_tag(SensorTag("UON_EF.xxx", None))
 
@@ -189,10 +178,7 @@ def test_load_series_many_assets():
     """load_series will return an empty generator when called with tags
     related to several assets"""
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     with pytest.raises(ValueError):
         list(
@@ -208,10 +194,7 @@ def test_load_series_no_asset_found():
     """load_series will return an empty generator when called with tags
     that cannot be related to any asset"""
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     with pytest.raises(ValueError):
         list(
@@ -226,10 +209,7 @@ def test_load_series_no_asset_found():
 def test_load_series_checks_date():
     """load_series will raise ValueError if train_end_date<train_start_date"""
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     with pytest.raises(ValueError):
         list(
@@ -257,10 +237,7 @@ def test_load_series_missing_columns_data(_mocked_method):
     """load_series will raise ValueError if there is a single tag it can not
     find"""
     iroc_reader = IrocReader(
-        storage=None,
-        assets_config=None,
-        threads=1,
-        storage_name="dataplatformdlsprod",
+        storage=None, assets_config=None, threads=1, storage_name="dataplatformdlsprod",
     )
     with pytest.raises(ValueError):
         list(

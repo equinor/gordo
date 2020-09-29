@@ -21,6 +21,12 @@ class FileInfo:
     modify_time: Optional[datetime] = None
     create_time: Optional[datetime] = None
 
+    def isfile(self) -> bool:
+        return self.file_type == FileType.FILE
+
+    def isdir(self) -> bool:
+        return self.file_type == FileType.DIRECTORY
+
 
 class FileSystem(metaclass=ABCMeta):
     @property
@@ -62,11 +68,15 @@ class FileSystem(metaclass=ABCMeta):
         ...
 
     @abstractmethod
-    def ls(self, path: str, with_info: bool = True) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+    def ls(
+        self, path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         ...
 
     @abstractmethod
-    def walk(self, base_path: str, with_info: bool = True) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+    def walk(
+        self, base_path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         ...
 
     def join(self, *p) -> str:

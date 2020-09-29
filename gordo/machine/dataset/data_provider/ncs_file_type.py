@@ -29,9 +29,7 @@ class NcsParquetFileType(NcsFileType):
 
     def paths(self, fs: FileSystem, tag_name: str, year: int) -> Iterable[str]:
         file_extension = self._file_type.file_extension
-        return (
-            fs.join("parquet", f"{tag_name}_{year}{file_extension}"),
-        )
+        return (fs.join("parquet", f"{tag_name}_{year}{file_extension}"),)
 
 
 class NcsCsvFileType(NcsFileType):
@@ -45,20 +43,20 @@ class NcsCsvFileType(NcsFileType):
 
     def paths(self, fs: FileSystem, tag_name: str, year: int) -> Iterable[str]:
         file_extension = self._file_type.file_extension
-        return (
-            f"{tag_name}_{year}{file_extension}",
-        )
+        return (f"{tag_name}_{year}{file_extension}",)
 
 
 ncs_file_types = {
-    'parquet': NcsParquetFileType,
-    'csv': NcsCsvFileType,
+    "parquet": NcsParquetFileType,
+    "csv": NcsCsvFileType,
 }
 
-DEFAULT_TYPE_NAMES = ('parquet', 'csv')
+DEFAULT_TYPE_NAMES = ("parquet", "csv")
 
 
-def load_ncs_file_types(type_names: Optional[Iterable[str]] = None) -> List[NcsFileType]:
+def load_ncs_file_types(
+    type_names: Optional[Iterable[str]] = None,
+) -> List[NcsFileType]:
     if type_names is None:
         type_names = DEFAULT_TYPE_NAMES
     return [ncs_file_types[type_name]() for type_name in type_names]
