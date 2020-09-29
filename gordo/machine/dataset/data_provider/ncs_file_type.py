@@ -29,9 +29,9 @@ class NcsParquetFileType(NcsFileType):
 
     def paths(self, fs: FileSystem, tag_name: str, year: int) -> Iterable[str]:
         file_extension = self._file_type.file_extension
-        return [
-            fs.join("parquet", f"{tag_name}_{year}{file_extension}")
-        ]
+        return (
+            fs.join("parquet", f"{tag_name}_{year}{file_extension}"),
+        )
 
 
 class NcsCsvFileType(NcsFileType):
@@ -45,9 +45,9 @@ class NcsCsvFileType(NcsFileType):
 
     def paths(self, fs: FileSystem, tag_name: str, year: int) -> Iterable[str]:
         file_extension = self._file_type.file_extension
-        return [
-            f"{tag_name}_{year}{file_extension}"
-        ]
+        return (
+            f"{tag_name}_{year}{file_extension}",
+        )
 
 
 ncs_file_types = {

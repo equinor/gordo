@@ -49,33 +49,18 @@ class NcsLookup:
             yield tag, None
 
     def files_lookup(self, tag_dir: str, tag: SensorTag, years: Iterable[int]) -> Iterable[TagLocation]:
-        fs = self.store
+        store = self.store
         ncs_file_types = self.ncs_file_types
         tag_name = self.quote_tag_name(tag.name)
-        full_paths = {}
-        for ncs_ind, ncs_file_type in enumerate(ncs_file_types):
-            for year in years:
-                for path in ncs_file_type.paths(fs, tag_name, year):
-                    full_path = fs.join(tag_dir, path)
-                    full_paths[full_path] = (year, ncs_ind)
-        locations: Dict[int, List[Optional[TagLocation]]] = dict()
-        var_proto = [None] * len(ncs_file_types)
+        not_existing_years = set(years)
         for year in years:
-            locations[year] = copy(var_proto)
-        for path, file_info in fs.walk(tag_dir):
-            if file_info.file_type == FileType.FILE:
-                full_path = fs.join(tag_dir, path)
-                if full_path in full_paths:
-                    year, ncs_ind = full_paths[full_path]
-                    file_type = ncs_file_types[ncs_ind].file_type
-                    location = TagLocation(tag, year, exists=True, path=full_path, file_type=file_type)
-                    locations[year][ncs_ind] = location
-        for year in years:
-            found = False
-            for location in locations[year]:
-                if location is not None:
-                    yield location
-                    found = True
-                    break
-            if not found:
-                yield TagLocation(tag, year, exists=False)
+            for ncs_file_type in ncs_file_types:
+                for path in ncs_file_type.paths(store, tag_name, year):
+                    full_path = store.join(tag_dir, path)
+                    if store.exists(full_path):
+                        file_type = ncs_file_type.file_type
+                        yield TagLocation(tag, year, exists=True, path=full_path, file_type=file_type)
+                        not_existing_years.remove(year)
+                        break
+        for year in not_existing_years:
+            yield TagLocation(tag, year, exists=False)
