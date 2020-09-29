@@ -12,7 +12,6 @@ from gordo.machine.dataset.data_provider.resource_assets_config import (
     load_assets_config,
 )
 
-from .mock_file_system import MockFileSystem
 
 IROC_HAPPY_TAG_LIST = [
     SensorTag("NINENINE.OPCIS::NNFCDPC01.AI1410J0", "NINENINE"),
@@ -156,9 +155,9 @@ def test_load_series_no_tag_list():
     assert [] == res
 
 
-def test_can_handle_tag_ok():
+def test_can_handle_tag_ok(mock_file_system):
     iroc_reader = IrocReader(
-        storage=MockFileSystem(),
+        storage=mock_file_system,
         assets_config=load_assets_config(),
         threads=1,
         storage_name="dataplatformdlsprod",
@@ -286,10 +285,10 @@ def test_load_series_missing_columns_data(_mocked_method):
         )
     ],
 )
-def test_load_series_happy_path(_mocked_method):
+def test_load_series_happy_path(_mocked_method, mock_file_system):
     """Happy-path testing of load_dataframe"""
     iroc_reader = IrocReader(
-        storage=MockFileSystem(),
+        storage=mock_file_system,
         assets_config=load_assets_config(),
         threads=1,
         storage_name="dataplatformdlsprod",
@@ -317,10 +316,10 @@ def test_load_series_happy_path(_mocked_method):
         )
     ],
 )
-def test_load_series_happy_path_different_timezones(_mocked_method):
+def test_load_series_happy_path_different_timezones(_mocked_method, mock_file_system):
     """Happy-path testing of load_dataframe"""
     iroc_reader = IrocReader(
-        storage=MockFileSystem(),
+        storage=mock_file_system,
         assets_config=load_assets_config(),
         threads=1,
         storage_name="dataplatformdlsprod",
