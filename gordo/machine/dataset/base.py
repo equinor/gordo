@@ -22,9 +22,11 @@ class ConfigurationError(Exception):
 
 
 class GordoBaseDataset:
-
-    _params: Dict[Any, Any] = dict()  # provided by @capture_args on child's __init__
-    _metadata: Dict[Any, Any] = dict()
+    def __init__(self):
+        self._metadata: Dict[Any, Any] = dict()
+        # provided by @capture_args on child's __init__
+        if not hasattr(self, "_params"):
+            self._params = dict()
 
     @abc.abstractmethod
     def get_data(
