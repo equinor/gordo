@@ -5,8 +5,11 @@ from gordo.machine.dataset.file_system import FileSystem
 from gordo.machine.dataset.sensor_tag import SensorTag
 from .file_type import FileType
 from .ncs_file_type import NcsFileType, load_ncs_file_types
+from .assets_config import AssetsConfig, PathSpec
 
 from typing import List, Iterable, Tuple, Optional
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 
 @dataclass(frozen=True)
@@ -21,14 +24,25 @@ class TagLocation:
 class NcsLookup:
     @classmethod
     def create(
-        cls, store: FileSystem, ncs_type_names: Optional[Iterable[str]] = None
+        cls,
+        store: FileSystem,
+        ncs_type_names: Optional[Iterable[str]] = None,
+        store_name: Optional[str] = None,
     ) -> "NcsLookup":
         ncs_file_types = load_ncs_file_types(ncs_type_names)
-        return cls(store, ncs_file_types)
+        return cls(store, ncs_file_types, store_name)
 
-    def __init__(self, store: FileSystem, ncs_file_types: List[NcsFileType]):
+    def __init__(
+        self,
+        store: FileSystem,
+        ncs_file_types: List[NcsFileType],
+        store_name: Optional[str] = None,
+    ):
         self.store = store
         self.ncs_file_types = ncs_file_types
+        if store_name is None:
+            store_name = store.name
+        self.store_name = store_name
 
     @staticmethod
     def quote_tag_name(tag_name: str) -> str:
@@ -74,3 +88,72 @@ class NcsLookup:
                     break
         for year in not_existing_years:
             yield TagLocation(tag, year, exists=False)
+
+    def assets_config_tags_lookup(
+        self, asset_config: AssetsConfig, tags: List[SensorTag], years: Iterable[int]
+    ) -> Iterable[Tuple[SensorTag, str]]:
+        store = self.store
+        tag_by_assets = defaultdict(list)
+        for tag in tags:
+            if not tag.asset:
+                raise ValueError("%s tag has empty asset" % tag.name)
+            tag_by_assets[tag.asset].append(tag)
+        store_name = self.store_name
+        asset_path_specs: List[Tuple[PathSpec, List[SensorTag]]] = []
+        for asset, asset_tags in tag_by_assets:
+            path_spec = asset_config.get_path(store_name, asset)
+            if path_spec is None:
+                # TODO right message
+                raise ValueError(
+                    "Unable to find asset '%s' in storage '%s'" % (asset, store_name)
+                )
+            asset_path_specs.append((path_spec, asset_tags))
+        for path_spec, asset_tags in asset_path_specs:
+            for tag, tag_dir in self.tag_dirs_lookup(
+                path_spec.full_path(store), asset_tags
+            ):
+                if tag_dir is None:
+                    # TODO right logging for this case
+                    pass
+                yield tag, tag_dir
+
+    def _thread_pool_lookup_mapper(
+        self, tag_dirs: Tuple[SensorTag, str], years: Tuple[int]
+    ) -> List[TagLocation]:
+        tag, tag_dir = tag_dirs
+        tag_locations = []
+        for location in self.files_lookup(tag_dir, tag, years):
+            tag_locations.append(location)
+        return tag_locations
+
+    @staticmethod
+    def _years_inf_iterator(years: Tuple[int]) -> Iterable[Tuple[int]]:
+        while True:
+            yield years
+
+    def lookup(
+        self,
+        asset_config: AssetsConfig,
+        tags: List[SensorTag],
+        years: Iterable[int],
+        threads_count: int = 1,
+    ) -> Iterable[TagLocation]:
+        if not threads_count or threads_count < 1:
+            # TODO ConfigException?
+            raise ValueError("thread_count should bigger or equal to 1")
+        multi_thread = threads_count > 1
+        tag_dirs = self.assets_config_tags_lookup(asset_config, tags)
+        years_tuple = tuple(years)
+        if multi_thread:
+            with ThreadPoolExecutor(max_workers=threads_count) as executor:
+                result = executor.map(
+                    self._thread_pool_lookup_mapper,
+                    tag_dirs,
+                    self._years_inf_iterator(years_tuple),
+                )
+                for tag_locations in result:
+                    yield from tag_locations
+        else:
+            for tag, tag_dir in tag_dirs:
+                for tag_location in self.files_lookup(tag_dir, tag, years_tuple):
+                    yield tag_location
