@@ -25,7 +25,7 @@ from gordo.machine.model.anomaly.diff import (
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
 @pytest.mark.parametrize(
-    "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
+    "index", (range(300), pd.date_range("2019-01-01", "2019-01-30", periods=300))
 )
 @pytest.mark.parametrize("with_thresholds", (True, False))
 @pytest.mark.parametrize("shuffle", (True, False))
@@ -36,8 +36,8 @@ def test_diff_detector(scaler, index, with_thresholds: bool, shuffle: bool):
 
     # Some dataset.
     X, y = (
-        pd.DataFrame(np.random.random((10, 3))),
-        pd.DataFrame(np.random.random((10, 3))),
+        pd.DataFrame(np.random.random((300, 3))),
+        pd.DataFrame(np.random.random((300, 3))),
     )
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
@@ -110,13 +110,16 @@ def test_diff_detector(scaler, index, with_thresholds: bool, shuffle: bool):
     if with_thresholds:
         assert "anomaly-confidence" in anomaly_df.columns
         assert "total-anomaly-confidence" in anomaly_df.columns
+        assert anomaly_df["anomaly-confidence"].notnull().to_numpy().any()
+        assert anomaly_df["total-anomaly-confidence"].notnull().to_numpy().all()
+
     else:
         assert "anomaly-confidence" not in anomaly_df.columns
         assert "total-anomaly-confidence" not in anomaly_df.columns
 
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
-@pytest.mark.parametrize("len_x_y", (100, 144, 1440))
+@pytest.mark.parametrize("len_x_y", (100, 144, 300))
 @pytest.mark.parametrize("time_index", (True, False))
 @pytest.mark.parametrize("with_thresholds", (True, False))
 @pytest.mark.parametrize("shuffle", (True, False))
@@ -358,6 +361,8 @@ def test_diff_detector_with_window(
     if with_thresholds:
         assert "anomaly-confidence" in anomaly_df.columns
         assert "total-anomaly-confidence" in anomaly_df.columns
+        assert anomaly_df["anomaly-confidence"].notnull().to_numpy().all()
+        assert anomaly_df["total-anomaly-confidence"].notnull().to_numpy().all()
     else:
         assert "anomaly-confidence" not in anomaly_df.columns
         assert "total-anomaly-confidence" not in anomaly_df.columns
@@ -365,7 +370,7 @@ def test_diff_detector_with_window(
 
 @pytest.mark.parametrize("scaler", (MinMaxScaler(), RobustScaler()))
 @pytest.mark.parametrize(
-    "index", (range(10), pd.date_range("2019-01-01", "2019-01-30", periods=10))
+    "index", (range(300), pd.date_range("2019-01-01", "2019-01-30", periods=300))
 )
 @pytest.mark.parametrize("with_thresholds", (True, False))
 @pytest.mark.parametrize("shuffle", (True, False))
@@ -387,8 +392,8 @@ def test_diff_kfcv_detector(
 
     # Some dataset.
     X, y = (
-        pd.DataFrame(np.random.random((10, 3))),
-        pd.DataFrame(np.random.random((10, 3))),
+        pd.DataFrame(np.random.random((300, 3))),
+        pd.DataFrame(np.random.random((300, 3))),
     )
 
     base_estimator = MultiOutputRegressor(estimator=LinearRegression())
@@ -469,6 +474,8 @@ def test_diff_kfcv_detector(
     if with_thresholds:
         assert "anomaly-confidence" in anomaly_df.columns
         assert "total-anomaly-confidence" in anomaly_df.columns
+        assert anomaly_df["anomaly-confidence"].notnull().to_numpy().all()
+        assert anomaly_df["total-anomaly-confidence"].notnull().to_numpy().all()
     else:
         assert "anomaly-confidence" not in anomaly_df.columns
         assert "total-anomaly-confidence" not in anomaly_df.columns
