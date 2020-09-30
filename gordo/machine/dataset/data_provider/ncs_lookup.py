@@ -90,7 +90,7 @@ class NcsLookup:
             yield TagLocation(tag, year, exists=False)
 
     def assets_config_tags_lookup(
-        self, asset_config: AssetsConfig, tags: List[SensorTag], years: Iterable[int]
+        self, asset_config: AssetsConfig, tags: List[SensorTag]
     ) -> Iterable[Tuple[SensorTag, str]]:
         store = self.store
         tag_by_assets = defaultdict(list)
