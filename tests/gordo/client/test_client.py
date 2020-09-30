@@ -143,12 +143,12 @@ def test_client_predictions_diff_batch_sizes(
         parallelism=10,
     )
 
-    assert len(prediction_client.get_machine_names()) == 1
+    assert len(prediction_client.get_machine_names()) == 2
 
     # Get predictions
     predictions = prediction_client.predict(start=start, end=end)
     assert isinstance(predictions, list)
-    assert len(predictions) == 1
+    assert len(predictions) == 2
 
     name, predictions, error_messages = predictions[0]  # First dict of predictions
     assert isinstance(name, str)
