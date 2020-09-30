@@ -65,6 +65,11 @@ def gordo_name():
 
 
 @pytest.fixture(scope="session")
+def second_gordo_name():
+    return "machine-2"
+
+
+@pytest.fixture(scope="session")
 def gordo_single_target(gordo_name):
     return gordo_name
 
@@ -130,6 +135,11 @@ def base_route(api_version, gordo_project, gordo_name):
 
 
 @pytest.fixture(scope="session")
+def second_base_route(api_version, gordo_project, second_gordo_name):
+    return f"/gordo/{api_version}/{gordo_project}/{second_gordo_name}"
+
+
+@pytest.fixture(scope="session")
 def model_collection_directory(gordo_revision: str):
     with tempfile.TemporaryDirectory() as tmp_dir:
         collection_dir = os.path.join(tmp_dir, gordo_revision)
@@ -138,7 +148,7 @@ def model_collection_directory(gordo_revision: str):
 
 
 @pytest.fixture(scope="session")
-def config_str(gordo_name: str, sensors: List[SensorTag]):
+def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]):
     """
     Fixture: Default config for testing
     """
@@ -172,30 +182,65 @@ def config_str(gordo_name: str, sensors: List[SensorTag]):
                         - gordo.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                 name: {gordo_name}
+              - dataset:
+                  tags:
+                    - {sensors[0].name}
+                    - {sensors[1].name}
+                    - {sensors[2].name}
+                    - {sensors[3].name}
+                  target_tag_list:
+                    - {sensors[0].name}
+                    - {sensors[1].name}
+                    - {sensors[2].name}
+                    - {sensors[3].name}
+                  train_start_date: '2019-01-01T00:00:00+00:00'
+                  train_end_date: '2019-10-01T00:00:00+00:00'
+                  asset: asgb
+                  data_provider:
+                    type: RandomDataProvider
+                metadata:
+                  information: Some sweet information about the model
+                model:
+                  gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+                    window: 144
+                    require_thresholds: false
+                    base_estimator:
+                      sklearn.pipeline.Pipeline:
+                        steps:
+                        - sklearn.preprocessing.MinMaxScaler
+                        - gordo.machine.model.models.KerasAutoEncoder:
+                            kind: feedforward_hourglass
+                name: {second_gordo_name}
              """
 
 
 @pytest.fixture(scope="session")
-def trained_model_directory(
-    model_collection_directory: str, config_str: str, gordo_name: str
-):
+def trained_model_directories(model_collection_directory: str, config_str: str):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
     """
 
     # Model specific to the model being trained here
-    model_dir = os.path.join(model_collection_directory, gordo_name)
-    os.makedirs(model_dir, exist_ok=True)
-
     builder = local_build(config_str=config_str)
-    model, metadata = next(builder)  # type: ignore
-    serializer.dump(model, model_dir, metadata=metadata.to_dict())
-    yield model_dir
+    model_directories = {}
+    for model, metadata in builder:
+        metadata_dict = metadata.to_dict()
+        model_name = metadata_dict.get("name")
+        model_dir = os.path.join(model_collection_directory, model_name)
+        os.makedirs(model_dir, exist_ok=True)
+        serializer.dump(model, model_dir, metadata=metadata.to_dict())
+        model_directories[model_name] = model_dir
+    yield model_directories
+
+
+@pytest.fixture(scope="session")
+def trained_model_directory(trained_model_directories, gordo_name):
+    return trained_model_directories[gordo_name]
 
 
 @pytest.fixture
-def metadata(trained_model_directory):
+def metadata(trained_model_directories, trained_model_directory):
     return serializer.load_metadata(trained_model_directory)
 
 
