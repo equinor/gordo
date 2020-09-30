@@ -417,23 +417,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         # If we have `thresholds_` values, then we can calculate anomaly confidence
         confidence, index = None, None
-        if (
-            hasattr(self, "smooth_feature_thresholds_")
-            and self.smooth_feature_thresholds_ is not None
-        ):
-            confidence = (
-                data["smooth-tag-anomaly-scaled"].to_numpy()
-                / self.smooth_feature_thresholds_.to_numpy()
-            )
-            index = data["smooth-tag-anomaly-scaled"].index
-        elif hasattr(self, "feature_thresholds_") and self.window is not None:
-            confidence = (
-                data["smooth-tag-anomaly-scaled"].to_numpy()
-                / self.feature_thresholds_.to_numpy()
-            )
-            index = data["smooth-tag-anomaly-scaled"].index
 
-        elif hasattr(self, "feature_thresholds_"):
+        if hasattr(self, "feature_thresholds_"):
             confidence = tag_anomaly_scaled.values / self.feature_thresholds_.to_numpy()
             index = tag_anomaly_scaled.index
 
@@ -450,20 +435,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             data = data.join(anomaly_confidence_scores)
 
         total_anomaly_confidence = None
-        if (
-            hasattr(self, "smooth_aggregate_threshold_")
-            and self.smooth_aggregate_threshold_ is not None
-        ):
-            total_anomaly_confidence = (
-                data["smooth-total-anomaly-scaled"] / self.smooth_aggregate_threshold_
-            )
 
-        elif hasattr(self, "aggregate_threshold_") and self.window is not None:
-            total_anomaly_confidence = (
-                data["smooth-total-anomaly-scaled"] / self.aggregate_threshold_
-            )
-
-        elif hasattr(self, "aggregate_threshold_"):
+        if hasattr(self, "aggregate_threshold_"):
             total_anomaly_confidence = (
                 data["total-anomaly-scaled"] / self.aggregate_threshold_
             )
