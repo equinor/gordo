@@ -22,7 +22,6 @@ class ConfigurationError(Exception):
 
 
 class GordoBaseDataset:
-
     def __init__(self):
         self._metadata: Dict[Any, Any] = dict()
         # provided by @capture_args on child's __init__
