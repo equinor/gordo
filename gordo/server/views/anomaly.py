@@ -33,6 +33,12 @@ API_MODEL_INPUT_POST = api.model(
 API_MODEL_OUTPUT_POST = api.model(
     "Prediction - Output from POST", {"output": fields.List(fields.List(fields.Float))}
 )
+DELETED_FROM_RESPONSE_COLUMNS = (
+    "smooth-tag-anomaly-scaled",
+    "smooth-total-anomaly-scaled",
+    "smooth-tag-anomaly-unscaled",
+    "smooth-total-anomaly-unscaled",
+)
 _tags = {
     fields.String: fields.Float
 }  # tags of single prediction record {'tag-name': tag-value}
@@ -134,6 +140,13 @@ class AnomalyView(BaseModelView):
                 "message": f"Model is not an AnomalyDetector, it is of type: {type(g.model)}"
             }
             return make_response(jsonify(msg), 422)  # 422 Unprocessable Entity
+
+        if request.args.get("all_columns") is None:
+            columns_for_delete = []
+            for column in anomaly_df:
+                if column[0] in DELETED_FROM_RESPONSE_COLUMNS:
+                    columns_for_delete.append(column)
+            anomaly_df = anomaly_df.drop(columns=columns_for_delete)
 
         if request.args.get("format") == "parquet":
             return send_file(
