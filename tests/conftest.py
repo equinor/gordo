@@ -63,9 +63,11 @@ def gordo_project():
 def gordo_name():
     return "machine-1"
 
+
 @pytest.fixture(scope="session")
 def second_gordo_name():
     return "machine-2"
+
 
 @pytest.fixture(scope="session")
 def gordo_single_target(gordo_name):
@@ -213,9 +215,7 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
 
 
 @pytest.fixture(scope="session")
-def trained_model_directories(
-    model_collection_directory: str, config_str: str
-):
+def trained_model_directories(model_collection_directory: str, config_str: str):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
@@ -226,7 +226,7 @@ def trained_model_directories(
     model_directories = {}
     for model, metadata in builder:
         metadata_dict = metadata.to_dict()
-        model_name = metadata_dict.get('name')
+        model_name = metadata_dict.get("name")
         model_dir = os.path.join(model_collection_directory, model_name)
         os.makedirs(model_dir, exist_ok=True)
         serializer.dump(model, model_dir, metadata=metadata.to_dict())

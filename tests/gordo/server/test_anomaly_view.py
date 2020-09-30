@@ -67,27 +67,21 @@ def test_anomaly_prediction_endpoint(
     )
 
 
-@pytest.mark.parametrize("resp_format", ("json", "parquet", None))
+@pytest.mark.parametrize("resp_format", ("json", "parquet"))
 def test_second_anomaly_prediction_endpoint(
-        second_base_route,
-        sensors_str,
-        influxdb,
-        gordo_ml_server_client,
-        sensors,
-        resp_format,
+    second_base_route,
+    sensors_str,
+    influxdb,
+    gordo_ml_server_client,
+    sensors,
+    resp_format,
 ):
-    """
-    Anomaly GET and POST responses are the same
-    """
-
     data_to_post = {
         "X": np.random.random(size=(10, len(sensors_str))).tolist(),
         "y": np.random.random(size=(10, len(sensors_str))).tolist(),
     }
 
-    endpoint = f"{second_base_route}/anomaly/prediction"
-    if resp_format is not None:
-        endpoint += f"?format={resp_format}"
+    endpoint = f"{second_base_route}/anomaly/prediction?format={resp_format}"
 
     resp = gordo_ml_server_client.post(endpoint, json=data_to_post)
 
@@ -98,12 +92,40 @@ def test_second_anomaly_prediction_endpoint(
     else:
         data = server_utils.dataframe_from_parquet_bytes(resp.data)
 
-    assert all(
-        key in data
-        for key in (
-            "smooth-tag-anomaly-scaled",
-            "smooth-tag-anomaly-unscaled",
-            "smooth-total-anomaly-scaled",
-            "smooth-total-anomaly-unscaled"
-        )
+    assert "smooth-tag-anomaly-scaled" not in data
+    assert "smooth-tag-anomaly-unscaled" not in data
+    assert "smooth-total-anomaly-scaled" not in data
+    assert "smooth-total-anomaly-unscaled" not in data
+
+
+@pytest.mark.parametrize("resp_format", ("json", "parquet"))
+def test_second_anomaly_prediction_endpoint_all_columns(
+    second_base_route,
+    sensors_str,
+    influxdb,
+    gordo_ml_server_client,
+    sensors,
+    resp_format,
+):
+    data_to_post = {
+        "X": np.random.random(size=(10, len(sensors_str))).tolist(),
+        "y": np.random.random(size=(10, len(sensors_str))).tolist(),
+    }
+
+    endpoint = (
+        f"{second_base_route}/anomaly/prediction?all_columns=yes&format={resp_format}"
     )
+
+    resp = gordo_ml_server_client.post(endpoint, json=data_to_post)
+
+    assert resp.status_code == 200
+    if resp_format in (None, "json"):
+        assert "data" in resp.json
+        data = server_utils.dataframe_from_dict(resp.json["data"])
+    else:
+        data = server_utils.dataframe_from_parquet_bytes(resp.data)
+
+    assert "smooth-tag-anomaly-scaled" in data
+    assert "smooth-tag-anomaly-unscaled" in data
+    assert "smooth-total-anomaly-scaled" in data
+    assert "smooth-total-anomaly-unscaled" in data
