@@ -198,6 +198,8 @@ class TimeSeriesDataset(GordoBaseDataset):
                 f"information"
             )
 
+        super().__init__()
+
     def to_dict(self):
         params = super().to_dict()
         to_str = lambda dt: str(dt) if not hasattr(dt, "isoformat") else dt.isoformat()
