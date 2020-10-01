@@ -10,7 +10,7 @@ from .file_type import FileType
 from .ncs_file_type import NcsFileType, load_ncs_file_types
 from .assets_config import AssetsConfig, PathSpec
 
-from typing import List, Iterable, Tuple, Optional
+from typing import List, Iterable, Tuple, Optional, Dict
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
@@ -99,7 +99,7 @@ class NcsLookup:
         self, asset_config: AssetsConfig, tags: List[SensorTag]
     ) -> Iterable[Tuple[SensorTag, Optional[str]]]:
         store = self.store
-        tag_by_assets = OrderedDict()
+        tag_by_assets: Dict[str, List[SensorTag]] = OrderedDict()
         for tag in tags:
             if not tag.asset:
                 raise ValueError("%s tag has empty asset" % tag.name)
@@ -135,7 +135,7 @@ class NcsLookup:
         return tag_locations
 
     @staticmethod
-    def _years_inf_iterator(years: Tuple[int]) -> Iterable[Tuple[int]]:
+    def _years_inf_iterator(years: Iterable[int]) -> Iterable[Iterable[int]]:
         while True:
             yield years
 
