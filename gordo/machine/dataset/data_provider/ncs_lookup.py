@@ -161,5 +161,9 @@ class NcsLookup:
                     yield from tag_locations
         else:
             for tag, tag_dir in tag_dirs:
-                for tag_location in self.files_lookup(tag_dir, tag, years_tuple):
-                    yield tag_location
+                if tag_dir is not None:
+                    for tag_location in self.files_lookup(tag_dir, tag, years_tuple):
+                        yield tag_location
+                else:
+                    for year in years:
+                        yield TagLocation(tag, year, False)

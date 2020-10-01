@@ -194,13 +194,15 @@ def test_assets_config_tags_lookup(default_ncs_lookup: NcsLookup, mock_assets_co
     assert result == [
         (SensorTag(name="Ásgarðr", asset="asset"), "path/%C3%81sgar%C3%B0r"),
         (SensorTag(name="tag2", asset="asset"), "path/tag2"),
-        (SensorTag(name='tag1', asset='asset'), None),
-        (SensorTag(name='tag4', asset='asset'), None),
+        (SensorTag(name="tag1", asset="asset"), None),
+        (SensorTag(name="tag4", asset="asset"), None),
         (SensorTag(name="tag5", asset="asset1"), "path1/tag5"),
     ]
 
 
-def test_assets_config_tags_lookup_exceptions(default_ncs_lookup: NcsLookup, mock_assets_config):
+def test_assets_config_tags_lookup_exceptions(
+    default_ncs_lookup: NcsLookup, mock_assets_config
+):
     tags = [
         SensorTag("Ásgarðr", "asset"),
         SensorTag("tag10", ""),
@@ -213,3 +215,29 @@ def test_assets_config_tags_lookup_exceptions(default_ncs_lookup: NcsLookup, moc
     ]
     with pytest.raises(ValueError):
         list(default_ncs_lookup.assets_config_tags_lookup(mock_assets_config, tags))
+
+
+def test_lookup_default(default_ncs_lookup: NcsLookup, mock_assets_config):
+    tags = [
+        SensorTag("Ásgarðr", "asset"),
+        SensorTag("tag1", "asset"),
+        SensorTag("tag2", "asset"),
+        SensorTag("tag4", "asset"),
+        SensorTag("tag5", "asset1"),
+    ]
+    result = list(default_ncs_lookup.lookup(mock_assets_config, tags, [2019, 2020]))
+    assert reduce_tag_locations(result) == {
+        ("Ásgarðr", 2019): (
+            "path/%C3%81sgar%C3%B0r/%C3%81sgar%C3%B0r_2019.csv",
+            CsvFileType,
+        ),
+        ("Ásgarðr", 2020): (None, None),
+        ("tag2", 2020): ("path/tag2/parquet/tag2_2020.parquet", ParquetFileType),
+        ("tag2", 2019): (None, None),
+        ("tag1", 2019): (None, None),
+        ("tag1", 2020): (None, None),
+        ("tag4", 2019): (None, None),
+        ("tag4", 2020): (None, None),
+        ("tag5", 2020): ("path1/tag5/parquet/tag5_2020.parquet", ParquetFileType),
+        ("tag5", 2019): (None, None),
+    }
