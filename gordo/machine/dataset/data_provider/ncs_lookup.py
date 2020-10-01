@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from gordo.machine.dataset.file_system import FileSystem
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.exceptions import ConfigException
 from .file_type import FileType
 from .ncs_file_type import NcsFileType, load_ncs_file_types
 from .assets_config import AssetsConfig, PathSpec
@@ -103,7 +104,6 @@ class NcsLookup:
         for asset, asset_tags in tag_by_assets:
             path_spec = asset_config.get_path(store_name, asset)
             if path_spec is None:
-                # TODO right message
                 raise ValueError(
                     "Unable to find asset '%s' in storage '%s'" % (asset, store_name)
                 )
@@ -113,8 +113,7 @@ class NcsLookup:
                 path_spec.full_path(store), asset_tags
             ):
                 if tag_dir is None:
-                    # TODO right logging for this case
-                    pass
+                    raise ValueError("Unable to find base path from tag %s " % tag.name)
                 yield tag, tag_dir
 
     def _thread_pool_lookup_mapper(
@@ -139,8 +138,7 @@ class NcsLookup:
         threads_count: int = 1,
     ) -> Iterable[TagLocation]:
         if not threads_count or threads_count < 1:
-            # TODO ConfigException?
-            raise ValueError("thread_count should bigger or equal to 1")
+            raise ConfigException("thread_count should bigger or equal to 1")
         multi_thread = threads_count > 1
         tag_dirs = self.assets_config_tags_lookup(asset_config, tags)
         years_tuple = tuple(years)
