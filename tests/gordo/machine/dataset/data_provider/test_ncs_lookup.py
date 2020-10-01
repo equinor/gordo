@@ -7,6 +7,7 @@ from gordo.machine.dataset.data_provider.file_type import ParquetFileType, CsvFi
 from gordo.machine.dataset.file_system import FileType, FileInfo
 from gordo.machine.dataset.data_provider.ncs_lookup import NcsLookup, TagLocation
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.data_provider.assets_config import PathSpec
 
 from typing import List, Tuple, Dict, Optional
 
@@ -24,6 +25,9 @@ def dir_tree():
         ("path/tag3/parquet", FileType.DIRECTORY),
         ("path/tag3/parquet/tag3_2020.parquet", FileType.FILE),
         ("path/tag3/tag3_2020.csv", FileType.FILE),
+        ("path1/tag5", FileType.DIRECTORY),
+        ("path1/tag5/parquet", FileType.DIRECTORY),
+        ("path1/tag5/parquet/tag5_2020.parquet", FileType.FILE),
     ]
 
 
@@ -73,6 +77,19 @@ def test_mock_file_system(mock_file_system):
     ]
     assert mock_file_system.exists("path/%C3%81sgar%C3%B0r")
     assert not mock_file_system.exists("path/out")
+    result = list(mock_file_system.ls("path1"))
+    assert result == [
+        (
+            "path1/tag5",
+            FileInfo(
+                file_type=FileType.DIRECTORY,
+                size=0,
+                access_time=None,
+                modify_time=None,
+                create_time=None,
+            ),
+        )
+    ]
 
 
 @pytest.fixture
@@ -147,3 +164,35 @@ def test_files_lookup_tag3(default_ncs_lookup: NcsLookup):
         ("tag3", 2020): ("path/tag3/parquet/tag3_2020.parquet", ParquetFileType),
         ("tag3", 2019): (None, None),
     }
+
+
+@pytest.fixture
+def mock_assets_config():
+    def get_paths_side_effect(storage, asset):
+        if asset == "asset":
+            return PathSpec("ncs_reader", "", "path")
+        elif asset == "asset1":
+            return PathSpec("ncs_reader", "", "path1")
+        return None
+
+    mock = MagicMock()
+    mock.get_path.side_effect = get_paths_side_effect
+    return mock
+
+
+def test_assets_config_tags_lookup(default_ncs_lookup: NcsLookup, mock_assets_config):
+    tags = [
+        SensorTag("Ásgarðr", "asset"),
+        SensorTag("tag1", "asset"),
+        SensorTag("tag2", "asset"),
+        SensorTag("tag4", "asset"),
+        SensorTag("tag5", "asset1"),
+    ]
+    result = list(
+        default_ncs_lookup.assets_config_tags_lookup(mock_assets_config, tags)
+    )
+    assert result == [
+        (SensorTag(name="Ásgarðr", asset="asset"), "path/%C3%81sgar%C3%B0r"),
+        (SensorTag(name="tag2", asset="asset"), "path/tag2"),
+        (SensorTag(name="tag5", asset="asset1"), "path1/tag5"),
+    ]

@@ -1,3 +1,5 @@
+import logging
+
 from urllib.parse import quote
 from dataclasses import dataclass
 
@@ -9,8 +11,10 @@ from .ncs_file_type import NcsFileType, load_ncs_file_types
 from .assets_config import AssetsConfig, PathSpec
 
 from typing import List, Iterable, Tuple, Optional
-from collections import defaultdict
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -94,14 +98,17 @@ class NcsLookup:
         self, asset_config: AssetsConfig, tags: List[SensorTag]
     ) -> Iterable[Tuple[SensorTag, str]]:
         store = self.store
-        tag_by_assets = defaultdict(list)
+        tag_by_assets = OrderedDict()
         for tag in tags:
             if not tag.asset:
                 raise ValueError("%s tag has empty asset" % tag.name)
-            tag_by_assets[tag.asset].append(tag)
+            asset = tag.asset
+            if asset not in tag_by_assets:
+                tag_by_assets[asset] = list()
+            tag_by_assets[asset].append(tag)
         store_name = self.store_name
         asset_path_specs: List[Tuple[PathSpec, List[SensorTag]]] = []
-        for asset, asset_tags in tag_by_assets:
+        for asset, asset_tags in tag_by_assets.items():
             path_spec = asset_config.get_path(store_name, asset)
             if path_spec is None:
                 raise ValueError(
@@ -109,11 +116,17 @@ class NcsLookup:
                 )
             asset_path_specs.append((path_spec, asset_tags))
         for path_spec, asset_tags in asset_path_specs:
+            print("full_path", path_spec.full_path(store))
+            print("ls", list(store.ls(path_spec.full_path(store))))
             for tag, tag_dir in self.tag_dirs_lookup(
                 path_spec.full_path(store), asset_tags
             ):
                 if tag_dir is None:
-                    raise ValueError("Unable to find base path from tag %s " % tag.name)
+                    logging.info(
+                        "Could not found tag '%s' for asset '%s'"
+                        % (tag.name, tag.asset)
+                    )
+                    continue
                 yield tag, tag_dir
 
     def _thread_pool_lookup_mapper(
