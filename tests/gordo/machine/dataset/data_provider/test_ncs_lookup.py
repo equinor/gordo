@@ -9,7 +9,7 @@ from gordo.machine.dataset.data_provider.ncs_lookup import NcsLookup, TagLocatio
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.data_provider.assets_config import PathSpec
 
-from typing import List, Tuple, Dict, Optional
+from gordo.machine.dataset.exceptions import ConfigException
 
 
 @pytest.fixture
@@ -245,3 +245,16 @@ def test_lookup_default(default_ncs_lookup: NcsLookup, mock_assets_config, threa
         ("tag5", 2020): ("path1/tag5/parquet/tag5_2020.parquet", ParquetFileType),
         ("tag5", 2019): (None, None),
     }
+
+
+@pytest.mark.parametrize(
+    "threads_count",
+    [None, 0],
+)
+def test_lookup_exceptions(default_ncs_lookup: NcsLookup, mock_assets_config, threads_count):
+    tags = [
+        SensorTag("Ásgarðr", "asset"),
+        SensorTag("tag1", "asset"),
+    ]
+    with pytest.raises(ConfigException):
+        list(default_ncs_lookup.lookup(mock_assets_config, tags, [2019, 2020], threads_count=threads_count))
