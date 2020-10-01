@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 logger = logging.getLogger(__name__)
 
 
+# TODO optimize with __slots__?
 @dataclass(frozen=True)
 class TagLocation:
     tag: SensorTag
