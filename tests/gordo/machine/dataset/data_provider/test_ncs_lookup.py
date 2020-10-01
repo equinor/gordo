@@ -194,5 +194,7 @@ def test_assets_config_tags_lookup(default_ncs_lookup: NcsLookup, mock_assets_co
     assert result == [
         (SensorTag(name="Ásgarðr", asset="asset"), "path/%C3%81sgar%C3%B0r"),
         (SensorTag(name="tag2", asset="asset"), "path/tag2"),
+        (SensorTag(name='tag1', asset='asset'), None),
+        (SensorTag(name='tag4', asset='asset'), None),
         (SensorTag(name="tag5", asset="asset1"), "path1/tag5"),
     ]
