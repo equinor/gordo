@@ -116,8 +116,6 @@ class NcsLookup:
                 )
             asset_path_specs.append((path_spec, asset_tags))
         for path_spec, asset_tags in asset_path_specs:
-            print("full_path", path_spec.full_path(store))
-            print("ls", list(store.ls(path_spec.full_path(store))))
             for tag, tag_dir in self.tag_dirs_lookup(
                 path_spec.full_path(store), asset_tags
             ):
