@@ -168,7 +168,7 @@ def test_files_lookup_tag3(default_ncs_lookup: NcsLookup):
 
 @pytest.fixture
 def mock_assets_config():
-    def get_paths_side_effect(storage, asset):
+    def get_path_side_effect(storage, asset):
         if asset == "asset":
             return PathSpec("ncs_reader", "", "path")
         elif asset == "asset1":
@@ -176,7 +176,7 @@ def mock_assets_config():
         return None
 
     mock = MagicMock()
-    mock.get_path.side_effect = get_paths_side_effect
+    mock.get_path.side_effect = get_path_side_effect
     return mock
 
 
@@ -198,3 +198,18 @@ def test_assets_config_tags_lookup(default_ncs_lookup: NcsLookup, mock_assets_co
         (SensorTag(name='tag4', asset='asset'), None),
         (SensorTag(name="tag5", asset="asset1"), "path1/tag5"),
     ]
+
+
+def test_assets_config_tags_lookup_exceptions(default_ncs_lookup: NcsLookup, mock_assets_config):
+    tags = [
+        SensorTag("Ásgarðr", "asset"),
+        SensorTag("tag10", ""),
+    ]
+    with pytest.raises(ValueError):
+        list(default_ncs_lookup.assets_config_tags_lookup(mock_assets_config, tags))
+    tags = [
+        SensorTag("Ásgarðr", "asset"),
+        SensorTag("tag10", "asset10"),
+    ]
+    with pytest.raises(ValueError):
+        list(default_ncs_lookup.assets_config_tags_lookup(mock_assets_config, tags))
