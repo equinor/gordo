@@ -217,7 +217,11 @@ def test_assets_config_tags_lookup_exceptions(
         list(default_ncs_lookup.assets_config_tags_lookup(mock_assets_config, tags))
 
 
-def test_lookup_default(default_ncs_lookup: NcsLookup, mock_assets_config):
+@pytest.mark.parametrize(
+    "threads_count",
+    [1, 2, 10],
+)
+def test_lookup_default(default_ncs_lookup: NcsLookup, mock_assets_config, threads_count):
     tags = [
         SensorTag("Ásgarðr", "asset"),
         SensorTag("tag1", "asset"),
@@ -225,7 +229,7 @@ def test_lookup_default(default_ncs_lookup: NcsLookup, mock_assets_config):
         SensorTag("tag4", "asset"),
         SensorTag("tag5", "asset1"),
     ]
-    result = list(default_ncs_lookup.lookup(mock_assets_config, tags, [2019, 2020]))
+    result = list(default_ncs_lookup.lookup(mock_assets_config, tags, [2019, 2020], threads_count=threads_count))
     assert reduce_tag_locations(result) == {
         ("Ásgarðr", 2019): (
             "path/%C3%81sgar%C3%B0r/%C3%81sgar%C3%B0r_2019.csv",
