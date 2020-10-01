@@ -96,7 +96,7 @@ class NcsLookup:
 
     def assets_config_tags_lookup(
         self, asset_config: AssetsConfig, tags: List[SensorTag]
-    ) -> Iterable[Tuple[SensorTag, str]]:
+    ) -> Iterable[Tuple[SensorTag, Optional[str]]]:
         store = self.store
         tag_by_assets = OrderedDict()
         for tag in tags:
@@ -119,21 +119,18 @@ class NcsLookup:
             for tag, tag_dir in self.tag_dirs_lookup(
                 path_spec.full_path(store), asset_tags
             ):
-                if tag_dir is None:
-                    logging.info(
-                        "Could not found tag '%s' for asset '%s'"
-                        % (tag.name, tag.asset)
-                    )
-                    continue
                 yield tag, tag_dir
 
     def _thread_pool_lookup_mapper(
-        self, tag_dirs: Tuple[SensorTag, str], years: Tuple[int]
+        self, tag_dirs: Tuple[SensorTag, Optional[str]], years: Tuple[int]
     ) -> List[TagLocation]:
         tag, tag_dir = tag_dirs
         tag_locations = []
-        for location in self.files_lookup(tag_dir, tag, years):
-            tag_locations.append(location)
+        if tag_dir is not None:
+            for location in self.files_lookup(tag_dir, tag, years):
+                tag_locations.append(location)
+        else:
+            tag_locations = [TagLocation(tag, year, False) for year in years]
         return tag_locations
 
     @staticmethod
