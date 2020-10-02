@@ -196,7 +196,8 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
                     field_columns=["sensor_value"],
                     batch_size=10000,
                 )
-            except Exception as exc:
+            except OSError as exc:
+                # TODO Prometheus Gauge with current_attempt
                 if current_attempt <= self.n_retries:
                     # Sleep at most 5 min
                     time_to_sleep = min(2 ** (current_attempt + 2), 300)
@@ -211,6 +212,7 @@ class ForwardPredictionsIntoInflux(PredictionForwarder):
                 else:
                     msg = f"Failed to forward data to influx. Error: {exc}"
                     logger.error(msg)
+                    break
             else:
                 break
 
