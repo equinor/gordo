@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+import logging
+
 from typing import List
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pandas as pd
 import numpy as np
@@ -10,6 +13,47 @@ from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import influx_client_from_uri
 from gordo.machine import Machine
 from gordo.machine.dataset import sensor_tag
+
+
+@pytest.fixture
+def mock_influx_dataframe_client():
+    mock = MagicMock()
+    return mock
+
+
+def test_write_to_influx_with_retries(mock_influx_dataframe_client, caplog):
+    def find_caplog_record(levelname, msg):
+        for record in caplog.records:
+            if record.levelname == levelname and record.msg == msg:
+                return True
+        return False
+
+    with patch.object(
+        ForwardPredictionsIntoInflux, "_stack_to_name_value_columns"
+    ) as _stack_to_name_value_columns, patch("time.sleep"), caplog.at_level(
+        logging.INFO
+    ):
+        _stack_to_name_value_columns.side_effect = lambda v: v
+        df = pd.DataFrame()
+        mock_influx_dataframe_client.write_points.side_effect = OSError(
+            "Connection refused"
+        )
+        forwarder = ForwardPredictionsIntoInflux(
+            destination_influx_uri="root:root@localhost:8086/testdb", n_retries=2
+        )
+        forwarder.dataframe_client = mock_influx_dataframe_client
+        forwarder._write_to_influx_with_retries(df, "start")
+        find_caplog_record(
+            "WARNING",
+            "Failed to forward data to influx on attempt 1 out of 2.\nError: Connection refused.\nSleeping 8 seconds and trying again.",
+        )
+        find_caplog_record(
+            "WARNING",
+            "Failed to forward data to influx on attempt 2 out of 2.\nError: Connection refused.\nSleeping 16 seconds and trying again.",
+        )
+        find_caplog_record(
+            "ERROR", "Failed to forward data to influx. Error: Connection refused"
+        )
 
 
 def get_test_data(columns: List[str]) -> pd.DataFrame:
