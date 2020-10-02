@@ -29,6 +29,7 @@ from gordo.client.io import (
 from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import PredictionResult
 from gordo.machine.dataset.data_provider import providers
+from gordo.machine.dataset.datasets import TimeSeriesDataset
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
 from gordo import cli, serializer
@@ -46,6 +47,19 @@ def test_client_get_metadata(gordo_project, ml_server):
 
     # Can't get metadata for non-existent target
     assert client.get_metadata().get("no-such-target", None) is None
+
+
+def test_client_get_dataset(gordo_project, metadata, ml_server):
+    data_provider = providers.RandomDataProvider(min_size=10)
+    client = Client(project=gordo_project, data_provider=data_provider)
+    start = isoparse("2016-01-01T00:00:00+00:00")
+    end = isoparse("2016-01-01T12:00:00+00:00")
+    machine = Machine(**metadata)
+    assert type(machine.dataset) is TimeSeriesDataset
+    machine.dataset.row_filter_buffer_size = 12
+    dataset = client._get_dataset(machine, start, end)
+    # DEFAULT_ENFORCED_DATASET_KWARGS should be {"row_filter_buffer_size": 0}
+    assert dataset.row_filter_buffer_size == 0
 
 
 def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_server):
