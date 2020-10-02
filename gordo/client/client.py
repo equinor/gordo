@@ -21,12 +21,15 @@ from gordo.client.io import _handle_response, ResourceGone, NotFound, BadGordoRe
 from gordo.client.io import HttpUnprocessableEntity
 from gordo.client.utils import PredictionResult
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
+from gordo.machine.dataset.base import GordoBaseDataset
 from gordo.server import utils as server_utils
 from gordo.machine import Machine
 from gordo.machine.metadata import Metadata
 
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_ENFORCED_DATASET_KWARGS = {"TimeSeriesDataset": {"row_filter_buffer_size": 0}}
 
 
 class Client:
@@ -53,6 +56,7 @@ class Client:
         n_retries: int = 5,
         use_parquet: bool = False,
         session: Optional[requests.Session] = None,
+        enforced_dataset_kwargs: Optional[Dict[str, Dict[str, Any]]] = None,
     ):
         """
 
@@ -93,6 +97,8 @@ class Client:
             is used for sending the data back and forth.
         session: Optional[requests.Session]
             The http session object to use for making requests.
+        enforced_dataset_kwargs: Optional[Dict[str, Dict[str, Any]]]
+            Enforce this kwargs arguments for dataset. Nested dict with the dataset type at the top level, and kwargs at the second level
         """
 
         self.base_url = f"{scheme}://{host}:{port}"
@@ -111,6 +117,9 @@ class Client:
         self.n_retries = n_retries
         self.format = "parquet" if use_parquet else "json"
         self.session = session or requests.Session()
+        if enforced_dataset_kwargs is None:
+            enforced_dataset_kwargs = DEFAULT_ENFORCED_DATASET_KWARGS.copy()
+        self.enforced_dataset_kwargs = enforced_dataset_kwargs
 
     @wrapt.synchronized
     @cached(TTLCache(maxsize=1, ttl=5))
@@ -509,12 +518,11 @@ class Client:
                     name=machine.name, predictions=predictions, error_messages=[]
                 )
 
-    def _raw_data(
+    def _get_dataset(
         self, machine: Machine, start: datetime, end: datetime
-    ) -> typing.Tuple[pd.DataFrame, pd.DataFrame]:
+    ) -> GordoBaseDataset:
         """
-        Fetch the required raw data in this time range which would
-        satisfy this machine's /prediction POST
+        Apply client setting to machine dataset
 
         Parameters
         ----------
@@ -525,10 +533,8 @@ class Client:
 
         Returns
         -------
-        Tuple[pandas.core.DataFrame, pandas.core.DataFrame]
-            The dataframes representing X and y.
+        GordoBaseDataset
         """
-
         # We want to adjust for any model offset. If the model outputs less than it got in, it requires
         # extra data than what we're being asked to get predictions for.
         # just to give us some buffer zone.
@@ -548,7 +554,30 @@ class Client:
                 train_end_date=end,
             )
         )
-        dataset = machine.dataset.from_dict(config)
+        if config["type"] in self.enforced_dataset_kwargs:
+            config.update(self.enforced_dataset_kwargs[config["type"]])
+        return machine.dataset.from_dict(config)
+
+    def _raw_data(
+        self, machine: Machine, start: datetime, end: datetime
+    ) -> typing.Tuple[pd.DataFrame, pd.DataFrame]:
+        """
+        Fetch the required raw data in this time range which would
+        satisfy this machine's /prediction POST
+
+        Parameters
+        ----------
+        machine: Machine
+            Named tuple representing the machine info from controller
+        start: datetime
+        end: datetime
+
+        Returns
+        -------
+        Tuple[pandas.core.DataFrame, pandas.core.DataFrame]
+            The dataframes representing X and y.
+        """
+        dataset = self._get_dataset(machine, start, end)
         return dataset.get_data()
 
     @staticmethod
