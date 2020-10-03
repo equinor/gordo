@@ -17,14 +17,30 @@ from concurrent.futures import ThreadPoolExecutor
 logger = logging.getLogger(__name__)
 
 
-# TODO optimize with __slots__?
 @dataclass(frozen=True)
-class TagLocation:
+class Location:
+    path: str
+    file_type: FileType
+
+
+@dataclass(frozen=True)
+class TagLocations:
     tag: SensorTag
-    year: int
-    exists: bool
-    path: Optional[str] = None
-    file_type: Optional[FileType] = None
+    locations: Optional[Dict[int, Location]] = None
+
+    def available(self):
+        return self.locations is not None
+
+    def get_location(self, year: int) -> Optional[Location]:
+        if self.locations is None:
+            return None
+        return self.locations.get(year)
+
+    def __iter__(self) -> Iterable[Tuple[SensorTag, int, Location]]:
+        if self.locations is not None:
+            locations = self.locations
+            for year in sorted(locations.keys()):
+                yield self.tag, year, locations[year]
 
 
 class NcsLookup:
@@ -72,11 +88,12 @@ class NcsLookup:
 
     def files_lookup(
         self, tag_dir: str, tag: SensorTag, years: Iterable[int]
-    ) -> Iterable[TagLocation]:
+    ) -> TagLocations:
         store = self.store
         ncs_file_types = self.ncs_file_types
         tag_name = self.quote_tag_name(tag.name)
         not_existing_years = set(years)
+        locations = {}
         for year in years:
             found = False
             for ncs_file_type in ncs_file_types:
@@ -84,16 +101,13 @@ class NcsLookup:
                     full_path = store.join(tag_dir, path)
                     if store.exists(full_path):
                         file_type = ncs_file_type.file_type
-                        yield TagLocation(
-                            tag, year, exists=True, path=full_path, file_type=file_type
-                        )
+                        locations[year] = Location(full_path, file_type)
                         found = True
                         break
                 if found:
                     not_existing_years.remove(year)
                     break
-        for year in not_existing_years:
-            yield TagLocation(tag, year, exists=False)
+        return TagLocations(tag, locations if locations else None)
 
     def assets_config_tags_lookup(
         self, asset_config: AssetsConfig, tags: List[SensorTag]
@@ -124,15 +138,12 @@ class NcsLookup:
 
     def _thread_pool_lookup_mapper(
         self, tag_dirs: Tuple[SensorTag, Optional[str]], years: Tuple[int]
-    ) -> List[TagLocation]:
+    ) -> TagLocations:
         tag, tag_dir = tag_dirs
-        tag_locations = []
         if tag_dir is not None:
-            for location in self.files_lookup(tag_dir, tag, years):
-                tag_locations.append(location)
+            return self.files_lookup(tag_dir, tag, years)
         else:
-            tag_locations = [TagLocation(tag, year, False) for year in years]
-        return tag_locations
+            return TagLocations(tag, None)
 
     @staticmethod
     def _years_inf_iterator(years: Iterable[int]) -> Iterable[Iterable[int]]:
@@ -145,7 +156,7 @@ class NcsLookup:
         tags: List[SensorTag],
         years: Iterable[int],
         threads_count: int = 1,
-    ) -> Iterable[TagLocation]:
+    ) -> Iterable[TagLocations]:
         if not threads_count or threads_count < 1:
             raise ConfigException("thread_count should bigger or equal to 1")
         multi_thread = threads_count > 1
@@ -159,12 +170,10 @@ class NcsLookup:
                     self._years_inf_iterator(years_tuple),
                 )
                 for tag_locations in result:
-                    yield from tag_locations
+                    yield tag_locations
         else:
             for tag, tag_dir in tag_dirs:
                 if tag_dir is not None:
-                    for tag_location in self.files_lookup(tag_dir, tag, years_tuple):
-                        yield tag_location
+                    yield self.files_lookup(tag_dir, tag, years_tuple)
                 else:
-                    for year in years:
-                        yield TagLocation(tag, year, False)
+                    yield TagLocations(tag, None)
