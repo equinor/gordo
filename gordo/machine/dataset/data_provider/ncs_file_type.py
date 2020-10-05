@@ -5,6 +5,8 @@ from .file_type import FileType, ParquetFileType, CsvFileType, TimeSeriesColumns
 
 from typing import Iterable, Optional, List
 
+from ..exceptions import ConfigException
+
 time_series_columns = TimeSeriesColumns("Time", "Value", "Status")
 
 
@@ -59,4 +61,10 @@ def load_ncs_file_types(
 ) -> List[NcsFileType]:
     if type_names is None:
         type_names = DEFAULT_TYPE_NAMES
-    return [ncs_file_types[type_name]() for type_name in type_names]
+    result = []
+    for type_name in type_names:
+        if type_name not in ncs_file_types:
+            # TODO unit tests
+            raise ConfigException("Can not find file type '%s'" % type_name)
+        result.append(ncs_file_types[type_name]())
+    return result
