@@ -5,9 +5,8 @@ import pytest
 
 import dateutil.parser
 
-from gordo.machine.dataset.data_provider.ncs_reader import NcsReader, NcsParquetLookup
+from gordo.machine.dataset.data_provider.ncs_reader import NcsReader
 from gordo.machine.dataset.data_provider.assets_config import AssetsConfig, PathSpec
-from gordo.machine.dataset.data_provider.providers import DataLakeProvider
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.file_system.adl1 import ADLGen1FileSystem
@@ -27,6 +26,18 @@ class AzureDLFileSystemMock:
 
     def open(self, file_path, mode):
         return open(file_path, mode)
+
+    def ls(self, dir_path, detail):
+        result = []
+        for file_name in os.listdir(dir_path):
+            full_path = os.path.join(dir_path, file_name)
+            if detail:
+                info = self.info(full_path)
+                info["name"] = full_path
+                result.append(info)
+            else:
+                result.append(full_path)
+        return result
 
 
 @pytest.fixture
@@ -208,16 +219,6 @@ def test_parquet_files_lookup(dates, assets_config):
     assert trc_323_series.name == "TRC-323"
     assert trc_323_series.dtype.name == "float64"
     assert len(trc_323_series) == 20
-
-
-def test_get_file_lookups():
-    with pytest.raises(ValueError):
-        NcsReader.get_file_lookups([])
-    with pytest.raises(ValueError):
-        NcsReader.get_file_lookups(["excel"])
-    file_lookups = NcsReader.get_file_lookups(["parquet"])
-    assert len(file_lookups) == 1
-    assert isinstance(file_lookups[0], NcsParquetLookup)
 
 
 def test_with_conflicted_file_types(dates, assets_config):

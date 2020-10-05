@@ -189,7 +189,9 @@ def test_files_lookup_asgard(default_ncs_lookup: NcsLookup):
 
 def test_files_lookup_tag2(default_ncs_lookup: NcsLookup):
     tag = SensorTag("tag2", "asset")
-    result = reduce_tag_locations([default_ncs_lookup.files_lookup("path/tag2", tag, [2019, 2020])])
+    result = reduce_tag_locations(
+        [default_ncs_lookup.files_lookup("path/tag2", tag, [2019, 2020])]
+    )
     assert result == {
         ("tag2", 2020): ("path/tag2/parquet/tag2_2020.parquet", ParquetFileType),
     }
@@ -197,7 +199,9 @@ def test_files_lookup_tag2(default_ncs_lookup: NcsLookup):
 
 def test_files_lookup_tag3(default_ncs_lookup: NcsLookup):
     tag = SensorTag("tag3", "asset")
-    result = reduce_tag_locations([default_ncs_lookup.files_lookup("path/tag3", tag, [2019, 2020])])
+    result = reduce_tag_locations(
+        [default_ncs_lookup.files_lookup("path/tag3", tag, [2019, 2020])]
+    )
     assert result == {
         ("tag3", 2020): ("path/tag3/parquet/tag3_2020.parquet", ParquetFileType),
     }

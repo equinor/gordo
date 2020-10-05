@@ -7,10 +7,11 @@ from gordo.machine.dataset.file_system import FileSystem
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.exceptions import ConfigException
 from .file_type import FileType
+from .ncs_contants import NCS_READER_NAME
 from .ncs_file_type import NcsFileType, load_ncs_file_types
 from .assets_config import AssetsConfig, PathSpec
 
-from typing import List, Iterable, Tuple, Optional, Dict
+from typing import List, Iterable, Tuple, Optional, Dict, Iterator
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
@@ -28,15 +29,21 @@ class TagLocations:
     tag: SensorTag
     locations: Optional[Dict[int, Location]] = None
 
-    def available(self):
+    def available(self) -> bool:
         return self.locations is not None
+
+    # TODO unit tests
+    def years(self) -> List[int]:
+        if self.locations is None:
+            return []
+        return sorted(self.locations.keys())
 
     def get_location(self, year: int) -> Optional[Location]:
         if self.locations is None:
             return None
         return self.locations.get(year)
 
-    def __iter__(self) -> Iterable[Tuple[SensorTag, int, Location]]:
+    def __iter__(self) -> Iterator[Tuple[SensorTag, int, Location]]:
         if self.locations is not None:
             locations = self.locations
             for year in sorted(locations.keys()):
@@ -110,26 +117,41 @@ class NcsLookup:
         return TagLocations(tag, locations if locations else None)
 
     def assets_config_tags_lookup(
-        self, asset_config: AssetsConfig, tags: List[SensorTag]
+        self,
+        asset_config: AssetsConfig,
+        tags: List[SensorTag],
+        base_dir: Optional[str] = None,
     ) -> Iterable[Tuple[SensorTag, Optional[str]]]:
         store = self.store
-        tag_by_assets: Dict[str, List[SensorTag]] = OrderedDict()
-        for tag in tags:
-            if not tag.asset:
-                raise ValueError("%s tag has empty asset" % tag.name)
-            asset = tag.asset
-            if asset not in tag_by_assets:
-                tag_by_assets[asset] = list()
-            tag_by_assets[asset].append(tag)
-        store_name = self.store_name
         asset_path_specs: List[Tuple[PathSpec, List[SensorTag]]] = []
-        for asset, asset_tags in tag_by_assets.items():
-            path_spec = asset_config.get_path(store_name, asset)
-            if path_spec is None:
-                raise ValueError(
-                    "Unable to find asset '%s' in storage '%s'" % (asset, store_name)
-                )
-            asset_path_specs.append((path_spec, asset_tags))
+        if not base_dir:
+            tag_by_assets: Dict[str, List[SensorTag]] = OrderedDict()
+            for tag in tags:
+                if not tag.asset:
+                    raise ValueError("%s tag has empty asset" % tag.name)
+                asset = tag.asset
+                if asset not in tag_by_assets:
+                    tag_by_assets[asset] = list()
+                tag_by_assets[asset].append(tag)
+            store_name = self.store_name
+            for asset, asset_tags in tag_by_assets.items():
+                path_spec = asset_config.get_path(store_name, asset)
+                if path_spec is None:
+                    raise ValueError(
+                        "Unable to find asset '%s' in storage '%s'"
+                        % (asset, store_name)
+                    )
+                if path_spec.reader != NCS_READER_NAME:
+                    # TODO unit test
+                    raise ValueError(
+                        "Assets reader name should be equal '%s' and not '%s'"
+                        % (NCS_READER_NAME, path_spec.reader)
+                    )
+                asset_path_specs.append((path_spec, asset_tags))
+        else:
+            # TODO unit tests
+            path_spec = PathSpec(NCS_READER_NAME, base_dir, "")
+            asset_path_specs.append((path_spec, tags))
         for path_spec, asset_tags in asset_path_specs:
             for tag, tag_dir in self.tag_dirs_lookup(
                 path_spec.full_path(store), asset_tags
@@ -137,7 +159,7 @@ class NcsLookup:
                 yield tag, tag_dir
 
     def _thread_pool_lookup_mapper(
-        self, tag_dirs: Tuple[SensorTag, Optional[str]], years: Tuple[int]
+        self, tag_dirs: Tuple[SensorTag, Optional[str]], years: List[int]
     ) -> TagLocations:
         tag, tag_dir = tag_dirs
         if tag_dir is not None:
