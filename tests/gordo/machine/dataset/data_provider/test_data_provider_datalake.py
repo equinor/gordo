@@ -1,5 +1,5 @@
 import os
-from typing import Iterable, IO
+from typing import Iterable, IO, Tuple, Optional
 
 import dateutil.parser
 import logging
@@ -36,7 +36,10 @@ class MockFileSystem(FileSystem):
     def info(self, path: str) -> FileInfo:
         raise FileNotFoundError(path)
 
-    def walk(self, base_path: str) -> Iterable[str]:
+    def ls(self, path: str, with_info: bool = True) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+        pass
+
+    def walk(self, base_path: str, with_info: bool = True) -> Iterable[str]:
         return []
 
 
