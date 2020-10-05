@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import timeit
 from typing import Iterable, List, Optional, Tuple, cast
-from urllib.parse import quote
 
 import pandas as pd
 
