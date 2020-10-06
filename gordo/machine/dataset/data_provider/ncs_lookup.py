@@ -46,7 +46,7 @@ class TagLocations:
     def __iter__(self) -> Iterator[Tuple[SensorTag, int, Location]]:
         if self.locations is not None:
             locations = self.locations
-            for year in sorted(locations.keys()):
+            for year in self.years():
                 yield self.tag, year, locations[year]
 
 
