@@ -34,6 +34,7 @@ def test_tag_locations(parquet_file_type):
     }
     tag_locations = TagLocations(tag, locations)
     assert tag_locations.available()
+    assert tag_locations.years() == [2018, 2020]
     assert tag_locations.get_location(2020) is location_2020
     assert tag_locations.get_location(2019) is None
     result = list(tag_locations)
@@ -56,6 +57,7 @@ def test_tag_locations_empty():
     tag_locations = TagLocations(tag, None)
     assert not tag_locations.available()
     assert len(list(tag_locations)) == 0
+    assert len(tag_locations.years()) == 0
 
 
 @pytest.fixture
