@@ -23,7 +23,7 @@ from gordo.machine.dataset.data_provider.ncs_reader import NcsReader
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.exceptions import ConfigException
 
-from .ncs_storage import create_storage, DEFAULT_STORAGE_TYPE
+from .storages import create_storage, DEFAULT_STORAGE_TYPE
 from .assets_config import AssetsConfig
 from .resource_assets_config import load_assets_config
 
