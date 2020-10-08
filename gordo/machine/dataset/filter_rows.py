@@ -1,9 +1,65 @@
 import logging
+import traceback
 import pandas as pd
 import numpy as np
-from typing import Union
+from typing import Union, MutableMapping, List
+
+from pandas.core.computation.scope import Scope
+from pandas.core.computation.expr import Expr, PandasExprVisitor, disallow, _parsers
 
 logger = logging.getLogger(__name__)
+
+EVAL_ENGINE = "numexpr"
+EVAL_PARSER = "gordo"
+
+
+@disallow(("Call",))
+class GordoExprVisitor(PandasExprVisitor):
+    pass
+
+
+_parsers["gordo"] = GordoExprVisitor
+
+
+class _SpyResolver(MutableMapping):
+
+    def __init__(self, initial_vars, return_value=1):
+        self.initial_vars = set(initial_vars)
+        self.return_value = return_value
+        self.used_vars = set()
+
+    def __setitem__(self, key, val):
+        self.used_vars.add(key)
+
+    def __delitem__(self, key):
+        if key in self.used_vars:
+            self.used_vars.remove(key)
+
+    def __getitem__(self, key):
+        self.used_vars.add(key)
+        return self.return_value
+
+    def __contains__(self, item):
+        self.used_vars.add(item)
+        return True
+
+    def __len__(self):
+        return len(self.initial_vars.union(self.used_vars))
+
+    def __iter__(self):
+        return iter(self.initial_vars.union(self.used_vars))
+
+
+def pandas_filter_vars(pandas_filter: Union[str, list], initial_vars: List[str]) -> List[str]:
+    spy_resolver = _SpyResolver(initial_vars)
+    env = Scope(0, resolvers=(spy_resolver,))
+    if isinstance(pandas_filter, list):
+        filters_list = pandas_filter
+    else:
+        filters_list = [pandas_filter]
+    for filter_item in filters_list:
+        Expr(filter_item, engine=EVAL_ENGINE, parser=EVAL_PARSER, env=env)
+    return list(spy_resolver.used_vars)
 
 
 def apply_buffer(mask: pd.Series, buffer_size: int = 0):
@@ -140,12 +196,12 @@ def pandas_filter_rows(
     logger.info("Applying numerical filtering to data of shape %s", df.shape)
 
     if isinstance(filter_str, str):
-        mask = df.eval(filter_str)
+        mask = df.eval(filter_str, engine=EVAL_ENGINE, parser=EVAL_PARSER)
 
-    if isinstance(filter_str, list):
+    elif isinstance(filter_str, list):
         mask = []
         for filter_i in _batch(iterable=filter_str, n=15):
-            mask.append(df.eval(" & ".join(filter_i)))
+            mask.append(df.eval(" & ".join(filter_i), engine=EVAL_ENGINE, parser=EVAL_PARSER))
 
         mask = pd.concat(mask, axis=1).all(axis=1)
 
