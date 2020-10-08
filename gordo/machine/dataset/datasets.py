@@ -20,7 +20,7 @@ from gordo.machine.dataset.base import (
     ConfigurationError,
 )
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
-from gordo.machine.dataset.filter_rows import pandas_filter_rows
+from gordo.machine.dataset.filter_rows import pandas_filter_rows, parse_pandas_filter_vars
 from gordo.machine.dataset.filter_periods import FilterPeriods
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
@@ -218,10 +218,16 @@ class TimeSeriesDataset(GordoBaseDataset):
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
+        tag_list = set(self.tag_list + self.target_tag_list)
+
+        if self.row_filter:
+            triggered_tags = parse_pandas_filter_vars(self.row_filter, tag_list)
+            tag_list.update(triggered_tags)
+
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(
             train_start_date=self.train_start_date,
             train_end_date=self.train_end_date,
-            tag_list=list(set(self.tag_list + self.target_tag_list)),
+            tag_list=list(tag_list),
         )
 
         # Resample if we have a resolution set, otherwise simply join the series.

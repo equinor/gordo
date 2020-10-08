@@ -1,8 +1,7 @@
 import logging
-import traceback
 import pandas as pd
 import numpy as np
-from typing import Union, MutableMapping, List
+from typing import Union, MutableMapping, List, Iterable
 
 from pandas.core.computation.scope import Scope
 from pandas.core.computation.expr import Expr, PandasExprVisitor, disallow, _parsers
@@ -50,7 +49,7 @@ class _SpyResolver(MutableMapping):
         return iter(self.initial_vars.union(self.used_vars))
 
 
-def pandas_filter_vars(pandas_filter: Union[str, list], initial_vars: List[str]) -> List[str]:
+def parse_pandas_filter_vars(pandas_filter: Union[str, list], initial_vars: Iterable[str]) -> List[str]:
     spy_resolver = _SpyResolver(initial_vars)
     env = Scope(0, resolvers=(spy_resolver,))
     if isinstance(pandas_filter, list):
