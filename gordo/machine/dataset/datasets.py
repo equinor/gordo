@@ -20,7 +20,10 @@ from gordo.machine.dataset.base import (
     ConfigurationError,
 )
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
-from gordo.machine.dataset.filter_rows import pandas_filter_rows, parse_pandas_filter_vars
+from gordo.machine.dataset.filter_rows import (
+    pandas_filter_rows,
+    parse_pandas_filter_vars,
+)
 from gordo.machine.dataset.filter_periods import FilterPeriods
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags

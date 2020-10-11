@@ -3,7 +3,17 @@ import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from pandas.core.computation.ops import UndefinedVariableError
-from gordo.machine.dataset.filter_rows import pandas_filter_rows, apply_buffer
+from gordo.machine.dataset.filter_rows import (
+    pandas_filter_rows,
+    parse_pandas_filter_vars,
+    apply_buffer,
+)
+
+
+def test_parse_filter_vars():
+    expr = "`a` > 0 & `c` == 3.0"
+    result = set(parse_pandas_filter_vars(expr))
+    assert result == {"c", "a"}
 
 
 def test_filter_rows_basic():
