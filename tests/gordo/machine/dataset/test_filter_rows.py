@@ -32,6 +32,9 @@ def test_parse_filter_vars():
     with pytest.raises(SyntaxError):
         expr = "`|tag` > 0"
         parse_pandas_filter_vars(expr)
+    expr = "sin(col1) > 10 & 0 < index < 100"
+    result = set(parse_pandas_filter_vars(expr, with_special_vars=True))
+    assert result == {'sin', 'col1', 'index'}
 
 
 def test_filter_rows_basic():

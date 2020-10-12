@@ -65,13 +65,14 @@ def _clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def _parse_pandas_filter_vars(pandas_filter: str) -> List[str]:
+def _parse_pandas_filter_vars(pandas_filter: str, with_special_vars: bool) -> List[str]:
     """
     Parsing one ``pandas.eval`` expression. Uses python build-in ``ast`` parser under the hood
 
     Parameters
     ----------
     pandas_filter: str
+    with_special_vars: bool
 
     Returns
     -------
@@ -94,25 +95,30 @@ def _parse_pandas_filter_vars(pandas_filter: str) -> List[str]:
             filter_vars.append(node.id)
     result_vars = []
     for name in filter_vars:
-        if name in _special_vars:
+        if not with_special_vars and name in _special_vars:
             continue
         result_vars.append(_unescape_python_identifier(name))
     return result_vars
 
 
-def parse_pandas_filter_vars(pandas_filter: Union[str, List[str]]) -> List[str]:
+def parse_pandas_filter_vars(
+    pandas_filter: Union[str, List[str]], with_special_vars: bool = False
+) -> List[str]:
     """
     Parsing ``pandas.eval`` expression and returns list of all used variables
 
     Parameters
     ----------
     pandas_filter: Union[str, List[str]]
+        Pandas eval expression
+    with_special_vars: bool
+        Include special variables such as `index`, math functions `sin`, 'log10` etc into the output
 
     Examples
     --------
     >>> vars_list = parse_pandas_filter_vars('Col1 > 0 & Col2 < 100')
-    >>> vars_list
-    ["Col1", "Col2"]
+    >>> set(vars_list)
+    {'Col1', 'Col2'}
 
     Returns
     -------
@@ -125,7 +131,7 @@ def parse_pandas_filter_vars(pandas_filter: Union[str, List[str]]) -> List[str]:
         filters_list = [pandas_filter]
     result_vars = set()
     for pandas_filter in filters_list:
-        result_vars.update(_parse_pandas_filter_vars(pandas_filter))
+        result_vars.update(_parse_pandas_filter_vars(pandas_filter, with_special_vars))
     return list(result_vars)
 
 
