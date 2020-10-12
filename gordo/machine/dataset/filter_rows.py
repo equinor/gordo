@@ -118,7 +118,7 @@ def parse_pandas_filter_vars(
     --------
     >>> vars_list = parse_pandas_filter_vars('Col1 > 0 & Col2 < 100')
     >>> sorted(vars_list)
-    ['Col2', 'Col1']
+    ['Col1', 'Col2']
 
     Returns
     -------
