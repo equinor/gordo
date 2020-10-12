@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import dateutil.parser
 from datetime import datetime
+from unittest.mock import Mock
 
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.datasets import (
@@ -24,6 +25,14 @@ def dataset():
         train_end_date="2017-12-29 06:00:00Z",
         tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
     )
+
+
+@pytest.fixture
+def mock_tag_normalizer():
+    def side_effect(sensors, asset=None, default_asset=None):
+        return [SensorTag(v, asset) if type(v) is str else v for v in sensors]
+
+    return Mock(side_effect=side_effect)
 
 
 def create_timeseries_list():
@@ -237,7 +246,7 @@ def test_join_timeseries_with_interpolation_method_linear_interpolation_no_limit
     assert len(all_in_frame) == 4177
 
 
-def test_row_filter():
+def test_row_filter(mock_tag_normalizer):
     """Tests that row_filter filters away rows"""
     kwargs = dict(
         data_provider=MockDataProvider(),
@@ -248,6 +257,7 @@ def test_row_filter():
         ],
         train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        tag_normalizer=mock_tag_normalizer,
     )
     X, _ = TimeSeriesDataset(**kwargs).get_data()
     assert 83 == len(X)
@@ -388,6 +398,7 @@ class MockDataProvider(GordoBaseDataProvider):
         """With value argument for generating different types of data series (e.g. NaN)"""
         self.value = value
         self.n_rows = n_rows
+        self.last_tag_list = None
 
     def can_handle_tag(self, tag):
         return True
@@ -399,6 +410,7 @@ class MockDataProvider(GordoBaseDataProvider):
         tag_list: List[SensorTag],
         dry_run: Optional[bool] = False,
     ) -> Iterable[pd.Series]:
+        self.last_tag_list = tag_list
         index = pd.date_range(train_start_date, train_end_date, freq="s")
         for i, name in enumerate(sorted([tag.name for tag in tag_list])):
             # If value not passed, data for each tag are staggered integer ranges
@@ -425,7 +437,9 @@ def test_timeseries_dataset_compat():
 
 
 @pytest.mark.parametrize("n_samples_threshold, filter_value", [(10, 5000), (0, 100)])
-def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value):
+def test_insufficient_data_after_row_filtering(
+    n_samples_threshold, filter_value, mock_tag_normalizer
+):
     """
     Test that dataframe after row_filter scenarios raise appropriate
     InsufficientDataError
@@ -441,6 +455,7 @@ def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value
         train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
         n_samples_threshold=n_samples_threshold,
+        tag_normalizer=mock_tag_normalizer,
     )
 
     with pytest.raises(InsufficientDataError):
@@ -523,3 +538,28 @@ def test_insufficient_data_after_automatic_filtering():
 
     with pytest.raises(InsufficientDataError):
         TimeSeriesDataset(**kwargs).get_data()
+
+
+def test_trigger_tags(mock_tag_normalizer):
+    data_provider = MockDataProvider()
+    dataset = TimeSeriesDataset(
+        data_provider=data_provider,
+        tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None),],
+        target_tag_list=[SensorTag("Tag 5", None),],
+        train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
+        train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
+        row_filter="`Tag 3` > 0 & `Tag 4` > 1",
+        tag_normalizer=mock_tag_normalizer,
+    )
+    X, y = dataset.get_data()
+    assert X is not None
+    assert y is not None
+    assert set(data_provider.last_tag_list) == {
+        SensorTag("Tag 1", None),
+        SensorTag("Tag 2", None),
+        SensorTag("Tag 3", None),
+        SensorTag("Tag 4", None),
+        SensorTag("Tag 5", None),
+    }
+    assert set(X.columns.values) == {"Tag 1", "Tag 2"}
+    assert set(y.columns.values) == {"Tag 5"}

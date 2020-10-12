@@ -150,6 +150,7 @@ def test_machine_from_config(default_globals: dict):
             "resolution": "10T",
             "row_filter": "",
             "row_filter_buffer_size": 0,
+            "tag_normalizer": "default",
             "tag_list": [
                 "GRA-TE  -23-0733.PV",
                 "GRA-TT  -23-0719.PV",

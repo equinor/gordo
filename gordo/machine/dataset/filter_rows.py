@@ -1,9 +1,138 @@
 import logging
+import ast
+import tokenize
+
+
 import pandas as pd
 import numpy as np
-from typing import Union
+
+from typing import Union, List, Tuple
+
+from pandas.core.computation.expr import (
+    _preparse,
+    _compose,
+    _replace_locals,
+    _replace_booleans,
+    _rewrite_assign,
+)
+from pandas.core.computation.ops import _mathops
+from pandas.core.computation.parsing import BACKTICK_QUOTED_STRING
 
 logger = logging.getLogger(__name__)
+
+EVAL_ENGINE = "numexpr"
+EVAL_PARSER = "pandas"
+
+_PANDAS_SCOPE_VARS = ("index", "columns")
+
+_special_vars = set(_PANDAS_SCOPE_VARS + _mathops)
+
+_escaped_chars = (
+    (" ", "_UNDERSCORE_"),
+    ("?", "_QUESTIONMARK_"),
+    ("!", "_EXCLAMATIONMARK_"),
+    ("$", "_DOLLARSIGN_"),
+    ("€", "_EUROSIGN_"),
+    ("'", "_SINGLEQUOTE_"),
+    ('"', "_DOUBLEQUOTE_"),
+)
+
+
+def _escape_python_identifier(name: str) -> str:
+    if name.isidentifier():
+        return name
+    for ch, escape_str in _escaped_chars:
+        name = name.replace(ch, escape_str)
+    if not name.isidentifier():
+        raise SyntaxError(f"Could not convert '{name}' to a valid Python identifier.")
+    return name
+
+
+def _unescape_python_identifier(name: str) -> str:
+    for ch, escape_str in _escaped_chars:
+        name = name.replace(escape_str, ch)
+    return name
+
+
+def _clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Reimplementing pandas function ``pandas.core.computation.parsing.clean_backtick_quoted_toks``.
+    Basically it adds the ability to make unescaping variables with special chars
+    """
+    toknum, tokval = tok
+    if toknum == BACKTICK_QUOTED_STRING:
+        return tokenize.NAME, _escape_python_identifier(tokval)
+    return toknum, tokval
+
+
+def _parse_pandas_filter_vars(pandas_filter: str, with_special_vars: bool) -> List[str]:
+    """
+    Parsing one ``pandas.eval`` expression. Uses python build-in ``ast`` parser under the hood
+
+    Parameters
+    ----------
+    pandas_filter: str
+    with_special_vars: bool
+
+    Returns
+    -------
+    List[str]
+
+    """
+    pre_parsed_filter = _preparse(
+        pandas_filter,
+        _compose(
+            _replace_locals,
+            _replace_booleans,
+            _rewrite_assign,
+            _clean_backtick_quoted_toks,
+        ),
+    )
+    parsed_filter = ast.parse(pre_parsed_filter)
+    filter_vars = []
+    for node in ast.walk(parsed_filter):
+        if isinstance(node, ast.Name):
+            filter_vars.append(node.id)
+    result_vars = []
+    for name in filter_vars:
+        if not with_special_vars and name in _special_vars:
+            continue
+        result_vars.append(_unescape_python_identifier(name))
+    return result_vars
+
+
+def parse_pandas_filter_vars(
+    pandas_filter: Union[str, List[str]], with_special_vars: bool = False
+) -> List[str]:
+    """
+    Parsing ``pandas.eval`` expression and returns list of all used variables
+
+    Parameters
+    ----------
+    pandas_filter: Union[str, List[str]]
+        Pandas eval expression
+    with_special_vars: bool
+        Include special variables such as `index`, math functions `sin`, 'log10` etc into the output
+
+    Examples
+    --------
+    >>> vars_list = parse_pandas_filter_vars('Col1 > 0 & Col2 < 100')
+    >>> set(vars_list)
+    {'Col1', 'Col2'}
+
+    Returns
+    -------
+    List[str]
+
+    """
+    if isinstance(pandas_filter, list):
+        filters_list = pandas_filter
+    else:
+        filters_list = [pandas_filter]
+    result_vars = set()
+    for pandas_filter in filters_list:
+        result_vars.update(_parse_pandas_filter_vars(pandas_filter, with_special_vars))
+    return list(result_vars)
 
 
 def apply_buffer(mask: pd.Series, buffer_size: int = 0):
@@ -140,12 +269,14 @@ def pandas_filter_rows(
     logger.info("Applying numerical filtering to data of shape %s", df.shape)
 
     if isinstance(filter_str, str):
-        mask = df.eval(filter_str)
+        mask = df.eval(filter_str, engine=EVAL_ENGINE, parser=EVAL_PARSER)
 
-    if isinstance(filter_str, list):
+    elif isinstance(filter_str, list):
         mask = []
         for filter_i in _batch(iterable=filter_str, n=15):
-            mask.append(df.eval(" & ".join(filter_i)))
+            mask.append(
+                df.eval(" & ".join(filter_i), engine=EVAL_ENGINE, parser=EVAL_PARSER)
+            )
 
         mask = pd.concat(mask, axis=1).all(axis=1)
 

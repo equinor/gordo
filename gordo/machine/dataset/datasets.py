@@ -20,7 +20,10 @@ from gordo.machine.dataset.base import (
     ConfigurationError,
 )
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
-from gordo.machine.dataset.filter_rows import pandas_filter_rows
+from gordo.machine.dataset.filter_rows import (
+    pandas_filter_rows,
+    parse_pandas_filter_vars,
+)
 from gordo.machine.dataset.filter_periods import FilterPeriods
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
@@ -69,6 +72,8 @@ class TimeSeriesDataset(GordoBaseDataset):
     data_provider = ValidDataProvider()
     kwargs = ValidDatasetKwargs()
 
+    TAG_NORMALIZERS = {"default": normalize_sensor_tags}
+
     @compat
     @capture_args
     def __init__(
@@ -91,6 +96,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         interpolation_method: str = "linear_interpolation",
         interpolation_limit: str = "8H",
         filter_periods: Optional[dict] = {},
+        tag_normalizer: Union[str, Callable[..., List[SensorTag]]] = "default",
     ):
         """
         Creates a TimeSeriesDataset backed by a provided dataprovider.
@@ -155,6 +161,10 @@ class TimeSeriesDataset(GordoBaseDataset):
         fiter_periods: dict
             Performs a series of algorithms that drops noisy data is specified.
             See `filter_periods` class for details.
+        tag_normalizer: Union[str, Callable[..., List[SensorTag]]]
+            `default` is only one suitable value for now,
+            uses ``gordo.machine.dataset.sensor_tag.normalize_sensor_tags`` in this case
+
         """
         self.train_start_date = self._validate_dt(train_start_date)
         self.train_end_date = self._validate_dt(train_end_date)
@@ -164,9 +174,17 @@ class TimeSeriesDataset(GordoBaseDataset):
                 f"train_end_date ({self.train_end_date}) must be after train_start_date ({self.train_start_date})"
             )
 
-        self.tag_list = normalize_sensor_tags(list(tag_list), asset, default_asset)
+        if isinstance(tag_normalizer, str):
+            if tag_normalizer not in self.TAG_NORMALIZERS:
+                raise ValueError(
+                    "Unsupported tag_normalizer type '%s'" % tag_normalizer
+                )
+            tag_normalizer = self.TAG_NORMALIZERS[tag_normalizer]
+        self.tag_normalizer = tag_normalizer
+
+        self.tag_list = self.tag_normalizer(list(tag_list), asset, default_asset)
         self.target_tag_list = (
-            normalize_sensor_tags(list(target_tag_list), asset, default_asset)
+            self.tag_normalizer(list(target_tag_list), asset, default_asset)
             if target_tag_list
             else self.tag_list.copy()
         )
@@ -218,10 +236,19 @@ class TimeSeriesDataset(GordoBaseDataset):
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 
+        tag_list = set(self.tag_list + self.target_tag_list)
+
+        if self.row_filter:
+            pandas_filter_tags = set(
+                self.tag_normalizer(parse_pandas_filter_vars(self.row_filter))
+            )
+            triggered_tags = pandas_filter_tags.difference(tag_list)
+            tag_list.update(triggered_tags)
+
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(
             train_start_date=self.train_start_date,
             train_end_date=self.train_end_date,
-            tag_list=list(set(self.tag_list + self.target_tag_list)),
+            tag_list=list(tag_list),
         )
 
         # Resample if we have a resolution set, otherwise simply join the series.
