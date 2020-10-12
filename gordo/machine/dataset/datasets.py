@@ -242,7 +242,11 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         if self.row_filter:
             pandas_filter_tags = set(
-                self.tag_normalizer(parse_pandas_filter_vars(self.row_filter), self.asset, self.default_asset)
+                self.tag_normalizer(
+                    parse_pandas_filter_vars(self.row_filter),
+                    self.asset,
+                    self.default_asset,
+                )
             )
             triggered_tags = pandas_filter_tags.difference(tag_list)
             tag_list.update(triggered_tags)
