@@ -14,24 +14,31 @@ def test_parse_filter_vars():
     expr = "`a` > 0 & `c` == 3.0"
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"c", "a"}
+
     expr = "a < 0 & c = 3.0"
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"c", "a"}
+
     expr = "`var$' _name` > 22"
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"var$' _name"}
+
     expr = "sin(col1) > 0.5 and cos(`col2`) < 0.5"
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"col1", "col2"}
+
     expr = ["tag1 > 0", "tag2 < 100"]
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"tag1", "tag2"}
+
     expr = "0 < index < 100"
     result = set(parse_pandas_filter_vars(expr))
     assert result == set()
+
     with pytest.raises(SyntaxError):
         expr = "`|tag` > 0"
         parse_pandas_filter_vars(expr)
+
     expr = "sin(col1) > 10 & 0 < index < 100"
     result = set(parse_pandas_filter_vars(expr, with_special_vars=True))
     assert result == {'sin', 'col1', 'index'}
