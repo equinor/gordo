@@ -55,6 +55,10 @@ def _unescape_python_identifier(name: str) -> str:
 
 
 def _clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
+    """
+    Reimplementing pandas function ``pandas.core.computation.parsing.clean_backtick_quoted_toks``.
+    Basically it adds the ability to make unescaping variables with special chars
+    """
     toknum, tokval = tok
     if toknum == BACKTICK_QUOTED_STRING:
         return tokenize.NAME, _escape_python_identifier(tokval)
@@ -62,6 +66,18 @@ def _clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
 
 
 def _parse_pandas_filter_vars(pandas_filter: str) -> List[str]:
+    """
+    Parsing one ``pandas.eval`` expression. Uses python build-in ``ast`` parser under the hood
+
+    Parameters
+    ----------
+    pandas_filter: str
+
+    Returns
+    -------
+    List[str]
+
+    """
     pre_parsed_filter = _preparse(
         pandas_filter,
         _compose(
