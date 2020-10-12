@@ -29,7 +29,14 @@ from gordo.machine.metadata import Metadata
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ENFORCED_DATASET_KWARGS = {"TimeSeriesDataset": {"row_filter_buffer_size": 0}}
+DEFAULT_ENFORCED_DATASET_KWARGS = {
+    "TimeSeriesDataset": {
+        "row_filter_buffer_size": 0,
+        "n_samples_threshold": 0,
+        "known_filter_periods": [],
+        "filter_periods": {},
+    }
+}
 
 
 class Client:
