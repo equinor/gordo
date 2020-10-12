@@ -437,7 +437,9 @@ def test_timeseries_dataset_compat():
 
 
 @pytest.mark.parametrize("n_samples_threshold, filter_value", [(10, 5000), (0, 100)])
-def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value, mock_tag_normalizer):
+def test_insufficient_data_after_row_filtering(
+    n_samples_threshold, filter_value, mock_tag_normalizer
+):
     """
     Test that dataframe after row_filter scenarios raise appropriate
     InsufficientDataError
@@ -453,7 +455,7 @@ def test_insufficient_data_after_row_filtering(n_samples_threshold, filter_value
         train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
         n_samples_threshold=n_samples_threshold,
-        tag_normalizer=mock_tag_normalizer
+        tag_normalizer=mock_tag_normalizer,
     )
 
     with pytest.raises(InsufficientDataError):
@@ -542,17 +544,12 @@ def test_trigger_tags(mock_tag_normalizer):
     data_provider = MockDataProvider()
     dataset = TimeSeriesDataset(
         data_provider=data_provider,
-        tag_list=[
-            SensorTag("Tag 1", None),
-            SensorTag("Tag 2", None),
-        ],
-        target_tag_list=[
-            SensorTag("Tag 5", None),
-        ],
+        tag_list=[SensorTag("Tag 1", None), SensorTag("Tag 2", None),],
+        target_tag_list=[SensorTag("Tag 5", None),],
         train_start_date=dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         train_end_date=dateutil.parser.isoparse("2017-12-29 06:00:00Z"),
         row_filter="`Tag 3` > 0 & `Tag 4` > 1",
-        tag_normalizer=mock_tag_normalizer
+        tag_normalizer=mock_tag_normalizer,
     )
     X, y = dataset.get_data()
     assert X is not None

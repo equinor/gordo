@@ -72,9 +72,7 @@ class TimeSeriesDataset(GordoBaseDataset):
     data_provider = ValidDataProvider()
     kwargs = ValidDatasetKwargs()
 
-    TAG_NORMALIZERS = {
-        'default': normalize_sensor_tags
-    }
+    TAG_NORMALIZERS = {"default": normalize_sensor_tags}
 
     @compat
     @capture_args
@@ -176,7 +174,9 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         if isinstance(tag_normalizer, str):
             if tag_normalizer not in self.TAG_NORMALIZERS:
-                raise ValueError("Unsupported tag_normalizer type '%s'" % tag_normalizer)
+                raise ValueError(
+                    "Unsupported tag_normalizer type '%s'" % tag_normalizer
+                )
             tag_normalizer = self.TAG_NORMALIZERS[tag_normalizer]
         self.tag_normalizer = tag_normalizer
 
@@ -237,7 +237,9 @@ class TimeSeriesDataset(GordoBaseDataset):
         tag_list = set(self.tag_list + self.target_tag_list)
 
         if self.row_filter:
-            pandas_filter_tags = set(self.tag_normalizer(parse_pandas_filter_vars(self.row_filter)))
+            pandas_filter_tags = set(
+                self.tag_normalizer(parse_pandas_filter_vars(self.row_filter))
+            )
             triggered_tags = pandas_filter_tags.difference(tag_list)
             tag_list.update(triggered_tags)
 
