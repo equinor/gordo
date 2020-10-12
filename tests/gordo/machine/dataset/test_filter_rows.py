@@ -23,6 +23,12 @@ def test_parse_filter_vars():
     expr = "sin(col1) > 0.5 and cos(`col2`) < 0.5"
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"col1", "col2"}
+    expr = ["tag1 > 0", "tag2 < 100"]
+    result = set(parse_pandas_filter_vars(expr))
+    assert result == {"tag1", "tag2"}
+    expr = "0 < index < 100"
+    result = set(parse_pandas_filter_vars(expr))
+    assert result == set()
 
 
 def test_filter_rows_basic():

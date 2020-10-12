@@ -84,7 +84,7 @@ def _parse_pandas_filter_vars(pandas_filter: str) -> List[str]:
     return result_vars
 
 
-def parse_pandas_filter_vars(pandas_filter: Union[str, list]) -> List[str]:
+def parse_pandas_filter_vars(pandas_filter: Union[str, List[str]]) -> List[str]:
     if isinstance(pandas_filter, list):
         filters_list = pandas_filter
     else:
