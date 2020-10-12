@@ -224,7 +224,7 @@ class TimeSeriesDataset(GordoBaseDataset):
         tag_list = set(self.tag_list + self.target_tag_list)
 
         if self.row_filter:
-            triggered_tags = parse_pandas_filter_vars(self.row_filter, tag_list)
+            triggered_tags = parse_pandas_filter_vars(self.row_filter)
             tag_list.update(triggered_tags)
 
         series_iter: Iterable[pd.Series] = self.data_provider.load_series(

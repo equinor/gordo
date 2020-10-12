@@ -14,6 +14,15 @@ def test_parse_filter_vars():
     expr = "`a` > 0 & `c` == 3.0"
     result = set(parse_pandas_filter_vars(expr))
     assert result == {"c", "a"}
+    expr = "a < 0 & c = 3.0"
+    result = set(parse_pandas_filter_vars(expr))
+    assert result == {"c", "a"}
+    expr = "`var$' _name` > 22"
+    result = set(parse_pandas_filter_vars(expr))
+    assert result == {"var$' _name"}
+    expr = "sin(col1) > 0.5 and cos(`col2`) < 0.5"
+    result = set(parse_pandas_filter_vars(expr))
+    assert result == {"col1", "col2"}
 
 
 def test_filter_rows_basic():
