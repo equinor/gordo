@@ -182,6 +182,9 @@ class TimeSeriesDataset(GordoBaseDataset):
             tag_normalizer = self.TAG_NORMALIZERS[tag_normalizer]
         self.tag_normalizer = tag_normalizer
 
+        self.asset = asset
+        self.default_asset = default_asset
+
         self.tag_list = self.tag_normalizer(list(tag_list), asset, default_asset)
         self.target_tag_list = (
             self.tag_normalizer(list(target_tag_list), asset, default_asset)
@@ -197,7 +200,6 @@ class TimeSeriesDataset(GordoBaseDataset):
         self.row_filter = row_filter
         self.aggregation_methods = aggregation_methods
         self.row_filter_buffer_size = row_filter_buffer_size
-        self.asset = asset
         self.n_samples_threshold = n_samples_threshold
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
@@ -240,7 +242,7 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         if self.row_filter:
             pandas_filter_tags = set(
-                self.tag_normalizer(parse_pandas_filter_vars(self.row_filter))
+                self.tag_normalizer(parse_pandas_filter_vars(self.row_filter), self.asset, self.default_asset)
             )
             triggered_tags = pandas_filter_tags.difference(tag_list)
             tag_list.update(triggered_tags)
