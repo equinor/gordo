@@ -85,6 +85,24 @@ def _parse_pandas_filter_vars(pandas_filter: str) -> List[str]:
 
 
 def parse_pandas_filter_vars(pandas_filter: Union[str, List[str]]) -> List[str]:
+    """
+    Parsing ``pandas.eval`` expression and returns list of all used variables
+
+    Parameters
+    ----------
+    pandas_filter: Union[str, List[str]]
+
+    Examples
+    --------
+    >>> vars_list = parse_pandas_filter_vars('Col1 > 0 & Col2 < 100')
+    >>> vars_list
+    ["Col1", "Col2"]
+
+    Returns
+    -------
+    List[str]
+
+    """
     if isinstance(pandas_filter, list):
         filters_list = pandas_filter
     else:
