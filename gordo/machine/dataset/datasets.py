@@ -240,6 +240,7 @@ class TimeSeriesDataset(GordoBaseDataset):
 
         tag_list = set(self.tag_list + self.target_tag_list)
 
+        triggered_tags = set()
         if self.row_filter:
             pandas_filter_tags = set(
                 self.tag_normalizer(
@@ -296,6 +297,10 @@ class TimeSeriesDataset(GordoBaseDataset):
                     f"specified required threshold for the number of rows ({self.n_samples_threshold}), "
                     f" after applying the specified numerical row-filter."
                 )
+
+        if triggered_tags:
+            triggered_columns = [tag.name for tag in triggered_tags]
+            data = data.drop(columns=triggered_columns)
 
         if isinstance(self.low_threshold, int) and isinstance(self.high_threshold, int):
             if self.low_threshold >= self.high_threshold:
