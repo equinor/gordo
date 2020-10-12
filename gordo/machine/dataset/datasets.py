@@ -162,7 +162,9 @@ class TimeSeriesDataset(GordoBaseDataset):
             Performs a series of algorithms that drops noisy data is specified.
             See `filter_periods` class for details.
         tag_normalizer: Union[str, Callable[..., List[SensorTag]]]
-            `default` is only one suitable value for now
+            `default` is only one suitable value for now,
+            uses ``gordo.machine.dataset.sensor_tag.normalize_sensor_tags`` in this case
+
         """
         self.train_start_date = self._validate_dt(train_start_date)
         self.train_end_date = self._validate_dt(train_end_date)
