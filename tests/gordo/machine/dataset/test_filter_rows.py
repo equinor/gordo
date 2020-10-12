@@ -29,6 +29,9 @@ def test_parse_filter_vars():
     expr = "0 < index < 100"
     result = set(parse_pandas_filter_vars(expr))
     assert result == set()
+    with pytest.raises(SyntaxError):
+        expr = "`|tag` > 0"
+        parse_pandas_filter_vars(expr)
 
 
 def test_filter_rows_basic():
