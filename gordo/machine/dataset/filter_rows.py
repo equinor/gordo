@@ -117,8 +117,8 @@ def parse_pandas_filter_vars(
     Examples
     --------
     >>> vars_list = parse_pandas_filter_vars('Col1 > 0 & Col2 < 100')
-    >>> set(vars_list)
-    {'Col1', 'Col2'}
+    >>> sorted(vars_list)
+    ['Col2', 'Col1']
 
     Returns
     -------
