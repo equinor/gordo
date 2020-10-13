@@ -7,7 +7,20 @@ from gordo.machine.dataset.filter_rows import (
     pandas_filter_rows,
     parse_pandas_filter_vars,
     apply_buffer,
+    _escape_python_identifier,
+    _unescape_python_identifier,
 )
+
+test_tag = "1821.N-25LZ777-D01-U.LA_Y"
+expected_escaped_tag = "BACKTICK_QUOTED_STRING_1821_DOT_N_MINUS_25LZ777_MINUS_D01_MINUS_U_DOT_LA_UNDERSCORE_Y"
+
+
+def test_escape_python_identifier():
+    assert _escape_python_identifier(test_tag) == expected_escaped_tag
+
+
+def test_unescape_python_identifier():
+    assert _unescape_python_identifier(expected_escaped_tag) == test_tag
 
 
 def test_parse_filter_vars():
@@ -34,10 +47,6 @@ def test_parse_filter_vars():
     expr = "0 < index < 100"
     result = set(parse_pandas_filter_vars(expr))
     assert result == set()
-
-    with pytest.raises(SyntaxError):
-        expr = "`|tag` > 0"
-        parse_pandas_filter_vars(expr)
 
     expr = "sin(col1) > 10 & 0 < index < 100"
     result = set(parse_pandas_filter_vars(expr, with_special_vars=True))

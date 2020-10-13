@@ -35,6 +35,8 @@ DEFAULT_ENFORCED_DATASET_KWARGS = {
         "n_samples_threshold": 0,
         "known_filter_periods": [],
         "filter_periods": {},
+        "low_threshold": None,
+        "high_threshold": None,
     }
 }
 

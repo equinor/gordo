@@ -59,9 +59,10 @@ def test_client_get_dataset(gordo_project, metadata, ml_server):
     machine.dataset.row_filter_buffer_size = 12
     machine.dataset.n_samples_threshold = 10
     dataset = client._get_dataset(machine, start, end)
-    # DEFAULT_ENFORCED_DATASET_KWARGS should be {"row_filter_buffer_size": 0}
     assert dataset.row_filter_buffer_size == 0
     assert dataset.n_samples_threshold == 0
+    assert dataset.low_threshold is None
+    assert dataset.high_threshold is None
 
 
 def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_server):
