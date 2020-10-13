@@ -659,6 +659,11 @@ spec:
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if project_workflow %}
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
         applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"
+    tolerations:
+      - effect: NoSchedule
+        key: kubernetes.azure.com/scalesetpriority
+        operator: Equal
+        value: spot
     inputs:
       parameters:
       - name: machine-name
