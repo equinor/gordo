@@ -60,11 +60,15 @@ _escaped_chars = (
     ("}", "RBRACE"),
     ("~", "TILDE"),
     ("^", "CIRCUMFLEX"),
-    ("@", "AT")
+    ("@", "AT"),
 )
 
-_escaping_chars_dict = {escape_char: "_%s_" % escape_str for escape_char, escape_str in _escaped_chars}
-_unescaping_strings_dict = {escape_str: escape_char for escape_char, escape_str in _escaped_chars}
+_escaping_chars_dict = {
+    escape_char: "_%s_" % escape_str for escape_char, escape_str in _escaped_chars
+}
+_unescaping_strings_dict = {
+    escape_str: escape_char for escape_char, escape_str in _escaped_chars
+}
 
 _unescaping_re = re.compile(r"_([A-Z]+)_")
 
@@ -86,7 +90,7 @@ def _unescape_python_identifier(name: str) -> str:
         return m.group(0)
 
     if name.find(_escaped_prefix) == 0:
-        name = name[len(_escaped_prefix):]
+        name = name[len(_escaped_prefix) :]
     return _unescaping_re.sub(unescape_repl, name)
 
 
