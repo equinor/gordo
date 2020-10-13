@@ -1,6 +1,7 @@
 import logging
 import ast
 import tokenize
+import re
 
 
 import pandas as pd
@@ -27,31 +28,66 @@ _PANDAS_SCOPE_VARS = ("index", "columns")
 
 _special_vars = set(_PANDAS_SCOPE_VARS + _mathops)
 
+_escaped_prefix = "BACKTICK_QUOTED_STRING_"
 _escaped_chars = (
-    (" ", "_UNDERSCORE_"),
-    ("?", "_QUESTIONMARK_"),
-    ("!", "_EXCLAMATIONMARK_"),
-    ("$", "_DOLLARSIGN_"),
-    ("€", "_EUROSIGN_"),
-    ("'", "_SINGLEQUOTE_"),
-    ('"', "_DOUBLEQUOTE_"),
+    (" ", "SPACE"),
+    ("_", "UNDERSCORE"),
+    ("?", "QUESTIONMARK"),
+    ("!", "EXCLAMATIONMARK"),
+    ("$", "DOLLARSIGN"),
+    ("€", "EUROSIGN"),
+    ("'", "SINGLEQUOTE"),
+    ('"', "DOUBLEQUOTE"),
+    ("(", "LPAR"),
+    (")", "RPAR"),
+    ("[", "LSQB"),
+    ("]", "RSQB"),
+    (":", "COLON"),
+    (",", "COMMA"),
+    (";", "SEMI"),
+    ("+", "PLUS"),
+    ("-", "MINUS"),
+    ("*", "STAR"),
+    ("/", "SLASH"),
+    ("|", "VBAR"),
+    ("&", "AMPER"),
+    ("<", "LESS"),
+    (">", "GREATER"),
+    ("=", "EQUAL"),
+    (".", "DOT"),
+    ("%", "PERCENT"),
+    ("{", "LBRACE"),
+    ("}", "RBRACE"),
+    ("~", "TILDE"),
+    ("^", "CIRCUMFLEX"),
+    ("@", "AT")
 )
+
+_escaping_chars_dict = {escape_char: "_%s_" % escape_str for escape_char, escape_str in _escaped_chars}
+_unescaping_strings_dict = {escape_str: escape_char for escape_char, escape_str in _escaped_chars}
+
+_unescaping_re = re.compile(r"_([A-Z]+)_")
 
 
 def _escape_python_identifier(name: str) -> str:
     if name.isidentifier():
         return name
-    for ch, escape_str in _escaped_chars:
-        name = name.replace(ch, escape_str)
-    if not name.isidentifier():
+    result_name = "".join(_escaping_chars_dict.get(char, char) for char in name)
+    result_name = _escaped_prefix + result_name
+    if not result_name.isidentifier():
         raise SyntaxError(f"Could not convert '{name}' to a valid Python identifier.")
-    return name
+    return result_name
 
 
 def _unescape_python_identifier(name: str) -> str:
-    for ch, escape_str in _escaped_chars:
-        name = name.replace(escape_str, ch)
-    return name
+    def unescape_repl(m):
+        if m.group(1) in _unescaping_strings_dict:
+            return _unescaping_strings_dict[m.group(1)]
+        return m.group(0)
+
+    if name.find(_escaped_prefix) == 0:
+        name = name[len(_escaped_prefix):]
+    return _unescaping_re.sub(unescape_repl, name)
 
 
 def _clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
