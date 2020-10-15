@@ -1,6 +1,11 @@
 import logging
 
+from requests.adapters import HTTPAdapter, DEFAULT_POOLSIZE
+from requests import Session
+from urllib3.util.retry import Retry
+
 from azure.core.exceptions import ResourceNotFoundError
+from azure.core.pipeline.transport import RequestsTransport
 from azure.storage.filedatalake import (
     DataLakeServiceClient,
     FileSystemClient,
@@ -62,9 +67,29 @@ class ADLGen2FileSystem(FileSystem):
             account_name, file_system_name, credential, **kwargs
         )
 
+    @staticmethod
+    def create_session(pool_size: int) -> Session:
+        if pool_size < DEFAULT_POOLSIZE:
+            pool_size = DEFAULT_POOLSIZE
+        session = Session()
+        disable_retries = Retry(total=False, redirect=False, raise_on_status=False)
+        adapter = HTTPAdapter(
+            pool_connections=pool_size,
+            pool_maxsize=pool_size,
+            max_retries=disable_retries,
+        )
+        for proto in ("http://", "https://"):
+            session.mount(proto, adapter)
+        return session
+
     @classmethod
     def create_from_credential(
-        cls, account_name: str, file_system_name: str, credential: Any, **kwargs
+        cls,
+        account_name: str,
+        file_system_name: str,
+        credential: Any,
+        pool_size: Optional[int] = None,
+        **kwargs,
     ) -> "ADLGen2FileSystem":
         """
         Creates ADL Gen2 file system client.
@@ -77,14 +102,21 @@ class ADLGen2FileSystem(FileSystem):
             Container name
         credential: object
             azure.identity credential
+        pool_size: Optional[int]
+            HTTP connections pool size
 
         Returns
         -------
         ADLGen2FileSystem
         """
+        if pool_size is None:
+            pool_size = kwargs.get("max_concurrency", 1) * 2
+        session = cls.create_session(pool_size)
+        transport = RequestsTransport(session=session)
         service_client = DataLakeServiceClient(
             account_url="https://%s.dfs.core.windows.net" % account_name,
             credential=credential,
+            transport=transport,
         )
         file_system_client = service_client.get_file_system_client(
             file_system=file_system_name
