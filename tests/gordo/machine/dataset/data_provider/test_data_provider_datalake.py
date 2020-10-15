@@ -36,7 +36,9 @@ class MockFileSystem(FileSystem):
     def info(self, path: str) -> FileInfo:
         raise FileNotFoundError(path)
 
-    def ls(self, path: str, with_info: bool = True) -> Iterable[Tuple[str, Optional[FileInfo]]]:
+    def ls(
+        self, path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         pass
 
     def walk(self, base_path: str, with_info: bool = True) -> Iterable[str]:
