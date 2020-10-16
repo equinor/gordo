@@ -19,14 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 class ThreadLocalRequestTransport(RequestsTransport):
-
     def __init__(self, **kwargs):
         self.local = threading.local()
         super().__init__(**kwargs)
 
     @property
     def session(self):
-        return self.local.__dict__.get('session', None)
+        return self.local.__dict__.get("session", None)
 
     @session.setter
     def session(self, session):
@@ -112,7 +111,7 @@ class ADLGen2FileSystem(FileSystem):
         service_client = DataLakeServiceClient(
             account_url="https://%s.dfs.core.windows.net" % account_name,
             credential=credential,
-            **client_kwargs
+            **client_kwargs,
         )
         file_system_client = service_client.get_file_system_client(
             file_system=file_system_name

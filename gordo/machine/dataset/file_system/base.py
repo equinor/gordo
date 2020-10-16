@@ -28,6 +28,14 @@ class FileInfo:
         return self.file_type == FileType.DIRECTORY
 
 
+def default_join(*p) -> str:
+    if p and not p[-1]:
+        p = p[:-1]
+    if not p:
+        return ""
+    return posixpath.join(*p)
+
+
 class FileSystem(metaclass=ABCMeta):
     @property
     @abstractmethod
@@ -80,7 +88,7 @@ class FileSystem(metaclass=ABCMeta):
         ...
 
     def join(self, *p) -> str:
-        return posixpath.join(*p)
+        return default_join(*p)
 
     def split(self, p) -> Tuple[str, str]:
         return posixpath.split(p)
