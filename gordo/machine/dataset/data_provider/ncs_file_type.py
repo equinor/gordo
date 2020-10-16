@@ -64,7 +64,6 @@ def load_ncs_file_types(
     result = []
     for type_name in type_names:
         if type_name not in ncs_file_types:
-            # TODO unit tests
             raise ConfigException("Can not find file type '%s'" % type_name)
         result.append(ncs_file_types[type_name]())
     return result

@@ -32,7 +32,6 @@ class TagLocations:
     def available(self) -> bool:
         return self.locations is not None
 
-    # TODO unit tests
     def years(self) -> List[int]:
         if self.locations is None:
             return []
@@ -142,14 +141,12 @@ class NcsLookup:
                         % (asset, store_name)
                     )
                 if path_spec.reader != NCS_READER_NAME:
-                    # TODO unit test
                     raise ValueError(
                         "Assets reader name should be equal '%s' and not '%s'"
                         % (NCS_READER_NAME, path_spec.reader)
                     )
                 asset_path_specs.append((path_spec, asset_tags))
         else:
-            # TODO unit tests
             path_spec = PathSpec(NCS_READER_NAME, base_dir, "")
             asset_path_specs.append((path_spec, tags))
         for path_spec, asset_tags in asset_path_specs:

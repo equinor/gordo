@@ -1,3 +1,6 @@
+import pytest
+
+from gordo.machine.dataset.exceptions import ConfigException
 from gordo.machine.dataset.data_provider.file_type import CsvFileType, ParquetFileType
 from gordo.machine.dataset.data_provider.ncs_file_type import (
     NcsCsvFileType,
@@ -28,3 +31,8 @@ def test_load_ncs_file_types():
     ncs_file_types = load_ncs_file_types(("parquet",))
     assert len(ncs_file_types) == 1
     assert type(ncs_file_types[0]) is NcsParquetFileType
+
+
+def test_load_ncs_file_types_exception():
+    with pytest.raises(ConfigException):
+        load_ncs_file_types(["json"])

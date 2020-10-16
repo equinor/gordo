@@ -9,6 +9,7 @@ from gordo.machine.dataset.data_provider.file_type import (
     TimeSeriesColumns,
 )
 from gordo.machine.dataset.file_system import FileType, FileInfo
+from gordo.machine.dataset.file_system.base import default_join
 from gordo.machine.dataset.data_provider.ncs_lookup import (
     NcsLookup,
     TagLocations,
@@ -76,6 +77,9 @@ def dir_tree():
         ("path1/tag5", FileType.DIRECTORY),
         ("path1/tag5/parquet", FileType.DIRECTORY),
         ("path1/tag5/parquet/tag5_2020.parquet", FileType.FILE),
+        ("base/path", FileType.DIRECTORY),
+        ("base/path/tag1", FileType.DIRECTORY),
+        ("base/path/tag3", FileType.DIRECTORY),
     ]
 
 
@@ -102,7 +106,7 @@ def mock_file_system(dir_tree):
     mock.exists.side_effect = exists_side_effect
     mock.ls.side_effect = ls_side_effect
     mock.walk.side_effect = walk_side_effect
-    mock.join.side_effect = posixpath.join
+    mock.join.side_effect = default_join
     mock.split.side_effect = posixpath.split
     return mock
 
@@ -216,6 +220,8 @@ def mock_assets_config():
             return PathSpec("ncs_reader", "", "path")
         elif asset == "asset1":
             return PathSpec("ncs_reader", "", "path1")
+        elif asset == "asset5":
+            return PathSpec("iroc_reader", "", "path5")
         return None
 
     mock = MagicMock()
@@ -241,6 +247,26 @@ def test_assets_config_tags_lookup(default_ncs_lookup: NcsLookup, mock_assets_co
         (SensorTag(name="tag4", asset="asset"), None),
         (SensorTag(name="tag5", asset="asset1"), "path1/tag5"),
     ]
+
+
+def test_assets_config_tags_lookup_base_dir(
+    default_ncs_lookup: NcsLookup, mock_assets_config
+):
+    tags = [
+        SensorTag("tag1", "asset"),
+        SensorTag("tag2", "asset"),
+        SensorTag("tag3", "asset1"),
+    ]
+    result = {}
+    for tag, path in default_ncs_lookup.assets_config_tags_lookup(
+        mock_assets_config, tags, base_dir="base/path"
+    ):
+        result[tag] = path
+    assert result == {
+        SensorTag(name="tag1", asset="asset"): "base/path/tag1",
+        SensorTag(name="tag3", asset="asset1"): "base/path/tag3",
+        SensorTag(name="tag2", asset="asset"): None,
+    }
 
 
 def test_assets_config_tags_lookup_exceptions(
@@ -304,3 +330,11 @@ def test_lookup_exceptions(
                 mock_assets_config, tags, [2019, 2020], threads_count=threads_count
             )
         )
+
+
+def test_assets_config_wrong_reader(default_ncs_lookup: NcsLookup, mock_assets_config):
+    tags = [
+        SensorTag("tag4", "asset5"),
+    ]
+    with pytest.raises(ValueError):
+        list(default_ncs_lookup.assets_config_tags_lookup(mock_assets_config, tags))
