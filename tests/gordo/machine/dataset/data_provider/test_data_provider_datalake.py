@@ -41,7 +41,9 @@ class MockFileSystem(FileSystem):
     ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         pass
 
-    def walk(self, base_path: str, with_info: bool = True) -> Iterable[str]:
+    def walk(
+        self, base_path: str, with_info: bool = True
+    ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
         return []
 
 
