@@ -53,24 +53,24 @@ class NcsLookup:
     @classmethod
     def create(
         cls,
-        store: FileSystem,
+        storage: FileSystem,
         ncs_type_names: Optional[Iterable[str]] = None,
-        store_name: Optional[str] = None,
+        storage_name: Optional[str] = None,
     ) -> "NcsLookup":
         ncs_file_types = load_ncs_file_types(ncs_type_names)
-        return cls(store, ncs_file_types, store_name)
+        return cls(storage, ncs_file_types, storage_name)
 
     def __init__(
         self,
-        store: FileSystem,
+        storage: FileSystem,
         ncs_file_types: List[NcsFileType],
-        store_name: Optional[str] = None,
+        storage_name: Optional[str] = None,
     ):
-        self.store = store
+        self.storage = storage
         self.ncs_file_types = ncs_file_types
-        if store_name is None:
-            store_name = store.name
-        self.store_name = store_name
+        if storage_name is None:
+            storage_name = storage.name
+        self.storage_name = storage_name
 
     @staticmethod
     def quote_tag_name(tag_name: str) -> str:
@@ -83,9 +83,9 @@ class NcsLookup:
         for tag in tag_list:
             tag_name = self.quote_tag_name(tag.name)
             tags[tag_name] = tag
-        for path, file_info in self.store.ls(base_dir):
+        for path, file_info in self.storage.ls(base_dir):
             if file_info is not None and file_info.isdir():
-                dir_path, file_name = self.store.split(path)
+                dir_path, file_name = self.storage.split(path)
                 if file_name in tags:
                     yield tags[file_name], path
                     del tags[file_name]
@@ -95,7 +95,7 @@ class NcsLookup:
     def files_lookup(
         self, tag_dir: str, tag: SensorTag, years: Iterable[int]
     ) -> TagLocations:
-        store = self.store
+        storage = self.storage
         ncs_file_types = self.ncs_file_types
         tag_name = self.quote_tag_name(tag.name)
         not_existing_years = set(years)
@@ -103,9 +103,9 @@ class NcsLookup:
         for year in years:
             found = False
             for ncs_file_type in ncs_file_types:
-                for path in ncs_file_type.paths(store, tag_name, year):
-                    full_path = store.join(tag_dir, path)
-                    if store.exists(full_path):
+                for path in ncs_file_type.paths(storage, tag_name, year):
+                    full_path = storage.join(tag_dir, path)
+                    if storage.exists(full_path):
                         file_type = ncs_file_type.file_type
                         locations[year] = Location(full_path, file_type)
                         found = True
@@ -121,7 +121,7 @@ class NcsLookup:
         tags: List[SensorTag],
         base_dir: Optional[str] = None,
     ) -> Iterable[Tuple[SensorTag, Optional[str]]]:
-        store = self.store
+        storage = self.storage
         asset_path_specs: List[Tuple[PathSpec, List[SensorTag]]] = []
         if not base_dir:
             tag_by_assets: Dict[str, List[SensorTag]] = OrderedDict()
@@ -132,13 +132,13 @@ class NcsLookup:
                 if asset not in tag_by_assets:
                     tag_by_assets[asset] = list()
                 tag_by_assets[asset].append(tag)
-            store_name = self.store_name
+            storage_name = self.storage_name
             for asset, asset_tags in tag_by_assets.items():
-                path_spec = asset_config.get_path(store_name, asset)
+                path_spec = asset_config.get_path(storage_name, asset)
                 if path_spec is None:
                     raise ValueError(
                         "Unable to find asset '%s' in storage '%s'"
-                        % (asset, store_name)
+                        % (asset, storage_name)
                     )
                 if path_spec.reader != NCS_READER_NAME:
                     raise ValueError(
@@ -151,7 +151,7 @@ class NcsLookup:
             asset_path_specs.append((path_spec, tags))
         for path_spec, asset_tags in asset_path_specs:
             for tag, tag_dir in self.tag_dirs_lookup(
-                path_spec.full_path(store), asset_tags
+                path_spec.full_path(storage), asset_tags
             ):
                 yield tag, tag_dir
 
