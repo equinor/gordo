@@ -178,11 +178,12 @@ class NcsLookup:
         tags: List[SensorTag],
         years: Iterable[int],
         threads_count: int = 1,
+        base_dir: Optional[str] = None,
     ) -> Iterable[TagLocations]:
         if not threads_count or threads_count < 1:
             raise ConfigException("thread_count should bigger or equal to 1")
         multi_thread = threads_count > 1
-        tag_dirs = self.assets_config_tags_lookup(asset_config, tags)
+        tag_dirs = self.assets_config_tags_lookup(asset_config, tags, base_dir=base_dir)
         years_tuple = tuple(years)
         if multi_thread:
             with ThreadPoolExecutor(max_workers=threads_count) as executor:
