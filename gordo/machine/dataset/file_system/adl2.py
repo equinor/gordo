@@ -1,8 +1,5 @@
 import logging
-
-from requests.adapters import HTTPAdapter, DEFAULT_POOLSIZE
-from requests import Session
-from urllib3.util.retry import Retry
+import threading
 
 from azure.core.exceptions import ResourceNotFoundError
 from azure.core.pipeline.transport import RequestsTransport
@@ -19,6 +16,21 @@ from .base import FileSystem, FileInfo, FileType
 from .utils import get_env_secret_values
 
 logger = logging.getLogger(__name__)
+
+
+class ThreadLocalRequestTransport(RequestsTransport):
+
+    def __init__(self, **kwargs):
+        self.local = threading.local()
+        super().__init__(**kwargs)
+
+    @property
+    def session(self):
+        return self.local.__dict__.get('session', None)
+
+    @session.setter
+    def session(self, session):
+        self.local.session = session
 
 
 class ADLGen2FileSystem(FileSystem):
@@ -67,28 +79,13 @@ class ADLGen2FileSystem(FileSystem):
             account_name, file_system_name, credential, **kwargs
         )
 
-    @staticmethod
-    def create_session(pool_size: int) -> Session:
-        if pool_size < DEFAULT_POOLSIZE:
-            pool_size = DEFAULT_POOLSIZE
-        session = Session()
-        disable_retries = Retry(total=False, redirect=False, raise_on_status=False)
-        adapter = HTTPAdapter(
-            pool_connections=pool_size,
-            pool_maxsize=pool_size,
-            max_retries=disable_retries,
-        )
-        for proto in ("http://", "https://"):
-            session.mount(proto, adapter)
-        return session
-
     @classmethod
     def create_from_credential(
         cls,
         account_name: str,
         file_system_name: str,
         credential: Any,
-        pool_size: Optional[int] = None,
+        use_thread_local_transport: bool = True,
         **kwargs,
     ) -> "ADLGen2FileSystem":
         """
@@ -102,21 +99,20 @@ class ADLGen2FileSystem(FileSystem):
             Container name
         credential: object
             azure.identity credential
-        pool_size: Optional[int]
-            HTTP connections pool size
+        use_thread_local_transport: bool
+            Use ``ThreadLocalRequestTransport`` as HTTP transport
 
         Returns
         -------
         ADLGen2FileSystem
         """
-        if pool_size is None:
-            pool_size = kwargs.get("max_concurrency", 1) * 2
-        session = cls.create_session(pool_size)
-        transport = RequestsTransport(session=session)
+        client_kwargs = {}
+        if use_thread_local_transport:
+            client_kwargs["transport"] = ThreadLocalRequestTransport()
         service_client = DataLakeServiceClient(
             account_url="https://%s.dfs.core.windows.net" % account_name,
             credential=credential,
-            transport=transport,
+            **client_kwargs
         )
         file_system_client = service_client.get_file_system_client(
             file_system=file_system_name
@@ -196,7 +192,7 @@ class ADLGen2FileSystem(FileSystem):
         else:
             file_type = FileType.FILE
         size = path_properties.content_length if path_properties.content_length else 0
-        # TODO taking into account path_properties.last_modified. Example: 'Mon, 07 Sep 2020 12:01:14 GMT'
+        # TODO taking into account attribute path_properties.last_modified. Example: 'Mon, 07 Sep 2020 12:01:14 GMT'
         return FileInfo(file_type, size)
 
     def ls(
