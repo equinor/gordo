@@ -9,7 +9,8 @@ import pytest
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.data_provider import providers
 from gordo.machine.dataset.data_provider.providers import (
-    load_series_from_multiple_providers, DataLakeProvider,
+    load_series_from_multiple_providers,
+    DataLakeProvider,
 )
 from gordo.machine.dataset.file_system.adl2 import ADLGen2FileSystem
 from gordo.machine.dataset.exceptions import ConfigException
@@ -150,9 +151,5 @@ def test_data_provider_get_storage():
 def test_data_provider_deprecated_argument():
     with pytest.raises(ConfigException):
         DataLakeProvider(
-            storage={
-                "type": "adl2",
-            },
-            store_name="test",
-            interactive=True,
+            storage={"type": "adl2",}, store_name="test", interactive=True,
         )
