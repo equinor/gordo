@@ -59,8 +59,6 @@ def load_series_from_multiple_providers(
         reader: [] for reader in data_providers
     }  # type: typing.Dict[GordoBaseDataProvider, typing.List[SensorTag]]
 
-    for tag_reader in data_providers:
-        print(vars(tag_reader))
     for tag in tag_list:
         for tag_reader in data_providers:
             if tag_reader.can_handle_tag(tag):
