@@ -136,12 +136,10 @@ class DataLakeProvider(GordoBaseDataProvider):
         .. deprecated::
             Arguments `interactive`, `storename`, `dl_service_auth_str`
         """
-        self.storage = storage
         if assets_config is None:
             assets_config = load_assets_config()
         self.assets_config = assets_config
         self.kwargs = kwargs
-        self.lock = threading.Lock()
 
         # This arguments only preserved for back-compatibility reasons and will be removed in future versions of gordo
         self.adl1_kwargs: Dict[str, Any] = {}
@@ -151,6 +149,8 @@ class DataLakeProvider(GordoBaseDataProvider):
             self.adl1_kwargs["store_name"] = storename
         if dl_service_auth_str is not None:
             self.adl1_kwargs["dl_service_auth_str"] = dl_service_auth_str
+
+        self.storage = self._normalize_storage(storage)
 
     def load_series(
         self,
@@ -191,28 +191,14 @@ class DataLakeProvider(GordoBaseDataProvider):
                 )
         return kwarg
 
-    def _normalize_storage(self):
-        storage = self.storage
-        if isinstance(self.storage, dict):
+    def _normalize_storage(self, storage):
+        if isinstance(storage, dict):
             storage_type = storage.pop("type", DEFAULT_STORAGE_TYPE)
             storage = self._adl1_back_compatible_kwarg(storage_type, storage)
             return create_storage(storage_type, **storage)
-        return storage
-
-    def _get_storage(self):
-        logger.debug("Acquiring threading lock for Datalake authentication.")
-        # TODO do we need this lock for ADL Gen2?.
-        #  Looks like all authorization stuff happening in a lazy way for this case,
-        #  so all race conditions should be resolved somewhere in azure.storage.filedatalake module?
-        with self.lock:
-            if not self.storage:
-                self.storage = self._normalize_storage()
-        logger.debug("Released threading lock for Datalake authentication.")
-
-        return self.storage
 
     def _get_sub_dataproviders(self):
-        storage = self._get_storage()
+        storage = self.storage
         assets_config = self.assets_config
         data_providers = []
         for t_reader in DataLakeProvider._SUB_READER_CLASSES:

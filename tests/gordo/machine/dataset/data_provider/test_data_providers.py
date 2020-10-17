@@ -9,8 +9,10 @@ import pytest
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.machine.dataset.data_provider import providers
 from gordo.machine.dataset.data_provider.providers import (
-    load_series_from_multiple_providers,
+    load_series_from_multiple_providers, DataLakeProvider,
 )
+from gordo.machine.dataset.file_system.adl2 import ADLGen2FileSystem
+from gordo.machine.dataset.exceptions import ConfigException
 from gordo.machine.dataset.sensor_tag import SensorTag
 
 
@@ -128,3 +130,29 @@ def test_data_provider_serializations(
     # Should be able to recreate the object from encoded directly
     cloned = provider.__class__.from_dict(encoded)
     assert type(cloned) == type(provider)
+
+
+def test_data_provider_get_storage():
+    provider = DataLakeProvider(
+        storage={
+            "type": "adl2",
+            "account_name": "test",
+            "file_system_name": "test",
+            "interactive": True,
+        }
+    )
+    storage = provider.storage
+    assert type(storage) is ADLGen2FileSystem
+    assert storage.account_name == "test"
+    assert storage.file_system_name == "test"
+
+
+def test_data_provider_deprecated_argument():
+    with pytest.raises(ConfigException):
+        DataLakeProvider(
+            storage={
+                "type": "adl2",
+            },
+            store_name="test",
+            interactive=True,
+        )
