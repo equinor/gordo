@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import random
 import logging
-import threading
 import timeit
 
 from datetime import datetime
