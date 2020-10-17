@@ -39,7 +39,7 @@ class MockFileSystem(FileSystem):
     def ls(
         self, path: str, with_info: bool = True
     ) -> Iterable[Tuple[str, Optional[FileInfo]]]:
-        pass
+        return []
 
     def walk(
         self, base_path: str, with_info: bool = True
@@ -76,26 +76,6 @@ def dataset_config(mock_file_system, mock_assets_config):
             storage=mock_file_system, assets_config=mock_assets_config
         ),
     }
-
-
-def test_get_data_serviceauth_fail(
-    caplog, dataset_config, mock_file_system, mock_assets_config
-):
-    train_start_date = dateutil.parser.isoparse("2017-01-01T08:56:00+00:00")
-    train_end_date = dateutil.parser.isoparse("2017-01-01T10:01:00+00:00")
-
-    dataset_config["train_start_date"] = train_start_date
-    dataset_config["train_end_date"] = train_end_date
-    dataset_config["data_provider"] = DataLakeProvider(
-        storage=mock_file_system,
-        assets_config=mock_assets_config,
-        dl_service_auth_str="TENTANT_UNKNOWN:BOGUS:PASSWORD",
-    )
-
-    dl_backed = dataset._get_dataset(dataset_config)
-
-    with pytest.raises(FileNotFoundError), caplog.at_level(logging.CRITICAL):
-        dl_backed.get_data()
 
 
 def test_init(dataset_config):
