@@ -142,7 +142,7 @@ def test_data_provider_get_storage():
             "interactive": True,
         }
     )
-    storage = provider.storage
+    storage = provider._get_storage_instance()
     assert type(storage) is ADLGen2FileSystem
     assert storage.account_name == "test"
     assert storage.file_system_name == "test"
@@ -150,6 +150,7 @@ def test_data_provider_get_storage():
 
 def test_data_provider_deprecated_argument():
     with pytest.raises(ConfigException):
-        DataLakeProvider(
+        provider = DataLakeProvider(
             storage={"type": "adl2",}, store_name="test", interactive=True,
         )
+        provider._get_storage_instance()
