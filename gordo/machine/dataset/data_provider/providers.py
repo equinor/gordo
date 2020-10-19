@@ -189,6 +189,8 @@ class DataLakeProvider(GordoBaseDataProvider):
         return kwarg
 
     def _normalize_storage(self, storage):
+        if storage is None:
+            storage = {}
         if isinstance(storage, dict):
             storage_type = storage.pop("type", DEFAULT_STORAGE_TYPE)
             storage = self._adl1_back_compatible_kwarg(storage_type, storage)
