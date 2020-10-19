@@ -164,6 +164,19 @@ class NcsReader(GordoBaseDataProvider):
     def read_tag_locations(
         self, tag_locations: TagLocations, dry_run: Optional[bool] = False
     ) -> pd.Series:
+        """
+        Reads all data from files in ``tag_locations``
+
+        Parameters
+        ----------
+        tag_locations: TagLocations
+        dry_run: bool
+
+        Returns
+        -------
+        pd.Series
+
+        """
         tag = tag_locations.tag
         years = tag_locations.years()
 

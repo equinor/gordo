@@ -119,6 +119,8 @@ class DataLakeProvider(GordoBaseDataProvider):
         ----------
         storage: Optional[Union[FileSystem, Dict[str, Any]]]
             DataLake config. The structure depends on which DataLake you are going to use.
+        assets_config: Optional[AssetsConfig]
+            Uses assets config from `gordo.machine.data_provider.resources` by default
         interactive: bool
             To perform authentication interactively, or attempt to do it a
             automatically, in such a case must provide 'del_service_authS_tr'

@@ -11,17 +11,38 @@ time_series_columns = TimeSeriesColumns("Time", "Value", "Status")
 
 
 class NcsFileType(metaclass=ABCMeta):
+    """
+    Represents logic about finding files of one particular type for ``NcsLookup``
+    """
     @property
     @abstractmethod
     def file_type(self) -> FileType:
+
         ...
 
     @abstractmethod
     def paths(self, fs: FileSystem, tag_name: str, year: int) -> Iterable[str]:
+        """
+        Possible file paths for this file type. These paths should be relational to the tag directory
+
+        Parameters
+        ----------
+        fs: FileSystem
+        tag_name: str
+        year: int
+
+        Returns
+        -------
+        Iterable[str]
+
+        """
         ...
 
 
 class NcsParquetFileType(NcsFileType):
+    """
+    NCS parquet files finder
+    """
     def __init__(self):
         self._file_type = ParquetFileType(time_series_columns)
 
@@ -35,6 +56,9 @@ class NcsParquetFileType(NcsFileType):
 
 
 class NcsCsvFileType(NcsFileType):
+    """
+    NCS CSV files finder
+    """
     def __init__(self):
         header = ["Sensor", "Value", "Time", "Status"]
         self._file_type = CsvFileType(header, time_series_columns)
@@ -59,6 +83,19 @@ DEFAULT_TYPE_NAMES = ("parquet", "csv")
 def load_ncs_file_types(
     type_names: Optional[Iterable[str]] = None,
 ) -> List[NcsFileType]:
+    """
+    Returns list of ``NcsFileType`` instances from names of those types
+
+    Parameters
+    ----------
+    type_names: Optional[Iterable[str]]
+        List of ``NcsFileType`` names. Only supporting `parquet` and `csv` names values
+
+    Returns
+    -------
+    List[NcsFileType]
+
+    """
     if type_names is None:
         type_names = DEFAULT_TYPE_NAMES
     result = []

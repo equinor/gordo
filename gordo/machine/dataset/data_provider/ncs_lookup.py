@@ -20,12 +20,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Location:
+    """
+    Represents location of the tag in the data lake
+    """
     path: str
     file_type: FileType
 
 
 @dataclass(frozen=True)
 class TagLocations:
+    """
+    Locations of the tags for each year
+    """
     tag: SensorTag
     locations: Optional[Dict[int, Location]] = None
 
@@ -50,6 +56,9 @@ class TagLocations:
 
 
 class NcsLookup:
+    """
+    Class which could be used for finding tags data in the data lake storage
+    """
     @classmethod
     def create(
         cls,
@@ -79,6 +88,20 @@ class NcsLookup:
     def tag_dirs_lookup(
         self, base_dir: str, tag_list: List[SensorTag]
     ) -> Iterable[Tuple[SensorTag, Optional[str]]]:
+        """
+        Takes list of tags and find directories related to them in the data lake storage
+
+        Parameters
+        ----------
+        base_dir: str
+            Base directory where all of the tags are placed
+        tag_list: List[SensorTag]
+            List of the tags
+
+        Returns
+        -------
+
+        """
         tags = {}
         for tag in tag_list:
             tag_name = self.quote_tag_name(tag.name)
@@ -95,6 +118,21 @@ class NcsLookup:
     def files_lookup(
         self, tag_dir: str, tag: SensorTag, years: Iterable[int]
     ) -> TagLocations:
+        """
+        Finds files (possible parquet or CSV) in tag directory in the data lake storage
+
+        Parameters
+        ----------
+        tag_dir: str
+        tag: SensorTag
+        years: Iterable[int]
+            List of the years for finding files
+
+        Returns
+        -------
+        TagLocations
+
+        """
         storage = self.storage
         ncs_file_types = self.ncs_file_types
         tag_name = self.quote_tag_name(tag.name)
@@ -121,6 +159,19 @@ class NcsLookup:
         tags: List[SensorTag],
         base_dir: Optional[str] = None,
     ) -> Iterable[Tuple[SensorTag, Optional[str]]]:
+        """
+        Takes assets paths from ``AssetsConfig`` and find tag paths in the data lake storage
+
+        Parameters
+        ----------
+        asset_config: AssetsConfig
+        tags: List[SensorTag]
+        base_dir: Optional[str]
+
+        Returns
+        -------
+
+        """
         storage = self.storage
         asset_path_specs: List[Tuple[PathSpec, List[SensorTag]]] = []
         if not base_dir:
@@ -177,6 +228,22 @@ class NcsLookup:
         threads_count: int = 1,
         base_dir: Optional[str] = None,
     ) -> Iterable[TagLocations]:
+        """
+        Takes assets paths from ``AssetsConfig`` and find tags files paths in the data lake storage
+
+        Parameters
+        ----------
+        asset_config: AssetsConfig
+        tags: List[SensorTag]
+        years: Iterable[int]
+        threads_count: int
+            Number of threads for internal `ThreadPool`. Do not uses thread pool if 1
+        base_dir: Optional[str]
+
+        Returns
+        -------
+
+        """
         if not threads_count or threads_count < 1:
             raise ConfigException("thread_count should bigger or equal to 1")
         multi_thread = threads_count > 1
