@@ -3,6 +3,7 @@
 import abc
 
 from datetime import datetime
+from copy import copy
 from typing import Iterable, List, Optional
 
 import pandas as pd
@@ -83,7 +84,12 @@ class GordoBaseDataProvider(object):
     def from_dict(cls, config: dict) -> "GordoBaseDataProvider":
         from gordo.machine.dataset.data_provider import providers
 
-        Provider = getattr(providers, config.get("type", "DataLakeProvider"))
+        provider_type = "DataLakeProvider"
+        if "type" in config:
+            config = copy(config)
+            provider_type = config.pop("type")
+
+        Provider = getattr(providers, provider_type)
         if Provider is None:
             raise TypeError(f"No data provider of type '{config['type']}'")
         return Provider(**config)

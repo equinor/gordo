@@ -380,7 +380,7 @@ class RandomDataProvider(GordoBaseDataProvider):
         return True  # We can be random about everything
 
     @capture_args
-    def __init__(self, min_size=100, max_size=300, **kwargs):
+    def __init__(self, min_size=100, max_size=300):
         self.max_size = max_size
         self.min_size = min_size
         np.random.seed(0)
