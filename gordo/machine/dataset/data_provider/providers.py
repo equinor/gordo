@@ -195,9 +195,10 @@ class DataLakeProvider(GordoBaseDataProvider):
         if storage is None:
             storage = {}
         if isinstance(storage, dict):
-            storage_type = storage.pop("type", DEFAULT_STORAGE_TYPE)
-            storage = self._adl1_back_compatible_kwarg(storage_type, storage)
-            return create_storage(storage_type, **storage)
+            kwargs = copy(storage)
+            storage_type = kwargs.pop("type", DEFAULT_STORAGE_TYPE)
+            kwargs = self._adl1_back_compatible_kwarg(storage_type, kwargs)
+            return create_storage(storage_type, **kwargs)
         return storage
 
     def _get_storage_instance(self) -> FileSystem:
