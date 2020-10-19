@@ -3,39 +3,52 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from dateutil import tz
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, cast
 
 import pandas as pd
-from azure.datalake.store import core
 
-from gordo.machine.dataset.data_provider.azure_utils import walk_azure
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
+from gordo.machine.dataset.file_system.base import FileSystem, FileType
 from gordo.machine.dataset.sensor_tag import SensorTag
 from gordo.machine.dataset.sensor_tag import to_list_of_strings
 from gordo.util import capture_args
+
+from .assets_config import AssetsConfig
 
 logger = logging.getLogger(__name__)
 
 
 class IrocReader(GordoBaseDataProvider):
-    ASSET_TO_PATH = {
-        "ninenine": "/raw/plant/uon/cygnet/ninenine/history",
-        "uon_ef": "/raw/plant/uon/cygnet/efd/history",
-    }
-
     def can_handle_tag(self, tag: SensorTag):
-        return IrocReader.base_path_from_asset(tag.asset) is not None
+        return self.base_path_from_asset(tag.asset) is not None
 
     @capture_args
-    def __init__(self, client: core.AzureDLFileSystem, threads: int = 50, **kwargs):
+    def __init__(
+        self,
+        storage: Optional[FileSystem],
+        assets_config: Optional[AssetsConfig],
+        threads: int = 50,
+        storage_name: Optional[str] = None,
+    ):
         """
         Creates a reader for tags from IROC.
         """
-        self.client = client
+        self.storage = storage
+        self.assets_config = assets_config
         self.threads = threads
         if self.threads is None:
             self.threads = 50
+        if storage_name is None and storage is not None:
+            storage_name = storage.name
+        self.storage_name = storage_name
         logger.info(f"Starting IROC reader with {self.threads} threads")
+
+    @property
+    def reader_name(self) -> str:
+        """
+        Property used for validating result of `AssetsConfig.get_path()`
+        """
+        return "iroc_reader"
 
     def load_series(
         self,
@@ -58,7 +71,7 @@ class IrocReader(GordoBaseDataProvider):
             )
 
         base_paths_from_assets = list(
-            map(lambda tag: IrocReader.base_path_from_asset(tag.asset), tag_list)
+            map(lambda tag: self.base_path_from_asset(tag.asset), tag_list)
         )
         if len(set(base_paths_from_assets)) != 1:
             raise ValueError(
@@ -113,9 +126,11 @@ class IrocReader(GordoBaseDataProvider):
     ):
         # Generator over all files in all of the base_paths
         def _all_files():
-            for b_path in all_base_paths:
-                for f in walk_azure(client=self.client, base_path=b_path):
-                    yield f
+            if self.storage is not None:
+                for b_path in all_base_paths:
+                    for path, file_info in self.storage.walk(b_path):
+                        if file_info.file_type == FileType.FILE:
+                            yield path
 
         with ThreadPoolExecutor(max_workers=self.threads) as executor:
             # Pandas.concat makes the generator into a list anyway, so no extra memory
@@ -138,12 +153,14 @@ class IrocReader(GordoBaseDataProvider):
     def _read_iroc_df_from_azure(
         self, file_path, train_start_date: datetime, train_end_date: datetime, tag_list
     ):
-        adls_file_system_client = self.client
+        storage = self.storage
+        if storage is None:
+            return None
 
         logger.info("Attempting to open IROC file {}".format(file_path))
 
         try:
-            with adls_file_system_client.open(file_path, "rb") as f:
+            with storage.open(file_path, "rb") as f:
                 logger.info("Parsing file {}".format(file_path))
                 df = read_iroc_file(f, train_start_date, train_end_date, tag_list)
             return df
@@ -151,28 +168,30 @@ class IrocReader(GordoBaseDataProvider):
             logger.warning(f"Problem parsing file {file_path}, skipping.")
             return None
 
-    @staticmethod
-    def base_path_from_asset(asset: str):
+    def base_path_from_asset(self, asset: str):
         """
         Resolves an asset code to the datalake basepath containing the data.
         Returns None if it does not match any of the asset codes we know.
         """
         if not asset:
             return None
+        if self.assets_config is None:
+            return None
 
         logger.debug(f"Looking for match for asset {asset}")
         asset = asset.lower()
-        if asset not in IrocReader.ASSET_TO_PATH:
-            logger.warning(
-                f"Could not find match for asset {asset} in the list of "
-                f"supported assets: {IrocReader.ASSET_TO_PATH.keys()}"
-            )
-            return None
-
-        logger.debug(
-            f"Found asset code {asset}, returning {IrocReader.ASSET_TO_PATH[asset]}"
+        assets_config = self.assets_config
+        path_spec = cast(AssetsConfig, assets_config).get_path(
+            cast(str, self.storage_name), asset
         )
-        return IrocReader.ASSET_TO_PATH[asset]
+        if path_spec is None:
+            return None
+        if path_spec.reader != self.reader_name:
+            return None
+        full_path = path_spec.full_path(cast(FileSystem, self.storage))
+
+        logger.debug(f"Found asset code {asset}, returning {full_path}")
+        return full_path
 
 
 def read_iroc_file(

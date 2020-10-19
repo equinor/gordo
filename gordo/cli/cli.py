@@ -11,6 +11,7 @@ import traceback
 from gordo.machine.dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo.machine.dataset.sensor_tag import SensorTagNormalizationError
 from gordo.machine.dataset.base import InsufficientDataError, ConfigurationError
+from gordo.machine.dataset.exceptions import ConfigException
 from gunicorn.glogging import Logger
 from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 
@@ -42,6 +43,7 @@ _exceptions_reporter = ExceptionsReporter(
         (InsufficientDataError, 80),
         (ConfigurationError, 81),
         (ReporterException, 90),
+        (ConfigException, 100),
     )
 )
 

@@ -230,7 +230,7 @@ def test_overrides_builder_datasource(path_to_config_files):
     )["dataset"]["data_provider"]
 
     # This value must be changed if we change the default values
-    assert {"type": "RandomDataProvider", "threads": 15} == yaml.safe_load(
+    assert {"type": "RandomDataProvider"} == yaml.safe_load(
         model_builder_machine_2_env["machine"]
     )["dataset"]["data_provider"]
 

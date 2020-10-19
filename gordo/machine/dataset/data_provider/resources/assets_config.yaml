@@ -1,0 +1,208 @@
+storages:
+  dataplatformdlsprod:
+  - base_dir: /raw/corporate
+    reader: ncs_reader
+    assets:
+    - name: 1100-sfa
+      path: IMS Statfjord/sensordata/1100-SFA
+    - name: 1101-sfb
+      path: IMS Statfjord/sensordata/1101-SFB
+    - name: 1102-sfc
+      path: IMS Statfjord/sensordata/1102-SFC
+    - name: 1110-gfa
+      path: Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA
+    - name: 1111-gfb
+      path: Aspen MS - IP21 Gullfaks B/sensordata/1111-GFB
+    - name: 1112-gfc
+      path: Aspen MS - IP21 Gullfaks C/sensordata/1112-GFC
+    - name: 1120-vfr
+      path: Aspen MS - IP21 Veslefrikk/sensordata/1120-VFR
+    - name: 1125-kvb
+      path: PI System Operation Norway/sensordata/1125-KVB
+    - name: 1130-troa
+      path: Aspen MS - IP21 Troll A/sensordata/1130-TROA
+    - name: 1138-val
+      path: PI System Operation Norway/sensordata/1138-VAL
+    - name: 1140-sla
+      path: PI System Manager Sleipner/sensordata/1140-SLA
+    - name: 1141-slt
+      path: PI System Manager Sleipner/sensordata/1141-SLT
+    - name: 1142-slb
+      path: PI System Manager Sleipner/sensordata/1142-SLB
+    - name: 1163-gdr
+      path: PI System Manager Sleipner/sensordata/1163-GDR
+    - name: 1170-hd
+      path: PI System Operation North/sensordata/1170-HD
+    - name: 1175-kri
+      path: PI System Operation North/sensordata/1175-KRI
+    - name: 1175-kris
+      path: PI System Operation North/sensordata/1175-KRIS
+    - name: 1180-nor
+      path: PI System Operation North/sensordata/1180-NOR
+    - name: 1190-asga
+      path: PI System Operation North/sensordata/1190-ASGA
+    - name: 1191-asgb
+      path: PI System Operation North/sensordata/1191-ASGB
+    - name: 1192-asgs
+      path: PI System Operation North/sensordata/1192-ASGS
+    - name: 1218-gkr
+      path: PI System Manager Sleipner/sensordata/1218-GKR
+    - name: 1219-aha
+      path: PI System Operation Mam/sensordata/1219-AHA
+    - name: 1220-sna
+      path: IMS Snorre A/sensordata/1220-SNA
+    - name: 1221-snb
+      path: IMS Snorre B/sensordata/1221-SNB
+    - name: 1230-vis
+      path: Aspen MS - IP21 Visund/sensordata/1230-VIS
+    - name: 1294-pera
+      path: Aspen MS - IP21 Peregrino/sensordata/1294-PERA
+    - name: 1295-pera
+      path: Aspen MS - IP21 Peregrino/sensordata/1295-PERA
+    - name: 1298-perb
+      path: Aspen MS - IP21 Peregrino/sensordata/1298-PERB
+    - name: 1299-per
+      path: Aspen MS - IP21 Peregrino/sensordata/1299-PERF
+    - name: 1299-perf
+      path: Aspen MS - IP21 Peregrino/sensordata/1299-PERF
+    - name: 1340-met
+      path: PI System Operation Norway/sensordata/1340-MET
+    - name: 1380-sno
+      path: Aspen MS - IP21 Hammerfest/sensordata/1380-SNO
+    - name: 1755-gra
+      path: Aspen MS - IP21 Grane/sensordata/1755-GRA
+    - name: 1760-hea
+      path: PI System Operation Norway/sensordata/1760-HEA
+    - name: 1765-osc
+      path: Aspen MS - IP21 Oseberg C/sensordata/1765-OSC
+    - name: 1766-oss
+      path: Aspen MS - IP21 Oseberg South/sensordata/1766-OSS
+    - name: 1767-ose
+      path: Aspen MS - IP21 Oseberg East/sensordata/1767-OSE
+    - name: 1772-osa
+      path: Aspen MS - IP21 Oseberg Field Center/sensordata/1772-OSA
+    - name: 1774-osd
+      path: Aspen MS - IP21 Oseberg Field Center/sensordata/1774-OSD
+    - name: 1775-trob
+      path: Aspen MS - IP21 Troll B/sensordata/1775-TROB
+    - name: 1776-troc
+      path: Aspen MS - IP21 Troll C/sensordata/1776-TROC
+    - name: 1886-mara
+      path: PI System Operation Mam/sensordata/1886-MARA
+    - name: 1900-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1900-JSV
+    - name: 1901-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1901-JSV
+    - name: 1902-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1902-JSV
+    - name: 1903-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1903-JSV
+    - name: 1904-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1904-JSV
+  - base_dir: /raw/plant/uon/cygnet
+    reader: iroc_reader
+    assets:
+    - name: ninenine
+      path: ninenine/history
+    - name: uon_ef
+      path: efd/history
+  dls@omniadlseun:
+  - base_dir: /raw/data
+    reader: ncs_reader
+    assets:
+    - name: 1100-sfa
+      path: IMS Statfjord/sensordata/1100-SFA
+    - name: 1101-sfb
+      path: IMS Statfjord/sensordata/1101-SFB
+    - name: 1102-sfc
+      path: IMS Statfjord/sensordata/1102-SFC
+    - name: 1110-gfa
+      path: Aspen MS - IP21 Gullfaks A/sensordata/1110-GFA
+    - name: 1111-gfb
+      path: Aspen MS - IP21 Gullfaks B/sensordata/1111-GFB
+    - name: 1112-gfc
+      path: Aspen MS - IP21 Gullfaks C/sensordata/1112-GFC
+    - name: 1120-vfr
+      path: Aspen MS - IP21 Veslefrikk/sensordata/1120-VFR
+    - name: 1125-kvb
+      path: PI System Operation Norway/sensordata/1125-KVB
+    - name: 1130-troa
+      path: Aspen MS - IP21 Troll A/sensordata/1130-TROA
+    - name: 1138-val
+      path: PI System Operation Norway/sensordata/1138-VAL
+    - name: 1140-sla
+      path: PI System Manager Sleipner/sensordata/1140-SLA
+    - name: 1141-slt
+      path: PI System Manager Sleipner/sensordata/1141-SLT
+    - name: 1142-slb
+      path: PI System Manager Sleipner/sensordata/1142-SLB
+    - name: 1163-gdr
+      path: PI System Manager Sleipner/sensordata/1163-GDR
+    - name: 1170-hd
+      path: PI System Operation North/sensordata/1170-HD
+    - name: 1175-kri
+      path: PI System Operation North/sensordata/1175-KRI
+    - name: 1175-kris
+      path: PI System Operation North/sensordata/1175-KRIS
+    - name: 1180-nor
+      path: PI System Operation North/sensordata/1180-NOR
+    - name: 1190-asga
+      path: PI System Operation North/sensordata/1190-ASGA
+    - name: 1191-asgb
+      path: PI System Operation North/sensordata/1191-ASGB
+    - name: 1192-asgs
+      path: PI System Operation North/sensordata/1192-ASGS
+    - name: 1218-gkr
+      path: PI System Manager Sleipner/sensordata/1218-GKR
+    - name: 1219-aha
+      path: PI System Operation Mam/sensordata/1219-AHA
+    - name: 1220-sna
+      path: IMS Snorre A/sensordata/1220-SNA
+    - name: 1221-snb
+      path: IMS Snorre B/sensordata/1221-SNB
+    - name: 1230-vis
+      path: Aspen MS - IP21 Visund/sensordata/1230-VIS
+    - name: 1294-pera
+      path: Aspen MS - IP21 Peregrino/sensordata/1294-PERA
+    - name: 1295-pera
+      path: Aspen MS - IP21 Peregrino/sensordata/1295-PERA
+    - name: 1298-perb
+      path: Aspen MS - IP21 Peregrino/sensordata/1298-PERB
+    - name: 1299-per
+      path: Aspen MS - IP21 Peregrino/sensordata/1299-PERF
+    - name: 1299-perf
+      path: Aspen MS - IP21 Peregrino/sensordata/1299-PERF
+    - name: 1340-met
+      path: PI System Operation Norway/sensordata/1340-MET
+    - name: 1380-sno
+      path: Aspen MS - IP21 Hammerfest/sensordata/1380-SNO
+    - name: 1755-gra
+      path: Aspen MS - IP21 Grane/sensordata/1755-GRA
+    - name: 1760-hea
+      path: PI System Operation Norway/sensordata/1760-HEA
+    - name: 1765-osc
+      path: Aspen MS - IP21 Oseberg C/sensordata/1765-OSC
+    - name: 1766-oss
+      path: Aspen MS - IP21 Oseberg South/sensordata/1766-OSS
+    - name: 1767-ose
+      path: Aspen MS - IP21 Oseberg East/sensordata/1767-OSE
+    - name: 1772-osa
+      path: Aspen MS - IP21 Oseberg Field Center/sensordata/1772-OSA
+    - name: 1774-osd
+      path: Aspen MS - IP21 Oseberg Field Center/sensordata/1774-OSD
+    - name: 1775-trob
+      path: Aspen MS - IP21 Troll B/sensordata/1775-TROB
+    - name: 1776-troc
+      path: Aspen MS - IP21 Troll C/sensordata/1776-TROC
+    - name: 1886-mara
+      path: PI System Operation Mam/sensordata/1886-MARA
+    - name: 1900-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1900-JSV
+    - name: 1901-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1901-JSV
+    - name: 1902-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1902-JSV
+    - name: 1903-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1903-JSV
+    - name: 1904-jsv
+      path: PI System Operation Johan Sverdrup/sensordata/1904-JSV

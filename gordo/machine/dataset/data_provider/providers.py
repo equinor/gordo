@@ -1,25 +1,30 @@
 # -*- coding: utf-8 -*-
-import os
 import random
 import logging
-import threading
 import timeit
 
 from datetime import datetime
 import typing
+from typing import Dict, Union, Any, Optional
+from copy import copy
 
 from cachetools import cached, TTLCache
 import numpy as np
 import pandas as pd
 from influxdb import DataFrameClient
 
-from gordo.machine.dataset.data_provider.azure_utils import create_adls_client
+from gordo.machine.dataset.file_system import FileSystem
 from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
 from gordo.util import capture_args
 
 from gordo.machine.dataset.data_provider.iroc_reader import IrocReader
 from gordo.machine.dataset.data_provider.ncs_reader import NcsReader
 from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo.machine.dataset.exceptions import ConfigException
+
+from .storages import create_storage, DEFAULT_STORAGE_TYPE
+from .assets_config import AssetsConfig
+from .resource_assets_config import load_assets_config
 
 
 logger = logging.getLogger(__name__)
@@ -100,9 +105,11 @@ class DataLakeProvider(GordoBaseDataProvider):
     @capture_args
     def __init__(
         self,
-        storename: str = "dataplatformdlsprod",
-        interactive: bool = False,
-        dl_service_auth_str: str = None,
+        storage: Optional[Union[FileSystem, Dict[str, Any]]] = None,
+        assets_config: Optional[AssetsConfig] = None,
+        interactive: Optional[bool] = None,
+        storename: Optional[str] = None,
+        dl_service_auth_str: Optional[str] = None,
         **kwargs,
     ):
         """
@@ -110,26 +117,40 @@ class DataLakeProvider(GordoBaseDataProvider):
 
         Parameters
         ----------
-        storename
-            The store name to read data from
+        storage: Optional[Union[FileSystem, Dict[str, Any]]]
+            DataLake config. The structure depends on which DataLake you are going to use.
+        assets_config: Optional[AssetsConfig]
+            Uses assets config from `gordo.machine.data_provider.resources` by default
         interactive: bool
             To perform authentication interactively, or attempt to do it a
             automatically, in such a case must provide 'del_service_authS_tr'
-            parameter or as 'DL_SERVICE_AUTH_STR' env var.
+            parameter or as 'DL_SERVICE_AUTH_STR' env var. Only for DataLake Gen1 and will be deprecated in new versions
+        storename
+            The store name to read data from. Only for DataLake Gen1 and will be deprecated in new versions
         dl_service_auth_str: Optional[str]
             string on the format 'tenant_id:service_id:service_secret'. To
             perform authentication automatically; will default to
-            DL_SERVICE_AUTH_STR env var or None
+            DL_SERVICE_AUTH_STR env var or None. Only for DataLake Gen1 and will be deprecated in new versions
 
+        .. deprecated::
+            Arguments `interactive`, `storename`, `dl_service_auth_str`
         """
-        self.storename = storename
-        self.interactive = interactive
-        self.dl_service_auth_str = dl_service_auth_str or os.environ.get(
-            "DL_SERVICE_AUTH_STR"
-        )
-        self.client = None
+        if assets_config is None:
+            assets_config = load_assets_config()
+        self.assets_config = assets_config
         self.kwargs = kwargs
-        self.lock = threading.Lock()
+
+        # This arguments only preserved for back-compatibility reasons and will be removed in future versions of gordo
+        self.adl1_kwargs: Dict[str, Any] = {}
+        if interactive is not None:
+            self.adl1_kwargs["interactive"] = interactive
+        if storename is not None:
+            self.adl1_kwargs["store_name"] = storename
+        if dl_service_auth_str is not None:
+            self.adl1_kwargs["dl_service_auth_str"] = dl_service_auth_str
+
+        self.storage = storage
+        self._storage_instance: Optional[FileSystem] = None
 
     def load_series(
         self,
@@ -155,24 +176,48 @@ class DataLakeProvider(GordoBaseDataProvider):
             data_providers, train_start_date, train_end_date, tag_list, dry_run
         )
 
-    def _get_client(self):
-        logger.debug("Acquiring threading lock for Datalake authentication.")
-        with self.lock:
-            if not self.client:
-                self.client = create_adls_client(
-                    storename=self.storename,
-                    dl_service_auth_str=self.dl_service_auth_str,
-                    interactive=self.interactive,
+    def _adl1_back_compatible_kwarg(
+        self, storage_type: str, kwarg: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        if storage_type == "adl1":
+            if self.adl1_kwargs:
+                adl1_kwarg = copy(self.adl1_kwargs)
+                adl1_kwarg.update(kwarg)
+                return adl1_kwarg
+        else:
+            if self.adl1_kwargs:
+                arguments = ", ".join(self.adl1_kwargs.keys())
+                raise ConfigException(
+                    "%s does no support%s by storage '%s'"
+                    % (arguments, "s" if len(arguments) > 1 else "", storage_type)
                 )
-        logger.debug("Released threading lock for Datalake authentication.")
+        return kwarg
 
-        return self.client
+    def _instantiate_storage(
+        self, storage: Optional[Union[FileSystem, Dict[str, Any]]]
+    ) -> FileSystem:
+        if storage is None:
+            storage = {}
+        if isinstance(storage, dict):
+            kwargs = copy(storage)
+            storage_type = kwargs.pop("type", DEFAULT_STORAGE_TYPE)
+            kwargs = self._adl1_back_compatible_kwarg(storage_type, kwargs)
+            return create_storage(storage_type, **kwargs)
+        return storage
+
+    def _get_storage_instance(self) -> FileSystem:
+        if self._storage_instance is None:
+            self._storage_instance = self._instantiate_storage(self.storage)
+        return self._storage_instance
 
     def _get_sub_dataproviders(self):
-        data_providers = [
-            t_reader(client=self._get_client(), **self.kwargs)
-            for t_reader in DataLakeProvider._SUB_READER_CLASSES
-        ]
+        storage = self._get_storage_instance()
+        assets_config = self.assets_config
+        data_providers = []
+        for t_reader in DataLakeProvider._SUB_READER_CLASSES:
+            data_providers.append(
+                t_reader(storage=storage, assets_config=assets_config, **self.kwargs)
+            )
         return data_providers
 
 
@@ -351,7 +396,7 @@ class RandomDataProvider(GordoBaseDataProvider):
         return True  # We can be random about everything
 
     @capture_args
-    def __init__(self, min_size=100, max_size=300, **kwargs):
+    def __init__(self, min_size=100, max_size=300):
         self.max_size = max_size
         self.min_size = min_size
         np.random.seed(0)
