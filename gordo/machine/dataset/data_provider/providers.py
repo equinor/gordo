@@ -189,7 +189,9 @@ class DataLakeProvider(GordoBaseDataProvider):
                 )
         return kwarg
 
-    def _instantiate_storage(self, storage: Optional[Union[FileSystem, Dict[str, Any]]]) -> FileSystem:
+    def _instantiate_storage(
+        self, storage: Optional[Union[FileSystem, Dict[str, Any]]]
+    ) -> FileSystem:
         if storage is None:
             storage = {}
         if isinstance(storage, dict):
