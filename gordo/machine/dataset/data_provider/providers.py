@@ -147,7 +147,8 @@ class DataLakeProvider(GordoBaseDataProvider):
         if dl_service_auth_str is not None:
             self.adl1_kwargs["dl_service_auth_str"] = dl_service_auth_str
 
-        self.storage = self._normalize_storage(storage)
+        self.storage = storage
+        self._storage_instance = None
 
     def load_series(
         self,
@@ -188,16 +189,22 @@ class DataLakeProvider(GordoBaseDataProvider):
                 )
         return kwarg
 
-    def _normalize_storage(self, storage):
+    def _instantiate_storage(self, storage: Optional[Union[FileSystem, Dict[str, Any]]]) -> FileSystem:
         if storage is None:
             storage = {}
         if isinstance(storage, dict):
             storage_type = storage.pop("type", DEFAULT_STORAGE_TYPE)
             storage = self._adl1_back_compatible_kwarg(storage_type, storage)
             return create_storage(storage_type, **storage)
+        return storage
+
+    def _get_storage_instance(self) -> FileSystem:
+        if self._storage_instance is None:
+            self._storage_instance = self._instantiate_storage(self.storage)
+        return self._storage_instance
 
     def _get_sub_dataproviders(self):
-        storage = self.storage
+        storage = self._get_storage_instance()
         assets_config = self.assets_config
         data_providers = []
         for t_reader in DataLakeProvider._SUB_READER_CLASSES:
