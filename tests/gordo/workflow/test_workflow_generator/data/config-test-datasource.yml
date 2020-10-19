@@ -13,9 +13,8 @@ machines:
 
   - name: machine-2
     dataset:
-      data_provider: #Should have RandomDataProvider datasource and 15 threads
+      data_provider:
         type: RandomDataProvider
-        threads: 15
       tags:
         - Tag 1
         - Tag 2
