@@ -148,7 +148,7 @@ class DataLakeProvider(GordoBaseDataProvider):
             self.adl1_kwargs["dl_service_auth_str"] = dl_service_auth_str
 
         self.storage = storage
-        self._storage_instance = None
+        self._storage_instance: Optional[FileSystem] = None
 
     def load_series(
         self,
@@ -174,7 +174,7 @@ class DataLakeProvider(GordoBaseDataProvider):
             data_providers, train_start_date, train_end_date, tag_list, dry_run
         )
 
-    def _adl1_back_compatible_kwarg(self, storage_type: str, kwarg: dict):
+    def _adl1_back_compatible_kwarg(self, storage_type: str, kwarg: Dict[str, Any]) -> Dict[str, Any]:
         if storage_type == "adl1":
             if self.adl1_kwargs:
                 adl1_kwarg = copy(self.adl1_kwargs)
