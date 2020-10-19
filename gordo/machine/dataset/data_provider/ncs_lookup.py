@@ -23,6 +23,7 @@ class Location:
     """
     Represents location of the tag in the data lake
     """
+
     path: str
     file_type: FileType
 
@@ -32,6 +33,7 @@ class TagLocations:
     """
     Locations of the tags for each year
     """
+
     tag: SensorTag
     locations: Optional[Dict[int, Location]] = None
 
@@ -59,6 +61,7 @@ class NcsLookup:
     """
     Class which could be used for finding tags data in the data lake storage
     """
+
     @classmethod
     def create(
         cls,

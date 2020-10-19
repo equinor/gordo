@@ -14,6 +14,7 @@ class NcsFileType(metaclass=ABCMeta):
     """
     Represents logic about finding files of one particular type for ``NcsLookup``
     """
+
     @property
     @abstractmethod
     def file_type(self) -> FileType:
@@ -43,6 +44,7 @@ class NcsParquetFileType(NcsFileType):
     """
     NCS parquet files finder
     """
+
     def __init__(self):
         self._file_type = ParquetFileType(time_series_columns)
 
@@ -59,6 +61,7 @@ class NcsCsvFileType(NcsFileType):
     """
     NCS CSV files finder
     """
+
     def __init__(self):
         header = ["Sensor", "Value", "Time", "Status"]
         self._file_type = CsvFileType(header, time_series_columns)

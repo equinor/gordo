@@ -176,7 +176,9 @@ class DataLakeProvider(GordoBaseDataProvider):
             data_providers, train_start_date, train_end_date, tag_list, dry_run
         )
 
-    def _adl1_back_compatible_kwarg(self, storage_type: str, kwarg: Dict[str, Any]) -> Dict[str, Any]:
+    def _adl1_back_compatible_kwarg(
+        self, storage_type: str, kwarg: Dict[str, Any]
+    ) -> Dict[str, Any]:
         if storage_type == "adl1":
             if self.adl1_kwargs:
                 adl1_kwarg = copy(self.adl1_kwargs)
