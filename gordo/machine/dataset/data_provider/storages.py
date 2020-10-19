@@ -8,6 +8,19 @@ DEFAULT_STORAGE_TYPE = "adl1"
 
 
 def create_storage(storage_type: Optional[str] = None, **kwargs) -> FileSystem:
+    """
+    Create ``FileSystem`` instance from the config
+
+    Parameters
+    ----------
+    storage_type: Optional[str]
+        Storage type only supported `adl1`, `adl2` values
+    kwargs
+
+    Returns
+    -------
+
+    """
     if storage_type is None:
         storage_type = DEFAULT_STORAGE_TYPE
     storage: FileSystem
