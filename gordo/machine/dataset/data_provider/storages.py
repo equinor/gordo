@@ -4,7 +4,7 @@ from gordo.machine.dataset.file_system.adl2 import ADLGen2FileSystem
 from gordo.machine.dataset.exceptions import ConfigException
 from typing import Optional
 
-DEFAULT_STORAGE_TYPE = "adl2"
+DEFAULT_STORAGE_TYPE = "adl1"
 
 
 def create_storage(storage_type: Optional[str] = None, **kwargs) -> FileSystem:
