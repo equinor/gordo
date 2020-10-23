@@ -1355,7 +1355,7 @@ spec:
               - name: train-start-date
                 value: "{{ machine.dataset.train_start_date }}"
               - name: data-provider
-                value: "{{ machine.dataset.data_provider.to_dict() }}"
+                value: "{{ machine.dataset.data_provider.to_dict() | tojson }}"
           dependencies:
             - gordo-server
             - gordo-influx
