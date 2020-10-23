@@ -69,6 +69,7 @@ class NcsReader(GordoBaseDataProvider):
         the reader will prefer to find CSV files over Parquet
 
         """
+        logger.info('Ncs storage=%s', storage)
         self.storage = storage
         self.assets_config = assets_config
 
