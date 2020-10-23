@@ -150,6 +150,9 @@ class DataLakeProvider(GordoBaseDataProvider):
             self.adl1_kwargs["dl_service_auth_str"] = dl_service_auth_str
 
         self.storage = storage
+        logger.info("storage1=%s(%s)", type(storage), storage)
+        logger.info("interactive=%s(%s)", type(interactive), interactive)
+        logger.info("storename=%s(%s)", type(storename), storename)
         self._storage_instance: Optional[FileSystem] = None
 
     def load_series(
@@ -196,15 +199,15 @@ class DataLakeProvider(GordoBaseDataProvider):
     def _instantiate_storage(
         self, storage: Optional[Union[FileSystem, Dict[str, Any]]]
     ) -> FileSystem:
-        logger.info("storage=%s", storage)
+        logger.info("storage=%s(%s)", type(storage), storage)
         if storage is None:
             storage = {}
         if isinstance(storage, dict):
             kwargs = copy(storage)
-            logger.info("kwargs1=%s", kwargs)
+            logger.info("kwargs1=%s(%s)", type(kwargs), kwargs)
             storage_type = kwargs.pop("type", DEFAULT_STORAGE_TYPE)
             kwargs = self._adl1_back_compatible_kwarg(storage_type, kwargs)
-            logger.info("kwargs1=%s", kwargs)
+            logger.info("kwargs2=%s(%s)", type(kwargs), kwargs)
             return create_storage(storage_type, **kwargs)
         return storage
 
@@ -215,7 +218,7 @@ class DataLakeProvider(GordoBaseDataProvider):
 
     def _get_sub_dataproviders(self):
         storage = self._get_storage_instance()
-        logger.info("storage_instance=%s", storage)
+        logger.info("storage=%s(%s)", type(storage), storage)
         assets_config = self.assets_config
         data_providers = []
         for t_reader in DataLakeProvider._SUB_READER_CLASSES:
