@@ -29,6 +29,7 @@ class IrocReader(GordoBaseDataProvider):
         assets_config: Optional[AssetsConfig],
         threads: int = 50,
         storage_name: Optional[str] = None,
+        **kwargs,  # Do not remove this
     ):
         """
         Creates a reader for tags from IROC.

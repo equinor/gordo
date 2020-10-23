@@ -37,6 +37,7 @@ class NcsReader(GordoBaseDataProvider):
         lookup_for: Optional[List[str]] = None,
         storage_name: Optional[str] = None,
         ncs_lookup: Optional[NcsLookup] = None,
+        **kwargs,  # Do not remove this
     ):
         """
         Creates a reader for tags from the Norwegian Continental Shelf. Currently
