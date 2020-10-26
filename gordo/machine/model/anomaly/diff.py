@@ -598,14 +598,16 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
 
         cv_output = c_val(self, X=X, y=y, **kwargs)
 
-        # Create empty dataframe to hold
+        # Create empty dataframes to hold fold data
         y_pred = pd.DataFrame(
             np.zeros_like(y),
             index=getattr(y, "index", None),
             columns=getattr(y, "columns", None),
         )
         y = pd.DataFrame(y)
+        y_val_mse = pd.Series(index=getattr(y, "index", None))
 
+        # Calculate per-fold validation metrics
         for i, ((_, test_idxs), split_model) in enumerate(
             zip(kwargs["cv"].split(X, y), cv_output["estimator"])
         ):
@@ -615,31 +617,26 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
                 else X[test_idxs]
             )
 
-        # Calculate global threshold
-        self.aggregate_threshold_ = self._calculate_aggregate_threshold(y, y_pred)
+            y_val_mse.iloc[test_idxs] = self._scaled_mse_per_timestep(
+                split_model, y, y_pred
+            )
+
+        # Calculate aggregate threshold
+        self.aggregate_threshold_ = self._calculate_threshold(y_val_mse)
 
         # Calculate tag thresholds
         self.feature_thresholds_ = self._calculate_feature_thresholds(y, y_pred)
 
         return cv_output
 
-    def _calculate_aggregate_threshold(
-        self, y_true: pd.DataFrame, y_pred: pd.DataFrame
-    ) -> float:
-        scaled_mse_per_timestep = self._scaled_mse_per_timestep(self, y_true, y_pred)
-        moving_average_scaled_mse_per_timestep = self._smoothing(
-            scaled_mse_per_timestep
-        )
-        return self._calculate_threshold(moving_average_scaled_mse_per_timestep)
-
     def _calculate_feature_thresholds(
         self, y_true: pd.DataFrame, y_pred: pd.DataFrame
     ) -> np.ndarray:
         absolute_error = self._absolute_error(y_true, y_pred)
-        moving_average_absolute_error = self._smoothing(absolute_error)
-        return self._calculate_threshold(moving_average_absolute_error)
+        return self._calculate_threshold(absolute_error)
 
     def _calculate_threshold(
         self, validation_metric: Union[pd.DataFrame, pd.Series]
     ) -> Union[float, pd.Series]:
-        return validation_metric.quantile(self.threshold_percentile)
+        val_metric = self._smoothing(validation_metric)
+        return val_metric.quantile(self.threshold_percentile)
