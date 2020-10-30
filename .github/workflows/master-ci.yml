@@ -16,13 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GORDO_PROD_MODE: true
-      DOCKER_REGISTRY: docker.io
+      DOCKER_REGISTRY: auroraprodacr.azurecr.io
       DOCKER_REPO: equinor
     steps:
       - uses: actions/checkout@v1
 
       - name: Push Images
         env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_PROD_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PROD_PASSWORD }}
         run: make push-prod-images
