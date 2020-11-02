@@ -9,15 +9,17 @@ import numpy as np
 
 from gordo.server import utils as server_utils
 from gordo.server.views.base import BaseModelView
+from gordo.machine.dataset.sensor_tag import SensorTag
 from flask import Flask, g
 
 
 def test_empty_target_tag_list():
     app = Flask(__name__)
+    test_tag = SensorTag("test")
     with app.app_context():
-        g.metadata = {"dataset": {}}
+        g.metadata = {"dataset": {"tag_list": [test_tag]}}
         view = BaseModelView()
-        assert not view.target_tags
+        assert view.target_tags == [test_tag]
 
 
 @pytest.mark.parametrize(
