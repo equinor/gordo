@@ -15,7 +15,7 @@ from flask import Flask, g
 
 def test_empty_target_tag_list():
     app = Flask(__name__)
-    test_tag = SensorTag("test")
+    test_tag = SensorTag("test", "asset", "default_asset")
     with app.app_context():
         g.metadata = {"dataset": {"tag_list": [test_tag]}}
         view = BaseModelView()
