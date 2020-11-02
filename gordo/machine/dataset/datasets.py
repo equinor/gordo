@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from dataclasses import dataclass
 from typing import Tuple, List, Dict, Optional, Iterable, Callable, Sequence
 from datetime import datetime
 from dateutil.parser import isoparse
@@ -64,53 +63,6 @@ def compat(init):
     return wrapper
 
 
-class TimeSeriesTags:
-
-    TAGS_NORMALIZERS = {"default": normalize_sensor_tags}
-
-    @classmethod
-    def create(
-            cls,
-            tag_list: Sequence[Union[str, Dict, SensorTag]],
-            target_tag_list: Optional[Sequence[Union[str, Dict, SensorTag]]] = None,
-            asset: Optional[str] = None,
-            default_asset: Optional[str] = None,
-            tag_normalizer: Union[str, Callable[..., List[SensorTag]]] = None,
-    ) -> "TimeSeriesTags":
-        if tag_normalizer is None:
-            tag_normalizer = "default"
-        if isinstance(tag_normalizer, str):
-            if tag_normalizer not in cls.TAGS_NORMALIZERS:
-                raise ValueError(
-                    "Unsupported tag_normalizer type '%s'" % tag_normalizer
-                )
-            tag_normalizer = cls.TAGS_NORMALIZERS[tag_normalizer]
-
-        tag_list = tag_normalizer(list(tag_list), asset, default_asset)
-        target_tag_list = (
-            tag_normalizer(list(target_tag_list), asset, default_asset)
-            if target_tag_list
-            else tag_list.copy()
-        )
-        return cls(tag_list, target_tag_list, asset=asset, default_asset=default_asset, tag_normalizer=tag_normalizer)
-
-    def __init__(self,
-                 tag_list: List[SensorTag],
-                 target_tag_list: List[SensorTag],
-                 asset: Optional[str] = None,
-                 default_asset: Optional[str] = None,
-                 tag_normalizer: Union[str, Callable[..., List[SensorTag]]] = None,
-        ):
-        self.tag_list = tag_list
-        self.target_tag_list = target_tag_list
-        self.asset = asset
-        self.default_asset = default_asset
-        self.tag_normalizer = tag_normalizer
-
-    def normalize(self, tags: Sequence[Union[Dict, str, SensorTag]]):
-        return self.tag_normalizer(tags, self.asset, self.default_asset)
-
-
 class TimeSeriesDataset(GordoBaseDataset):
 
     train_start_date = ValidDatetime()
@@ -120,6 +72,7 @@ class TimeSeriesDataset(GordoBaseDataset):
     data_provider = ValidDataProvider()
     kwargs = ValidDatasetKwargs()
 
+    TAG_NORMALIZERS = {"default": normalize_sensor_tags}
 
     @compat
     @capture_args
@@ -221,8 +174,23 @@ class TimeSeriesDataset(GordoBaseDataset):
                 f"train_end_date ({self.train_end_date}) must be after train_start_date ({self.train_start_date})"
             )
 
-        self.tags = TimeSeriesTags.create(tag_list, target_tag_list, asset=asset, default_asset=default_asset, tag_normalizer=tag_normalizer)
+        if isinstance(tag_normalizer, str):
+            if tag_normalizer not in self.TAG_NORMALIZERS:
+                raise ValueError(
+                    "Unsupported tag_normalizer type '%s'" % tag_normalizer
+                )
+            tag_normalizer = self.TAG_NORMALIZERS[tag_normalizer]
+        self.tag_normalizer = tag_normalizer
 
+        self.asset = asset
+        self.default_asset = default_asset
+
+        self.tag_list = self.tag_normalizer(list(tag_list), asset, default_asset)
+        self.target_tag_list = (
+            self.tag_normalizer(list(target_tag_list), asset, default_asset)
+            if target_tag_list
+            else self.tag_list.copy()
+        )
         self.resolution = resolution
         self.data_provider = (
             data_provider
@@ -267,14 +235,6 @@ class TimeSeriesDataset(GordoBaseDataset):
                 "Must provide an ISO formatted datetime string with timezone information"
             )
         return dt
-
-    @property
-    def tag_list(self) -> List[SensorTag]:
-        return self.tags.tag_list
-
-    @property
-    def target_tag_list(self) -> List[SensorTag]:
-        return self.tags.target_tag_list
 
     def get_data(self) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
 

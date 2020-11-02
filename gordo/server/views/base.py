@@ -90,18 +90,14 @@ class BaseModelView(Resource):
         -------
         typing.List[SensorTag]
         """
-        # TODO refactor this part to have the same tag preparation logic as in TimeSeriesDataset
-        orig_target_tag_list = []
         if "target_tag_list" in g.metadata["dataset"]:
-            orig_target_tag_list = g.metadata["dataset"]["target_tag_list"]
-        if orig_target_tag_list:
             return normalize_sensor_tags(
-                orig_target_tag_list,
+                g.metadata["dataset"]["target_tag_list"],
                 asset=g.metadata["dataset"].get("asset"),
                 default_asset=g.metadata["dataset"].get("default_asset"),
             )
         else:
-            return self.tags
+            return []
 
     @api.response(200, "Success", API_MODEL_OUTPUT_POST)
     @api.expect(API_MODEL_INPUT_POST, validate=False)
