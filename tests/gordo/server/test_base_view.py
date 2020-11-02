@@ -15,9 +15,7 @@ from flask import Flask, g
 def test_empty_target_tag_list():
     app = Flask(__name__)
     with app.app_context():
-        g.metadata = {
-            "dataset": {}
-        }
+        g.metadata = {"dataset": {}}
         view = BaseModelView()
         assert not view.target_tags
 
