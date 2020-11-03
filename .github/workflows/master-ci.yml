@@ -5,11 +5,6 @@ name: MasterCI
 on:
   release:
     types: [published, prereleased, edited]
-  push:
-    branches:
-      - master
-    tags:
-      - "*"
 
 jobs:
   push-images:
