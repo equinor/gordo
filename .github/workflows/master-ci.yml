@@ -17,7 +17,7 @@ jobs:
     env:
       GORDO_PROD_MODE: true
       DOCKER_REGISTRY: auroraprodacr.azurecr.io
-      DOCKER_REPO: equinor
+      DOCKER_REPO: gordo
     steps:
       - uses: actions/checkout@v1
 
