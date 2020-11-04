@@ -29,4 +29,4 @@ prometheus_client~=0.7.1
 azure-storage-file-datalake~=12.1.2
 azure-identity~=1.4.0
 marshmallow~=3.3.0
-cryptography>=3.2
+cryptography~=3.2
