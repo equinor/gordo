@@ -37,7 +37,7 @@ click==7.0                # via -r requirements.in, databricks-cli, flask, mlflo
 cloudpickle==1.2.2        # via mlflow
 configparser==4.0.2       # via databricks-cli
 contextlib2==0.6.0.post1  # via azureml-core
-cryptography==2.8         # via adal, azure-identity, azure-storage-blob, azureml-core, pyjwt, pyopenssl, secretstorage
+cryptography==3.2.1       # via -r requirements.in, adal, azure-identity, azure-storage-blob, azureml-core, pyjwt, pyopenssl, secretstorage
 cycler==0.10.0            # via matplotlib
 databricks-cli==0.9.1     # via mlflow
 dataclasses-json==0.3.7   # via -r requirements.in
