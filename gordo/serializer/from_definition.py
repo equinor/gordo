@@ -8,10 +8,18 @@ from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
+from .utils import validate_import_path
 
 
 logger = logging.getLogger(__name__)
 
+
+def import_locate(import_path: str) -> Any:
+    obj = pydoc.locate(import_path)
+    if obj is not None:
+        if not validate_import_path(import_path):
+            raise ValueError("Unsupported import path '%s'" % import_path)
+    return obj
 
 def from_definition(
     pipe_definition: Union[str, Dict[str, Dict[str, Any]]]
@@ -124,7 +132,7 @@ def _build_step(
 
         import_str = list(step.keys())[0]
 
-        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = pydoc.locate(
+        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = import_locate(
             import_str
         )
 
@@ -144,7 +152,7 @@ def _build_step(
         if isinstance(params, dict):
             for param, value in params.items():
                 if isinstance(value, str):
-                    possible_func = pydoc.locate(value)
+                    possible_func = import_locate(value)
                     if callable(possible_func):
                         params[param] = possible_func
 
@@ -178,7 +186,7 @@ def _build_step(
     # If step is just a string, can initialize it without any params
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
-        Step = pydoc.locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
+        Step = import_locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
         if hasattr(Step, "from_definition"):
             return getattr(Step, "from_definition")({})
         else:
@@ -267,7 +275,7 @@ def _load_param_classes(params: dict):
 
         # If value is a simple string, try to load the model/class
         if isinstance(value, str):
-            Model: Union[None, BaseEstimator, Pipeline] = pydoc.locate(value)
+            Model: Union[None, BaseEstimator, Pipeline] = import_locate(value)
             if Model is not None:
                 if hasattr(Model, "from_definition"):
                     params[key] = getattr(Model, "from_definition")({})
@@ -283,7 +291,7 @@ def _load_param_classes(params: dict):
             and isinstance(value[list(value.keys())[0]], dict)
         ):
             import_path = list(value.keys())[0]
-            Model = pydoc.locate(import_path)
+            Model = import_locate(import_path)
 
             sub_params = value[import_path]
 
