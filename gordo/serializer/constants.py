@@ -5,5 +5,5 @@ ALLOWED_IMPORT_PATH = [
     "pandas",
     "sklearn",
     "tensorflow",
-    "catboost"
+    "catboost",
 ]
