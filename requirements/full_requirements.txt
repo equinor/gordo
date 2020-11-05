@@ -12,7 +12,7 @@ astor==0.8.1              # via tensorflow
 attrs==19.3.0             # via jsonschema
 azure-common==1.1.24      # via azure-graphrbac, azure-mgmt-authorization, azure-mgmt-containerregistry, azure-mgmt-keyvault, azure-mgmt-resource, azure-mgmt-storage, azureml-core
 azure-core==1.8.1         # via azure-identity, azure-storage-blob, azure-storage-file-datalake
-azure-datalake-store==0.0.51  # via -r requirements.in
+azure-datalake-store==0.0.48  # via -r requirements.in
 azure-graphrbac==0.61.1   # via azureml-core
 azure-identity==1.4.0     # via -r requirements.in
 azure-mgmt-authorization==0.60.0  # via azureml-core
