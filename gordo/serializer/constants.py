@@ -1,5 +1,5 @@
 ALLOWED_IMPORT_PATH = [
-    "gordo.machine",
+    "gordo",
     "tests.gordo",
     "numpy",
     "pandas",
