@@ -21,6 +21,7 @@ def import_locate(import_path: str) -> Any:
             raise ValueError("Unsupported import path '%s'" % import_path)
     return obj
 
+
 def from_definition(
     pipe_definition: Union[str, Dict[str, Dict[str, Any]]]
 ) -> Union[FeatureUnion, Pipeline]:

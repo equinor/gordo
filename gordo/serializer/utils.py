@@ -1,5 +1,6 @@
 from .constants import ALLOWED_IMPORT_PATH
 
+
 def validate_import_path(import_path: str) -> bool:
     """
     Security validation for import paths allowed in serializer
@@ -13,7 +14,7 @@ def validate_import_path(import_path: str) -> bool:
     >>> validate_import_path("..module.MaliciousCode")
     False
     """
-    if not import_path.find('.') == 0:
+    if not import_path.find(".") == 0:
         for allowed_import in ALLOWED_IMPORT_PATH:
             if import_path.find(allowed_import) == 0:
                 return True
