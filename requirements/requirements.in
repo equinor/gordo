@@ -1,3 +1,4 @@
+# Don't forget to add all machine learning related modules into ALLOWED_IMPORT_PATH (gordo/serializer/constants.py)
 Click~=7.0
 cachetools~=4.0
 dictdiffer~=0.8
