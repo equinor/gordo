@@ -1,4 +1,4 @@
-cryptography~=3.2
+cryptography==3.2
 Click~=7.0
 cachetools~=4.0
 dictdiffer~=0.8
