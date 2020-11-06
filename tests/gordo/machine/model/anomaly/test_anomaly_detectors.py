@@ -472,6 +472,9 @@ def test_diff_kfcv_detector(
     assert np.allclose(total_anomaly_scaled, anomaly_df["total-anomaly-scaled"].values)
 
     if with_thresholds:
+        metadata = model.get_metadata()
+        assert not any(np.isnan(metadata["feature-thresholds"]))
+        assert not np.isnan(metadata["aggregate-threshold"])
         assert "anomaly-confidence" in anomaly_df.columns
         assert "total-anomaly-confidence" in anomaly_df.columns
         assert anomaly_df["anomaly-confidence"].notnull().to_numpy().all()
