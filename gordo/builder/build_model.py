@@ -23,7 +23,7 @@ from sklearn.pipeline import Pipeline
 
 from gordo.util import disk_registry
 from gordo import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
-from gordo.machine.dataset.dataset import _get_dataset
+from gordo_dataset.dataset import _get_dataset
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
@@ -50,7 +50,7 @@ class ModelBuilder:
 
         Example
         -------
-        >>> from gordo.machine.dataset.sensor_tag import SensorTag
+        >>> from gordo_dataset.sensor_tag import SensorTag
         >>> from gordo.machine import Machine
         >>> machine = Machine(
         ...     name="special-model-name",
@@ -535,7 +535,7 @@ class ModelBuilder:
                 Examples
                 -------
                 >>> from gordo.machine import Machine
-                >>> from gordo.machine.dataset.sensor_tag import SensorTag
+                >>> from gordo_dataset.sensor_tag import SensorTag
                 >>> machine = Machine(
                 ...     name="special-model-name",
                 ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},

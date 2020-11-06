@@ -12,7 +12,7 @@ import numpy as np
 from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import influx_client_from_uri
 from gordo.machine import Machine
-from gordo.machine.dataset import sensor_tag
+from gordo_dataset import sensor_tag
 
 
 @pytest.fixture

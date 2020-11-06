@@ -14,7 +14,7 @@ from requests import Session
 
 from gordo.client import Client
 from gordo import serializer
-from gordo.machine.dataset.data_provider import providers
+from gordo_dataset.data_provider import providers
 from gordo.cli.custom_types import IsoFormatDateTime, DataProviderParam, key_value_par
 from gordo.client.forwarders import ForwardPredictionsIntoInflux
 

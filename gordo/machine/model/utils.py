@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import TransformerMixin
 
-from gordo.machine.dataset.sensor_tag import SensorTag
+from gordo_dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 

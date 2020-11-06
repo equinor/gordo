@@ -28,8 +28,8 @@ from gordo.client.io import (
 )
 from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import PredictionResult
-from gordo.machine.dataset.data_provider import providers
-from gordo.machine.dataset.datasets import TimeSeriesDataset
+from gordo_dataset.data_provider import providers
+from gordo_dataset.datasets import TimeSeriesDataset
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
 from gordo import cli, serializer
@@ -357,7 +357,7 @@ def test_client_cli_predict(
 
     # Run without any error
     with patch(
-        "gordo.machine.dataset.sensor_tag._asset_from_tag_name",
+        "gordo_dataset.sensor_tag._asset_from_tag_name",
         side_effect=lambda *args, **kwargs: "default",
     ):
         out = runner.invoke(cli.gordo, args=args)
@@ -420,7 +420,7 @@ def test_client_cli_predict_non_zero_exit(
     # Run without any error
     with caplog.at_level(logging.CRITICAL):
         with patch(
-            "gordo.machine.dataset.sensor_tag._asset_from_tag_name",
+            "gordo_dataset.sensor_tag._asset_from_tag_name",
             side_effect=lambda *args, **kwargs: "default",
         ):
             out = runner.invoke(cli.gordo, args=args)
@@ -492,7 +492,7 @@ def _machine(name: str) -> Machine:
     """
     Helper to build a basic Machine, only defining its name
     """
-    from gordo.machine.dataset.sensor_tag import SensorTag
+    from gordo_dataset.sensor_tag import SensorTag
 
     return Machine.from_config(
         config={

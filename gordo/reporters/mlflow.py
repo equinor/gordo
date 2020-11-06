@@ -19,7 +19,7 @@ from pytz import UTC
 
 from gordo.builder import ModelBuilder
 from gordo.machine import Machine
-from gordo.machine.dataset.sensor_tag import normalize_sensor_tags
+from gordo_dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
 from .base import BaseReporter
