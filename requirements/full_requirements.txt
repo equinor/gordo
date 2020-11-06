@@ -98,7 +98,7 @@ prometheus-client==0.7.1  # via -r requirements.in, prometheus-flask-exporter
 prometheus-flask-exporter==0.12.1  # via mlflow
 protobuf==3.11.2          # via mlflow, tensorboard, tensorflow
 psycopg2-binary==2.8.4    # via -r postgres_requirements.in
-pyarrow==0.15.1           # via -r requirements.in
+pyarrow==0.17.1           # via -r requirements.in
 pyasn1-modules==0.2.8     # via google-auth
 pyasn1==0.4.8             # via ndg-httpsclient, pyasn1-modules, rsa
 pycparser==2.19           # via cffi
@@ -109,18 +109,18 @@ pyrsistent==0.15.7        # via jsonschema
 python-dateutil==2.8.1    # via -r requirements.in, adal, alembic, azureml-core, influxdb, matplotlib, mlflow, pandas
 python-editor==1.0.4      # via alembic
 pytz==2019.3              # via azureml-core, flask-restplus, influxdb, pandas
-pyyaml==5.3               # via -r requirements.in, mlflow
+pyyaml==5.3.1             # via -r requirements.in, mlflow
 querystring-parser==1.2.4  # via mlflow
 requests-oauthlib==1.3.0  # via google-auth-oauthlib, msrest
 requests==2.22.0          # via -r requirements.in, adal, azure-core, azure-datalake-store, azureml-core, databricks-cli, docker, influxdb, mlflow, msal, msrest, requests-oauthlib, tensorboard
 retrying==1.3.3           # via plotly
 rsa==4.0                  # via google-auth
 ruamel.yaml==0.15.89      # via azureml-core
-scikit-learn==0.22.1      # via -r requirements.in
+scikit-learn==0.23.2      # via -r requirements.in
 scipy==1.4.1              # via catboost, scikit-learn
 secretstorage==3.1.2      # via azureml-core
 simplejson==3.17.0        # via -r requirements.in, mlflow
-six==1.14.0               # via absl-py, azure-core, azure-identity, azureml-core, catboost, cryptography, cycler, databricks-cli, docker, flask-restplus, google-auth, google-pasta, grpcio, h5py, influxdb, isodate, jsonschema, keras-preprocessing, mlflow, plotly, protobuf, pyarrow, pyopenssl, pyrsistent, python-dateutil, querystring-parser, retrying, tensorboard, tensorflow, websocket-client
+six==1.14.0               # via absl-py, azure-core, azure-identity, azureml-core, catboost, cryptography, cycler, databricks-cli, docker, flask-restplus, google-auth, google-pasta, grpcio, h5py, influxdb, isodate, jsonschema, keras-preprocessing, mlflow, plotly, protobuf, pyopenssl, pyrsistent, python-dateutil, querystring-parser, retrying, tensorboard, tensorflow, websocket-client
 smmap2==2.0.5             # via gitdb2
 sqlalchemy==1.3.13        # via alembic, mlflow
 sqlparse==0.3.0           # via mlflow
@@ -130,6 +130,7 @@ tensorboard==2.1.0        # via tensorflow
 tensorflow-estimator==2.1.0  # via tensorflow
 tensorflow==2.1.2         # via -r requirements.in
 termcolor==1.1.0          # via tensorflow
+threadpoolctl==2.1.0      # via scikit-learn
 typing-extensions==3.7.4.1  # via -r requirements.in, typing-inspect
 typing-inspect==0.5.0     # via dataclasses-json
 urllib3==1.25.7           # via -r requirements.in, azureml-core, requests
