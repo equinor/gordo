@@ -618,8 +618,8 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
             )
 
             y_val_mse.iloc[test_idxs] = self._scaled_mse_per_timestep(
-                split_model, y, y_pred
-            )
+                split_model, y.iloc[test_idxs], y_pred.iloc[test_idxs]
+            ).to_numpy()
 
         # Calculate aggregate threshold
         self.aggregate_threshold_ = self._calculate_threshold(y_val_mse)
