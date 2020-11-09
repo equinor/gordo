@@ -59,12 +59,6 @@ And to construct this into a python object:
 
 .. toctree::
     :maxdepth: 4
-    :caption: Dataset
-
-    ./dataset.rst
-
-.. toctree::
-    :maxdepth: 4
     :caption: Metadata
 
     ./metadata.rst
