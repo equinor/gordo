@@ -7,7 +7,7 @@ from typing import Dict, Any, Union, Optional
 import numpy as np
 import yaml
 
-from gordo.machine.dataset.base import GordoBaseDataset
+from gordo_dataset.base import GordoBaseDataset
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,

@@ -8,7 +8,7 @@ import yaml
 import click
 from dateutil import parser
 
-from gordo.machine.dataset.data_provider import providers
+from gordo_dataset.data_provider import providers
 
 
 class DataProviderParam(click.ParamType):

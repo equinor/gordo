@@ -20,8 +20,8 @@ from gordo import serializer
 from gordo.client.io import _handle_response, ResourceGone, NotFound, BadGordoRequest
 from gordo.client.io import HttpUnprocessableEntity
 from gordo.client.utils import PredictionResult
-from gordo.machine.dataset.data_provider.base import GordoBaseDataProvider
-from gordo.machine.dataset.base import GordoBaseDataset
+from gordo_dataset.data_provider.base import GordoBaseDataProvider
+from gordo_dataset.base import GordoBaseDataset
 from gordo.server import utils as server_utils
 from gordo.machine import Machine
 from gordo.machine.metadata import Metadata

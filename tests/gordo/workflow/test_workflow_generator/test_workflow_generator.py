@@ -15,7 +15,7 @@ from click.testing import CliRunner
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo import cli
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo.machine.dataset import sensor_tag
+from gordo_dataset import sensor_tag
 
 
 logger = logging.getLogger(__name__)
