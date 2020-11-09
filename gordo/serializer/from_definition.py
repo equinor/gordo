@@ -250,7 +250,7 @@ def _load_param_classes(params: dict):
     # Load an actual model, with kwargs
     >>> params = {"base_estimator": {"sklearn.ensemble.RandomForestRegressor": {"n_estimators": 20}}}
     >>> print(_load_param_classes(params))
-    {'base_estimator': RandomForestRegressor()}
+    {'base_estimator': RandomForestRegressor(n_estimators=20)}
 
 
     Returns
