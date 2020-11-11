@@ -26,4 +26,4 @@ wrapt~=1.11
 prometheus_client~=0.7.1
 azure-identity~=1.4.0
 PyYAML~=5.3.1
-gordo-dataset~=2.1.0
+gordo-dataset~=2.1.2
