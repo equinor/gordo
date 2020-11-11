@@ -12,7 +12,7 @@ astor==0.8.1              # via tensorflow
 attrs==19.3.0             # via jsonschema
 azure-common==1.1.24      # via azure-graphrbac, azure-mgmt-authorization, azure-mgmt-containerregistry, azure-mgmt-keyvault, azure-mgmt-resource, azure-mgmt-storage, azureml-core
 azure-core==1.8.1         # via azure-identity, azure-storage-blob, azure-storage-file-datalake
-azure-datalake-store==0.0.48  # via -r requirements.in, gordo-dataset
+azure-datalake-store==0.0.51  # via gordo-dataset
 azure-graphrbac==0.61.1   # via azureml-core
 azure-identity==1.4.0     # via -r requirements.in, gordo-dataset
 azure-mgmt-authorization==0.60.0  # via azureml-core
@@ -21,7 +21,7 @@ azure-mgmt-keyvault==2.0.0  # via azureml-core
 azure-mgmt-resource==8.0.0  # via azureml-core
 azure-mgmt-storage==7.1.0  # via azureml-core
 azure-storage-blob==12.4.0  # via azure-storage-file-datalake
-azure-storage-file-datalake==12.1.2  # via -r requirements.in, gordo-dataset
+azure-storage-file-datalake==12.1.2  # via gordo-dataset
 azureml-contrib-run==1.0.85  # via -r mlflow_requirements.in
 azureml-core==1.0.85      # via azureml-mlflow
 azureml-mlflow==1.0.85    # via azureml-contrib-run
@@ -52,7 +52,7 @@ gitpython==3.0.5          # via mlflow
 google-auth-oauthlib==0.4.1  # via tensorboard
 google-auth==1.10.1       # via google-auth-oauthlib, tensorboard
 google-pasta==0.1.8       # via tensorflow
-gordo-dataset==2.0.1      # via -r requirements.in
+gordo-dataset==2.1.2      # via -r requirements.in
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
 grpcio==1.26.0            # via tensorboard, tensorflow
@@ -60,7 +60,7 @@ gunicorn==20.0.4          # via -r requirements.in, mlflow
 h5py==2.10.0              # via -r requirements.in, keras-applications
 idna==2.8                 # via requests
 importlib-metadata==1.4.0  # via jsonschema
-influxdb==5.3.0           # via -r requirements.in, gordo-dataset
+influxdb==5.3.0           # via gordo-dataset
 isodate==0.6.0            # via msrest
 itsdangerous==1.1.0       # via flask
 jeepney==0.4.2            # via secretstorage
@@ -76,7 +76,7 @@ mako==1.1.1               # via alembic
 markdown==3.1.1           # via tensorboard
 markupsafe==1.1.1         # via jinja2, mako
 marshmallow-enum==1.5.1   # via dataclasses-json
-marshmallow==3.3.0        # via -r requirements.in, dataclasses-json, gordo-dataset, marshmallow-enum
+marshmallow==3.3.0        # via dataclasses-json, gordo-dataset, marshmallow-enum
 matplotlib==3.1.2         # via catboost
 mlflow==1.5.0             # via -r mlflow_requirements.in, azureml-mlflow
 more-itertools==8.1.0     # via zipp
@@ -100,7 +100,7 @@ prometheus-client==0.7.1  # via -r requirements.in, prometheus-flask-exporter
 prometheus-flask-exporter==0.12.1  # via mlflow
 protobuf==3.11.2          # via mlflow, tensorboard, tensorflow
 psycopg2-binary==2.8.4    # via -r postgres_requirements.in
-pyarrow==0.17.1           # via -r requirements.in, gordo-dataset
+pyarrow==0.17.1           # via gordo-dataset
 pyasn1-modules==0.2.8     # via google-auth
 pyasn1==0.4.8             # via ndg-httpsclient, pyasn1-modules, rsa
 pycparser==2.19           # via cffi
