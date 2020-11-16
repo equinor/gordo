@@ -902,7 +902,6 @@ spec:
                         priorityClassName: server-priority
                         containers:
                            - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"
-                             imagePullPolicy: "IfNotPresent"
                              name: "gordoserver-{{ project_name }}"
                              volumeMounts:
                                - mountPath: "/gordo"
@@ -952,7 +951,6 @@ spec:
                                  memory: "{{ server_resources['limits']['memory'] }}M"
                                  cpu: "{{ server_resources['limits']['cpu'] }}m"{% if not without_prometheus %}
                            - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"
-                             imagePullPolicy: "IfNotPresent"
                              name: "gordoserver-prometheus-{{ project_name }}"
                              volumeMounts:
                                - name: metrics
