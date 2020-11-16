@@ -419,7 +419,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         confidence, index = None, None
 
         if hasattr(self, "feature_thresholds_"):
-            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.to_numpy()
+            confidence = tag_anomaly_scaled.values / self.feature_thresholds_.values
             index = tag_anomaly_scaled.index
 
         if confidence is not None and index is not None:
