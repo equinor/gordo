@@ -1,12 +1,15 @@
-
+BASE_IMG_NAME := gordo/base
 MODEL_BUILDER_IMG_NAME := gordo-model-builder
 MODEL_SERVER_IMG_NAME  := gordo-model-server
 CLIENT_IMG_NAME := gordo-client
 WORKFLOW_GENERATOR_IMG_NAME := gordo-deploy
 
+base:
+	docker build . -f Dockerfile -t $(BASE_IMG_NAME)
+
 # Create the image capable of rendering argo workflow generator
-workflow-generator:
-	docker build . -f Dockerfile-GordoDeploy -t $(WORKFLOW_GENERATOR_IMG_NAME)
+workflow-generator: base
+	docker build -f Dockerfile-GordoDeploy --build-arg BASE_IMAGE=$(BASE_IMG_NAME) -t $(WORKFLOW_GENERATOR_IMG_NAME) .
 
 # Publish image to the currently logged in docker repo
 push-workflow-generator: workflow-generator
@@ -15,15 +18,15 @@ push-workflow-generator: workflow-generator
 	./docker_push.sh
 
 # Create the image capable to building/training a model
-model-builder:
-	docker build . -f Dockerfile-ModelBuilder -t $(MODEL_BUILDER_IMG_NAME)
+model-builder: base
+	docker build -f Dockerfile-ModelBuilder --build-arg BASE_IMAGE=$(BASE_IMG_NAME) -t $(MODEL_BUILDER_IMG_NAME) .
 
 # Create the image which serves built models
-model-server:
-	docker build . -f Dockerfile-ModelServer -t $(MODEL_SERVER_IMG_NAME)
+model-server: base
+	docker build -f Dockerfile-ModelServer --build-arg BASE_IMAGE=$(BASE_IMG_NAME) -t $(MODEL_SERVER_IMG_NAME) .
 
-client:
-	docker build . -f Dockerfile-Client -t $(CLIENT_IMG_NAME)
+client: base
+	docker build -f Dockerfile-Client --build-arg BASE_IMAGE=$(BASE_IMG_NAME) -t $(CLIENT_IMG_NAME) .
 
 push-server: model-server
 	export DOCKER_NAME=$(MODEL_SERVER_IMG_NAME);\
@@ -103,4 +106,4 @@ docs:
 
 all: test images push-dev-images
 
-.PHONY: model-builder model-server client watchman push-server push-builder push-client push-dev-images push-prod-images images test all docs workflow-generator push-workflow-generator
+.PHONY: model-builder model-server client watchman push-server push-builder push-client push-dev-images push-prod-images images test all docs workflow-generator push-workflow-generator base
