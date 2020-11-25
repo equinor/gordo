@@ -63,7 +63,7 @@ jobs:
           tags: ${{ steps.prep.outputs.tags_gordo_client }}
           labels: |
             org.opencontainers.image.title=gordo-client
-            org.opencontainers.image.description="Gordo client"
+            org.opencontainers.image.description=Gordo client
             org.opencontainers.image.url=${{ env.IMAGE_HOME_URL }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
@@ -81,7 +81,7 @@ jobs:
           tags: ${{ steps.prep.outputs.tags_gordo_deploy }}
           labels: |
             org.opencontainers.image.title=gordo-deploy
-            org.opencontainers.image.description="Gordo deploy"
+            org.opencontainers.image.description=Gordo deploy
             org.opencontainers.image.url=${{ env.IMAGE_HOME_URL }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
@@ -99,7 +99,7 @@ jobs:
           tags: ${{ steps.prep.outputs.tags_gordo_model_builder }}
           labels: |
             org.opencontainers.image.title=gordo-model-builder
-            org.opencontainers.image.description="Gordo model builder"
+            org.opencontainers.image.description=Gordo model builder
             org.opencontainers.image.url=${{ env.IMAGE_HOME_URL }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
@@ -117,7 +117,7 @@ jobs:
           tags: ${{ steps.prep.outputs.tags_gordo_model_server }}
           labels: |
             org.opencontainers.image.title=gordo-model-server
-            org.opencontainers.image.description="Gordo model server"
+            org.opencontainers.image.description=Gordo model server
             org.opencontainers.image.url=${{ env.IMAGE_HOME_URL }}
             org.opencontainers.image.version=${{ steps.prep.outputs.version }}
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
