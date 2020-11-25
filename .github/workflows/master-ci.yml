@@ -5,7 +5,7 @@ name: MasterCI
 on:
   release:
     types: [published, prereleased, edited]
-  push_request:
+  pull_request:
 
 jobs:
   push-images:
