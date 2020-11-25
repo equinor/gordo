@@ -12,10 +12,12 @@ else
 fi
 
 IMAGE_TYPE="dev"
-if [ $GITHUB_EVENT_NAME == "release" ]; then
+STABLE=""
+if [ "$GITHUB_EVENT_NAME" == "release" ]; then
+    IMAGE_TYPE="prod"
     prerelease=`cat "$GITHUB_EVENT_PATH" | jq -rM .release.prerelease`
-    if [ $prerelease == "false" ]; then
-        IMAGE_TYPE="prod"
+    if [ "$prerelease" == "false" ]; then
+        STABLE="true"
     fi
 fi
 
@@ -23,14 +25,20 @@ function output_tags {
     var_name=$1
     image_name=$2
     tags=$DOCKER_DEV_IMAGE/$image_name:$VERSION,$DOCKER_DEV_IMAGE/$image_name:latest
-    if [[ $IMAGE_TYPE == "prod" ]]; then
+    if [ "$IMAGE_TYPE" == "prod" ]; then
         tags=$tags,$DOCKER_PROD_IMAGE/$image_name:$VERSION,$DOCKER_PROD_IMAGE/$image_name:latest
-        tags=$tags,$DOCKER_PROD_IMAGE/$image_name:stable
+    fi
+    if [ "$STABLE" == "true" ]; then
+        tags=$tags,$DOCKER_DEV_IMAGE/$image_name:stable
+        if [ "$IMAGE_TYPE" == "prod" ]; then
+            tags=$tags,$DOCKER_PROD_IMAGE/$image_name:stable
+        fi
     fi
     echo ::set-output name=$var_name::$tags
 }
 
 echo ::set-output name=version::${VERSION}
+echo ::set-output name=stable::${STABLE}
 echo ::set-output name=image_type::${IMAGE_TYPE}
 echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 echo ::set-output name=base_image::gordo/base:$VERSION
