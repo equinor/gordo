@@ -85,14 +85,3 @@ jobs:
 
       - name: Build Docs
         run: make docs
-
-  build-images:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Build Images
-        run: make images
-
-      - name: Scan Images
-        run: make scan
