@@ -52,7 +52,10 @@ function set_output_tags {
     echo ::set-output name=$var_name::$tags
 }
 
-BASE_IMAGE=gordo_base
+BASE_IMAGE=$DOCKER_DEV_IMAGE/base
+if [ "$IMAGE_TYPE" == "prod" ]; then
+    BASE_IMAGE=$DOCKER_PROD_IMAGE/base
+fi
 
 echo ::set-output name=version::${VERSION}
 echo ::set-output name=stable::${STABLE}
