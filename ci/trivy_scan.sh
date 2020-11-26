@@ -9,7 +9,7 @@ if [ -z "$image" ]; then
 fi
 
 uname=$(uname -s 2>/dev/null)
-trivy=$(which trivy);
+trivy=$(which trivy || echo "")
 if [ -z "$trivy" ]; then
     if [ "$uname"  == "Linux" ]; then
         sudo apt-get install wget apt-transport-https gnupg lsb-release
