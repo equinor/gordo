@@ -41,7 +41,7 @@ echo ::set-output name=version::${VERSION}
 echo ::set-output name=stable::${STABLE}
 echo ::set-output name=image_type::${IMAGE_TYPE}
 echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-echo ::set-output name=base_image::gordo/base:$VERSION
+echo ::set-output name=base_image::gordo_base:$VERSION
 output_tags "tags_gordo_client" "gordo-client"
 output_tags "tags_gordo_deploy" "gordo-deploy"
 output_tags "tags_gordo_model_builder" "gordo-model-builder"
