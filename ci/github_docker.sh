@@ -21,12 +21,27 @@ if [ "$GITHUB_EVENT_NAME" == "release" ]; then
     fi
 fi
 
-function output_tags {
+function version_tags {
+    image=$1
+    version=(${2//./ })
+    output=$image:$2
+    if [ ${#version[@]} -ge 3 ]; then
+        if [ -n "${version[0]}" ]; then
+            output=$output,$image:${version[0]}
+            if [ -n "${version[1]}" ]; then
+                output=$output,$image:${version[0]}.${version[1]}
+            fi
+        fi
+    fi
+    echo $output
+}
+
+function set_output_tags {
     var_name=$1
     image_name=$2
-    tags=$DOCKER_DEV_IMAGE/$image_name:$VERSION,$DOCKER_DEV_IMAGE/$image_name:latest
+    tags=$DOCKER_DEV_IMAGE/$image_name:latest,$(version_tags "$DOCKER_DEV_IMAGE/$image_name" "$VERSION")
     if [ "$IMAGE_TYPE" == "prod" ]; then
-        tags=$tags,$DOCKER_PROD_IMAGE/$image_name:$VERSION,$DOCKER_PROD_IMAGE/$image_name:latest
+        tags=$tags,$DOCKER_PROD_IMAGE/$image_name:latest,$(version_tags "$DOCKER_PROD_IMAGE/$image_name" "$VERSION")
     fi
     if [ "$STABLE" == "true" ]; then
         tags=$tags,$DOCKER_DEV_IMAGE/$image_name:stable
@@ -44,7 +59,7 @@ echo ::set-output name=stable::${STABLE}
 echo ::set-output name=image_type::${IMAGE_TYPE}
 echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 echo ::set-output name=base_image::$BASE_IMAGE:$VERSION
-output_tags "tags_gordo_client" "gordo-client"
-output_tags "tags_gordo_deploy" "gordo-deploy"
-output_tags "tags_gordo_model_builder" "gordo-model-builder"
-output_tags "tags_gordo_model_server" "gordo-model-server"
+set_output_tags "tags_gordo_client" "gordo-client"
+set_output_tags "tags_gordo_deploy" "gordo-deploy"
+set_output_tags "tags_gordo_model_builder" "gordo-model-builder"
+set_output_tags "tags_gordo_model_server" "gordo-model-server"
