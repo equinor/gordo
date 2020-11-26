@@ -26,6 +26,10 @@ jobs:
         run: |
           bash ci/github_docker.sh
 
+      - name: GITHUB_EVENT_PATH
+        run: |
+          cat $GITHUB_EVENT_PATH
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
