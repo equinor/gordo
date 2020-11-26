@@ -52,7 +52,7 @@ function set_output_tags {
     echo ::set-output name=$var_name::$tags
 }
 
-BASE_IMAGE=gordo/base
+BASE_IMAGE=gordo_base
 
 echo ::set-output name=version::${VERSION}
 echo ::set-output name=stable::${STABLE}
