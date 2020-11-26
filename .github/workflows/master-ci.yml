@@ -57,7 +57,11 @@ jobs:
         env:
           IMAGE: ${{ steps.prep.outputs.base_image }}
         run: |
-          bash -x ci/trivy_scan.sh "$IMAGE"
+          bash ci/trivy_scan.sh "$IMAGE"
+
+      - name: Test base_image
+        run: |
+          echo BASE_IMAGE=${{ steps.prep.outputs.base_image }}
 
       - name: Push gordo-client
         uses: docker/build-push-action@v2
@@ -66,7 +70,7 @@ jobs:
           context: .
           file: ./Dockerfile-Client
           build-args: |
-            BASE_IMAGE=${{ steps.prep.outputs.build_image }}
+            BASE_IMAGE=${{ steps.prep.outputs.base_image }}
           tags: ${{ steps.prep.outputs.tags_gordo_client }}
           labels: |
             org.opencontainers.image.title=gordo-client
@@ -84,7 +88,7 @@ jobs:
           context: .
           file: ./Dockerfile-GordoDeploy
           build-args: |
-            BASE_IMAGE=${{ steps.prep.outputs.build_image }}
+            BASE_IMAGE=${{ steps.prep.outputs.base_image }}
           tags: ${{ steps.prep.outputs.tags_gordo_deploy }}
           labels: |
             org.opencontainers.image.title=gordo-deploy
@@ -102,7 +106,7 @@ jobs:
           context: .
           file: ./Dockerfile-ModelBuilder
           build-args: |
-            BASE_IMAGE=${{ steps.prep.outputs.build_image }}
+            BASE_IMAGE=${{ steps.prep.outputs.base_image }}
           tags: ${{ steps.prep.outputs.tags_gordo_model_builder }}
           labels: |
             org.opencontainers.image.title=gordo-model-builder
@@ -120,7 +124,7 @@ jobs:
           context: .
           file: ./Dockerfile-ModelServer
           build-args: |
-            BASE_IMAGE=${{ steps.prep.outputs.build_image }}
+            BASE_IMAGE=${{ steps.prep.outputs.base_image }}
           tags: ${{ steps.prep.outputs.tags_gordo_model_server }}
           labels: |
             org.opencontainers.image.title=gordo-model-server
