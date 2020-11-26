@@ -43,7 +43,7 @@ jobs:
         with:
           image-ref: ${{ steps.prep.outputs.base_image }}
           format: template
-          template: @/contrib/sarif.tpl
+          template: "@/contrib/sarif.tpl"
           output: trivy-results.sarif
 
       - name: Upload Trivy scan results to GitHub Security tab
