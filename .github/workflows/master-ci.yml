@@ -68,6 +68,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          pull: false
           context: .
           file: ./Dockerfile-Client
           build-args: |
@@ -86,6 +87,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          pull: false
           context: .
           file: ./Dockerfile-GordoDeploy
           build-args: |
@@ -104,6 +106,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          pull: false
           context: .
           file: ./Dockerfile-ModelBuilder
           build-args: |
@@ -122,6 +125,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
+          pull: false
           context: .
           file: ./Dockerfile-ModelServer
           build-args: |
