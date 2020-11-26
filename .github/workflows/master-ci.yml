@@ -59,9 +59,10 @@ jobs:
         run: |
           bash ci/trivy_scan.sh "$IMAGE"
 
-      - name: Test base_image
+      - name: Test
         run: |
           echo BASE_IMAGE=${{ steps.prep.outputs.base_image }}
+          docker images ls
 
       - name: Push gordo-client
         uses: docker/build-push-action@v2
