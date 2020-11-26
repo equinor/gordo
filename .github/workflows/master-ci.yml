@@ -55,7 +55,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         env:
-          IMAGE: ${{ steps.prep.outputs.build_image }}
+          IMAGE: ${{ steps.prep.outputs.base_image }}
         run: |
           bash ci/trivy_scan.sh "$IMAGE"
 
