@@ -54,8 +54,10 @@ jobs:
           load: true
 
       - name: Run Trivy vulnerability scanner
+        env:
+          IMAGE: ${{ steps.prep.outputs.build_image }}
         run: |
-          bash ci/trivy_scan.sh ${{ steps.prep.outputs.build_image }}
+          bash ci/trivy_scan.sh "$IMAGE"
 
       - name: Push gordo-client
         uses: docker/build-push-action@v2
