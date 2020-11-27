@@ -69,7 +69,7 @@ This section will explain how to start development of Gordo.
 ### How to prepare working environment
 - install requirements
 ```shell script
-# create and activate virtualenv. Note: you should use python3.7 (current tensorflow is not compatible with python3.8)
+# create and activate virtualenv. Note: you should use python3.7 (project's tensorflow version is not compatible with python3.8)
 # then:
 pip install --upgrade pip
 pip install --upgrade pip-tools
@@ -80,7 +80,7 @@ pip install -r requirements/test_requirements.txt
 ### How to run tests locally
 
 #### Tests system requirements
-Note: commands might differ from your OS.  
+To run tests it's required for your system to has (note: commands might differ from your OS):
 - running docker process;
 - available 5432 port for postgres container:
     - check if port is available: `sudo lsof -i tcp:5432`
@@ -96,7 +96,7 @@ Note: commands might differ from your OS.
 
 #### Run tests
 List of commands to run tests can be found [here](/setup.cfg).  
-It's faster to run tests in parallel:
+Running of tests takes some time, so it's faster to run tests in parallel:
 ```shell script
 # example
 pytest tests/gordo/client/test_client.py --ignore benchmarks --cov-report= --no-cov -n auto -m 'not dockertest' 
@@ -106,4 +106,4 @@ python3.7 -m pytest ...
 
 #### How to run tests in debug mode
 Note: this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
-On the configuration setup for test running add to `Additional arguments:` in `pytest` section following string `--ignore benchmarks --cov-report= --no-cov `
+On the configuration setup for test running add to `Additional arguments:` in `pytest` section following string: `--ignore benchmarks --cov-report= --no-cov `
