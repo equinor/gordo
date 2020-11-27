@@ -95,6 +95,19 @@ sdist:
 
 images: model-builder model-server client
 
+code-quality: flakehell black  ## Run code quality tools
+
+flakehell:  ## Run flakehell with plugins - only on changed code
+	git diff | flakehell lint --diff
+	#git diff --name-only | grep -E '.py$' | xargs flakehell lint
+
+black:  ## Run black auto code formatter - only on changed code
+	git diff ..master '--diff-filter=AMRC' --name-only | grep '.py' | xargs black --check
+
+
+	#git diff --name-only | grep -E ".py$$" | xargs black --check
+	# 	$CI_MERGE_REQUEST_TARGET_BRANCH_SHA
+
 test:
 	python setup.py test
 
@@ -103,6 +116,19 @@ testall:
 
 docs:
 	cd ./docs && $(MAKE) html
+
+compose_requirements:  ## run pip-compile for requirements.in and test_requirements.in
+	pip install --upgrade pip
+	pip install --upgrade pip-tools
+	# to auto update requirements -> add "--upgrade" param to the lines below
+	pip-compile --output-file=requirements/full_requirements.txt requirements/mlflow_requirements.in requirements/postgres_requirements.in requirements/requirements.in
+	pip-compile --output-file=requirements/test_requirements.txt requirements/test_requirements.in
+
+install_app_requirements:  ## install requirements for app and tests
+	pip install --upgrade pip
+	pip install --upgrade pip-tools
+	pip install -r requirements/full_requirements.txt
+	pip install -r requirements/test_requirements.txt
 
 all: test images push-dev-images
 

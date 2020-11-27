@@ -5,7 +5,9 @@ import logging
 import jinja2
 import io
 
-from typing import Union
+from gordo.util.version import Version, GordoRelease, GordoSpecial, GordoPR
+
+from typing import Union, cast
 
 logger = logging.getLogger(__name__)
 
@@ -116,3 +118,14 @@ def load_workflow_template(workflow_template: str) -> jinja2.Template:
         loader=jinja2.FileSystemLoader(template_dir), undefined=jinja2.StrictUndefined
     )
     return templateEnv.get_template(os.path.basename(workflow_template))
+
+
+def default_image_pull_policy(gordo_version: Version) -> str:
+    version_type = type(gordo_version)
+    if version_type is GordoRelease:
+        version = cast(GordoRelease, gordo_version)
+        if version.only_major() or version.only_major_minor():
+            return "Always"
+    elif version_type is GordoPR or version_type is GordoSpecial:
+        return "Always"
+    return "IfNotPresent"

@@ -12,6 +12,7 @@ from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo.cli.exceptions_reporter import ReportLevel
+from gordo.util.version import parse_version
 
 
 logger = logging.getLogger(__name__)
@@ -177,6 +178,11 @@ def workflow_cli(gordo_ctx):
     envvar=f"{PREFIX}_PROMETHEUS_METRICS_SERVER_WORKERS",
     default=1,
 )
+@click.option(
+    "--image-pull-policy",
+    help="Default imagePullPolicy for all gordo's images",
+    envvar=f"{PREFIX}_IMAGE_PULL_POLICY",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
@@ -196,6 +202,15 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     # Create normalized config
     config = NormalizedConfig(yaml_content, project_name=context["project_name"])
+
+    version = parse_version(context["gordo_version"])
+    if "image_pull_policy" not in context or not context["image_pull_policy"]:
+        context["image_pull_policy"] = wg.default_image_pull_policy(version)
+    logger.info(
+        "Generate config with gordo_version=%s and imagePullPolicy=%s",
+        context["gordo_version"],
+        context["image_pull_policy"],
+    )
 
     context["max_server_replicas"] = (
         context.pop("n_servers") or len(config.machines) * 10

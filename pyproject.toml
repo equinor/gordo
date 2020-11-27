@@ -1,0 +1,176 @@
+[tool.flakehell]
+#baseline = "baseline.txt"  # TODO remove this after all code will be cleaned   # flakehell baseline > baseline.txt
+format = "grouped"
+#format = "stat"
+max_line_length = 120
+show_source = true
+no-isort-config = true
+max-line-complexity = 15
+
+## disable some checks for tests
+#[tool.flakehell.exceptions."tests/conftest.py"]
+#pycodestyle = ["-E501"]     # disable a check
+#pycodestyle = ["-*"]     # disable a plugin
+
+exclude = [".cache", ".git", "__pycache__", "old", "build", "dist", "junk"]
+
+# TODO Alex this is not supported
+ignore = [
+    "E501",
+    # "Coding" magic comment
+    "C101",
+    # Missing trailing comma in Python 3.6+
+    "C816",
+    # Backslash that is used for line breaking
+    "N400",
+    # Double quotes forbidding
+    "Q000",
+    # Trailing comma, supported by Black
+    "C812",
+    "C813",
+    "C815",
+    # RST docstrings -- not used
+    "RST",
+    # Docstring in `__init__`
+    "D107",
+    # Requires all classes to have a base class
+    "WPS306",
+    # Requires boolean arguments to be passed as keywords
+    "WPS425",
+    # f-strings forbidding
+    "WPS305",
+    # relative imports
+    "WPS300",
+    # Found context manager with too many assignments - usually good for readability
+    "WPS316",
+    # Found incorrect multi-line parameters  - handled by black.
+    "WPS317",
+    # "Found incorrect order of methods in a class" – requires private methods to be after all
+    # public ones.
+    "WPS338",
+    # "Found shadowed class attribute" - false positive for dataclasses.
+    "WPS601",
+    # Found wrong metadata variable: __all__ (???)
+    "WPS410",
+    # Found a line that starts with a dot - handled by black
+    "WPS348",
+    # Found bad magic module function: __getattr__ (false-positive for class level attributes)
+    "WPS413",
+    # "Found too short name" - it's ok for list comprehensions, lambdas etc.
+    "WPS111",
+    # Found `finally` in `try` block without `except`
+    "WPS501",
+    # "Found subclassing a builtin" - it's required for typed enums.
+    "WPS600",
+    # "Found using `@staticmethod`" – static methods are good for self-documenting the code,
+    # they also provide a little bit of performance optimization.
+    "WPS602",
+    # W503 line break before binary operator
+    "W503",
+    # Missing parameter(s) in Docstring: - ctx
+    "DAR101",
+    # Missing docstring in magic method
+    "D105",
+    # Missing "Returns" in Docstring:
+    "DAR201",
+    # Missing "Yields" in Docstring
+    "DAR301",
+    # Missing exception(s) in Raises section
+    "DAR401",
+    # Found `%` string formatting
+    "WPS323",
+    # Found an unnecessary blank line before a bracket - handled by Black
+    "WPS355",
+]
+
+
+#per-file-ignores=
+#    # S101 - using asserts.
+#    # D103 - test docstrings.
+#    # DAR101 Missing parameter(s) in Docstring
+#    # N400 - found backslash that is used for line breaking.
+#    # WPS202 - found overused expression.
+#    # WPS204 - found too many module members.
+#    # WPS226 - found string constant over-use.
+#    # WPS430 - "found nested function" for functional decorators.
+#    # WPS432 - Found magic number.
+#    # WPS441 - "found control variable used after block" - normal for mock patches.
+#    # WPS442 - "found outer scope names shadowing" for fixtures.
+#    # WPS520 - "found compare with falsy constant"
+#    # WPS609 - "direct magic attribute usage" for MagicMock
+#    # C412 - Unnecessary set comprehension - 'in' can take a generator.
+#    ./tests/test_*.py:S101,D103,WPS202,WPS204,WPS226,WPS430,WPS432,WPS441,WPS442,WPS520,WPS600,WPS609,DAR101,C412
+#    ./tests/**/test_*.py:S101,D103,WPS202,WPS204,WPS226,WPS430,WPS432,WPS441,WPS442,WPS520,WPS600,WPS609,DAR101,C412
+#
+#    # WPS442 - Found outer scope names shadowing.
+#    # S101 - using asserts.
+#    # S608 - Possible SQL injection.
+#    ./tests/conftest.py:WPS442,S101,S608
+#
+#    # Bulk imports, module docstring
+#    ./*/__init__.py:WPS412,WPS440,F,D104
+
+
+[tool.flakehell.plugins]
+flake8-broken-line = ["+*"]
+flake8-bugbear = ["+*"]
+flake8-builtins = ["+*"]
+flake8-commas   = ["+*"]
+flake8-comprehensions = ["+*"]
+flake8-darglint = ["+*"]
+flake8-debugger = ["+*"]
+flake8-docstrings = ["+*"]
+flake8-eradicate = ["+*"]
+flake8-isort = ["+*"]
+flake8-string-format = ["+*"]
+flake8-mutable = ["+*"]
+mccabe = ["+*"]
+pep8-naming = ["+*"]
+pycodestyle = ["+*"]
+pyflakes = ["+*"]
+
+#
+#  image: python:3.7
+#  script:
+#    - pip3 install flakehell
+#    - flakehell lint --format=gitlab --output-file flakehell.json
+#  artifacts:
+#    reports:
+#      codequality: flakehell.json
+
+# github actions: https://wemake-python-stylegui.de/en/latest/pages/usage/integrations/github-actions.html
+
+#git diff | flakehell lint --diff my_project/
+#https://flakehell.readthedocs.io/commands/baseline.html
+
+
+[tool.black]
+line-length = 120
+target-version = ['py37']
+include = '\.pyi?$'
+exclude = '''
+
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | \.cache
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+skip = [".cache", ".venv"]
