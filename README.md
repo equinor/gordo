@@ -26,7 +26,19 @@
 
 ---
 
-## About:
+## Table of content
+* [About](#About)
+* [Examples](#Examples)
+* [Install](#Install)
+* [Uninstall](#Uninstall)
+* [Developer manual](#Developer-manual)
+    * [How to prepare working environment](#How-to-prepare-working-environment)
+    * [How to run tests locally](#How-to-run-tests-locally)
+        * [Tests system requirements](#Tests-system-requirements)
+        * [Run tests](#Run-tests)
+        * [How to run tests in debug mode](#How-to-run-tests-in-debug-mode)
+
+## About
 
 Gordo fulfills the role of inhaling config files and supplying components to the pipeline of:
 
@@ -42,11 +54,56 @@ See our [example](./examples) notebooks for how to develop with `gordo` locally.
 
 ---
 
-## Install: 
+## Install 
 `pip install --upgrade gordo`  
 
 Bleeding edge:  
 `pip install git+https://github.com/equinor/gordo.git`
 
-## Uninstall:
+## Uninstall
 `pip uninstall gordo`
+
+## Developer manual
+This section will explain how to start development of Gordo.
+
+### How to prepare working environment
+- install requirements
+```shell script
+# create and activate virtualenv. Note: you should use python3.7 (current tensorflow is not compatible with python3.8)
+# then:
+pip install --upgrade pip
+pip install --upgrade pip-tools
+pip install -r requirements/full_requirements.txt
+pip install -r requirements/test_requirements.txt
+```
+
+### How to run tests locally
+
+#### Tests system requirements
+Note: commands might differ from your OS.  
+- running docker process;
+- available 5432 port for postgres container:
+    - check if port is available: `sudo lsof -i tcp:5432`
+    - (if needed) check `postgres` process details with: `ps auxwww | grep postgres` 
+    - (if needed) stop postgres on 5432 port (depends on how you installed postgres and its version):
+    ```shell script
+    sudo -u postgres /Library/PostgreSQL/12/bin/pg_ctl -D /Library/PostgreSQL/12/data stop -s -m fast
+    ```
+    Note: it could be run later with:
+    ```shell script
+    sudo -u postgres /Library/PostgreSQL/12/bin/pg_ctl start -D /Library/PostgreSQL/12/data -l postgres.log
+    ```
+
+#### Run tests
+List of commands to run tests can be found [here](/setup.cfg).  
+It's faster to run tests in parallel:
+```shell script
+# example
+pytest tests/gordo/client/test_client.py --ignore benchmarks --cov-report= --no-cov -n auto -m 'not dockertest' 
+# or if you have multiple python versions and they're not resolved properly:
+python3.7 -m pytest ... 
+```
+
+#### How to run tests in debug mode
+Note: this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
+On the configuration setup for test running add to `Additional arguments:` in `pytest` section following string `--ignore benchmarks --cov-report= --no-cov `
