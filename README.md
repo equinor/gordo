@@ -82,17 +82,7 @@ pip install -r requirements/test_requirements.txt
 #### Tests system requirements
 To run tests it's required for your system to has (note: commands might differ from your OS):
 - running docker process;
-- available 5432 port for postgres container:
-    - check if port is available: `sudo lsof -i tcp:5432`
-    - (if needed) check `postgres` process details with: `ps auxwww | grep postgres` 
-    - (if needed) stop postgres on 5432 port (depends on how you installed postgres and its version):
-    ```shell script
-    sudo -u postgres /Library/PostgreSQL/12/bin/pg_ctl -D /Library/PostgreSQL/12/data stop -s -m fast
-    ```
-    Note: it could be run later with:
-    ```shell script
-    sudo -u postgres /Library/PostgreSQL/12/bin/pg_ctl start -D /Library/PostgreSQL/12/data -l postgres.log
-    ```
+- available 5432 port for postgres container.
 
 #### Run tests
 List of commands to run tests can be found [here](/setup.cfg).  
