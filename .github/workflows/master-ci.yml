@@ -5,6 +5,9 @@ name: MasterCI
 on:
   release:
     types: [published, prereleased, edited]
+  push:
+    branches:
+      - master
   pull_request:
 
 jobs:
