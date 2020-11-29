@@ -99,7 +99,7 @@ def parse_version(
     Example
     -------
     >>> parse_version('2.3.5')
-    GordoRelease(major=2, minor=3, patch=4, suffix=None)
+    GordoRelease(major=2, minor=3, patch=5, suffix=None)
     >>> parse_version('latest')
     GordoSpecial(special=<Special.LATEST: 'latest'>)
 
