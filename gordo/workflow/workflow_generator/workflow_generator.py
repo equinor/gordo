@@ -7,7 +7,7 @@ import io
 
 from gordo.util.version import Version, GordoRelease, GordoSpecial, GordoPR
 
-from typing import Union, Optional, cast
+from typing import Union, cast
 
 logger = logging.getLogger(__name__)
 
