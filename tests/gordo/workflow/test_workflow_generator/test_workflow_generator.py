@@ -15,6 +15,10 @@ from click.testing import CliRunner
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo import cli
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo.workflow.workflow_generator.workflow_generator import (
+    default_image_pull_policy,
+)
+from gordo.util.version import GordoRelease, GordoSpecial, GordoPR, GordoSHA, Special
 from gordo_dataset import sensor_tag
 
 
@@ -509,3 +513,19 @@ def test_expected_models_in_workflow(repo_dir):
         .split()[0]
     )
     assert isinstance(yaml.safe_load(expected_models_str), list)
+
+
+@pytest.mark.parametrize(
+    "gordo_version,expected",
+    [
+        (GordoRelease(2, 10, 23), "IfNotPresent"),
+        (GordoRelease(1, 2), "Always"),
+        (GordoRelease(10), "Always"),
+        (GordoSpecial(Special.LATEST), "Always"),
+        (GordoPR(43), "Always"),
+        (GordoSHA("dke0832k"), "IfNotPresent"),
+    ],
+)
+def test_default_image_pull_policy(gordo_version, expected):
+    result = default_image_pull_policy(gordo_version)
+    assert result == expected
