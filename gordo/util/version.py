@@ -89,6 +89,25 @@ class GordoSHA(Version):
 def parse_version(
     gordo_version: str,
 ) -> Union[GordoRelease, GordoSpecial, GordoPR, GordoSHA]:
+    """
+    Parsing gordo version. Also supported gordo docker images tags
+
+    Parameters
+    ----------
+    gordo_version: str
+
+    Example
+    -------
+    >>> parse_version('2.3.5')
+    GordoRelease(major=2, minor=3, patch=4, suffix=None)
+    >>> parse_version('latest')
+    GordoSpecial(special=<Special.LATEST: 'latest'>)
+
+    Returns
+    -------
+    Union[GordoRelease, GordoSpecial, GordoPR, GordoSHA]
+
+    """
     special_version = Special.find(gordo_version)
     if special_version is not None:
         return GordoSpecial(special_version)
