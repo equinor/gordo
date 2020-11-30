@@ -63,7 +63,7 @@ importlib-metadata==1.4.0  # via jsonschema
 influxdb==5.3.0           # via gordo-dataset
 isodate==0.6.0            # via msrest
 itsdangerous==1.1.0       # via flask
-jeepney==0.4.2            # via secretstorage
+jeepney==0.6.0            # via -r requirements.in, secretstorage
 jinja2==2.10.3            # via -r requirements.in, flask
 jmespath==0.9.4           # via azureml-core
 joblib==0.14.1            # via scikit-learn
