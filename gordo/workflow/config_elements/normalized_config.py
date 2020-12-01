@@ -32,19 +32,23 @@ class NormalizedConfig:
     DEFAULT_CONFIG_GLOBALS = {
         "runtime": {
             "reporters": [],
+            "deployer": {"image": "gordo-deploy",},
             "server": {
+                "image": "gordo-model-server",
                 "resources": {
                     "requests": {"memory": 3000, "cpu": 1000},
                     "limits": {"memory": 6000, "cpu": 2000},
-                }
+                },
             },
             "prometheus_metrics_server": {
+                "image": "gordo-model-server",
                 "resources": {
                     "requests": {"memory": 200, "cpu": 100},
                     "limits": {"memory": 1000, "cpu": 200},
-                }
+                },
             },
             "builder": {
+                "image": "gordo-model-builder",
                 "resources": {
                     "requests": {"memory": 3900, "cpu": 1001},
                     "limits": {"memory": 7800, "cpu": 1001},
@@ -52,6 +56,7 @@ class NormalizedConfig:
                 "remote_logging": {"enable": False},
             },
             "client": {
+                "image": "gordo-model-builder",
                 "resources": {
                     "requests": {"memory": 3500, "cpu": 100},
                     "limits": {"memory": 4000, "cpu": 2000},

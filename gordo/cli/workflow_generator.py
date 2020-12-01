@@ -229,10 +229,20 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     ]
     context["model_builder_resources_limits_cpu"] = builder_resources["limits"]["cpu"]
 
+    context["model_builder_image"] = config.globals["runtime"]["builder"]["image"]
+
     context["server_resources"] = config.globals["runtime"]["server"]["resources"]
+    context["server_image"] = config.globals["runtime"]["server"]["image"]
+
     context["prometheus_metrics_server_resources"] = config.globals["runtime"][
         "prometheus_metrics_server"
     ]["resources"]
+
+    context["prometheus_metrics_server_image"] = config.globals["runtime"][
+        "prometheus_metrics_server"
+    ]["image"]
+
+    context["deployer_image"] = config.globals["runtime"]["deployer"]["image"]
 
     # These are also set in the default globals, and guaranteed to exist
     client_resources = config.globals["runtime"]["client"]["resources"]
@@ -240,6 +250,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["client_resources_requests_cpu"] = client_resources["requests"]["cpu"]
     context["client_resources_limits_memory"] = client_resources["limits"]["memory"]
     context["client_resources_limits_cpu"] = client_resources["limits"]["cpu"]
+
+    context["client_image"] = config.globals["runtime"]["client"]["image"]
 
     context["client_max_instances"] = config.globals["runtime"]["client"][
         "max_instances"
