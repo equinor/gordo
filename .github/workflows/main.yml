@@ -60,10 +60,10 @@ jobs:
 
           if [ -z "${FILE_DIFFS}" ]
           then
+            echo "No Python files to check."
+          else
             git diff origin/master..origin/${{ steps.extract_branch.outputs.branch }} | flakehell lint --diff
             black --check "${FILE_DIFFS}"
-          else
-            echo "No Python files to check."
           fi
 
       - name: Test ${{ matrix.component }}
