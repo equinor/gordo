@@ -45,6 +45,7 @@ jobs:
         shell: bash
         run: |
           git fetch origin master  # needed to make diff on master
+          git fetch origin ${{ steps.extract_branch.outputs.branch }}  # needed to make diff on master
           echo "##[set-output name=diff_files;]$( git diff origin/master..${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py' )"
         id: python_git_diff_files
 

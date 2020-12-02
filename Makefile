@@ -98,10 +98,10 @@ images: model-builder model-server client
 code-quality: flakehell black  ## Run code quality tools
 
 flakehell:  ## Run flakehell with plugins - only on changed code
-	git diff | flakehell lint --diff
+	git diff origin/master.. | flakehell lint --diff
 
 black:  ## Run black auto code formatter - only on changed code
-	git diff --diff-filter=AMRC --name-only | grep '.py' | xargs black --check
+	git diff origin/master.. --diff-filter=AMRC --name-only | grep '.py' | xargs black --check
 
 test:
 	python setup.py test

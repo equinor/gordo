@@ -30,7 +30,6 @@ line-length = 120
 target-version = ['py37']
 include = '\.pyi?$'
 exclude = '''
-
 (
   /(
       \.eggs         # exclude a few common directories in the
@@ -40,6 +39,7 @@ exclude = '''
     | \.tox
     | \.venv
     | \.cache
+    | __pycache__
     | _build
     | buck-out
     | build
