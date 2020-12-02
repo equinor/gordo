@@ -64,6 +64,7 @@ def local_build(
     Iterable[Tuple[Union[BaseEstimator, None], Machine]]
         A generator yielding tuples of models and their metadata.
     """
+
     config = get_dict_from_yaml(io.StringIO(config_str))
     normed = NormalizedConfig(config, project_name="local-build")
     for machine in normed.machines:

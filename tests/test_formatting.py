@@ -3,8 +3,6 @@ import os
 import sys
 
 
-
-# TODO Alex remove this back
 def test_formatting_black():
     project_path = os.path.join(os.path.dirname(__file__), "..")
     gordo_path = os.path.join(project_path, "gordo")

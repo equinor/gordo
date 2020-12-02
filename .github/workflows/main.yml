@@ -10,10 +10,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-         component: [formatting, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
+        component: [formatting, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
         python-version: [3.7]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v1
 
       - uses: actions/setup-python@v1
         with:
