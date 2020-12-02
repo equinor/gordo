@@ -99,14 +99,9 @@ code-quality: flakehell black  ## Run code quality tools
 
 flakehell:  ## Run flakehell with plugins - only on changed code
 	git diff | flakehell lint --diff
-	#git diff --name-only | grep -E '.py$' | xargs flakehell lint
 
 black:  ## Run black auto code formatter - only on changed code
-	git diff ..master '--diff-filter=AMRC' --name-only | grep '.py' | xargs black --check
-
-
-	#git diff --name-only | grep -E ".py$$" | xargs black --check
-	# 	$CI_MERGE_REQUEST_TARGET_BRANCH_SHA
+	git diff --diff-filter=AMRC --name-only | grep '.py' | xargs black --check
 
 test:
 	python setup.py test

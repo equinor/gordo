@@ -10,8 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        # component: [formatting, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
-        component: [builder]
+         component: [formatting, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
         python-version: [3.7]
     steps:
       - uses: actions/checkout@v2
@@ -36,43 +35,22 @@ jobs:
 
       - name: Install
         run: |
-          #pip install --upgrade pip
-          #pip install --upgrade pip-tools
-          #pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
-          #pip install -r requirements/full_requirements.txt
+          pip install --upgrade pip
+          pip install --upgrade pip-tools
+          pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
+          pip install -r requirements/full_requirements.txt
           pip install .[tests]
-
-#      - name: Debug
-#        run: |
-#          echo extract_branch - ${{ steps.extract_branch.outputs.branch }}
-#
-#          echo github.event_name - ${{ github.event_name }}
-#          echo GITHUB_REF - $GITHUB_REF
-#          echo GITHUB_BASE_REF - $GITHUB_BASE_REF
-#
-#          #git fetch origin ${{ steps.extract_branch.outputs.branch }}
-#          git fetch origin master
-#          git branch -a
-#          git log -25 remotes/origin/master..${{ steps.extract_branch.outputs.branch }}
-#
-#          echo $( git diff origin/master..${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py')
-#          #echo $( git diff origin/master..${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py' | xargs black --check)
 
       - name: Get git diff files for Black
         shell: bash
         run: |
-          git fetch origin master
-          git branch -a
-          git log -25 remotes/origin/master..${{ steps.extract_branch.outputs.branch }}
-          git diff origin/master..${{ steps.extract_branch.outputs.branch }}
-
+          git fetch origin master  # needed to make diff on master
           echo "##[set-output name=diff_files;]$( git diff origin/master..${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py' )"
         id: python_git_diff_files
 
       - name: Run code quality checks
-        # TODO Alex add Legacy code errors first -> https://wemake-python-stylegui.de/en/latest/pages/usage/integrations/flakehell.html#flakehell-legacy
         run: |
-          git diff origin/master..${{ steps.extract_branch.outputs.branch }} | flakehell lint --diff
+          git diff origin/master..${{ steps.extract_branch.outputs.branch }} | flakehell lint --diff ||
           black --check ${{ steps.python_git_diff_files.outputs.diff_files }}
 
       - name: Test ${{ matrix.component }}
@@ -108,20 +86,20 @@ jobs:
           token: fc2844a2-5a6c-43ef-a758-05bc50562b14
           fail_ci_if_error: false
 
-#  build-docs:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v1
-#
-#      - uses: actions/setup-python@v1
-#        with:
-#          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
-#          architecture: 'x64'
-#
-#      - name: Install deps
-#        run: |
-#          pip install --upgrade pip
-#          pip install .[docs]
-#
-#      - name: Build Docs
-#        run: make docs
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
+          architecture: 'x64'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Build Docs
+        run: make docs
