@@ -65,6 +65,9 @@ def local_build(
         A generator yielding tuples of models and their metadata.
     """
 
+    dummy_var = 5
+
+
     config = get_dict_from_yaml(io.StringIO(config_str))
     normed = NormalizedConfig(config, project_name="local-build")
     for machine in normed.machines:

@@ -29,7 +29,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
-      - name: Extract branch name both 'pull' and 'push' events
+      - name: Extract branch name (works for both 'pull' and 'push' events)
         shell: bash
         run: echo "##[set-output name=branch;]$( if [ ${{ github.event_name }} = push ]; then echo ${GITHUB_REF#refs/heads/}; else echo ${{ github.event.pull_request.head.ref }}; fi )"
         id: extract_branch
@@ -41,25 +41,30 @@ jobs:
           #pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
           #pip install -r requirements/full_requirements.txt
           pip install .[tests]
-
-      - name: Get git diff files for Black
-        shell: bash
-        run: |
-          git fetch origin master ${{ steps.extract_branch.outputs.branch }}  # needed to make diff on master
-          git branch -a # For debug
-
-          DIFF_FILES=$( git diff remotes/origin/master..remotes/origin/${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py' )
-          echo $DIFF_FILES  # TODO remove this
-
-
-          echo "##[set-output name=diff_files;]$DIFF_FILES"
-        id: python_git_diff_files
+#
+#      - name: Get git diff files for Black
+#        shell: bash
+#        run: |
+#          git diff origin/master..origin/"${{ steps.extract_branch.outputs.branch }}" --name-only
+#          FILE_DIFFS=$(git diff origin/master..origin/${{ steps.extract_branch.outputs.branch }} --name-only | sed -n "/.a/ p")
+#          echo "FILE_DIFFS=$FILE_DIFFS" >> $GITHUB_ENV
+#          echo $GITHUB_ENV
+#          echo 5
+#        id: python_git_diff_files
 
       - name: Run code quality checks
+#        if: ${{ env.FILE_DIFFS }}
         run: |
-          git branch -a # For debug
-          git diff origin/master..${{ steps.extract_branch.outputs.branch }} | flakehell lint --diff ||
-          black --check ${{ steps.python_git_diff_files.outputs.diff_files }}
+          FILE_DIFFS=$(git diff origin/master..origin/${{ steps.extract_branch.outputs.branch }} --name-only | sed -n "/.py/ p")
+          echo "${FILE_DIFFS}"
+
+          if [ -z "${FILE_DIFFS}" ]
+          then
+            git diff origin/master..origin/${{ steps.extract_branch.outputs.branch }} | flakehell lint --diff
+            black --check "${FILE_DIFFS}"
+          else
+            echo "No Python files to check."
+          fi
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}
