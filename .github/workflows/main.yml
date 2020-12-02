@@ -10,8 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        component: [builder]
-        #component: [formatting, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
+        component: [formatting, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
         python-version: [3.7]
     steps:
       - uses: actions/checkout@v1
@@ -36,12 +35,12 @@ jobs:
 
       - name: Install
         run: |
-          #pip install --upgrade pip
-          #pip install --upgrade pip-tools
-          #pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
-          #pip install -r requirements/full_requirements.txt
+          pip install --upgrade pip
+          pip install --upgrade pip-tools
+          pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
+          pip install -r requirements/full_requirements.txt
           pip install .[tests]
-#
+
 #      - name: Get git diff files for Black
 #        shell: bash
 #        run: |
@@ -99,20 +98,20 @@ jobs:
           token: fc2844a2-5a6c-43ef-a758-05bc50562b14
           fail_ci_if_error: false
 
-#  build-docs:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v1
-#
-#      - uses: actions/setup-python@v1
-#        with:
-#          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
-#          architecture: 'x64'
-#
-#      - name: Install deps
-#        run: |
-#          pip install --upgrade pip
-#          pip install .[docs]
-#
-#      - name: Build Docs
-#        run: make docs
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
+          architecture: 'x64'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install .[docs]
+
+      - name: Build Docs
+        run: make docs

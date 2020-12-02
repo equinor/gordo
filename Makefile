@@ -101,7 +101,7 @@ flakehell:  ## Run flakehell with plugins - only on changed code
 	git diff origin/master.. | flakehell lint --diff
 
 black:  ## Run black auto code formatter - only on changed code
-	git diff origin/master.. --diff-filter=AMRC --name-only | grep '.py' | xargs black --check
+	git diff origin/master.. --name-only | grep '.py' | xargs black --check
 
 test:
 	python setup.py test
