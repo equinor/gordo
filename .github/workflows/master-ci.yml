@@ -5,11 +5,10 @@ name: MasterCI
 on:
   release:
     types: [published, prereleased, edited]
-#  push:
-#    branches:
-#      - master
-#  pull_request:
-# TODO Alex bring back
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   push-images:
@@ -19,6 +18,7 @@ jobs:
       IMAGE_HOME_URL: https://github.com/equinor/gordo
       DOCKER_PROD_REGISTRY: auroraprodacr.azurecr.io
       DOCKER_DEV_REGISTRY: auroradevacr.azurecr.io
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     steps:
       - uses: actions/checkout@v1
 
