@@ -27,7 +27,7 @@ jobs:
 
       - name: Show event
         run: |
-          cat ${{ GITHUB_EVENT_PATH }}
+          cat ${{ env.GITHUB_EVENT_PATH }}
 
       - name: Prepare variables
         id: prep
