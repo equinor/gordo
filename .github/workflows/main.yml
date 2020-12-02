@@ -35,22 +35,25 @@ jobs:
 
       - name: Install
         run: |
-          pip install --upgrade pip
-          pip install --upgrade pip-tools
-          pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
-          pip install -r requirements/full_requirements.txt
+#          pip install --upgrade pip
+#          pip install --upgrade pip-tools
+#          pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
+#          pip install -r requirements/full_requirements.txt
           pip install .[tests]
 
       - name: Get git diff files for Black
         shell: bash
         run: |
-          git fetch origin master  # needed to make diff on master
-          git fetch origin ${{ steps.extract_branch.outputs.branch }}  # needed to make diff on master
-          echo "##[set-output name=diff_files;]$( git diff origin/master..${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py' )"
+          git fetch origin master ${{ steps.extract_branch.outputs.branch }}  # needed to make diff on master
+          git branch -a # For debug
+
+          DIFF_FILES=$( git diff origin/master..${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=AMRC | grep '.py' )
+          echo "##[set-output name=diff_files;]$DIFF_FILES"
         id: python_git_diff_files
 
       - name: Run code quality checks
         run: |
+          git branch -a # For debug
           git diff origin/master..${{ steps.extract_branch.outputs.branch }} | flakehell lint --diff ||
           black --check ${{ steps.python_git_diff_files.outputs.diff_files }}
 
