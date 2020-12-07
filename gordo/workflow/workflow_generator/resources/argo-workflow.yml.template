@@ -694,6 +694,11 @@ spec:
           secretKeyRef:
             name: dlserviceauth
             key: tenant_id_secret
+      - name: DL2_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dl2serviceauth
+            key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
         value: "{{log_level}}"{% if builder_exceptions_report_file is defined %}
       - name: EXCEPTIONS_REPORTER_FILE
@@ -1189,6 +1194,11 @@ spec:
         valueFrom:
           secretKeyRef:
             name: dlserviceauth
+            key: tenant_id_secret
+      - name: DL2_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dl2serviceauth
             key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
         value: "{{log_level}}"
