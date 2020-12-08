@@ -1,6 +1,13 @@
 import pytest
 
-from gordo.util.version import parse_version, GordoRelease, GordoSpecial, Special, GordoPR, GordoSHA
+from gordo.util.version import (
+    parse_version,
+    GordoRelease,
+    GordoSpecial,
+    Special,
+    GordoPR,
+    GordoSHA,
+)
 
 
 def test_release():
@@ -21,12 +28,12 @@ def test_release():
 @pytest.mark.parametrize(
     "gordo_version,expected",
     [
-        ('1.2.3', GordoRelease(1, 2, 3)),
-        ('3.4.5dev2', GordoRelease(3, 4, 5, 'dev2')),
-        ('5.7', GordoRelease(5, 7)),
-        ('latest', GordoSpecial(Special.LATEST)),
-        ('pr-43', GordoPR(43)),
-        ('dke0832k', GordoSHA('dke0832k'))
+        ("1.2.3", GordoRelease(1, 2, 3)),
+        ("3.4.5dev2", GordoRelease(3, 4, 5, "dev2")),
+        ("5.7", GordoRelease(5, 7)),
+        ("latest", GordoSpecial(Special.LATEST)),
+        ("pr-43", GordoPR(43)),
+        ("dke0832k", GordoSHA("dke0832k")),
     ],
 )
 def test_versions(gordo_version, expected):

@@ -106,3 +106,5 @@ venv.bak/
 *.pkl
 /gordo/_version.py
 .python-version
+*.DS_Store
+

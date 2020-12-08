@@ -102,7 +102,7 @@ def test_run_cmd(monkeypatch):
 
 def test_run_server_gthread():
     with patch(
-        "gordo.server.server.run_cmd", MagicMock(return_value=None, autospec=True),
+        "gordo.server.server.run_cmd", MagicMock(return_value=None, autospec=True)
     ) as m:
         server.run_server(
             "127.0.0.1",
@@ -139,7 +139,7 @@ def test_run_server_gthread():
 
 def test_run_server_gevent():
     with patch(
-        "gordo.server.server.run_cmd", MagicMock(return_value=None, autospec=True),
+        "gordo.server.server.run_cmd", MagicMock(return_value=None, autospec=True)
     ) as m:
         server.run_server(
             "127.0.0.1",
