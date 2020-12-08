@@ -1,6 +1,13 @@
 import pytest
 
-from gordo.util.version import parse_version, GordoRelease, GordoSpecial, Special, GordoPR, GordoSHA
+from gordo.util.version import (
+    parse_version,
+    GordoRelease,
+    GordoSpecial,
+    Special,
+    GordoPR,
+    GordoSHA,
+)
 
 
 def test_release():

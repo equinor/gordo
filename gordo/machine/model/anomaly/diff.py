@@ -303,8 +303,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
     @staticmethod
     def _absolute_error(
-        y_true: Union[pd.DataFrame, np.ndarray],
-        y_pred: Union[pd.DataFrame, np.ndarray],
+        y_true: Union[pd.DataFrame, np.ndarray], y_pred: Union[pd.DataFrame, np.ndarray]
     ) -> pd.DataFrame:
 
         return pd.DataFrame(np.abs(y_true - y_pred))

@@ -244,6 +244,38 @@ def test_overrides_builder_datasource(path_to_config_files):
     )["dataset"]["data_provider"]
 
 
+def test_runtime_image_override(path_to_config_files):
+    expanded_template = _generate_test_workflow_yaml(
+        path_to_config_files, "config-test-runtime-images.yaml"
+    )
+    templates = expanded_template["spec"]["templates"]
+    model_builder_task = [
+        task for task in templates if task["name"] == "model-builder"
+    ][0]
+    model_builder_image = model_builder_task["container"]["image"]
+    actual_model_builder_image = model_builder_image.split("/")[-1].split(":")[0]
+    assert actual_model_builder_image == "new-builder-image"
+
+    client_task = [task for task in templates if task["name"] == "gordo-client"][0]
+    client_task_image = client_task["script"]["image"]
+    actual_client_task_image = client_task_image.split("/")[-1].split(":")[0]
+    assert actual_client_task_image == "new-client-image"
+
+    server_task = [
+        task for task in templates if task["name"] == "gordo-server-deployment"
+    ][0]
+    server_task_deployment = server_task["steps"][0][0]["arguments"]["parameters"][0][
+        "value"
+    ]
+    server_task_yaml = yaml.load(server_task_deployment)
+    actual_server_task_image = (
+        server_task_yaml["spec"]["template"]["spec"]["containers"][0]["image"]
+        .split("/")[-1]
+        .split(":")[0]
+    )
+    assert actual_server_task_image == "new-server-image"
+
+
 def test_runtime_overrides_builder(path_to_config_files):
     expanded_template = _generate_test_workflow_yaml(
         path_to_config_files, "config-test-runtime-resource.yaml"

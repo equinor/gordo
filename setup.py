@@ -57,7 +57,7 @@ setup(
     package_data={
         "": [
             "gordo/workflow/workflow_generator/resources/argo-workflow.yml.template",
-            "gordo/machine/dataset/data_provider/resources/assets_config.yaml"
+            "gordo/machine/dataset/data_provider/resources/assets_config.yaml",
         ]
     },
     include_package_data=True,

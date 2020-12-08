@@ -105,10 +105,7 @@ def test_with_message_report_level(reporter1):
     result = report_to_string(
         _Test1Exception("Test message"), reporter1, ReportLevel.MESSAGE
     )
-    assert result == {
-        "type": "_Test1Exception",
-        "message": "Test message",
-    }
+    assert result == {"type": "_Test1Exception", "message": "Test message"}
 
 
 def test_with_traceback_report_level(reporter1):
@@ -124,9 +121,7 @@ def test_with_type_report_level(reporter1):
     result = report_to_string(
         _Test1Exception("Test message"), reporter1, ReportLevel.TYPE
     )
-    assert result == {
-        "type": "_Test1Exception",
-    }
+    assert result == {"type": "_Test1Exception"}
 
 
 def test_with_exit_code_report_level(reporter1):
@@ -140,10 +135,7 @@ def test_with_unicode_chars(reporter1):
     result = report_to_string(
         _Test1Exception("\t你好 world!\n"), reporter1, ReportLevel.MESSAGE
     )
-    assert result == {
-        "type": "_Test1Exception",
-        "message": "\t?? world!\n",
-    }
+    assert result == {"type": "_Test1Exception", "message": "\t?? world!\n"}
 
 
 def test_with_max_message_len(reporter1):
@@ -153,24 +145,15 @@ def test_with_max_message_len(reporter1):
         ReportLevel.MESSAGE,
         max_message_len=8,
     )
-    assert result == {
-        "type": "_Test1Exception",
-        "message": "Hello...",
-    }
+    assert result == {"type": "_Test1Exception", "message": "Hello..."}
     result = report_to_string(
         _Test1Exception("Hello world!"),
         reporter1,
         ReportLevel.MESSAGE,
         max_message_len=20,
     )
-    assert result == {
-        "type": "_Test1Exception",
-        "message": "Hello world!",
-    }
+    assert result == {"type": "_Test1Exception", "message": "Hello world!"}
     result = report_to_string(
         _Test1Exception("Hello"), reporter1, ReportLevel.MESSAGE, max_message_len=4
     )
-    assert result == {
-        "type": "_Test1Exception",
-        "message": "",
-    }
+    assert result == {"type": "_Test1Exception", "message": ""}
