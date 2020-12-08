@@ -4,12 +4,7 @@ from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 
 
 def test_splited_docker_images():
-    config = {
-        "machines": [],
-        "globals": {
-            "runtime": {}
-        }
-    }
+    config = {"machines": [], "globals": {"runtime": {}}}
     normalized_config = NormalizedConfig(config, "test", "1.0.0")
     config_globals = normalized_config.globals
     config_runtime = config_globals["runtime"]
@@ -21,12 +16,7 @@ def test_splited_docker_images():
 
 
 def test_unified_docker_images():
-    config = {
-        "machines": [],
-        "globals": {
-            "runtime": {}
-        }
-    }
+    config = {"machines": [], "globals": {"runtime": {}}}
     normalized_config = NormalizedConfig(config, "test", "1.3.0")
     config_globals = normalized_config.globals
     config_runtime = config_globals["runtime"]
@@ -36,22 +26,17 @@ def test_unified_docker_images():
     assert config_runtime["builder"]["image"] == "gordo-base"
     assert config_runtime["client"]["image"] == "gordo-base"
 
+
 def test_custom_docker_images():
     config = {
         "machines": [],
         "globals": {
             "runtime": {
-                "deployer": {
-                    "image": "my-deployer"
-                },
-                "server": {
-                    "image": "my-server"
-                },
-                "builder": {
-                    "image": "my-builder",
-                }
+                "deployer": {"image": "my-deployer"},
+                "server": {"image": "my-server"},
+                "builder": {"image": "my-builder",},
             }
-        }
+        },
     }
     normalized_config = NormalizedConfig(config, "test", "1.1.0")
     config_globals = normalized_config.globals
