@@ -24,6 +24,7 @@ def test_release():
         ('1.2.3', GordoRelease(1, 2, 3)),
         ('3.4.5dev2', GordoRelease(3, 4, 5, 'dev2')),
         ('5.7', GordoRelease(5, 7)),
+        ('1.0.0', GordoRelease(1, 0, 0)),
         ('latest', GordoSpecial(Special.LATEST)),
         ('pr-43', GordoPR(43)),
         ('dke0832k', GordoSHA('dke0832k'))
