@@ -42,8 +42,7 @@ function version_tags {
 }
 
 function set_output_tags {
-    var_name=$1
-    image_name=$2
+    image_name=$1
     if [ "$IMAGE_TYPE" == "pr" ]; then
         tags=$DOCKER_DEV_IMAGE/$image_name:$VERSION
     else
@@ -61,7 +60,7 @@ function set_output_tags {
             fi
         fi
     fi
-    echo ::set-output name=$var_name::$tags
+    echo $tags
 }
 
 BASE_IMAGE=$DOCKER_DEV_IMAGE/base
@@ -74,4 +73,6 @@ echo ::set-output name=release_type::${RELEASE}
 echo ::set-output name=image_type::${IMAGE_TYPE}
 echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 echo ::set-output name=base_image::$BASE_IMAGE:$VERSION
-set_output_tags "tags_gordo_base" "gordo-base"
+gordo_base_tags=$(set_output_tags "gordo-base")
+gordo_deploy_tags=$(set_output_tags "gordo-deploy")
+echo ::set-output name=tags_gordo_base::$gordo_base_tags,$gordo_deploy_tags
