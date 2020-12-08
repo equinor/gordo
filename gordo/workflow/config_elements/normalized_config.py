@@ -118,7 +118,7 @@ class NormalizedConfig:
                 conf, project_name=project_name, config_globals=patched_globals
             )
             for conf in config["machines"]
-        ]  # type: List[Machine]
+        ]
 
         self.globals: dict = patched_globals
 
