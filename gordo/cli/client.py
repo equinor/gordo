@@ -146,7 +146,7 @@ def predict(
 
     # Fire off getting predictions
     predictions = client.predict(
-        start, end, targets=target,
+        start, end, targets=target
     )  # type: typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]
 
     # Loop over all error messages for each result and log them
@@ -191,7 +191,8 @@ def metadata(
     """
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
     metadata = {
-        k: v.to_dict() for k, v in client.get_metadata(targets=target).items()  # type: ignore
+        k: v.to_dict()
+        for k, v in client.get_metadata(targets=target).items()  # type: ignore
     }
     if output_file:
         json.dump(metadata, output_file)

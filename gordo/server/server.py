@@ -119,7 +119,7 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
 
 
 def create_prometheus_metrics(
-    project: Optional[str] = None, registry: Optional[CollectorRegistry] = None,
+    project: Optional[str] = None, registry: Optional[CollectorRegistry] = None
 ) -> GordoServerPrometheusMetrics:
     arg_labels = [("gordo_name", "model")]
     info = {"version": __version__}
@@ -155,7 +155,7 @@ def build_app(
 
     if app.config["ENABLE_PROMETHEUS"]:
         prometheus_metrics = create_prometheus_metrics(
-            project=app.config.get("PROJECT"), registry=prometheus_registry,
+            project=app.config.get("PROJECT"), registry=prometheus_registry
         )
         prometheus_metrics.prepare_app(app)
     elif prometheus_registry is not None:

@@ -182,10 +182,8 @@ def test_client_predictions_diff_batch_sizes(
     ), f"Expected new values in 'predictions' measurement, but found {vals}"
 
 
-def test_client_metadata_revision(
-    gordo_project, gordo_single_target, ml_server,
-):
-    prediction_client = Client(project=gordo_project,)
+def test_client_metadata_revision(gordo_project, gordo_single_target, ml_server):
+    prediction_client = Client(project=gordo_project)
     assert "revision" in prediction_client.get_available_machines()
 
 
@@ -232,7 +230,7 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
 
     # Simple metadata fetching with all targets
     out = runner.invoke(
-        cli.gordo, args=["client", "--project", gordo_project, "metadata",],
+        cli.gordo, args=["client", "--project", gordo_project, "metadata"]
     )
     assert out.exit_code == 0
     assert gordo_single_target in out.output

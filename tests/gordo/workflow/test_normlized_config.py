@@ -34,7 +34,7 @@ def test_custom_docker_images():
             "runtime": {
                 "deployer": {"image": "my-deployer"},
                 "server": {"image": "my-server"},
-                "builder": {"image": "my-builder",},
+                "builder": {"image": "my-builder"},
             }
         },
     }
