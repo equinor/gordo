@@ -63,7 +63,7 @@ jobs:
         run: |
           bash ci/trivy_scan.sh "$IMAGE"
 
-      - name: Push gordo-client
+      - name: Push gordo-base
         uses: docker/build-push-action@v2
         with:
           push: true
