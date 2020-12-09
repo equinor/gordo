@@ -675,6 +675,7 @@ spec:
     container:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ model_builder_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [build]
       env:
       - name: OUTPUT_DIR
         value: "/gordo/models/{{project_name}}/models/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
