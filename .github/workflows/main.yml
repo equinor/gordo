@@ -24,9 +24,9 @@ jobs:
         if: startsWith(runner.os, 'Linux')
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements/*requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-new-${{ hashFiles('requirements/*requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-pip-
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-new-
 
       - name: Install
         run: |
