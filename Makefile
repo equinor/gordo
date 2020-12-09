@@ -116,8 +116,9 @@ compose_requirements:  ## run pip-compile for requirements.in and test_requireme
 	pip install --upgrade pip
 	pip install --upgrade pip-tools
 	# to auto update requirements -> add "--upgrade" param to the lines below
-	pip-compile --output-file=requirements/full_requirements.txt requirements/mlflow_requirements.in requirements/postgres_requirements.in requirements/requirements.in
-	pip-compile --output-file=requirements/test_requirements.txt requirements/test_requirements.in
+	cd requirements && \
+	pip-compile --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in && \
+	pip-compile --output-file=test_requirements.txt test_requirements.in
 
 install_app_requirements:  ## install requirements for app and tests
 	pip install --upgrade pip
