@@ -24,16 +24,15 @@ jobs:
         if: startsWith(runner.os, 'Linux')
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('requirements/*requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-new-${{ hashFiles('requirements/*requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-pip-
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-new-
 
       - name: Install
         run: |
-          pip install --upgrade pip
-          pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
+          pip install --upgrade pip==20.1.1
           pip install -r requirements/full_requirements.txt
-          pip install .[tests]
+          pip install -r requirements/test_requirements.txt
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}
