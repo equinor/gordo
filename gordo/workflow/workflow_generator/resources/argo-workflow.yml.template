@@ -48,7 +48,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -104,7 +104,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -298,7 +298,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -466,7 +466,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -673,8 +673,9 @@ spec:
       - name: machine-name
       - name: machine
     container:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ model_builder_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [build]
       env:
       - name: OUTPUT_DIR
         value: "/gordo/models/{{project_name}}/models/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
@@ -693,6 +694,11 @@ spec:
         valueFrom:
           secretKeyRef:
             name: dlserviceauth
+            key: tenant_id_secret
+      - name: DL2_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dl2serviceauth
             key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
         value: "{{log_level}}"{% if builder_exceptions_report_file is defined %}
@@ -906,7 +912,7 @@ spec:
                       spec:
                         priorityClassName: server-priority
                         containers:
-                           - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"{% if image_pull_policy %}
+                           - image: "{{ docker_registry }}/{{ docker_repository }}/{{ server_image }}:{{gordo_version}}"{% if image_pull_policy %}
                              imagePullPolicy: "{{image_pull_policy}}"{% endif %}
                              name: "gordoserver-{{ project_name }}"
                              volumeMounts:
@@ -956,7 +962,7 @@ spec:
                                limits:
                                  memory: "{{ server_resources['limits']['memory'] }}M"
                                  cpu: "{{ server_resources['limits']['cpu'] }}m"{% if not without_prometheus %}
-                           - image: "{{ docker_registry }}/{{ docker_repository }}/gordo-model-server:{{gordo_version}}"{% if image_pull_policy %}
+                           - image: "{{ docker_registry }}/{{ docker_repository }}/{{ server_image }}:{{gordo_version}}"{% if image_pull_policy %}
                              imagePullPolicy: "{{image_pull_policy}}"{% endif %}
                              name: "gordoserver-prometheus-{{ project_name }}"
                              volumeMounts:
@@ -1088,7 +1094,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -1151,7 +1157,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-model-builder:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ client_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -1190,6 +1196,11 @@ spec:
           secretKeyRef:
             name: dlserviceauth
             key: tenant_id_secret
+      - name: DL2_SERVICE_AUTH_STR
+        valueFrom:
+          secretKeyRef:
+            name: dl2serviceauth
+            key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
         value: "{{log_level}}"
 
@@ -1207,7 +1218,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -1239,7 +1250,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
@@ -1268,7 +1279,7 @@ spec:
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
     script:
-      image: {{ docker_registry }}/{{ docker_repository }}/gordo-deploy:{{gordo_version}}{% if image_pull_policy %}
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |

@@ -1,0 +1,61 @@
+machines:
+
+  - name: ct-23-0002 #Uses defaults of everything
+    dataset:
+      tags:
+        - CT/1
+        - CT/2
+        - CT/3
+      train_start_date: 2016-11-07T09:11:30+01:00
+      train_end_date: 2018-09-15T03:01:00+01:00
+
+
+  - name: ct-23-0003 #Modifies server.resources.requests.memory
+    dataset:
+      tags:
+        - CT/1
+        - CT/2
+        - CT/3
+      train_start_date: 2016-11-07T09:11:30+01:00
+      train_end_date: 2018-09-15T03:01:00+01:00
+
+globals:
+  runtime: #We request some different resources for the server, but not change limit
+    server:
+      image: "new-server-image"
+      resources:
+        requests:
+          memory: 111
+          cpu: 112
+    builder: # We want different builder settings
+      image: "new-builder-image"
+      resources:
+        requests:
+          memory: 121
+        limits:
+          memory: 120 # This is illegal since it is smaller than request, and will be bumped to 121
+    deployer:
+      image: "new-deploy-image"
+    client:
+      image: "new-client-image"
+      resources:
+        requests:
+          memory: 221
+        limits:
+          memory: 220 # This is illegal since it is smaller than request, and will be bumped to 221
+      max_instances: 10
+
+    influx:
+      resources:
+        requests:
+          memory: 321
+        limits:
+          memory: 320 # This is illegal since it is smaller than request, and will be bumped to 321
+
+
+  model:
+    sklearn.pipeline.Pipeline:
+      steps:
+        - sklearn.preprocessing.MinMaxScaler
+        - gordo.machine.model.models.KerasAutoEncoder:
+            kind: feedforward_hourglass

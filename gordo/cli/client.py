@@ -146,7 +146,7 @@ def predict(
 
     # Fire off getting predictions
     predictions = client.predict(
-        start, end, targets=target,
+        start, end, targets=target
     )  # type: typing.Iterable[typing.Tuple[str, pd.DataFrame, typing.List[str]]]
 
     # Loop over all error messages for each result and log them
@@ -191,7 +191,8 @@ def metadata(
     """
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
     metadata = {
-        k: v.to_dict() for k, v in client.get_metadata(targets=target).items()  # type: ignore
+        k: v.to_dict()  # type: ignore
+        for k, v in client.get_metadata(targets=target).items()  # type: ignore
     }
     if output_file:
         json.dump(metadata, output_file)
@@ -226,7 +227,7 @@ def download_model(ctx: click.Context, output_dir: str, target: typing.List[str]
             f"Writing model '{model_name}' to directory: '{model_out_dir}'...", nl=False
         )
         serializer.dump(model, model_out_dir)
-        click.secho(f"done")
+        click.secho("done")
 
     click.secho(f"Wrote all models to directory: {output_dir}", fg="green")
 

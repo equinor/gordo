@@ -145,7 +145,7 @@ class ModelBuilder:
                     model=model, machine=machine, output_dir=output_dir  # type: ignore
                 )
                 logger.info(f"Built model, and deposited at {self.cached_model_path}")
-                logger.info(f"Writing model-location to model registry")
+                logger.info("Writing model-location to model registry")
                 disk_registry.write_key(  # type: ignore
                     model_register_dir, self.cache_key, self.cached_model_path
                 )

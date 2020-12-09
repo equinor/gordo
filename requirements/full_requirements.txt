@@ -52,7 +52,7 @@ gitpython==3.0.5          # via mlflow
 google-auth-oauthlib==0.4.1  # via tensorboard
 google-auth==1.10.1       # via google-auth-oauthlib, tensorboard
 google-pasta==0.1.8       # via tensorflow
-gordo-dataset==2.1.2      # via -r requirements.in
+gordo-dataset==2.3.0      # via -r requirements.in
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
 grpcio==1.26.0            # via tensorboard, tensorflow
@@ -91,6 +91,7 @@ numexpr==2.7.1            # via -r requirements.in, gordo-dataset
 numpy==1.18.1             # via -r requirements.in, catboost, h5py, keras-applications, keras-preprocessing, matplotlib, mlflow, numexpr, opt-einsum, pandas, pyarrow, scikit-learn, scipy, tensorboard, tensorflow
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
+packaging==20.7           # via -r requirements.in
 pandas==1.1.4             # via -r requirements.in, catboost, gordo-dataset, mlflow
 pathspec==0.7.0           # via azureml-core
 peewee==3.13.1            # via -r postgres_requirements.in
@@ -106,7 +107,7 @@ pyasn1==0.4.8             # via ndg-httpsclient, pyasn1-modules, rsa
 pycparser==2.19           # via cffi
 pyjwt[crypto]==1.7.1      # via adal, azureml-core, msal
 pyopenssl==19.1.0         # via azureml-core, ndg-httpsclient
-pyparsing==2.4.6          # via matplotlib
+pyparsing==2.4.6          # via matplotlib, packaging
 pyrsistent==0.15.7        # via jsonschema
 python-dateutil==2.8.1    # via -r requirements.in, adal, alembic, azureml-core, influxdb, matplotlib, mlflow, pandas
 python-editor==1.0.4      # via alembic

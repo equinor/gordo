@@ -336,7 +336,7 @@ def influxdb(base_influxdb):
 
 @pytest.fixture(scope="session")
 def argo_version(repo_dir):
-    with open(os.path.join(repo_dir, "Dockerfile-GordoDeploy")) as f:
+    with open(os.path.join(repo_dir, "Dockerfile")) as f:
         match = next(re.finditer(r'ARGO_VERSION="(\w\d+.\d+.\d+)"', f.read()), None)
     if match is None:
         raise LookupError(

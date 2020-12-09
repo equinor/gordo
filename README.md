@@ -71,7 +71,7 @@ This section will explain how to start development of Gordo.
 ```shell script
 # create and activate virtualenv. Note: you should use python3.7 (project's tensorflow version is not compatible with python3.8)
 # then:
-make make install_app_requirements
+make install_app_requirements
 ```
 
 ### How to run tests locally

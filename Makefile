@@ -4,6 +4,8 @@ MODEL_SERVER_IMG_NAME  := gordo-model-server
 CLIENT_IMG_NAME := gordo-client
 WORKFLOW_GENERATOR_IMG_NAME := gordo-deploy
 
+.SILENT: code-quality-locally black-check flakehell-check
+
 base:
 	docker build . -f Dockerfile -t $(BASE_IMG_NAME)
 
@@ -95,13 +97,30 @@ sdist:
 
 images: model-builder model-server client
 
-code-quality: flakehell black  ## Run code quality tools
+code-quality-locally:
+	@echo "** Make sure that your branch is up to date with origin/master (not to have extra files to check)"
+	make black-check; make flakehell-check  ## run code quality check on changed files in the current branch
 
-flakehell:  ## Run flakehell with plugins - only on changed code
-	git diff origin/master.. | flakehell lint --diff
+black-check:  ## run black code formatting check on changed files in the current branch
+	@$(eval FILES_TO_CHECK=$(shell git diff origin/master --name-only --diff-filter=ACM '*.py'))
 
-black:  ## Run black auto code formatter - only on changed code
-	git diff origin/master.. --name-only | grep '.py' | xargs black --check
+	if [ -z "${FILES_TO_CHECK}" ]; then \
+		echo "> No Python files to check."; \
+	else \
+		echo "> Starting Black code-formatting check for files: ${FILES_TO_CHECK}"; \
+		black --diff ${FILES_TO_CHECK}; \
+	fi
+
+flakehell-check:  ## run flake8 and its plugins code checks on changes in the current branch
+	@$(eval FILES_TO_CHECK=$(shell git diff origin/master --name-only --diff-filter=ACM '*.py'))
+
+	if [ -z "${FILES_TO_CHECK}" ]; then \
+		echo "> No Python files to check."; \
+	else \
+		echo "> Starting Flakehell code-quality check for diff in files: ${FILES_TO_CHECK}"; \
+		git diff origin/master -U0 --diff-filter=ACM '*.py' | flakehell lint --diff; \
+		echo "> 'Flakehell' finished."; \
+	fi
 
 test:
 	python setup.py test

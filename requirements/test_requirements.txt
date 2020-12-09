@@ -10,7 +10,7 @@ appdirs==1.4.3            # via black
 appnope==0.1.0            # via ipykernel, ipython
 attrs==19.3.0             # via -c full_requirements.txt, black, flake8-bugbear, flake8-eradicate, jsonschema, pytest
 backcall==0.1.0           # via ipython
-black==19.10b0            # via -r test_requirements.in
+black==19.3b0             # via -r test_requirements.in
 bleach==3.1.5             # via -r test_requirements.in, nbconvert
 certifi==2019.11.28       # via -c full_requirements.txt, requests
 cffi==1.13.2              # via -c full_requirements.txt, cryptography
@@ -64,10 +64,9 @@ mypy==0.761               # via pytest-mypy
 nbconvert==5.6.1          # via -r test_requirements.in, jupyter, notebook
 nbformat==5.0.3           # via ipywidgets, nbconvert, notebook
 notebook==6.0.2           # via -r test_requirements.in, jupyter, widgetsnbextension
-packaging==20.0           # via bleach, pytest
+packaging==20.7           # via -c full_requirements.txt, bleach, pytest
 pandocfilters==1.4.2      # via nbconvert
 parso==0.5.2              # via jedi
-pathspec==0.7.0           # via -c full_requirements.txt, black
 pep8-naming==0.11.1       # via -r test_requirements.in
 pexpect==4.7.0            # via ipython
 pickleshare==0.7.5        # via ipython
@@ -97,11 +96,10 @@ pytest==5.3.2             # via -r test_requirements.in, pytest-benchmark, pytes
 python-dateutil==2.8.1    # via -c full_requirements.txt, adal, jupyter-client
 pyzmq==18.1.1             # via jupyter-client, notebook
 qtconsole==4.6.0          # via jupyter
-regex==2020.1.8           # via black
 requests==2.22.0          # via -c full_requirements.txt, adal, docker, responses
 responses==0.10.9         # via -r test_requirements.in
 send2trash==1.5.0         # via notebook
-six==1.14.0               # via -c full_requirements.txt, bleach, cryptography, docker, flake8-debugger, jsonschema, mock, packaging, prompt-toolkit, pyrsistent, pytest-xdist, python-dateutil, responses, traitlets, websocket-client
+six==1.14.0               # via -c full_requirements.txt, bleach, cryptography, docker, flake8-debugger, jsonschema, mock, prompt-toolkit, pyrsistent, pytest-xdist, python-dateutil, responses, traitlets, websocket-client
 snowballstemmer==2.0.0    # via pydocstyle
 terminado==0.8.3          # via notebook
 testfixtures==6.15.0      # via flake8-isort
@@ -109,7 +107,7 @@ testpath==0.4.4           # via nbconvert
 toml==0.10.0              # via black, flakehell
 tornado==6.0.3            # via ipykernel, jupyter-client, notebook, terminado
 traitlets==4.3.3          # via ipykernel, ipython, ipywidgets, jupyter-client, jupyter-core, nbconvert, nbformat, notebook, qtconsole
-typed-ast==1.4.0          # via black, mypy
+typed-ast==1.4.0          # via mypy
 typing-extensions==3.7.4.1  # via -c full_requirements.txt, mypy
 urllib3==1.25.7           # via -c full_requirements.txt, -r test_requirements.in, flakehell, requests
 wcwidth==0.1.8            # via prompt-toolkit, pytest

@@ -1,7 +1,0 @@
-ARG BASE_IMAGE=gordo/base:latest
-FROM $BASE_IMAGE
-
-# Switch user
-USER gordo
-
-CMD ["gordo", "run-server"]

@@ -51,7 +51,7 @@ def test_diff_detector(scaler, index, with_thresholds: bool, shuffle: bool):
     assert isinstance(model, AnomalyDetectorBase)
 
     assert model.get_params() == dict(
-        base_estimator=base_estimator, scaler=scaler, shuffle=shuffle,
+        base_estimator=base_estimator, scaler=scaler, shuffle=shuffle
     )
 
     if with_thresholds:
@@ -163,7 +163,7 @@ def test_diff_detector_with_window(
 
     if window is None:
         assert model.get_params() == dict(
-            base_estimator=base_estimator, scaler=scaler, shuffle=shuffle,
+            base_estimator=base_estimator, scaler=scaler, shuffle=shuffle
         )
 
     elif window is not None and smoothing_method is None:
@@ -773,11 +773,11 @@ def test_diff_detector_require_thresholds(mode: str, require_threshold: bool):
     base_estimator = MultiOutputRegressor(LinearRegression())
     if mode == "tscv":
         model = DiffBasedAnomalyDetector(
-            base_estimator=base_estimator, require_thresholds=require_threshold,
+            base_estimator=base_estimator, require_thresholds=require_threshold
         )
     elif mode == "kfcv":
         model = DiffBasedKFCVAnomalyDetector(
-            base_estimator=base_estimator, require_thresholds=require_threshold,
+            base_estimator=base_estimator, require_thresholds=require_threshold
         )
     model.fit(X, y)
 
