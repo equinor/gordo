@@ -7,7 +7,7 @@ import io
 
 from gordo.util.version import Version, GordoRelease, GordoSpecial, GordoPR
 
-from typing import Union, cast
+from typing import Union, cast, Any
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +97,10 @@ def get_dict_from_yaml(config_file: Union[str, io.StringIO]) -> dict:
     return yaml_content
 
 
+def yaml_filter(data: Any) -> str:
+    return yaml.safe_dump(data)
+
+
 def load_workflow_template(workflow_template: str) -> jinja2.Template:
     """
     Loads the Jinja2 Template from a specified path
@@ -117,6 +121,7 @@ def load_workflow_template(workflow_template: str) -> jinja2.Template:
     templateEnv = jinja2.Environment(
         loader=jinja2.FileSystemLoader(template_dir), undefined=jinja2.StrictUndefined
     )
+    templateEnv.filters['yaml'] = yaml_filter
     return templateEnv.get_template(os.path.basename(workflow_template))
 
 
