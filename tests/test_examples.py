@@ -34,7 +34,6 @@ def _fake_data():
             for i in range(len(CONFIG["tag_list"]))
         }
     )
-    print(f"Test.") # TODO remove this
     return data, data
 
 

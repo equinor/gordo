@@ -275,7 +275,6 @@ def postgresdb():
     yield
     postgres.kill()
 
-# TODO remove this
 
 @pytest.fixture(scope="session")
 def base_influxdb(
