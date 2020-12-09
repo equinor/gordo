@@ -227,7 +227,7 @@ def download_model(ctx: click.Context, output_dir: str, target: typing.List[str]
             f"Writing model '{model_name}' to directory: '{model_out_dir}'...", nl=False
         )
         serializer.dump(model, model_out_dir)
-        click.secho(f"done")
+        click.secho("done")
 
     click.secho(f"Wrote all models to directory: {output_dir}", fg="green")
 

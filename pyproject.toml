@@ -1,0 +1,52 @@
+[tool.flakehell]
+format = "grouped"
+max_line_length = 120
+show_source = true
+no-isort-config = true
+max-line-complexity = 15
+
+exclude = [".cache", ".git", "__pycache__", "old", "build", "dist", "junk"]
+
+[tool.flakehell.plugins]
+flake8-broken-line = ["+*"]
+flake8-bugbear = ["+*"]
+flake8-builtins = ["+*"]
+# - C812 exclude trailing comma for one line expression (black conflicts)
+flake8-commas   = ["+*", "-C812"]
+flake8-comprehensions = ["+*"]
+flake8-darglint = ["+*"]
+flake8-debugger = ["+*"]
+flake8-docstrings = ["+*"]
+flake8-eradicate = ["+*"]
+flake8-isort = ["+*"]
+flake8-string-format = ["+*"]
+flake8-mutable = ["+*"]
+mccabe = ["+*"]
+pep8-naming = ["+*"]
+pycodestyle = ["+*"]
+pyflakes = ["+*"]
+
+[tool.black]
+target-version = ['py37']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | \.cache
+    | __pycache__
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+skip = [".cache", ".venv"]

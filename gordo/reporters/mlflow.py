@@ -473,7 +473,7 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
     # Send configs as JSON artifacts
     try:
         with tempfile.TemporaryDirectory(dir="./") as tmp_dir:
-            fp = os.path.join(tmp_dir, f"metadata.json")
+            fp = os.path.join(tmp_dir, "metadata.json")
             with open(fp, "w") as fh:
                 json.dump(machine.to_dict(), fh, cls=MachineEncoder)
             mlflow_client.log_artifacts(run_id=run_id, local_dir=tmp_dir)

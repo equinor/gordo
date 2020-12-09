@@ -5,12 +5,12 @@ on:
   pull_request:
 
 jobs:
-  test:
+  code_checks:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         os: [ubuntu-latest]
-        component: [builder, cli, client, machine, reporters, serializer, server, util, workflow, formatting, allelse]
+        code-check: [black, flakehell]
         python-version: [3.7]
     steps:
       - uses: actions/checkout@v1
@@ -20,13 +20,68 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
 
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         if: startsWith(runner.os, 'Linux')
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-new-${{ hashFiles('requirements/*requirements.txt') }}
+          path: ${{ env.pythonLocation }}
+          key: ${{ env.pythonLocation }}-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/*requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-pip-new-
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-
+
+      - name: Extract branch name  # works for both 'push' and 'pull_request' events
+        shell: bash
+        run: echo "##[set-output name=branch;]$( if [ ${{ github.event_name }} = push ]; then echo ${GITHUB_REF#refs/heads/}; else echo ${{ github.event.pull_request.head.ref }}; fi )"
+        id: extract_branch
+
+      - name: Install test requirements
+        run: |
+          pip install --upgrade pip
+          pip install --upgrade pip-tools
+          pip install -r requirements/test_requirements.txt
+
+      - name: Run code quality checks
+        run: |
+          FILES_TO_CHECK=$(git diff origin/master..origin/${{ steps.extract_branch.outputs.branch }} --name-only --diff-filter=ACM '*py')
+          echo "> Changed Python files: ${FILES_TO_CHECK}"
+
+          if [ -z "${FILES_TO_CHECK}" ]
+          then
+            echo "> No Python files to check, exiting."
+            exit 0
+          fi
+
+          if [ ${{ matrix.code-check }} = black ]
+          then
+            echo "> Starting Black code-formatting check for files: ${FILES_TO_CHECK}"
+            black --diff ${FILES_TO_CHECK}
+          else
+            echo "> Starting Flakehell code-quality check for diff in files: ${FILES_TO_CHECK}"
+            git diff origin/master..origin/${{ steps.extract_branch.outputs.branch }} -U0 --diff-filter=ACM '*.py' | flakehell lint --diff
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    needs: code_checks
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        component: [builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
+        python-version: [3.7]
+    steps:
+      - uses: actions/checkout@v1
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+
+      - uses: actions/cache@v2
+        if: startsWith(runner.os, 'Linux')
+        with:
+          path: ${{ env.pythonLocation }}
+          key: ${{ env.pythonLocation }}-${{ runner.os }}-${{ matrix.python-version }}-env-${{ hashFiles('**/*requirements.txt') }}
+          restore-keys: |
+            ${{ env.pythonLocation }}-${{ runner.os }}-${{ matrix.python-version }}-env-
 
       - name: Install
         run: |
@@ -69,6 +124,7 @@ jobs:
 
   build-docs:
     runs-on: ubuntu-latest
+    needs: code_checks
     steps:
       - uses: actions/checkout@v1
 
@@ -76,6 +132,13 @@ jobs:
         with:
           python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
           architecture: 'x64'
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-new-${{ hashFiles('**/*requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-new-
 
       - name: Install deps
         run: |

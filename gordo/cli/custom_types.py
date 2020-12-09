@@ -26,7 +26,7 @@ class DataProviderParam(click.ParamType):
             kwargs = yaml.safe_load(value)
 
         if "type" not in kwargs:
-            self.fail(f"Cannot create DataProvider without 'type' key defined")
+            self.fail("Cannot create DataProvider without 'type' key defined")
 
         kind = kwargs.pop("type")
 
