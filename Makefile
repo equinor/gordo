@@ -147,4 +147,4 @@ install_app_requirements:  ## install requirements for app and tests
 
 all: test images push-dev-images
 
-.PHONY: model-builder model-server client watchman push-server push-builder push-client push-dev-images push-prod-images images test all docs workflow-generator push-workflow-generator base
+.PHONY: model-builder model-server client watchman push-server push-builder push-client push-dev-images push-prod-images images test all docs workflow-generator push-workflow-generator base compose_requirements install_app_requirements black-check flakehell-check

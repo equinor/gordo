@@ -19,7 +19,7 @@ def test_empty_target_tag_list():
     with app.app_context():
         g.metadata = {"dataset": {"tag_list": [test_tag]}}
         view = BaseModelView()
-        assert view.target_tags == [test_tag]  # test comment
+        assert view.target_tags == [test_tag]
 
 
 @pytest.mark.parametrize(

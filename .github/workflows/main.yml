@@ -30,7 +30,9 @@ jobs:
 
       - name: Extract branch name  # works for both 'push' and 'pull_request' events
         shell: bash
-        run: echo "##[set-output name=branch;]$( if [ ${{ github.event_name }} = push ]; then echo ${GITHUB_REF#refs/heads/}; else echo ${{ github.event.pull_request.head.ref }}; fi )"
+        run: |
+          CURRENT_BRANCH_NAME=$( if [ ${{ github.event_name }} = push ]; then echo ${GITHUB_REF#refs/heads/}; else echo ${{ github.event.pull_request.head.ref }}; fi )
+          echo "##[set-output name=branch;]${CURRENT_BRANCH_NAME}"
         id: extract_branch
 
       - name: Install test requirements
@@ -136,9 +138,9 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-new-${{ hashFiles('**/*requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/*requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-pip-new-
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
       - name: Install deps
         run: |
