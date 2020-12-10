@@ -105,6 +105,7 @@ pyarrow==0.17.1           # via gordo-dataset
 pyasn1-modules==0.2.8     # via google-auth
 pyasn1==0.4.8             # via ndg-httpsclient, pyasn1-modules, rsa
 pycparser==2.19           # via cffi
+pydantic==1.7.3           # via -r requirements.in
 pyjwt[crypto]==1.7.1      # via adal, azureml-core, msal
 pyopenssl==19.1.0         # via azureml-core, ndg-httpsclient
 pyparsing==2.4.6          # via matplotlib, packaging

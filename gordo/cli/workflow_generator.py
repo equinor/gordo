@@ -1,15 +1,17 @@
 import logging
 import time
 import pkg_resources
-import json
 import os
 
-from typing import Dict, Any
+from typing import Dict, Any, TypeVar, Type, List
 
 import click
+import json
 
+from pydantic import parse_obj_as, ValidationError
 from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
+from gordo.workflow.config_elements.schemas import CustomEnv
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
@@ -40,6 +42,45 @@ def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel
     else:
         report_level = DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL
     return report_level
+
+
+T = TypeVar("T")
+
+
+def parse_json(value: str, schema: Type[T]):
+    try:
+        data = json.loads(value)
+    except json.JSONDecodeError as e:
+        raise click.ClickException('Malformed JSON string: "%s"' % str(e))
+    try:
+        obj = parse_obj_as(schema, data)
+    except ValidationError as e:
+        raise click.ClickException('Schema validation error: "%s"' % str(e))
+    return obj
+
+
+DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = """
+[
+    {
+        "name": "DL_SERVICE_AUTH_STR",
+        "valueFrom": {
+            "secretKeyRef": {
+                "key": "tenant_id_secret",
+                "name": "dlserviceauth"
+            }
+        }
+    },
+    {
+        "name": "DL2_SERVICE_AUTH_STR",
+        "valueFrom": {
+            "secretKeyRef": {
+                "key": "tenant_id_secret",
+                "name": "dl2serviceauth"
+            }
+        }
+    }
+]
+"""
 
 
 @click.group("workflow")
@@ -183,6 +224,12 @@ def workflow_cli(gordo_ctx):
     help="Default imagePullPolicy for all gordo's images",
     envvar=f"{PREFIX}_IMAGE_PULL_POLICY",
 )
+@click.option(
+    "--custom-model-builder-envs",
+    help="List of custom environment variables in ",
+    envvar=f"{PREFIX}_CUSTOM_MODEL_BUILDER_ENVS",
+    default=DEFAULT_CUSTOM_MODEL_BUILDER_ENVS,
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
@@ -202,6 +249,13 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     # Create normalized config
     config = NormalizedConfig(yaml_content, project_name=context["project_name"])
+
+    if context["custom_model_builder_envs"]:
+        result = parse_json(context["custom_model_builder_envs"], List[CustomEnv])
+        custom_model_builder_envs = []
+        for value in result:
+            custom_model_builder_envs.append(value.dict(exclude_defaults=True))
+        context["custom_model_builder_envs"] = custom_model_builder_envs
 
     version = parse_version(context["gordo_version"])
     if "image_pull_policy" not in context or not context["image_pull_policy"]:
