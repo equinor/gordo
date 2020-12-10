@@ -56,7 +56,7 @@ jobs:
           then
             echo "> Starting Black code-formatting check for files: ${FILES_TO_CHECK}"
             #black --check ${FILES_TO_CHECK}
-            black --check
+            black --check .
           else
             echo "> Starting Flakehell code-quality check for diff in files: ${FILES_TO_CHECK}"
             flakehell lint
