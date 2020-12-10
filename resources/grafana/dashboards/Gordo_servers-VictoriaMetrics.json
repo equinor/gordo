@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 1,
   "id": 112,
-  "iteration": 1598967620250,
+  "iteration": 1607601326814,
   "links": [],
   "panels": [
     {
@@ -58,8 +58,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -70,7 +73,7 @@
       "targets": [
         {
           "$$hashKey": "object:214",
-          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\"}[30s]) by (path))",
+          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\"}[30s]) by (path))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -160,8 +163,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -172,7 +178,7 @@
       "targets": [
         {
           "$$hashKey": "object:214",
-          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=\"200\",model!=\"\"}[30s]) by (project))",
+          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",model!=\"\"}[30s]) by (project))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -258,8 +264,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -367,8 +376,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -471,8 +483,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -578,7 +593,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "targets": [
         {
           "expr": "sum(kube_deployment_status_replicas{cluster=~\"$cluster\",namespace=\"gordo\",deployment=~\"gordo-srv-$project\"})",
@@ -627,8 +642,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -725,8 +743,11 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "percentage": false,
-      "pluginVersion": "7.1.3",
+      "pluginVersion": "7.3.3",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -787,6 +808,202 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "aliasColors": {},
+      "bars": true,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
+      "hiddenSeries": false,
+      "id": 20,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": false,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_terminated_reason{cluster=~\"$cluster\",container=~\"gordoserver-$project\"}[5m]) by (reason)",
+          "interval": "",
+          "legendFormat": "{{reason}}",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Containers terminated reasons",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "VictoriaMetrics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
+      "hiddenSeries": false,
+      "id": 22,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.3.3",
+      "pointradius": 1,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "expr": "rate(sum(istio_response_bytes_sum{cluster=~\"${cluster}\",destination_service_namespace=\"gordo\",source_app=\"istio-ingressgateway\",destination_app=~\"gordo-srv-${project}\"}))",
+          "interval": "",
+          "legendFormat": "Response",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(sum(istio_request_bytes_sum{cluster=~\"${cluster}\",destination_service_namespace=\"gordo\",source_app=\"istio-ingressgateway\",destination_app=~\"gordo-srv-${project}\"}))",
+          "interval": "",
+          "legendFormat": "Request",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Istio traffic",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
   "refresh": false,
@@ -798,12 +1015,13 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "deli12",
           "value": "deli12"
         },
         "datasource": "VictoriaMetrics",
         "definition": "label_values(kube_pod_info, cluster)",
+        "error": null,
         "hide": 0,
         "includeAll": false,
         "label": "Cluster",
@@ -830,6 +1048,7 @@
         },
         "datasource": "VictoriaMetrics",
         "definition": "label_values(gordo_server_info{cluster=~\"$cluster\"}, project)",
+        "error": null,
         "hide": 0,
         "includeAll": true,
         "label": "Project",
@@ -850,7 +1069,7 @@
     ]
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {
@@ -870,5 +1089,5 @@
   "timezone": "",
   "title": "Gordo servers",
   "uid": "_eX4mpl3",
-  "version": 29
+  "version": 49
 }

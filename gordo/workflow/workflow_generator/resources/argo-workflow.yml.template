@@ -690,22 +690,13 @@ spec:
           configMapKeyRef:
             name: gordo-components-config-map  # TODO: Update in gordo-infrastructure
             key: azureml_workspace_str
-      - name: DL_SERVICE_AUTH_STR
-        valueFrom:
-          secretKeyRef:
-            name: dlserviceauth
-            key: tenant_id_secret
-      - name: DL2_SERVICE_AUTH_STR
-        valueFrom:
-          secretKeyRef:
-            name: dl2serviceauth
-            key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
         value: "{{log_level}}"{% if builder_exceptions_report_file is defined %}
       - name: EXCEPTIONS_REPORTER_FILE
         value: "{{ builder_exceptions_report_file }}"{% endif %}
       - name: EXCEPTIONS_REPORT_LEVEL
-        value: "{{ builder_exceptions_report_level }}"
+        value: "{{ builder_exceptions_report_level }}"{% if custom_model_builder_envs %}
+{{ custom_model_builder_envs | yaml | indent(6, True) }}{% endif %}
       volumeMounts:
       - name: azurefile
         mountPath: /gordo
@@ -1191,19 +1182,9 @@ spec:
         value: "true"
       - name: GORDO_CLIENT_METADATA
         value: "version,{{project_revision}}"
-      - name: DL_SERVICE_AUTH_STR
-        valueFrom:
-          secretKeyRef:
-            name: dlserviceauth
-            key: tenant_id_secret
-      - name: DL2_SERVICE_AUTH_STR
-        valueFrom:
-          secretKeyRef:
-            name: dl2serviceauth
-            key: tenant_id_secret
       - name: GORDO_LOG_LEVEL
-        value: "{{log_level}}"
-
+        value: "{{log_level}}"{% if custom_model_builder_envs %}
+{{ custom_model_builder_envs | yaml | indent(6, True) }}{% endif %}
   - name: influx-cleanup
     activeDeadlineSeconds: 300
     retryStrategy:
