@@ -1,5 +1,5 @@
 [tool.flakehell]
-#baseline = "baseline.txt"
+baseline = "baseline.txt"
 format = "grouped"
 max_line_length = 120
 #show_source = true
