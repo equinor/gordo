@@ -44,22 +44,22 @@ def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel
     return report_level
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def parse_json(value: str, schema: Type[T]):
     try:
         data = json.loads(value)
     except json.JSONDecodeError as e:
-        raise click.ClickException("Malformed JSON string: \"%s\"" % str(e))
+        raise click.ClickException('Malformed JSON string: "%s"' % str(e))
     try:
         obj = parse_obj_as(schema, data)
     except ValidationError as e:
-        raise click.ClickException("Schema validation error: \"%s\"" % str(e))
+        raise click.ClickException('Schema validation error: "%s"' % str(e))
     return obj
 
 
-DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = '''
+DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = """
 [
     {
         "name": "DL_SERVICE_AUTH_STR",
@@ -80,7 +80,8 @@ DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = '''
         }
     }
 ]
-'''
+"""
+
 
 @click.group("workflow")
 @click.pass_context
