@@ -1,8 +1,8 @@
 [tool.flakehell]
-baseline = "baseline.txt"
+baseline = ".baseline.txt"
 format = "grouped"
 max_line_length = 120
-#show_source = true
+show_source = true
 no-isort-config = true
 max-line-complexity = 15
 
