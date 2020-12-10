@@ -46,6 +46,7 @@ exclude = '''
     | build
     | dist
   )/
+  | gordo/_version.py
 )
 '''
 
