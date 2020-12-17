@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple, Dict, Any, Union
+from typing import Tuple, Dict, Any, Union, Optional
 
 from tensorflow.keras.optimizers import Optimizer
-from tensorflow.keras import regularizers
+from tensorflow.keras import regularizers, Input
 from tensorflow.keras.layers import Dense
 from tensorflow import keras
 
@@ -14,8 +14,8 @@ from gordo.machine.model.factories.utils import hourglass_calc_dims, check_dim_f
 
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_model(
-    n_features: int,
-    n_features_out: int = None,
+    n_features: Union[int, Tuple],
+    n_features_out: Optional[Union[int, Tuple]] = None,
     encoding_dim: Tuple[int, ...] = (256, 128, 64),
     encoding_func: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     decoding_dim: Tuple[int, ...] = (64, 128, 256),
@@ -71,6 +71,9 @@ def feedforward_model(
 
     model = KerasSequential()
 
+    if isinstance(n_features, tuple):
+        model.add(Input(shape=n_features))
+
     # Add encoding layers
     for i, (units, activation) in enumerate(zip(encoding_dim, encoding_func)):
 
@@ -106,8 +109,8 @@ def feedforward_model(
 
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_symmetric(
-    n_features: int,
-    n_features_out: int = None,
+    n_features: Union[int, Tuple],
+    n_features_out: Optional[Union[int, Tuple]] = None,
     dims: Tuple[int, ...] = (256, 128, 64),
     funcs: Tuple[str, ...] = ("tanh", "tanh", "tanh"),
     optimizer: Union[str, Optimizer] = "Adam",
@@ -164,8 +167,8 @@ def feedforward_symmetric(
 
 @register_model_builder(type="KerasAutoEncoder")
 def feedforward_hourglass(
-    n_features: int,
-    n_features_out: int = None,
+    n_features: Union[int, Tuple],
+    n_features_out: Optional[Union[int, Tuple]] = None,
     encoding_layers: int = 3,
     compression_factor: float = 0.5,
     func: str = "tanh",
@@ -243,7 +246,16 @@ def feedforward_hourglass(
     >>> [model.layers[i].units for i in range(len(model.layers))]
     [5, 5, 10]
     """
-    dims = hourglass_calc_dims(compression_factor, encoding_layers, n_features)
+    if not n_features:
+        raise ValueError("n_features is empty")
+    if isinstance(n_features, tuple):
+        calc_n_features = n_features[0]
+        for n in n_features[1:]:
+            calc_n_features *= n
+    else:
+        calc_n_features = n_features
+
+    dims = hourglass_calc_dims(compression_factor, encoding_layers, calc_n_features)
 
     return feedforward_symmetric(
         n_features,

@@ -15,6 +15,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGen
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.metrics import explained_variance_score
@@ -184,15 +185,15 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         self.__dict__ = state
         return self
 
-    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
+    def fit(self, X: Union[np.ndarray, pd.DataFrame, xr.DataArray], y: Union[np.ndarray, pd.DataFrame, xr.DataArray], **kwargs):
         """
         Fit the model to X given y.
 
         Parameters
         ----------
-        X: np.ndarray
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray]
             numpy array or pandas dataframe
-        y: np.ndarray
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray]
             numpy array or pandas dataframe
         sample_weight: np.ndarray
             array like - weight to assign to samples
@@ -205,8 +206,10 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             'KerasAutoEncoder'
         """
 
-        X = X.values if hasattr(X, "values") else X
-        y = y.values if hasattr(y, "values") else y
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+        if isinstance(y, pd.DataFrame):
+            y = y.values
 
         # Reshape y if needed, and set n features of target
         if y.ndim == 1:
@@ -218,7 +221,11 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             self.kwargs.update({"n_features": X.shape[1]})
         # for LSTM based models
         if len(X.shape) == 3:
-            self.kwargs.update({"n_features": X.shape[2]})
+            if isinstance(X, xr.DataArray):
+                n_features = X.shape[1:]
+            else:
+                n_features = X.shape[2]
+            self.kwargs.update({"n_features": n_features})
         kwargs.setdefault("verbose", 0)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
