@@ -52,7 +52,7 @@ gitpython==3.0.5          # via mlflow
 google-auth-oauthlib==0.4.1  # via tensorboard
 google-auth==1.10.1       # via google-auth-oauthlib, tensorboard
 google-pasta==0.1.8       # via tensorflow
-gordo-dataset==2.3.0      # via -r requirements.in
+gordo-dataset==2.3.4      # via -r requirements.in
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
 grpcio==1.26.0            # via tensorboard, tensorflow
@@ -88,11 +88,11 @@ msrestazure==0.6.2        # via azure-graphrbac, azure-mgmt-authorization, azure
 mypy-extensions==0.4.3    # via typing-inspect
 ndg-httpsclient==0.5.1    # via azureml-core
 numexpr==2.7.1            # via -r requirements.in, gordo-dataset
-numpy==1.18.1             # via -r requirements.in, catboost, h5py, keras-applications, keras-preprocessing, matplotlib, mlflow, numexpr, opt-einsum, pandas, pyarrow, scikit-learn, scipy, tensorboard, tensorflow
+numpy==1.18.1             # via -r requirements.in, catboost, h5py, keras-applications, keras-preprocessing, matplotlib, mlflow, numexpr, opt-einsum, pandas, pyarrow, scikit-learn, scipy, tensorboard, tensorflow, xarray
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.1.0         # via tensorflow
 packaging==20.7           # via -r requirements.in
-pandas==1.1.4             # via -r requirements.in, catboost, gordo-dataset, mlflow
+pandas==1.1.4             # via -r requirements.in, catboost, gordo-dataset, mlflow, xarray
 pathspec==0.7.0           # via azureml-core
 peewee==3.13.1            # via -r postgres_requirements.in
 plotly==4.4.1             # via catboost
@@ -142,6 +142,7 @@ websocket-client==0.57.0  # via docker
 werkzeug==0.16.1          # via -r requirements.in, flask, tensorboard
 wheel==0.33.6             # via tensorboard, tensorflow
 wrapt==1.11.2             # via -r requirements.in, tensorflow
+xarray==0.16.2            # via gordo-dataset
 zipp==2.0.0               # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
