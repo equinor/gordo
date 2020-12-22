@@ -30,3 +30,4 @@ gordo-dataset~=2.3.6
 jeepney>=0.6
 packaging~=20.7
 pydantic~=1.7.3
+gordo.client~=1.

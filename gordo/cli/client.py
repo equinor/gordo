@@ -191,7 +191,7 @@ def metadata(
     """
     client = Client(*ctx.obj["args"], **ctx.obj["kwargs"])
     metadata = {
-        k: v.to_dict()  # type: ignore
+        k: v.dict()  # type: ignore
         for k, v in client.get_metadata(targets=target).items()  # type: ignore
     }
     if output_file:
