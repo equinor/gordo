@@ -1,8 +1,12 @@
 import logging
-import os
 import traceback
 from typing import Tuple
 import warnings
+from pkgutil import extend_path
+
+
+__path__ = extend_path(__path__, __name__)  # type: ignore
+
 
 try:
     from ._version import version as __version__

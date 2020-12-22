@@ -11,6 +11,7 @@ import numpy as np
 
 from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.utils import influx_client_from_uri
+from gordo.client.schemas import Machine as ClientMachine
 from gordo.machine import Machine
 from gordo_dataset import sensor_tag
 
@@ -85,7 +86,7 @@ def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
                     "train_end_date": "2016-01-05T00:00:00Z",
                     "resolution": "10T",
                 },
-                "model": "sklearn.linear_model.LinearRegression",
+                "model": {"sklearn.linear_model.LinearRegression": {}},
             },
             project_name="test-project",
         )
@@ -102,9 +103,10 @@ def test_influx_forwarder(influxdb, influxdb_uri, sensors, sensors_str):
     # Assign all keys unique numbers
     df = get_test_data(pd.MultiIndex.from_tuples(input_keys + output_keys))
 
+    client_machine = ClientMachine(**machine.to_dict())
     # Create the forwarder and forward the 'predictions' to influx.
     forwarder = ForwardPredictionsIntoInflux(destination_influx_uri=influxdb_uri)
-    forwarder.forward_predictions(predictions=df, machine=machine)
+    forwarder.forward_predictions(predictions=df, machine=client_machine)
 
     # Client to manually verify the points written
     client = influx_client_from_uri(influxdb_uri, dataframe_client=True)
