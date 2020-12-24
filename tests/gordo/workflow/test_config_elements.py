@@ -161,7 +161,7 @@ def test_machine_from_config(default_globals: dict):
             "target_tag_list": ["GRA-TE -123-456"],
             "train_end_date": "2018-01-02T09:00:30+00:00",
             "train_start_date": "2018-01-01T09:00:30+00:00",
-            "type": "TimeSeriesDataset",
+            "type": "gordo_dataset.datasets.TimeSeriesDataset",
         },
         "evaluation": {
             "cv_mode": "full_build",
