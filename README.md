@@ -37,6 +37,8 @@
         * [Tests system requirements](#Tests-system-requirements)
         * [Run tests](#Run-tests)
         * [How to run tests in debug mode](#How-to-run-tests-in-debug-mode)
+    * [Code quality checks](#Code-quality-checks)
+        * [Run code quality checks locally](#Run-code-quality-checks-locally)
 
 ## About
 
@@ -71,10 +73,7 @@ This section will explain how to start development of Gordo.
 ```shell script
 # create and activate virtualenv. Note: you should use python3.7 (project's tensorflow version is not compatible with python3.8)
 # then:
-pip install --upgrade pip
-pip install --upgrade pip-tools
-pip install -r requirements/full_requirements.txt
-pip install -r requirements/test_requirements.txt
+make install_app_requirements
 ```
 
 ### How to run tests locally
@@ -97,3 +96,16 @@ python3.7 -m pytest ...
 #### How to run tests in debug mode
 Note: this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
 On the configuration setup for test running add to `Additional arguments:` in `pytest` section following string: `--ignore benchmarks --cov-report= --no-cov `
+
+### Code quality checks
+This repo uses [black](https://black.readthedocs.io/en/stable/) and [flakehell](https://github.com/life4/flakehell/blob/master/README.md) (with plugins) for code formatting and analys.  
+Code quality checks on the CI automatically. Checks run only on *CHANGED* code (not on all files in the repo).  
+
+#### Run code quality checks locally
+Before pushing code to the "remote" - check if your changes are good:
+```shell
+# this will compare changes in your local branch with origin/master.
+# note that origin/master should be up to date and merged into current branch. 
+make code-quality-locally
+```
+In plans to add pre-commit hooks not ot do it manually.

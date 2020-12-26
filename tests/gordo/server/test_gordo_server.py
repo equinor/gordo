@@ -27,7 +27,7 @@ def test_healthcheck_endpoint(base_route, gordo_ml_server_client):
     Test expected behavior of /<gordo-name>/healthcheck
     """
     # Should also be at the very lowest level as well.
-    resp = gordo_ml_server_client.get(f"/healthcheck")
+    resp = gordo_ml_server_client.get("/healthcheck")
     assert resp.status_code == 200
 
     resp = gordo_ml_server_client.get(f"{base_route}/healthcheck")
@@ -290,7 +290,7 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
             # revision_to_models is empty, so there is nothing on the server.
             # Test that asking for some arbitrary revision will give a 404 and error message
             resp = client.get(
-                f"/gordo/v0/test-project/models?revision=revision-does-not-exist"
+                "/gordo/v0/test-project/models?revision=revision-does-not-exist"
             )
             assert resp.status_code == 410
             assert resp.json == {

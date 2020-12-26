@@ -278,7 +278,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
 @pytest.mark.parametrize(
     "raw_model_config",
     (
-        f"""
+        """
     gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
         scaler: sklearn.preprocessing.MinMaxScaler
         base_estimator:
@@ -297,7 +297,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
                             out_func: linear
                             epochs: 1
         """,
-        f"""
+        """
    sklearn.compose.TransformedTargetRegressor:
        transformer: sklearn.preprocessing.MinMaxScaler
        regressor:
@@ -313,7 +313,7 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
                   out_func: linear
                   epochs: 1
                  """,
-        f"""
+        """
   sklearn.pipeline.Pipeline:
       steps:
       - sklearn.preprocessing.MinMaxScaler
@@ -340,7 +340,7 @@ def test_scores_metadata(raw_model_config):
 
 def test_output_scores_metadata():
     data_config = get_random_data()
-    raw_model_config = f"""
+    raw_model_config = """
             gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                 scaler: sklearn.preprocessing.MinMaxScaler
                 base_estimator:

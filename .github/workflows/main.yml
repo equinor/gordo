@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        component: [builder, cli, client, machine, reporters, serializer, server, util, workflow, formatting, allelse]
+        component: [black, flakehell, builder, cli, client, machine, reporters, serializer, server, util, workflow, allelse]
         python-version: [3.7]
     steps:
       - uses: actions/checkout@v1
@@ -20,13 +20,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
 
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         if: startsWith(runner.os, 'Linux')
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-new-${{ hashFiles('requirements/*requirements.txt') }}
+          path: ${{ env.pythonLocation }}
+          key: ${{ env.pythonLocation }}-${{ runner.os }}-${{ matrix.python-version }}-env-${{ hashFiles('**/*requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-pip-new-
+            ${{ env.pythonLocation }}-${{ runner.os }}-${{ matrix.python-version }}-env-
 
       - name: Install
         run: |
@@ -76,6 +76,13 @@ jobs:
         with:
           python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
           architecture: 'x64'
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/*requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.python-version }}-pip-
 
       - name: Install deps
         run: |
