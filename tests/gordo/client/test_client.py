@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+"""Tests for gordo.client."""
+# TODO: Move those tests to gordo.client project.
 
 import os
 import json
@@ -18,6 +19,7 @@ from sklearn.base import BaseEstimator
 from mock import patch, call
 
 from gordo.client import Client, utils as client_utils
+from gordo.client.schemas import Machine as ClientMachine
 from gordo.machine import Machine
 from gordo.client.io import (
     _handle_response,
@@ -58,7 +60,8 @@ def test_client_get_dataset(gordo_project, metadata, ml_server):
     assert type(machine.dataset) is TimeSeriesDataset
     machine.dataset.row_filter_buffer_size = 12
     machine.dataset.n_samples_threshold = 10
-    dataset = client._get_dataset(machine, start, end)
+    client_machine = ClientMachine(**machine.to_dict())
+    dataset = client._get_dataset(client_machine, start, end)
     assert dataset.row_filter_buffer_size == 0
     assert dataset.n_samples_threshold == 0
     assert dataset.low_threshold == -1000
@@ -500,7 +503,7 @@ def _machine(name: str) -> Machine:
                 "train_start_date": "2016-01-01T00:00:00Z",
                 "train_end_date": "2016-01-05T00:00:00Z",
             },
-            "model": "sklearn.linear_model.LinearRegression",
+            "model": {"sklearn.linear_model.LinearRegression": {}},
         },
         project_name="test-project",
     )

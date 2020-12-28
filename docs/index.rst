@@ -30,7 +30,6 @@ and deployed as a REST API on Kubernetes.
     ./components/serializer.rst
     ./components/server/server.rst
     ./components/cli.rst
-    ./components/client.rst
     ./components/workflow.rst
     ./components/util.rst
 
