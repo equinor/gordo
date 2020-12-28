@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+"""Tests for gordo.client."""
+# TODO: Move those tests to gordo.client project.
 
 import pytest
 import logging
