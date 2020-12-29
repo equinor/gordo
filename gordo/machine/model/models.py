@@ -223,9 +223,11 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if len(X.shape) == 3:
             if isinstance(X, xr.DataArray):
                 n_features = X.shape[1:]
+                kwargs_update = {"n_features": n_features, "n_features_out": n_features}
             else:
                 n_features = X.shape[2]
-            self.kwargs.update({"n_features": n_features})
+                kwargs_update = {"n_features": n_features}
+            self.kwargs.update(kwargs_update)
         kwargs.setdefault("verbose", 0)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
