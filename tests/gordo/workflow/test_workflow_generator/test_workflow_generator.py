@@ -244,6 +244,27 @@ def test_overrides_builder_datasource(path_to_config_files):
     )["dataset"]["data_provider"]
 
 
+def test_builder_labels(path_to_config_files):
+    expanded_template = _generate_test_workflow_yaml(
+        path_to_config_files, "config-test-runtime-labels.yaml"
+    )
+    templates = expanded_template["spec"]["templates"]
+    model_builder_task = [
+        task for task in templates if task["name"] == "model-builder"
+    ][0]
+    assert "key1" in model_builder_task["metadata"]["labels"]
+    assert "value1" == model_builder_task["metadata"]["labels"]["key1"]
+
+    assert "key2" in model_builder_task["metadata"]["labels"]
+    assert 2 == model_builder_task["metadata"]["labels"]["key2"]
+
+    assert "key3/withslash" in model_builder_task["metadata"]["labels"]
+    assert "value3" == model_builder_task["metadata"]["labels"]["key3/withslash"]
+
+    assert "key4/withslash.dot" in model_builder_task["metadata"]["labels"]
+    assert "value4" == model_builder_task["metadata"]["labels"]["key4/withslash.dot"]
+
+
 def test_runtime_image_override(path_to_config_files):
     expanded_template = _generate_test_workflow_yaml(
         path_to_config_files, "config-test-runtime-images.yaml"
