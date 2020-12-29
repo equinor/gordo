@@ -377,11 +377,11 @@ gordo.add_command(build)
 gordo.add_command(run_server_cli)
 
 try:
-    from gordo.client.cli.client import client_cli
+    from gordo.client.cli.client import gordo_client
 except ImportError:
     pass
 else:
-    gordo.add_command(client_cli)
+    gordo.add_command(gordo_client)
 
 
 if __name__ == "__main__":
