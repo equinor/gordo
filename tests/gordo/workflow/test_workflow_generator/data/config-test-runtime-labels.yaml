@@ -1,0 +1,26 @@
+machines:
+
+  - name: ct-23-0002 #Uses defaults of everything
+    dataset:
+      tags:
+        - CT/1
+        - CT/2
+        - CT/3
+      train_start_date: 2016-11-07T09:11:30+01:00
+      train_end_date: 2018-09-15T03:01:00+01:00
+
+globals:
+  runtime: #We add metadata lables to builder step
+    builder: # We want different builder settings
+      metadata:
+        labels:
+          key1: "value1"
+          key2: "2"
+          key3/withslash: "value3"
+          key4/withslash.dot: "value4"
+  model:
+    sklearn.pipeline.Pipeline:
+      steps:
+        - sklearn.preprocessing.MinMaxScaler
+        - gordo.machine.model.models.KerasAutoEncoder:
+            kind: feedforward_hourglass
