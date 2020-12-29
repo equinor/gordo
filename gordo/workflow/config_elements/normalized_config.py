@@ -133,6 +133,17 @@ class NormalizedConfig:
 
         self.globals: dict = patched_globals
 
+    @staticmethod
+    def prepare_runtime(runtime: dict) -> dict:
+        def prepare_pod_runtime(name: str, schema: Type[T] = PodRuntime):
+            if name in runtime:
+                # TODO handling pydantic.ValidationError
+                pod_runtime = parse_obj_as(schema, runtime[name])
+                runtime[name] = pod_runtime.dict(exclude_none=True)
+
+        prepare_pod_runtime("builder", BuilderPodRuntime)
+        return runtime
+
     @classmethod
     def prepare_patched_globals(cls, patched_globals: dict) -> dict:
         runtime = fix_runtime(patched_globals.get("runtime"))
