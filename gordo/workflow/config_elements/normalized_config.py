@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional
+from typing import List, Optional, Type, Any, TypeVar
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
@@ -8,6 +8,9 @@ from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.machine import Machine
 from gordo import __version__
 from packaging.version import parse
+from pydantic import parse_obj_as
+
+from .schemas import BuilderPodRuntime, PodRuntime
 
 
 def _calculate_influx_resources(nr_of_machines):
@@ -22,6 +25,9 @@ def _calculate_influx_resources(nr_of_machines):
             "cpu": 10000 + (20 * nr_of_machines),
         },
     }
+
+
+T = TypeVar("T")
 
 
 class NormalizedConfig:
@@ -111,7 +117,9 @@ class NormalizedConfig:
         passed_globals = config.get("globals", dict())
         patched_globals = patch_dict(default_globals, passed_globals)
         if patched_globals.get("runtime"):
-            patched_globals["runtime"] = fix_runtime(patched_globals.get("runtime"))
+            runtime = fix_runtime(patched_globals.get("runtime"))
+            runtime = self.prepare_runtime(runtime)
+            patched_globals["runtime"] = runtime
         self.project_name = project_name
         self.machines: List[Machine] = [
             Machine.from_config(
@@ -121,6 +129,17 @@ class NormalizedConfig:
         ]
 
         self.globals: dict = patched_globals
+
+    @staticmethod
+    def prepare_runtime(runtime: dict) -> dict:
+        def prepare_pod_runtime(name: str, schema: Type[T] = PodRuntime):
+            if name in runtime:
+                # TODO handling pydantic.ValidationError
+                pod_runtime = parse_obj_as(schema, runtime[name])
+                runtime[name] = pod_runtime.dict(exclude_none=True)
+
+        prepare_pod_runtime("builder", BuilderPodRuntime)
+        return runtime
 
     @classmethod
     def get_default_globals(cls, gordo_version: str) -> dict:
