@@ -663,6 +663,10 @@ spec:
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if project_workflow %}
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
         applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"
+        {% if model_builder_metadata_labels is defined %}
+        {% for key, value in model_builder_metadata_labels.items() %}
+        "{{key}}" : {{value}}
+        {% endfor %} {% endif %}
     tolerations:
       - effect: NoSchedule
         key: kubernetes.azure.com/scalesetpriority

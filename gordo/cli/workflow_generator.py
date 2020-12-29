@@ -284,6 +284,14 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["model_builder_resources_limits_cpu"] = builder_resources["limits"]["cpu"]
 
     context["model_builder_image"] = config.globals["runtime"]["builder"]["image"]
+    # Add builder lables if they exists
+    if (
+        "metadata" in config.globals["runtime"]["builder"]
+        and "labels" in config.globals["runtime"]["builder"]["metadata"]
+    ):
+        context["model_builder_metadata_labels"] = config.globals["runtime"]["builder"][
+            "metadata"
+        ]["labels"]
 
     context["server_resources"] = config.globals["runtime"]["server"]["resources"]
     context["server_image"] = config.globals["runtime"]["server"]["image"]
