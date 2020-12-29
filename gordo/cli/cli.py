@@ -26,7 +26,6 @@ from gordo.server import server
 from gordo import __version__
 from gordo.machine import Machine
 from gordo.cli.workflow_generator import workflow_cli
-from gordo.cli.client import client as gordo_client
 from gordo.cli.custom_types import key_value_par, HostIP
 from gordo.reporters.exceptions import ReporterException
 
@@ -376,7 +375,14 @@ def run_server_cli(
 gordo.add_command(workflow_cli)
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
-gordo.add_command(gordo_client)
+
+try:
+    from gordo.client.cli.client import client_cli
+except ImportError:
+    pass
+else:
+    gordo.add_command(client_cli)
+
 
 if __name__ == "__main__":
     gordo()
