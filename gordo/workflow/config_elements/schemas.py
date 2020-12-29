@@ -14,7 +14,7 @@ class ConfigMapKeySelector(BaseModel):
 
 class SecretKeySelector(BaseModel):
     key: str
-    value: str
+    name: str
 
 
 class EnvVarSource(BaseModel):
@@ -46,7 +46,7 @@ class Volume(BaseModel):
 
 class PodRuntime(BaseModel):
     image: str
-    resources: ResourceRequirements
+    resources: Optional[ResourceRequirements]
     metadata: Optional[ObjectMeta]
     env: Optional[List[EnvVar]]
     volumes: Optional[List[Volume]]

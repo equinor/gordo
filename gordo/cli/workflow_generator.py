@@ -246,12 +246,11 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     logging.getLogger("gordo").setLevel(log_level.upper())
     context["log_level"] = log_level.upper()
 
-    custom_model_builder_envs = context["custom_model_builder_envs"]
+    model_builder_env = None
+    if context["custom_model_builder_envs"]:
+        model_builder_env = json.loads(context["custom_model_builder_envs"])
     # Create normalized config
-    config = NormalizedConfig(yaml_content, project_name=context["project_name"], custom_model_builder_envs=)
-
-    if :
-
+    config = NormalizedConfig(yaml_content, project_name=context["project_name"], model_builder_env=model_builder_env)
 
     version = parse_version(context["gordo_version"])
     if "image_pull_policy" not in context or not context["image_pull_policy"]:
@@ -266,8 +265,9 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         context.pop("n_servers") or len(config.machines) * 10
     )
 
+    builder_runtime = config.globals["runtime"]["builder"]
     # We know these exist since we set them in the default globals
-    builder_resources = config.globals["runtime"]["builder"]["resources"]
+    builder_resources = builder_runtime["resources"]
     context["model_builder_resources_requests_memory"] = builder_resources["requests"][
         "memory"
     ]
@@ -278,16 +278,9 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         "memory"
     ]
     context["model_builder_resources_limits_cpu"] = builder_resources["limits"]["cpu"]
-
     context["model_builder_image"] = config.globals["runtime"]["builder"]["image"]
-    # Add builder lables if they exists
-    if (
-        "metadata" in config.globals["runtime"]["builder"]
-        and "labels" in config.globals["runtime"]["builder"]["metadata"]
-    ):
-        context["model_builder_metadata_labels"] = config.globals["runtime"]["builder"][
-            "metadata"
-        ]["labels"]
+
+    context["builder_runtime"] = builder_runtime
 
     context["server_resources"] = config.globals["runtime"]["server"]["resources"]
     context["server_image"] = config.globals["runtime"]["server"]["image"]

@@ -256,7 +256,7 @@ def test_builder_labels(path_to_config_files):
     assert "value1" == model_builder_task["metadata"]["labels"]["key1"]
 
     assert "key2" in model_builder_task["metadata"]["labels"]
-    assert 2 == model_builder_task["metadata"]["labels"]["key2"]
+    assert "2" == model_builder_task["metadata"]["labels"]["key2"]
 
     assert "key3/withslash" in model_builder_task["metadata"]["labels"]
     assert "value3" == model_builder_task["metadata"]["labels"]["key3/withslash"]

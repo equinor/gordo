@@ -103,7 +103,7 @@ class NormalizedConfig:
     }
 
     def __init__(
-        self, config: dict, project_name: str, gordo_version: Optional[str] = None
+        self, config: dict, project_name: str, gordo_version: Optional[str] = None, model_builder_env: Optional[dict] = None
     ):
         if gordo_version is None:
             gordo_version = __version__
@@ -113,13 +113,16 @@ class NormalizedConfig:
         ] = _calculate_influx_resources(  # type: ignore
             len(config["machines"])
         )
+        # keeping it for back-compatibility
+        if model_builder_env is not None:
+            if "builder" not in default_globals["runtime"]:
+                default_globals["runtime"]["builder"] = {}
+            default_globals["runtime"]["builder"]["env"] = model_builder_env
 
         passed_globals = config.get("globals", dict())
         patched_globals = patch_dict(default_globals, passed_globals)
-        if patched_globals.get("runtime"):
-            runtime = fix_runtime(patched_globals.get("runtime"))
-            runtime = self.prepare_runtime(runtime)
-            patched_globals["runtime"] = runtime
+        patched_globals = self.prepare_patched_globals(patched_globals)
+
         self.project_name = project_name
         self.machines: List[Machine] = [
             Machine.from_config(
@@ -129,6 +132,13 @@ class NormalizedConfig:
         ]
 
         self.globals: dict = patched_globals
+
+    @classmethod
+    def prepare_patched_globals(cls, patched_globals: dict) -> dict:
+        runtime = fix_runtime(patched_globals.get("runtime"))
+        runtime = cls.prepare_runtime(runtime)
+        patched_globals["runtime"] = runtime
+        return patched_globals
 
     @staticmethod
     def prepare_runtime(runtime: dict) -> dict:
