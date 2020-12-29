@@ -11,7 +11,6 @@ import json
 from pydantic import parse_obj_as, ValidationError
 from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo.workflow.config_elements.schemas import CustomEnv
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
@@ -247,15 +246,12 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     logging.getLogger("gordo").setLevel(log_level.upper())
     context["log_level"] = log_level.upper()
 
+    custom_model_builder_envs = context["custom_model_builder_envs"]
     # Create normalized config
-    config = NormalizedConfig(yaml_content, project_name=context["project_name"])
+    config = NormalizedConfig(yaml_content, project_name=context["project_name"], custom_model_builder_envs=)
 
-    if context["custom_model_builder_envs"]:
-        result = parse_json(context["custom_model_builder_envs"], List[CustomEnv])
-        custom_model_builder_envs = []
-        for value in result:
-            custom_model_builder_envs.append(value.dict(exclude_defaults=True))
-        context["custom_model_builder_envs"] = custom_model_builder_envs
+    if :
+
 
     version = parse_version(context["gordo_version"])
     if "image_pull_policy" not in context or not context["image_pull_policy"]:
