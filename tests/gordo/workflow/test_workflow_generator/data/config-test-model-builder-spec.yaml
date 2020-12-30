@@ -10,8 +10,8 @@ machines:
       train_end_date: 2018-09-15T03:01:00+01:00
 
 globals:
-  runtime: #We add metadata lables to builder step
-    builder: # We want different builder settings
+  runtime:
+    builder:
       metadata:
         labels:
           key1: "value1"
