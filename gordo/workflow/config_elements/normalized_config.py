@@ -10,7 +10,7 @@ from gordo import __version__
 from packaging.version import parse
 from pydantic import parse_obj_as, BaseModel
 
-from .schemas import BuilderPodRuntime, PodRuntime
+from .schemas import BuilderPodRuntime, PodRuntime, Volume
 
 
 def _calculate_influx_resources(nr_of_machines):
@@ -146,6 +146,9 @@ class NormalizedConfig:
                 runtime[name] = pod_runtime.dict(exclude_none=True)
 
         prepare_pod_runtime("builder", BuilderPodRuntime)
+        if "volumes" in runtime:
+            volumes = parse_obj_as(List[Volume], runtime["volumes"])
+            runtime["volumes"] = [volume.dict(exclude_none=True) for volume in volumes]
         return runtime
 
     @classmethod

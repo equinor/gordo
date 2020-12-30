@@ -269,6 +269,10 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         context.pop("n_servers") or len(config.machines) * 10
     )
 
+    context["volumes"] = None
+    if "volumes" in config.globals["runtime"]:
+        context["volumes"] = config.globals["runtime"]["volumes"]
+
     builder_runtime = config.globals["runtime"]["builder"]
     # We know these exist since we set them in the default globals
     builder_resources = builder_runtime["resources"]

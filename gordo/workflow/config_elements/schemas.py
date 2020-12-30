@@ -44,12 +44,18 @@ class Volume(BaseModel):
     csi: Optional[CSIVolumeSource]
 
 
+class VolumeMount(BaseModel):
+    name: str
+    readOnly: Optional[bool]
+    mountPath: str
+
+
 class PodRuntime(BaseModel):
     image: str
     resources: Optional[ResourceRequirements]
     metadata: Optional[ObjectMeta]
     env: Optional[List[EnvVar]]
-    volumes: Optional[List[Volume]]
+    volumeMounts: Optional[List[VolumeMount]]
 
 
 class RemoteLogging(BaseModel):

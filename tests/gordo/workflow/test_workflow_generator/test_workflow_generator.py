@@ -20,6 +20,7 @@ from gordo.workflow.workflow_generator.workflow_generator import (
 )
 from gordo.util.version import GordoRelease, GordoSpecial, GordoPR, GordoSHA, Special
 from gordo_dataset import sensor_tag
+from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -263,6 +264,54 @@ def test_builder_labels(path_to_config_files):
 
     assert "key4/withslash.dot" in model_builder_task["metadata"]["labels"]
     assert "value4" == model_builder_task["metadata"]["labels"]["key4/withslash.dot"]
+
+
+def filter_keys(input_list: list, key: str, values: List[str]) -> list:
+    output_list = []
+    for v in input_list:
+        find_v = v[key]
+        if find_v in values:
+            output_list.append(v)
+    return output_list
+
+
+@pytest.mark.parametrize(
+    "template_name,spec_key",
+    [("model-builder", "container"), ("gordo-client", "script")],
+)
+def test_model_builder_spec(path_to_config_files, template_name, spec_key):
+    expanded_template = _generate_test_workflow_yaml(
+        path_to_config_files, "config-test-model-builder-spec.yaml"
+    )
+    templates = expanded_template["spec"]["templates"]
+    volumes = expanded_template["spec"]["volumes"]
+    template = [task for task in templates if task["name"] == template_name][0]
+    labels = template["metadata"]["labels"]
+    env = template[spec_key]["env"]
+    volume_mounts = template[spec_key]["volumeMounts"]
+    assert labels["key1"] == "value1"
+    assert labels["key2"] == "value2"
+    assert filter_keys(env, "name", ["DL_PWD"]) == [
+        {
+            "name": "DL_PWD",
+            "valueFrom": {
+                "secretKeyRef": {"key": "tenant_id_secret", "name": "dlserviceauth"}
+            },
+        }
+    ]
+    assert filter_keys(volumes, "name", ["secrets-store"]) == [
+        {
+            "csi": {
+                "driver": "secrets-store.csi.k8s.io",
+                "readOnly": True,
+                "volumeAttributes": {"secretProviderClass": "kv-sync"},
+            },
+            "name": "secrets-store",
+        }
+    ]
+    assert filter_keys(volume_mounts, "name", ["secrets-store"]) == [
+        {"mountPath": "/kvmnt", "name": "secrets-store", "readOnly": True}
+    ]
 
 
 def test_runtime_image_override(path_to_config_files):
