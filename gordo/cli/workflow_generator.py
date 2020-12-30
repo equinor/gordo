@@ -250,7 +250,11 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     if context["custom_model_builder_envs"]:
         model_builder_env = json.loads(context["custom_model_builder_envs"])
     # Create normalized config
-    config = NormalizedConfig(yaml_content, project_name=context["project_name"], model_builder_env=model_builder_env)
+    config = NormalizedConfig(
+        yaml_content,
+        project_name=context["project_name"],
+        model_builder_env=model_builder_env,
+    )
 
     version = parse_version(context["gordo_version"])
     if "image_pull_policy" not in context or not context["image_pull_policy"]:

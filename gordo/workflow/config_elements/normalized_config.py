@@ -103,7 +103,11 @@ class NormalizedConfig:
     }
 
     def __init__(
-        self, config: dict, project_name: str, gordo_version: Optional[str] = None, model_builder_env: Optional[dict] = None
+        self,
+        config: dict,
+        project_name: str,
+        gordo_version: Optional[str] = None,
+        model_builder_env: Optional[dict] = None,
     ):
         if gordo_version is None:
             gordo_version = __version__
