@@ -3,7 +3,7 @@ import time
 import pkg_resources
 import os
 
-from typing import Dict, Any, TypeVar, Type, List
+from typing import Dict, Any, TypeVar, Type
 
 import click
 import json
