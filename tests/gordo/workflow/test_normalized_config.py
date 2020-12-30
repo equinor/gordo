@@ -40,7 +40,6 @@ def test_custom_docker_images():
     }
     normalized_config = NormalizedConfig(config, "test", "1.1.0")
     config_globals = normalized_config.globals
-    print(config_globals)
     config_runtime = config_globals["runtime"]
     assert config_runtime["deployer"]["image"] == "my-deployer"
     assert config_runtime["server"]["image"] == "my-server"
