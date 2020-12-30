@@ -1,26 +1,20 @@
 """Tests for gordo.client."""
 # TODO: Move those tests to gordo.client project.
 
-import os
 import json
 import logging
-import tempfile
-from dateutil.parser import isoparse  # type: ignore
+import os
 import string
+from unittest import mock
 
-
+import numpy as np
+import pandas as pd
 import pytest
 import requests
-import pandas as pd
-import numpy as np
-from unittest import mock
 from click.testing import CliRunner
-from sklearn.base import BaseEstimator
-from mock import patch, call
-
+from dateutil.parser import isoparse  # type: ignore
 from gordo.client import Client, utils as client_utils
-from gordo.client.schemas import Machine as ClientMachine
-from gordo.machine import Machine
+from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.io import (
     _handle_response,
     HttpUnprocessableEntity,
@@ -28,14 +22,17 @@ from gordo.client.io import (
     NotFound,
     ResourceGone,
 )
-from gordo.client.forwarders import ForwardPredictionsIntoInflux
+from gordo.client.schemas import Machine as ClientMachine
 from gordo.client.utils import PredictionResult
 from gordo_dataset.data_provider import providers
 from gordo_dataset.datasets import TimeSeriesDataset
-from gordo.server import utils as server_utils
-from gordo.machine.model import utils as model_utils
+from mock import patch, call
+from sklearn.base import BaseEstimator
+
 from gordo import cli, serializer
-from gordo.cli import custom_types
+from gordo.machine import Machine
+from gordo.machine.model import utils as model_utils
+from gordo.server import utils as server_utils
 
 
 def test_client_get_metadata(gordo_project, ml_server):
@@ -430,30 +427,6 @@ def test_client_cli_predict_non_zero_exit(
         assert out.exit_code != 0, f"{out.output or out.exception}"
     else:
         assert out.exit_code == 0, f"{out.output or out.exception}"
-
-
-@pytest.mark.parametrize(
-    "config",
-    (
-        '{"type": "RandomDataProvider", "max_size": 200}',
-        '{"type": "InfluxDataProvider", "measurement": "value"}',
-    ),
-)
-def test_data_provider_click_param(config, sensors_str):
-    """
-    Test click custom param to load a provider from a string config representation
-    """
-    expected_provider_type = json.loads(config)["type"]
-    provider = custom_types.DataProviderParam()(config)
-    assert isinstance(provider, getattr(providers, expected_provider_type))
-
-    # Should also be able to take a file path with the json
-    with tempfile.NamedTemporaryFile(mode="w") as config_file:
-        json.dump(json.loads(config), config_file)
-        config_file.flush()
-
-        provider = custom_types.DataProviderParam()(config_file.name)
-        assert isinstance(provider, getattr(providers, expected_provider_type))
 
 
 @pytest.mark.parametrize("use_test_project_tags", [True, False])
