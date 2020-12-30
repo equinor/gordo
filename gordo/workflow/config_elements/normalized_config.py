@@ -27,9 +27,6 @@ def _calculate_influx_resources(nr_of_machines):
     }
 
 
-T = TypeVar("T")
-
-
 class NormalizedConfig:
     """
     Handles the conversion of a single Machine representation in config format
