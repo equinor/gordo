@@ -120,9 +120,9 @@ class NormalizedConfig:
         # keeping it for back-compatibility
         if model_builder_env is not None and not (
             passed_globals
-            and passed_globals["runtime"]
-            and passed_globals["runtime"]["builder"]
-            and passed_globals["runtime"]["builder"]["env"]
+            and "runtime" in passed_globals
+            and "builder" in passed_globals["runtime"]
+            and "env" in passed_globals["runtime"]["builder"]
         ):
             if "builder" not in default_globals["runtime"]:
                 default_globals["runtime"]["builder"] = {}
