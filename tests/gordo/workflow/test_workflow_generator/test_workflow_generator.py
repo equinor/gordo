@@ -295,7 +295,7 @@ def test_model_builder_spec(path_to_config_files, template_name, spec_key):
         {
             "name": "DL_PWD",
             "valueFrom": {
-                "secretKeyRef": {"key": "tenant_id_secret", "name": "dlserviceauth"}
+                "secretKeyRef": {"key": "deltalake-pwd", "name": "deltalake-pwd"}
             },
         }
     ]

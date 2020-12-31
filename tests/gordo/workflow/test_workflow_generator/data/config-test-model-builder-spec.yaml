@@ -19,8 +19,9 @@ globals:
       env:
       - name: DL_PWD
         valueFrom:
-          key: deltalake-pwd,
-          name: deltalake-pwd
+          secretKeyRef:
+            key: deltalake-pwd
+            name: deltalake-pwd
       volumeMounts:
       - name: secrets-store
         readOnly: true
