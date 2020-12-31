@@ -114,13 +114,20 @@ class NormalizedConfig:
         ] = _calculate_influx_resources(  # type: ignore
             len(config["machines"])
         )
+
+        passed_globals = config.get("globals", dict())
+
         # keeping it for back-compatibility
-        if model_builder_env is not None:
+        if model_builder_env is not None and not (
+            passed_globals
+            and passed_globals["runtime"]
+            and passed_globals["runtime"]["builder"]
+            and passed_globals["runtime"]["builder"]["env"]
+        ):
             if "builder" not in default_globals["runtime"]:
                 default_globals["runtime"]["builder"] = {}
             default_globals["runtime"]["builder"]["env"] = model_builder_env
 
-        passed_globals = config.get("globals", dict())
         patched_globals = patch_dict(default_globals, passed_globals)
         patched_globals = self.prepare_patched_globals(patched_globals)
 
