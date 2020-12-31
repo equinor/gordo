@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional, Type, TypeVar
+from typing import List, Optional, Type
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
