@@ -31,7 +31,9 @@ spec:
       claimName: azurefile
   - name: datalake-access-token
     secret:
-      secretName: datalake-access-token # Must be saved
+      secretName: datalake-access-token # Must be saved{% if volumes %}
+{{ volumes | yaml | indent(2, True) }}{% endif %}
+
   templates:
   - name: ensure-single-workflow
     # Ensures that only one version of workflows for a given project runs at the same time.
@@ -662,11 +664,8 @@ spec:
         applications.gordo.equinor.com/project-name: {{project_name}}
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if project_workflow %}
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
-        applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"
-        {% if model_builder_metadata_labels is defined %}
-        {% for key, value in model_builder_metadata_labels.items() %}
-        "{{key}}" : {{value}}
-        {% endfor %} {% endif %}
+        applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
+{{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
     tolerations:
       - effect: NoSchedule
         key: kubernetes.azure.com/scalesetpriority
@@ -699,11 +698,12 @@ spec:
       - name: EXCEPTIONS_REPORTER_FILE
         value: "{{ builder_exceptions_report_file }}"{% endif %}
       - name: EXCEPTIONS_REPORT_LEVEL
-        value: "{{ builder_exceptions_report_level }}"{% if custom_model_builder_envs %}
-{{ custom_model_builder_envs | yaml | indent(6, True) }}{% endif %}
+        value: "{{ builder_exceptions_report_level }}"{% if "env" in builder_runtime %}
+{{ builder_runtime["env"] | yaml | indent(6, True) }}{% endif %}
       volumeMounts:
       - name: azurefile
-        mountPath: /gordo
+        mountPath: /gordo{% if "volumeMounts" in builder_runtime %}
+{{ builder_runtime["volumeMounts"] | yaml | indent(6, True) }}{% endif %}
       resources:
         requests:
           memory: "{{ model_builder_resources_requests_memory }}M"
@@ -1150,7 +1150,8 @@ spec:
       labels:
         app: gordo-client
         applications.gordo.equinor.com/project-name: "{{project_name}}"
-        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
+{{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ client_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1187,8 +1188,10 @@ spec:
       - name: GORDO_CLIENT_METADATA
         value: "version,{{project_revision}}"
       - name: GORDO_LOG_LEVEL
-        value: "{{log_level}}"{% if custom_model_builder_envs %}
-{{ custom_model_builder_envs | yaml | indent(6, True) }}{% endif %}
+        value: "{{log_level}}"{% if "env" in builder_runtime %}
+{{ builder_runtime["env"] | yaml | indent(6, True) }}{% endif %}
+{% if "volumeMounts" in builder_runtime %}      volumeMounts:
+{{ builder_runtime["volumeMounts"] | yaml | indent(6, True) }}{% endif %}
   - name: influx-cleanup
     activeDeadlineSeconds: 300
     retryStrategy:

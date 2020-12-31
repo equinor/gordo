@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional
+from typing import List, Optional, Type
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
@@ -8,6 +8,9 @@ from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.machine import Machine
 from gordo import __version__
 from packaging.version import parse
+from pydantic import parse_obj_as, BaseModel
+
+from .schemas import BuilderPodRuntime, PodRuntime, Volume
 
 
 def _calculate_influx_resources(nr_of_machines):
@@ -97,7 +100,11 @@ class NormalizedConfig:
     }
 
     def __init__(
-        self, config: dict, project_name: str, gordo_version: Optional[str] = None
+        self,
+        config: dict,
+        project_name: str,
+        gordo_version: Optional[str] = None,
+        model_builder_env: Optional[dict] = None,
     ):
         if gordo_version is None:
             gordo_version = __version__
@@ -109,9 +116,21 @@ class NormalizedConfig:
         )
 
         passed_globals = config.get("globals", dict())
+
+        # keeping it for back-compatibility
+        if model_builder_env is not None and not (
+            passed_globals
+            and "runtime" in passed_globals
+            and "builder" in passed_globals["runtime"]
+            and "env" in passed_globals["runtime"]["builder"]
+        ):
+            if "builder" not in default_globals["runtime"]:
+                default_globals["runtime"]["builder"] = {}
+            default_globals["runtime"]["builder"]["env"] = model_builder_env
+
         patched_globals = patch_dict(default_globals, passed_globals)
-        if patched_globals.get("runtime"):
-            patched_globals["runtime"] = fix_runtime(patched_globals.get("runtime"))
+        patched_globals = self.prepare_patched_globals(patched_globals)
+
         self.project_name = project_name
         self.machines: List[Machine] = [
             Machine.from_config(
@@ -121,6 +140,27 @@ class NormalizedConfig:
         ]
 
         self.globals: dict = patched_globals
+
+    @staticmethod
+    def prepare_runtime(runtime: dict) -> dict:
+        def prepare_pod_runtime(name: str, schema: Type[BaseModel] = PodRuntime):
+            if name in runtime:
+                # TODO handling pydantic.ValidationError
+                pod_runtime = parse_obj_as(schema, runtime[name])
+                runtime[name] = pod_runtime.dict(exclude_none=True)
+
+        prepare_pod_runtime("builder", BuilderPodRuntime)
+        if "volumes" in runtime:
+            volumes = parse_obj_as(List[Volume], runtime["volumes"])
+            runtime["volumes"] = [volume.dict(exclude_none=True) for volume in volumes]
+        return runtime
+
+    @classmethod
+    def prepare_patched_globals(cls, patched_globals: dict) -> dict:
+        runtime = fix_runtime(patched_globals.get("runtime"))
+        runtime = cls.prepare_runtime(runtime)
+        patched_globals["runtime"] = runtime
+        return patched_globals
 
     @classmethod
     def get_default_globals(cls, gordo_version: str) -> dict:
