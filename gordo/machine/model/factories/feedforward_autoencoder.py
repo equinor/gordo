@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any, Union, Optional
 
 from tensorflow.keras.optimizers import Optimizer
 from tensorflow.keras import regularizers, Input
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Flatten, Reshape
 from tensorflow import keras
 
 from tensorflow.keras.models import Sequential as KerasSequential
@@ -73,6 +73,7 @@ def feedforward_model(
 
     if isinstance(n_features, tuple):
         model.add(Input(shape=n_features))
+        model.add(Flatten())
 
     # Add encoding layers
     for i, (units, activation) in enumerate(zip(encoding_dim, encoding_func)):
@@ -96,7 +97,14 @@ def feedforward_model(
         optimizer = Optim(**optimizer_kwargs)
 
     # Final output layer
-    model.add(Dense(n_features_out, activation=out_func))
+    if isinstance(n_features_out, tuple):
+        calc_n_features_out = n_features_out[0]
+        for n in n_features_out[:1]:
+            calc_n_features_out *= n
+        model.add(Dense(calc_n_features_out, activation=out_func))
+        model.add(Reshape(target_shape=n_features_out))
+    else:
+        model.add(Dense(n_features_out, activation=out_func))
 
     # Set some pre-determined default compile kwargs.
     compile_kwargs.update({"optimizer": optimizer})

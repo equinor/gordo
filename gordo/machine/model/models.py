@@ -206,9 +206,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             'KerasAutoEncoder'
         """
 
-        if isinstance(X, pd.DataFrame):
+        if isinstance(X, pd.DataFrame) or isinstance(X, xr.DataArray):
             X = X.values
-        if isinstance(y, pd.DataFrame):
+        if isinstance(y, pd.DataFrame) or isinstance(y, xr.DataArray):
             y = y.values
 
         # Reshape y if needed, and set n features of target
@@ -223,11 +223,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if len(X.shape) == 3:
             if isinstance(X, xr.DataArray):
                 n_features = X.shape[1:]
-                kwargs_update = {"n_features": n_features, "n_features_out": n_features[1]}
             else:
                 n_features = X.shape[2]
-                kwargs_update = {"n_features": n_features}
-            self.kwargs.update(kwargs_update)
+            self.kwargs.update({"n_features": n_features})
         kwargs.setdefault("verbose", 0)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
@@ -495,16 +493,16 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             )
         return X
 
-    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> "KerasLSTMForecast":
+    def fit(self, X: Union[np.ndarray, pd.DataFrame], y: Union[np.ndarray, pd.DataFrame], **kwargs) -> "KerasLSTMForecast":
 
         """
         This fits a one step forecast LSTM architecture.
 
         Parameters
         ----------
-        X: np.ndarray
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray]
            2D numpy array of dimension n_samples x n_features. Input data to train.
-        y: np.ndarray
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray]
            2D numpy array representing the target
         kwargs: dict
             Any additional args to be passed to Keras `fit_generator` method.
@@ -515,9 +513,12 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             KerasLSTMForecast
 
         """
-
-        X = X.values if isinstance(X, pd.DataFrame) else X
-        y = y.values if isinstance(y, pd.DataFrame) else y
+        if isinstance(X, xr.DataArray) or isinstance(y, xr.DataArray):
+            raise ValueError("KerasLSTMBaseEstimator does not have support for xarray")
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+        if isinstance(y, pd.DataFrame):
+            y = y.values
 
         X = self._validate_and_fix_size_of_X(X)
 
