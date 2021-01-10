@@ -206,9 +206,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             'KerasAutoEncoder'
         """
 
-        if isinstance(X, pd.DataFrame) or isinstance(X, xr.DataArray):
+        if isinstance(X, pd.DataFrame):
             X = X.values
-        if isinstance(y, pd.DataFrame) or isinstance(y, xr.DataArray):
+        if isinstance(y, pd.DataFrame):
             y = y.values
 
         # Reshape y if needed, and set n features of target
@@ -227,6 +227,10 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 n_features = X.shape[2]
             self.kwargs.update({"n_features": n_features})
         kwargs.setdefault("verbose", 0)
+        if isinstance(X, xr.DataArray):
+            X = X.values
+        if isinstance(y, xr.DataArray):
+            y = y.values
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
