@@ -8,7 +8,6 @@ import logging
 import sys
 import traceback
 
-from gordo.client.cli.client import gordo_client
 from gordo_dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
 from gordo_dataset.base import ConfigurationError
@@ -376,7 +375,13 @@ def run_server_cli(
 gordo.add_command(workflow_cli)
 gordo.add_command(build)
 gordo.add_command(run_server_cli)
-gordo.add_command(gordo_client)
+
+try:
+    from gordo.client.cli.client import gordo_client
+except ImportError:
+    pass
+else:
+    gordo.add_command(gordo_client)
 
 
 if __name__ == "__main__":
