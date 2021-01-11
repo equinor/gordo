@@ -33,7 +33,7 @@ cchardet==2.1.5           # via -r requirements.in
 certifi==2019.11.28       # via msrest, requests
 cffi==1.13.2              # via azure-datalake-store, cryptography
 chardet==3.0.4            # via requests
-click==7.0                # via -r requirements.in, databricks-cli, flask, mlflow
+click==7.1.2              # via -r requirements.in, databricks-cli, flask, gordo.client, mlflow
 cloudpickle==1.2.2        # via mlflow
 configparser==4.0.2       # via databricks-cli
 contextlib2==0.6.0.post1  # via azureml-core
@@ -53,7 +53,7 @@ google-auth-oauthlib==0.4.1  # via tensorboard
 google-auth==1.10.1       # via google-auth-oauthlib, tensorboard
 google-pasta==0.1.8       # via tensorflow
 gordo-dataset==2.3.6      # via -r requirements.in, gordo.client
-gordo.client==0.2.2       # via -r requirements.in
+gordo.client==0.2.3       # via -r requirements.in
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
 grpcio==1.26.0            # via tensorboard, tensorflow

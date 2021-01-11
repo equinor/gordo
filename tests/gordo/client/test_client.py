@@ -29,7 +29,8 @@ from gordo_dataset.datasets import TimeSeriesDataset
 from mock import patch, call
 from sklearn.base import BaseEstimator
 
-from gordo import cli, serializer
+from gordo import serializer
+from gordo.client.cli.client import gordo_client
 from gordo.machine import Machine
 from gordo.machine.model import utils as model_utils
 from gordo.server import utils as server_utils
@@ -190,10 +191,10 @@ def test_client_metadata_revision(gordo_project, gordo_single_target, ml_server)
 @pytest.mark.parametrize(
     "args",
     [
-        ["client", "--help"],
-        ["client", "predict", "--help"],
-        ["client", "metadata", "--help"],
-        ["client", "download-model", "--help"],
+        ["--help"],
+        ["predict", "--help"],
+        ["metadata", "--help"],
+        ["download-model", "--help"],
     ],
 )
 def test_client_cli_basic(args):
@@ -201,7 +202,7 @@ def test_client_cli_basic(args):
     Test that client specific subcommands exist
     """
     runner = CliRunner()
-    out = runner.invoke(cli.gordo, args=args)
+    out = runner.invoke(gordo_client, args=args)
     assert (
         out.exit_code == 0
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
@@ -215,9 +216,8 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
 
     # Simple metadata fetching with single target
     out = runner.invoke(
-        cli.gordo,
+        gordo_client,
         args=[
-            "client",
             "--project",
             gordo_project,
             "metadata",
@@ -230,7 +230,7 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
 
     # Simple metadata fetching with all targets
     out = runner.invoke(
-        cli.gordo, args=["client", "--project", gordo_project, "metadata"]
+        gordo_client, args=["--project", gordo_project, "metadata"]
     )
     assert out.exit_code == 0
     assert gordo_single_target in out.output
@@ -238,7 +238,7 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
     # Save metadata to file
     output_file = os.path.join(tmpdir, "metadata.json")
     out = runner.invoke(
-        cli.gordo,
+        gordo_client,
         args=[
             "client",
             "--project",
@@ -269,9 +269,8 @@ def test_client_cli_download_model(
     assert len(os.listdir(tmpdir)) == 0
 
     out = runner.invoke(
-        cli.gordo,
+        gordo_client,
         args=[
-            "client",
             "--project",
             gordo_project,
             "download-model",
@@ -316,7 +315,7 @@ def test_client_cli_predict(
     """
     runner = CliRunner()
 
-    args = ["client", "--metadata", "key,value", "--project", gordo_project]
+    args = ["--metadata", "key,value", "--project", gordo_project]
     if session_config:
         args.extend(["--session-config", json.dumps(session_config)])
 
@@ -358,7 +357,7 @@ def test_client_cli_predict(
         "gordo_dataset.sensor_tag._asset_from_tag_name",
         side_effect=lambda *args, **kwargs: "default",
     ):
-        out = runner.invoke(cli.gordo, args=args)
+        out = runner.invoke(gordo_client, args=args)
     assert out.exit_code == 0, f"{out.output}"
 
     # If we activated forwarder and we had any actual data then there should
@@ -399,7 +398,6 @@ def test_client_cli_predict_non_zero_exit(
 
     # Should fail requesting dates which clearly don't exist.
     args = [
-        "client",
         "--metadata",
         "key,value",
         "--project",
@@ -421,7 +419,7 @@ def test_client_cli_predict_non_zero_exit(
             "gordo_dataset.sensor_tag._asset_from_tag_name",
             side_effect=lambda *args, **kwargs: "default",
         ):
-            out = runner.invoke(cli.gordo, args=args)
+            out = runner.invoke(gordo_client, args=args)
 
     if should_fail:
         assert out.exit_code != 0, f"{out.output or out.exception}"
