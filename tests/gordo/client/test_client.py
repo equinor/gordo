@@ -232,7 +232,6 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
     out = runner.invoke(
         gordo_client,
         args=[
-            "client",
             "--project",
             gordo_project,
             "metadata",
