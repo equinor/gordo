@@ -1,26 +1,20 @@
 """Tests for gordo.client."""
 # TODO: Move those tests to gordo.client project.
 
-import os
 import json
 import logging
-import tempfile
-from dateutil.parser import isoparse  # type: ignore
+import os
 import string
+from unittest import mock
 
-
+import numpy as np
+import pandas as pd
 import pytest
 import requests
-import pandas as pd
-import numpy as np
-from unittest import mock
 from click.testing import CliRunner
-from sklearn.base import BaseEstimator
-from mock import patch, call
-
+from dateutil.parser import isoparse  # type: ignore
 from gordo.client import Client, utils as client_utils
-from gordo.client.schemas import Machine as ClientMachine
-from gordo.machine import Machine
+from gordo.client.forwarders import ForwardPredictionsIntoInflux
 from gordo.client.io import (
     _handle_response,
     HttpUnprocessableEntity,
@@ -28,14 +22,18 @@ from gordo.client.io import (
     NotFound,
     ResourceGone,
 )
-from gordo.client.forwarders import ForwardPredictionsIntoInflux
+from gordo.client.schemas import Machine as ClientMachine
 from gordo.client.utils import PredictionResult
 from gordo_dataset.data_provider import providers
 from gordo_dataset.datasets import TimeSeriesDataset
-from gordo.server import utils as server_utils
+from mock import patch, call
+from sklearn.base import BaseEstimator
+
+from gordo import serializer
+from gordo.client.cli.client import gordo_client
+from gordo.machine import Machine
 from gordo.machine.model import utils as model_utils
-from gordo import cli, serializer
-from gordo.cli import custom_types
+from gordo.server import utils as server_utils
 
 
 def test_client_get_metadata(gordo_project, ml_server):
@@ -193,10 +191,10 @@ def test_client_metadata_revision(gordo_project, gordo_single_target, ml_server)
 @pytest.mark.parametrize(
     "args",
     [
-        ["client", "--help"],
-        ["client", "predict", "--help"],
-        ["client", "metadata", "--help"],
-        ["client", "download-model", "--help"],
+        ["--help"],
+        ["predict", "--help"],
+        ["metadata", "--help"],
+        ["download-model", "--help"],
     ],
 )
 def test_client_cli_basic(args):
@@ -204,7 +202,7 @@ def test_client_cli_basic(args):
     Test that client specific subcommands exist
     """
     runner = CliRunner()
-    out = runner.invoke(cli.gordo, args=args)
+    out = runner.invoke(gordo_client, args=args)
     assert (
         out.exit_code == 0
     ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
@@ -218,32 +216,22 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
 
     # Simple metadata fetching with single target
     out = runner.invoke(
-        cli.gordo,
-        args=[
-            "client",
-            "--project",
-            gordo_project,
-            "metadata",
-            "--target",
-            gordo_single_target,
-        ],
+        gordo_client,
+        args=["--project", gordo_project, "metadata", "--target", gordo_single_target],
     )
     assert out.exit_code == 0
     assert gordo_single_target in out.output
 
     # Simple metadata fetching with all targets
-    out = runner.invoke(
-        cli.gordo, args=["client", "--project", gordo_project, "metadata"]
-    )
+    out = runner.invoke(gordo_client, args=["--project", gordo_project, "metadata"])
     assert out.exit_code == 0
     assert gordo_single_target in out.output
 
     # Save metadata to file
     output_file = os.path.join(tmpdir, "metadata.json")
     out = runner.invoke(
-        cli.gordo,
+        gordo_client,
         args=[
-            "client",
             "--project",
             gordo_project,
             "metadata",
@@ -272,9 +260,8 @@ def test_client_cli_download_model(
     assert len(os.listdir(tmpdir)) == 0
 
     out = runner.invoke(
-        cli.gordo,
+        gordo_client,
         args=[
-            "client",
             "--project",
             gordo_project,
             "download-model",
@@ -319,7 +306,7 @@ def test_client_cli_predict(
     """
     runner = CliRunner()
 
-    args = ["client", "--metadata", "key,value", "--project", gordo_project]
+    args = ["--metadata", "key,value", "--project", gordo_project]
     if session_config:
         args.extend(["--session-config", json.dumps(session_config)])
 
@@ -361,7 +348,7 @@ def test_client_cli_predict(
         "gordo_dataset.sensor_tag._asset_from_tag_name",
         side_effect=lambda *args, **kwargs: "default",
     ):
-        out = runner.invoke(cli.gordo, args=args)
+        out = runner.invoke(gordo_client, args=args)
     assert out.exit_code == 0, f"{out.output}"
 
     # If we activated forwarder and we had any actual data then there should
@@ -402,7 +389,6 @@ def test_client_cli_predict_non_zero_exit(
 
     # Should fail requesting dates which clearly don't exist.
     args = [
-        "client",
         "--metadata",
         "key,value",
         "--project",
@@ -424,36 +410,12 @@ def test_client_cli_predict_non_zero_exit(
             "gordo_dataset.sensor_tag._asset_from_tag_name",
             side_effect=lambda *args, **kwargs: "default",
         ):
-            out = runner.invoke(cli.gordo, args=args)
+            out = runner.invoke(gordo_client, args=args)
 
     if should_fail:
         assert out.exit_code != 0, f"{out.output or out.exception}"
     else:
         assert out.exit_code == 0, f"{out.output or out.exception}"
-
-
-@pytest.mark.parametrize(
-    "config",
-    (
-        '{"type": "RandomDataProvider", "max_size": 200}',
-        '{"type": "InfluxDataProvider", "measurement": "value"}',
-    ),
-)
-def test_data_provider_click_param(config, sensors_str):
-    """
-    Test click custom param to load a provider from a string config representation
-    """
-    expected_provider_type = json.loads(config)["type"]
-    provider = custom_types.DataProviderParam()(config)
-    assert isinstance(provider, getattr(providers, expected_provider_type))
-
-    # Should also be able to take a file path with the json
-    with tempfile.NamedTemporaryFile(mode="w") as config_file:
-        json.dump(json.loads(config), config_file)
-        config_file.flush()
-
-        provider = custom_types.DataProviderParam()(config_file.name)
-        assert isinstance(provider, getattr(providers, expected_provider_type))
 
 
 @pytest.mark.parametrize("use_test_project_tags", [True, False])
