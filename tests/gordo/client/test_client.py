@@ -217,21 +217,13 @@ def test_client_cli_metadata(gordo_project, gordo_single_target, ml_server, tmpd
     # Simple metadata fetching with single target
     out = runner.invoke(
         gordo_client,
-        args=[
-            "--project",
-            gordo_project,
-            "metadata",
-            "--target",
-            gordo_single_target,
-        ],
+        args=["--project", gordo_project, "metadata", "--target", gordo_single_target],
     )
     assert out.exit_code == 0
     assert gordo_single_target in out.output
 
     # Simple metadata fetching with all targets
-    out = runner.invoke(
-        gordo_client, args=["--project", gordo_project, "metadata"]
-    )
+    out = runner.invoke(gordo_client, args=["--project", gordo_project, "metadata"])
     assert out.exit_code == 0
     assert gordo_single_target in out.output
 
