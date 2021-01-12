@@ -116,7 +116,7 @@ def feedforward_model(
     compile_kwargs.setdefault("metrics", ["accuracy"])
 
     model.compile(**compile_kwargs)
-    keras.utils.plot_model(model, "/home/serhii/model.png", show_shapes=True)
+    keras.utils.plot_model(model, "model.png", show_shapes=True)
     return model
 
 
