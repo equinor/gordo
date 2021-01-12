@@ -33,6 +33,20 @@ from gordo.machine.model.register import register_model_builder
 logger = logging.getLogger(__name__)
 
 
+def get_n_features(data: Union[np.ndarray, pd.DataFrame, xr.DataArray]) -> Union[int, tuple]:
+    shape = data.shape
+    if len(shape) == 2:
+        return shape[1]
+    elif len(shape) == 3:
+        if isinstance(data, xr.DataArray):
+            return shape[1:]
+        else:
+            # LST
+            return shape[2]
+    else:
+        raise ValueError("Unsupported dataset shape dimensions count %s" % shape)
+
+
 class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
     supported_fit_args = [
         "batch_size",
@@ -214,7 +228,11 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         # Reshape y if needed, and set n features of target
         if y.ndim == 1:
             y = y.reshape(-1, 1)
-        self.kwargs.update({"n_features_out": y.shape[1]})
+        if len(y.shape) == 3:
+            n_features_out = y.shape[1:]
+        else:
+            n_features_out = y.shape[1]
+        self.kwargs.update({"n_features_out": n_features_out})
 
         logger.debug(f"Fitting to data of length: {len(X)}")
         if len(X.shape) == 2:

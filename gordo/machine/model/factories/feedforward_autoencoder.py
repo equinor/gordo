@@ -62,8 +62,12 @@ def feedforward_model(
     keras.models.Sequential
 
     """
-
-    input_dim = n_features
+    if isinstance(n_features, tuple):
+        input_dim = n_features[0]
+        for n in n_features[1:]:
+            input_dim *= n
+    else:
+        input_dim = n_features
     n_features_out = n_features_out or n_features
 
     check_dim_func_len("encoding", encoding_dim, encoding_func)
