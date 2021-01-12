@@ -181,13 +181,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 buf.seek(0)
                 state["model"] = buf
             if hasattr(self.model, "history"):
-                from tensorflow.python.keras.callbacks import History
-
-                history = History()
-                history.history = self.model.history.history
-                history.params = self.model.history.params
-                history.epoch = self.model.history.epoch
-                state["history"] = history
+                state["history"] = copy(self.model.history)
         return state
 
     def __setstate__(self, state):
