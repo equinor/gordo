@@ -103,7 +103,7 @@ def feedforward_model(
     # Final output layer
     if isinstance(n_features_out, tuple):
         calc_n_features_out = n_features_out[0]
-        for n in n_features_out[:1]:
+        for n in n_features_out[1:]:
             calc_n_features_out *= n
         model.add(Dense(calc_n_features_out, activation=out_func))
         model.add(Reshape(target_shape=n_features_out))
@@ -116,6 +116,7 @@ def feedforward_model(
     compile_kwargs.setdefault("metrics", ["accuracy"])
 
     model.compile(**compile_kwargs)
+    keras.utils.plot_model(model, "/home/serhii/model.png", show_shapes=True)
     return model
 
 
