@@ -238,7 +238,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             else:
                 n_features = X.shape[2]
             self.kwargs.update({"n_features": n_features})
-        kwargs.setdefault("verbose", 0)
+        #kwargs.setdefault("verbose", 0)
         if isinstance(X, xr.DataArray):
             X = X.values
         if isinstance(y, xr.DataArray):
