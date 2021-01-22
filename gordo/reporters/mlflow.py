@@ -5,6 +5,7 @@ import logging
 import os
 import tempfile
 from typing import Dict, List, Union, Tuple
+from collections.abc import Mapping
 from uuid import uuid4
 
 from azureml.core import Workspace
@@ -226,32 +227,36 @@ def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
     params.extend(Param(k, str(getattr(build_metadata.model, k))) for k in model_keys)
 
     # Parse cross-validation split metadata
-    splits = build_metadata.model.cross_validation.splits
-    params.extend(Param(k, str(v)) for k, v in splits.items())
+    if build_metadata.model.cross_validation:
+        cross_validation = build_metadata.model.cross_validation
+        if "splits" in cross_validation and isinstance(cross_validation["splits"], Mapping):
+            splits = cross_validation["splits"]
+            params.extend(Param(k, str(v)) for k, v in splits.items())
 
-    # Parse cross-validation metrics
+        # Parse cross-validation metrics
 
-    tag_list = normalize_sensor_tags(
-        machine.dataset.tag_list, asset=machine.dataset.asset
-    )
-    scores = build_metadata.model.cross_validation.scores
-
-    keys = sorted(list(scores.keys()))
-    subkeys = ["mean", "max", "min", "std"]
-
-    n_folds = len(scores[keys[0]]) - len(subkeys)
-    for k in keys:
-        # Skip per tag data, produces too many params for MLflow
-        if any([t.name in k for t in tag_list]):
-            continue
-
-        # Summary stats per metric
-        for sk in subkeys:
-            metrics.append(Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0))
-        # Append value for each fold with increasing steps
-        metrics.extend(
-            Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i) for i in range(n_folds)
+        tag_list = normalize_sensor_tags(
+            machine.dataset.tag_list, asset=machine.dataset.asset
         )
+        if "scores" in cross_validation and isinstance(cross_validation["scores"], Mapping):
+            scores = cross_validation["scores"]
+
+            keys = sorted(list(scores.keys()))
+            subkeys = ["mean", "max", "min", "std"]
+
+            n_folds = len(scores[keys[0]]) - len(subkeys)
+            for k in keys:
+                # Skip per tag data, produces too many params for MLflow
+                if any([t.name in k for t in tag_list]):
+                    continue
+
+                # Summary stats per metric
+                for sk in subkeys:
+                    metrics.append(Metric(f"{k}-{sk}", scores[k][f"fold-{sk}"], epoch_now(), 0))
+                # Append value for each fold with increasing steps
+                metrics.extend(
+                    Metric(k, scores[k][f"fold-{i+1}"], epoch_now(), i) for i in range(n_folds)
+                )
 
     # Parse fit metrics
     try:

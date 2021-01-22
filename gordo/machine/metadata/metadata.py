@@ -27,9 +27,8 @@ class ModelBuildMetadata:
     model_offset: int = 0
     model_creation_date: Optional[str] = None
     model_builder_version: str = __version__
-    cross_validation: CrossValidationMetaData = field(
-        default_factory=CrossValidationMetaData
-    )
+    cross_validation: Optional[dict] = field(default_factory=dict)
+    evaluation: Optional[dict] = field(default_factory=dict)
     model_training_duration_sec: Optional[float] = None
     model_meta: Dict[str, Any] = field(default_factory=dict)
 

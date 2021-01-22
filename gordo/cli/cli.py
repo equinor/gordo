@@ -19,6 +19,7 @@ import jinja2
 import yaml
 import click
 from typing import Tuple, List, Any, cast
+from collections.abc import Mapping
 
 from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
@@ -262,14 +263,18 @@ def get_all_score_strings(machine):
     machine : Machine
     """
     all_scores = []
-    for (
-        metric_name,
-        scores,
-    ) in machine.metadata.build_metadata.model.cross_validation.scores.items():
-        metric_name = metric_name.replace(" ", "-")
-        for score_name, score_val in scores.items():
-            score_name = score_name.replace(" ", "-")
-            all_scores.append(f"{metric_name}_{score_name}={score_val}")
+    if machine.metadata.build_metadata.model.cross_validation:
+        cross_validation = machine.metadata.build_metadata.model.cross_validation
+        if "scores" in cross_validation and isinstance(cross_validation["scores"], Mapping):
+            scores = cross_validation["scores"]
+            for (
+                metric_name,
+                scores,
+            ) in scores.items():
+                metric_name = metric_name.replace(" ", "-")
+                for score_name, score_val in scores.items():
+                    score_name = score_name.replace(" ", "-")
+                    all_scores.append(f"{metric_name}_{score_name}={score_val}")
     return all_scores
 
 

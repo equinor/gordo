@@ -260,11 +260,11 @@ class ModelBuilder:
             if self.machine.evaluation["cv_mode"] == "cross_val_only":
                 machine.metadata.build_metadata = BuildMetadata(
                     model=ModelBuildMetadata(
-                        cross_validation=CrossValidationMetaData(
-                            cv_duration_sec=cv_duration_sec,
-                            scores=scores,
-                            splits=split_metadata,
-                        )
+                        cross_validation={
+                            "cv_duration_sec": cv_duration_sec,
+                            "scores": scores,
+                            "splits": split_metadata,
+                        }
                     ),
                     dataset=DatasetBuildMetadata(
                         query_duration_sec=time_elapsed_data,
@@ -288,11 +288,11 @@ class ModelBuilder:
                 ),
                 model_builder_version=__version__,
                 model_training_duration_sec=time_elapsed_model,
-                cross_validation=CrossValidationMetaData(
-                    cv_duration_sec=cv_duration_sec,
-                    scores=scores,
-                    splits=split_metadata,
-                ),
+                cross_validation={
+                    "cv_duration_sec": cv_duration_sec,
+                    "scores": scores,
+                    "splits": split_metadata,
+                },
                 model_meta=self._extract_metadata_from_model(model),
             ),
             dataset=DatasetBuildMetadata(
