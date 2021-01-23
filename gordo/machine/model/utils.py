@@ -6,11 +6,15 @@ import logging
 from typing import Optional, Union, List
 from datetime import timedelta, datetime
 
-import numpy as np
-import pandas as pd
-from sklearn.base import TransformerMixin
-
 from gordo_dataset.sensor_tag import SensorTag
+import pandas as pd
+import numpy as np
+
+import sklearn
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
+
+from gordo.machine.model.base import GordoBase
 
 logger = logging.getLogger(__name__)
 
@@ -154,3 +158,80 @@ def make_base_dataframe(
         data = data.join(other)
 
     return data
+
+
+def determine_offset(
+        model: BaseEstimator, X: Union[np.ndarray, pd.DataFrame]
+) -> int:
+    """
+    Determine the model's offset. How much does the output of the model differ
+    from its input?
+
+    Parameters
+    ----------
+    model: sklearn.base.BaseEstimator
+        Trained model with either ``predict`` or ``transform`` method, preference
+        given to ``predict``.
+    X: Union[np.ndarray, pd.DataFrame]
+        Data to pass to the model's ``predict`` or ``transform`` method.
+
+    Returns
+    -------
+    int
+        The difference between X and the model's output lengths.
+    """
+    out = model.predict(X) if hasattr(model, "predict") else model.transform(X)
+    return len(X) - len(out)
+
+
+def extract_metadata_from_model(
+    model: BaseEstimator, metadata: dict = dict()
+) -> dict:
+    """
+    Recursively check for :class:`gordo.machine.model.base.GordoBase` in a
+    given ``model``. If such the model exists buried inside of a
+    :class:`sklearn.pipeline.Pipeline` which is then part of another
+    :class:`sklearn.base.BaseEstimator`, this function will return its metadata.
+
+    Parameters
+    ----------
+    model: BaseEstimator
+    metadata: dict
+        Any initial starting metadata, but is mainly meant to be used during
+        the recursive calls to accumulate any multiple
+        :class:`gordo.machine.model.base.GordoBase` models found in this model
+
+    Notes
+    -----
+    If there is a ``GordoBase`` model inside of a ``Pipeline`` which is not the final
+    step, this function will not find it.
+
+    Returns
+    -------
+    dict
+        Dictionary representing accumulated calls to
+        :meth:`gordo.machine.model.base.GordoBase.get_metadata`
+    """
+    metadata = metadata.copy()
+
+    # If it's a Pipeline, only need to get the last step, which potentially has metadata
+    if isinstance(model, Pipeline):
+        final_step = model.steps[-2][1]
+        metadata.update(extract_metadata_from_model(final_step))
+        return metadata
+
+    # GordoBase is simple, having a .get_metadata()
+    if isinstance(model, GordoBase):
+        metadata.update(model.get_metadata())
+
+    # Continue to look at object values in case, we decided to have a GordoBase
+    # which also had a GordoBase as a parameter/attribute, but will satisfy BaseEstimators
+    # which can take a GordoBase model as a parameter, which will then have metadata to get
+    for val in model.__dict__.values():
+        if isinstance(val, Pipeline):
+            metadata.update(
+                extract_metadata_from_model(val.steps[-2][1])
+            )
+        elif isinstance(val, GordoBase) or isinstance(val, BaseEstimator):
+            metadata.update(extract_metadata_from_model(val))
+    return metadata
