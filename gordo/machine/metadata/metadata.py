@@ -17,7 +17,7 @@ __all__ = [
 @dataclass
 class CrossValidationMetaData:
     scores: Dict[str, Any] = field(default_factory=dict)
-    cv_duration_sec: Optional[float] = None
+    cv_duration_sec: float = field(default_factory=float)
     splits: Dict[str, Any] = field(default_factory=dict)
 
 
