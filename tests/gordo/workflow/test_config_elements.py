@@ -177,10 +177,11 @@ def test_machine_from_config(default_globals: dict):
             "build_metadata": {
                 "model": {
                     "cross_validation": {
-                        "cv_duration_sec": None,
+                        "cv_duration_sec": 0.0,
                         "scores": {},
                         "splits": {},
                     },
+                    "evaluation": None,
                     "model_builder_version": __version__,
                     "model_creation_date": None,
                     "model_meta": {},
