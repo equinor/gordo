@@ -30,6 +30,7 @@ class ModelBuildMetadata:
     cross_validation: CrossValidationMetaData = field(
         default_factory=CrossValidationMetaData
     )
+    evaluation: Optional[dict] = None,
     model_training_duration_sec: Optional[float] = None
     model_meta: Dict[str, Any] = field(default_factory=dict)
 
