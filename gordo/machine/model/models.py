@@ -276,7 +276,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if isinstance(y, (pd.DataFrame, xr.DataArray)):
             y = y.values
 
-        kwargs.setdefault("verbose", 0)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
