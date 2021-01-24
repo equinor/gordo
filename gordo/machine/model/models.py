@@ -3,10 +3,12 @@
 import abc
 import logging
 import io
+import importlib
 from pprint import pformat
-from typing import Union, Callable, Dict, Any, Optional
+from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
 from copy import copy, deepcopy
+from importlib.util import find_spec
 
 import h5py
 import tensorflow.keras.models
@@ -81,17 +83,33 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         self.kind = self.load_kind(kind)
         self.kwargs: Dict[str, Any] = kwargs
 
-    def load_kind(self, kind):
-        class_name = self.__class__.__name__
+    @staticmethod
+    def parse_module_path(module_path) -> Tuple[Optional[str], str]:
+        module_paths = module_path.split(".")
+        if len(module_paths) == 1:
+            return None, module_paths[0]
+        else:
+            return ".".join(module_paths[:-1]), module_paths[-1]
 
+    def load_kind(self, kind):
         if callable(kind):
-            register_model_builder(type=class_name)(kind)
+            register_model_builder(type=self.__class__.__name__)(kind)
             return kind.__name__
         else:
-            if kind not in register_model_builder.factories[class_name]:
-                raise ValueError(
-                    f"kind: {kind} is not an available model for type: {class_name}!"
-                )
+            module_name, class_name = self.parse_module_path(kind)
+            if module_name is None:
+                if (
+                    class_name
+                    not in register_model_builder.factories[self.__class__.__name__]
+                ):
+                    raise ValueError(
+                        f"kind: {kind} is not an available model for type: {class_name}!"
+                    )
+            else:
+                if not find_spec(module_name):
+                    raise ValueError(
+                        f"kind: {kind}, unable to find module: '{module_name}'"
+                    )
             return kind
 
     @classmethod
@@ -301,7 +319,18 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         return params
 
     def __call__(self):
-        build_fn = register_model_builder.factories[self.__class__.__name__][self.kind]
+        factories = register_model_builder.factories[self.__class__.__name__]
+        module_name, class_name = self.parse_module_path(self.kind)
+        if module_name is None:
+            build_fn = factories[self.kind]
+        else:
+            module = importlib.import_module(module_name)
+            if not hasattr(module, class_name):
+                raise ValueError(
+                    "kind: %s, unable to find class %s in module '%s'"
+                    % (self.kind, module_name, class_name)
+                )
+            build_fn = getattr(module, class_name)
         return build_fn(**self.sk_params)
 
     def get_metadata(self):
