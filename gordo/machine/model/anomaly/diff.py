@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from typing import Optional, Union
 from datetime import timedelta
@@ -317,8 +318,11 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             return metric.ewm(span=self.window).mean()
 
     def anomaly(
-        self, X: pd.DataFrame, y: pd.DataFrame, frequency: Optional[timedelta] = None
-    ) -> pd.DataFrame:
+            self,
+            X: Union[pd.DataFrame, xr.DataArray],
+            y: Union[pd.DataFrame, xr.DataArray],
+            frequency: Optional[timedelta] = None,
+    ) -> Union[pd.DataFrame, xr.Dataset]:
         """
         Create an anomaly dataframe from the base provided dataframe.
 
