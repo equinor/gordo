@@ -15,6 +15,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGen
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.metrics import explained_variance_score
@@ -27,7 +28,6 @@ from gordo.machine.model.base import GordoBase
 from gordo.machine.model.factories import *  # pragma: no flakes
 
 from gordo.machine.model.register import register_model_builder
-
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         self.build_fn = None
 
         self.kind = self.load_kind(kind)
-        self.kwargs = kwargs
+        self.kwargs: Dict[str, Any] = kwargs
 
     def load_kind(self, kind):
         class_name = self.__class__.__name__
@@ -184,15 +184,51 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         self.__dict__ = state
         return self
 
-    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
+    @staticmethod
+    def get_n_features_out(
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray]
+    ) -> Union[int, tuple]:
+        shape_len = len(y.shape)
+        if shape_len == 1:
+            raise ValueError(
+                "Unsupported number of the output dataset dimensions %d" % shape_len
+            )
+        elif shape_len == 2:
+            return y.shape[1]
+        else:
+            return y.shape[1:]
+
+    @staticmethod
+    def get_n_features(
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray]
+    ) -> Union[int, tuple]:
+        shape_len = len(X.shape)
+        if shape_len == 1:
+            raise ValueError(
+                "Unsupported number of the output dataset dimensions %d" % shape_len
+            )
+        elif shape_len == 2:
+            return X.shape[1]
+        else:
+            # TODO fix for the legacy LSTM
+            if not isinstance(X, xr.DataArray):
+                return X.shape[2]
+            return X.shape[1:]
+
+    def fit(
+        self,
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray],
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray],
+        **kwargs,
+    ):
         """
         Fit the model to X given y.
 
         Parameters
         ----------
-        X: np.ndarray
+        X: Union[np.ndarray, pd.DataFrame, xr.Dataset]
             numpy array or pandas dataframe
-        y: np.ndarray
+        y: Union[np.ndarray, pd.DataFrame, xr.Dataset]
             numpy array or pandas dataframe
         sample_weight: np.ndarray
             array like - weight to assign to samples
@@ -205,20 +241,18 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             'KerasAutoEncoder'
         """
 
-        X = X.values if hasattr(X, "values") else X
-        y = y.values if hasattr(y, "values") else y
-
         # Reshape y if needed, and set n features of target
-        if y.ndim == 1:
+        if isinstance(y, np.ndarray) and y.ndim == 1:
             y = y.reshape(-1, 1)
-        self.kwargs.update({"n_features_out": y.shape[1]})
 
         logger.debug(f"Fitting to data of length: {len(X)}")
-        if len(X.shape) == 2:
-            self.kwargs.update({"n_features": X.shape[1]})
-        # for LSTM based models
-        if len(X.shape) == 3:
-            self.kwargs.update({"n_features": X.shape[2]})
+        self.kwargs.update(
+            {
+                "n_features": self.get_n_features(X),
+                "n_features_out": self.get_n_features_out(y),
+            }
+        )
+
         kwargs.setdefault("verbose", 0)
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
