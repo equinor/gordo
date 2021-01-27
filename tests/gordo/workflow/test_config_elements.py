@@ -149,6 +149,7 @@ def test_machine_from_config(default_globals: dict):
             "known_filter_periods": [],
             "low_threshold": -1000,
             "n_samples_threshold": 0,
+            "process_metadata": True,
             "resolution": "10T",
             "row_filter": "",
             "row_filter_buffer_size": 0,
@@ -161,7 +162,7 @@ def test_machine_from_config(default_globals: dict):
             "target_tag_list": ["GRA-TE -123-456"],
             "train_end_date": "2018-01-02T09:00:30+00:00",
             "train_start_date": "2018-01-01T09:00:30+00:00",
-            "type": "gordo_dataset.datasets.TimeSeriesDataset",
+            "type": "TimeSeriesDataset",
         },
         "evaluation": {
             "cv_mode": "full_build",
