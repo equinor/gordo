@@ -62,8 +62,8 @@ def test_client_get_dataset(gordo_project, metadata, ml_server):
     dataset = client._get_dataset(client_machine, start, end)
     assert dataset.row_filter_buffer_size == 0
     assert dataset.n_samples_threshold == 0
-    assert dataset.low_threshold == -1000
-    assert dataset.high_threshold == 50000
+    assert dataset.low_threshold is None
+    assert dataset.high_threshold is None
 
 
 def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_server):
