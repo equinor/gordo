@@ -87,7 +87,7 @@ tornado==6.0.3            # via ipykernel, jupyter-client, notebook, terminado
 traitlets==4.3.3          # via ipykernel, ipython, ipywidgets, jupyter-client, jupyter-core, nbconvert, nbformat, notebook, qtconsole
 typed-ast==1.4.0          # via mypy
 typing-extensions==3.7.4.1  # via -c full_requirements.txt, mypy
-urllib3==1.25.7           # via -c full_requirements.txt, -r test_requirements.in, requests
+urllib3==1.25.9           # via -c full_requirements.txt, -r test_requirements.in, requests
 wcwidth==0.1.8            # via prompt-toolkit, pytest
 webencodings==0.5.1       # via bleach
 websocket-client==0.57.0  # via -c full_requirements.txt, docker
