@@ -80,16 +80,6 @@ def test_from_definition_test_model():
     assert model.depth == 300
 
 
-def test_validation_error():
-    config = """
-    os.rmdir:
-        path: /
-    """
-    definition = yaml.load(config)
-    with pytest.raises(ValueError):
-        serializer.from_definition(definition)
-
-
 class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
     def setup_gen(self):
         self.factories = register_model_builder.factories

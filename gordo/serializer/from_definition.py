@@ -8,18 +8,13 @@ from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
-from .utils import validate_import_path
 
 
 logger = logging.getLogger(__name__)
 
 
 def import_locate(import_path: str) -> Any:
-    obj = pydoc.locate(import_path)
-    if obj is not None:
-        if not validate_import_path(import_path):
-            raise ValueError("Unsupported import path '%s'" % import_path)
-    return obj
+    return pydoc.locate(import_path)
 
 
 def from_definition(
