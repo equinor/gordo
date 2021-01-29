@@ -14,6 +14,7 @@ from typing import Union, Optional, Dict, Any, Tuple, Type, List, Callable
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import xarray as xr
 
 import sklearn
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -431,6 +432,8 @@ class ModelBuilder:
         int
             The difference between X and the model's output lengths.
         """
+        if isinstance(X, pd.DataFrame) or isinstance(X, xr.DataArray):
+            X = X.values
         out = model.predict(X) if hasattr(model, "predict") else model.transform(X)
         return len(X) - len(out)
 

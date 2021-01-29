@@ -13,6 +13,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import TimeSeriesSplit, KFold
 
+from typing import cast
+
 from gordo import serializer
 from gordo.machine.model import utils as model_utils
 from gordo.machine.model.base import GordoBase
@@ -210,6 +212,7 @@ def test_diff_detector_with_window(
 
     # Apply the anomaly detection logic on the base prediction df
     anomaly_df = model.anomaly(X, y)
+    anomaly_df = cast(pd.DataFrame, anomaly_df)
 
     # Should have these added error calculated columns now.
     if window is not None:

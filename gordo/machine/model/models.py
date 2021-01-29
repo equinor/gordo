@@ -3,10 +3,12 @@
 import abc
 import logging
 import io
+import importlib
 from pprint import pformat
-from typing import Union, Callable, Dict, Any, Optional
+from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
 from copy import copy, deepcopy
+from importlib.util import find_spec
 
 import h5py
 import tensorflow.keras.models
@@ -15,6 +17,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGen
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.metrics import explained_variance_score
@@ -27,7 +30,6 @@ from gordo.machine.model.base import GordoBase
 from gordo.machine.model.factories import *  # pragma: no flakes
 
 from gordo.machine.model.register import register_model_builder
-
 
 logger = logging.getLogger(__name__)
 
@@ -79,19 +81,40 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         self.build_fn = None
 
         self.kind = self.load_kind(kind)
-        self.kwargs = kwargs
+        self.kwargs: Dict[str, Any] = kwargs
+
+    @staticmethod
+    def parse_module_path(module_path) -> Tuple[Optional[str], str]:
+        module_paths = module_path.split(".")
+        if len(module_paths) == 1:
+            return None, module_paths[0]
+        else:
+            return ".".join(module_paths[:-1]), module_paths[-1]
 
     def load_kind(self, kind):
-        class_name = self.__class__.__name__
-
         if callable(kind):
-            register_model_builder(type=class_name)(kind)
+            register_model_builder(type=self.__class__.__name__)(kind)
             return kind.__name__
         else:
-            if kind not in register_model_builder.factories[class_name]:
-                raise ValueError(
-                    f"kind: {kind} is not an available model for type: {class_name}!"
-                )
+            module_name, class_name = self.parse_module_path(kind)
+            if module_name is None:
+                if (
+                    class_name
+                    not in register_model_builder.factories[self.__class__.__name__]
+                ):
+                    raise ValueError(
+                        f"kind: {kind} is not an available model for type: {class_name}!"
+                    )
+            else:
+                has_error = True
+                try:
+                    has_error = not find_spec(module_name)
+                except ModuleNotFoundError:
+                    pass
+                if has_error:
+                    raise ValueError(
+                        f"kind: {kind}, unable to find module: '{module_name}'"
+                    )
             return kind
 
     @classmethod
@@ -184,15 +207,51 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         self.__dict__ = state
         return self
 
-    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
+    @staticmethod
+    def get_n_features_out(
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray]
+    ) -> Union[int, tuple]:
+        shape_len = len(y.shape)
+        if shape_len == 1:
+            raise ValueError(
+                "Unsupported number of the output dataset dimensions %d" % shape_len
+            )
+        elif shape_len == 2:
+            return y.shape[1]
+        else:
+            return y.shape[1:]
+
+    @staticmethod
+    def get_n_features(
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray]
+    ) -> Union[int, tuple]:
+        shape_len = len(X.shape)
+        if shape_len == 1:
+            raise ValueError(
+                "Unsupported number of the output dataset dimensions %d" % shape_len
+            )
+        elif shape_len == 2:
+            return X.shape[1]
+        else:
+            # TODO fix for the legacy LSTM
+            if not isinstance(X, xr.DataArray):
+                return X.shape[2]
+            return X.shape[1:]
+
+    def fit(
+        self,
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray],
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray],
+        **kwargs,
+    ):
         """
         Fit the model to X given y.
 
         Parameters
         ----------
-        X: np.ndarray
+        X: Union[np.ndarray, pd.DataFrame, xr.Dataset]
             numpy array or pandas dataframe
-        y: np.ndarray
+        y: Union[np.ndarray, pd.DataFrame, xr.Dataset]
             numpy array or pandas dataframe
         sample_weight: np.ndarray
             array like - weight to assign to samples
@@ -205,21 +264,24 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             'KerasAutoEncoder'
         """
 
-        X = X.values if hasattr(X, "values") else X
-        y = y.values if hasattr(y, "values") else y
-
         # Reshape y if needed, and set n features of target
-        if y.ndim == 1:
+        if isinstance(y, np.ndarray) and y.ndim == 1:
             y = y.reshape(-1, 1)
-        self.kwargs.update({"n_features_out": y.shape[1]})
 
         logger.debug(f"Fitting to data of length: {len(X)}")
-        if len(X.shape) == 2:
-            self.kwargs.update({"n_features": X.shape[1]})
-        # for LSTM based models
-        if len(X.shape) == 3:
-            self.kwargs.update({"n_features": X.shape[2]})
+        self.kwargs.update(
+            {
+                "n_features": self.get_n_features(X),
+                "n_features_out": self.get_n_features_out(y),
+            }
+        )
+
+        if isinstance(X, (pd.DataFrame, xr.DataArray)):
+            X = X.values
+        if isinstance(y, (pd.DataFrame, xr.DataArray)):
+            y = y.values
         kwargs.setdefault("verbose", 0)
+
         super().fit(X, y, sample_weight=None, **kwargs)
         return self
 
@@ -262,7 +324,18 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         return params
 
     def __call__(self):
-        build_fn = register_model_builder.factories[self.__class__.__name__][self.kind]
+        module_name, class_name = self.parse_module_path(self.kind)
+        if module_name is None:
+            factories = register_model_builder.factories[self.__class__.__name__]
+            build_fn = factories[self.kind]
+        else:
+            module = importlib.import_module(module_name)
+            if not hasattr(module, class_name):
+                raise ValueError(
+                    "kind: %s, unable to find class %s in module '%s'"
+                    % (self.kind, class_name, module_name)
+                )
+            build_fn = getattr(module, class_name)
         return build_fn(**self.sk_params)
 
     def get_metadata(self):
