@@ -6,6 +6,7 @@ import pydoc
 
 import pytest
 import numpy as np
+import xarray as xr
 
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
@@ -356,3 +357,56 @@ def test_keras_autoencoder_fits_callbacks():
     assert isinstance(first_callback, EarlyStopping)
     assert first_callback.monitor == "val_loss"
     assert first_callback.patience == 10
+
+
+def test_parse_module_path():
+    assert KerasBaseEstimator.parse_module_path("gordo.client.Client") == (
+        "gordo.client",
+        "Client",
+    )
+    assert KerasBaseEstimator.parse_module_path("gordo.Client") == ("gordo", "Client")
+    assert KerasBaseEstimator.parse_module_path("Client") == (None, "Client")
+
+
+def test_wrong_kind():
+    with pytest.raises(ValueError):
+        KerasAutoEncoder(kind="my_feedforward_hourglass")
+    with pytest.raises(ValueError):
+        KerasAutoEncoder(kind="not.existing.module.encoder")
+
+
+def test_get_n_features_out():
+    a = np.array([[1], [2]])
+    assert KerasAutoEncoder.get_n_features_out(a) == 1
+    a = np.array([[[2, 3]], [[3, 4]]])
+    assert KerasAutoEncoder.get_n_features_out(a) == (1, 2)
+    a = np.array([1, 2, 3])
+    with pytest.raises(ValueError):
+        KerasAutoEncoder.get_n_features_out(a)
+
+
+def test_get_n_features():
+    a = np.array([[1], [2]])
+    assert KerasAutoEncoder.get_n_features(a) == 1
+    a = xr.DataArray(np.array([[[2, 3]], [[3, 4]]]))
+    assert KerasAutoEncoder.get_n_features(a) == (1, 2)
+    a = np.array([[[2, 3]], [[3, 4]]])
+    assert KerasAutoEncoder.get_n_features(a) == 2
+    a = np.array([1, 2, 3])
+    with pytest.raises(ValueError):
+        KerasAutoEncoder.get_n_features(a)
+
+
+def test_import_kind():
+    model = KerasBaseEstimator(
+        kind="gordo.machine.model.factories.feedforward_autoencoder.feedforward_hourglass"
+    )
+    X, y = np.random.rand(10, 10), np.random.rand(10, 10)
+    model.fit(X, y)
+
+
+def test_for_wrong_kind_import():
+    model = KerasBaseEstimator(kind="gordo.machine.model.factories.wrong_autoencoder")
+    X, y = np.random.rand(10, 10), np.random.rand(10, 10)
+    with pytest.raises(ValueError):
+        model.fit(X, y)

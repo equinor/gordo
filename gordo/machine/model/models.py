@@ -106,7 +106,12 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                         f"kind: {kind} is not an available model for type: {class_name}!"
                     )
             else:
-                if not find_spec(module_name):
+                has_error = True
+                try:
+                    has_error = not find_spec(module_name)
+                except ModuleNotFoundError:
+                    pass
+                if has_error:
                     raise ValueError(
                         f"kind: {kind}, unable to find module: '{module_name}'"
                     )
@@ -319,16 +324,16 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         return params
 
     def __call__(self):
-        factories = register_model_builder.factories[self.__class__.__name__]
         module_name, class_name = self.parse_module_path(self.kind)
         if module_name is None:
+            factories = register_model_builder.factories[self.__class__.__name__]
             build_fn = factories[self.kind]
         else:
             module = importlib.import_module(module_name)
             if not hasattr(module, class_name):
                 raise ValueError(
                     "kind: %s, unable to find class %s in module '%s'"
-                    % (self.kind, module_name, class_name)
+                    % (self.kind, class_name, module_name)
                 )
             build_fn = getattr(module, class_name)
         return build_fn(**self.sk_params)
