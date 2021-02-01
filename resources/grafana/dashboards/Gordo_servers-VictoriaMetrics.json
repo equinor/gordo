@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 1,
   "id": 112,
-  "iteration": 1607601326814,
+  "iteration": 1612204429055,
   "links": [],
   "panels": [
     {
@@ -73,7 +73,7 @@
       "targets": [
         {
           "$$hashKey": "object:214",
-          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\"}[30s]) by (path))",
+          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",status_code=~\"$http_status_code\"}[30s]) by (path))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -178,7 +178,7 @@
       "targets": [
         {
           "$$hashKey": "object:214",
-          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",model!=\"\"}[30s]) by (project))",
+          "expr": "rate(sum(gordo_server_request_duration_seconds_count{cluster=~\"$cluster\",project=~\"$project\",model!=\"\",status_code=~\"$http_status_code\"}[30s]) by (project))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -928,12 +928,12 @@
       "id": 22,
       "legend": {
         "avg": false,
-        "current": false,
+        "current": true,
         "max": false,
         "min": false,
         "show": true,
         "total": false,
-        "values": false
+        "values": true
       },
       "lines": true,
       "linewidth": 1,
@@ -984,6 +984,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:379",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -992,6 +993,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:380",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1015,9 +1017,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
-          "text": "deli12",
-          "value": "deli12"
+          "selected": false,
+          "text": "ioc40",
+          "value": "ioc40"
         },
         "datasource": "VictoriaMetrics",
         "definition": "label_values(kube_pod_info, cluster)",
@@ -1065,11 +1067,59 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": "VictoriaMetrics",
+        "definition": "label_values(gordo_server_requests_total{cluster=~\"$cluster\",project=~\"$project\"}, status_code)",
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Status code",
+        "multi": false,
+        "name": "http_status_code",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "200",
+            "value": "200"
+          },
+          {
+            "selected": false,
+            "text": "404",
+            "value": "404"
+          },
+          {
+            "selected": false,
+            "text": "500",
+            "value": "500"
+          }
+        ],
+        "query": "label_values(gordo_server_requests_total{cluster=~\"$cluster\",project=~\"$project\"}, status_code)",
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 3,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
       }
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {
@@ -1089,5 +1139,5 @@
   "timezone": "",
   "title": "Gordo servers",
   "uid": "_eX4mpl3",
-  "version": 49
+  "version": 57
 }
