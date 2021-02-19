@@ -29,3 +29,5 @@ jeepney>=0.6
 packaging~=20.7
 pydantic~=1.7.3
 gordo.client~=0.2.12
+wrapt~=1.11
+sklearn-pandas~=1.8.0
