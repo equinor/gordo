@@ -90,7 +90,7 @@ numpy==1.18.5             # via -r requirements.in, catboost, gordo.client, h5py
 oauthlib==3.1.0           # via requests-oauthlib
 opt-einsum==3.3.0         # via tensorflow
 packaging==20.9           # via -r requirements.in
-pandas==1.2.2             # via -r requirements.in, catboost, gordo-dataset, gordo.client, mlflow, sklearn-pandas, xarray
+pandas==1.1.5             # via -r requirements.in, catboost, gordo-dataset, gordo.client, mlflow, sklearn-pandas, xarray
 pathspec==0.8.1           # via azureml-core
 peewee==3.14.1            # via -r postgres_requirements.in
 pillow==8.1.0             # via matplotlib
