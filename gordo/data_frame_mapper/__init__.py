@@ -12,10 +12,10 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
     _default_kwargs = {"df_out": True}
 
     def __init__(
-            self,
-            columns: List[Union[str, List[str]]],
-            transformers: List[BaseEstimator] = None,
-            **kwargs
+        self,
+        columns: List[Union[str, List[str]]],
+        transformers: List[BaseEstimator] = None,
+        **kwargs
     ):
         self.columns = columns
         self.transformers = transformers
@@ -26,7 +26,7 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
 
     @staticmethod
     def _build_features(
-            columns: List[Union[str, List[str]]], transformers: List[BaseEstimator],
+        columns: List[Union[str, List[str]]], transformers: List[BaseEstimator]
     ):
         features = []
         for column in columns:
@@ -46,4 +46,4 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
         super().__setstate__(state)
 
 
-__all__ = ['DataFrameMapper']
+__all__ = ["DataFrameMapper"]

@@ -90,11 +90,7 @@ def test_find_consecutive_chunks():
 
 
 def test_create_generator_containers():
-    test1_time_intervals = (
-        ("2018-01-01", 4),
-        ("2018-01-02", 35),
-        ("2018-01-04", 10),
-    )
+    test1_time_intervals = (("2018-01-01", 4), ("2018-01-02", 35), ("2018-01-04", 10))
     test1_df = get_test_df(test1_time_intervals)
     gen = GordoTimeseriesGenerator(test1_df, test1_df, length=5, step="60min")
     expected_generator_containers = [
@@ -133,10 +129,7 @@ def test_create_generator_containers():
 
 
 def test_timeseries_generator():
-    test1_time_intervals = (
-        ("2018-01-02", 15),
-        ("2018-01-04", 10),
-    )
+    test1_time_intervals = (("2018-01-02", 15), ("2018-01-04", 10))
     test1_df = get_test_df(test1_time_intervals, generator=range_gen(), tags_count=1)
     gen = GordoTimeseriesGenerator(
         test1_df, test1_df, length=5, batch_size=3, step="60min"
@@ -155,11 +148,7 @@ def test_timeseries_generator():
 
 
 def test_too_short_timeseries_length():
-    test1_time_intervals = (
-        ("2018-01-01", 4),
-        ("2018-01-02", 6),
-        ("2018-01-04", 8),
-    )
+    test1_time_intervals = (("2018-01-01", 4), ("2018-01-02", 6), ("2018-01-04", 8))
     test1_df = get_test_df(test1_time_intervals)
     with pytest.raises(ValueError):
         GordoTimeseriesGenerator(test1_df, test1_df, length=10, step="60min")
