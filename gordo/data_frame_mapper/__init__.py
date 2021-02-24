@@ -3,7 +3,7 @@ import sklearn_pandas
 
 from copy import copy
 from sklearn.base import BaseEstimator
-from typing import List, Union
+from typing import List, Union, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
     def __init__(
         self,
         columns: List[Union[str, List[str]]],
-        transformers: List[BaseEstimator] = None,
+        transformers: Optional[List[BaseEstimator]] = None,
         **kwargs
     ):
         self.columns = columns
@@ -26,7 +26,7 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
 
     @staticmethod
     def _build_features(
-        columns: List[Union[str, List[str]]], transformers: List[BaseEstimator]
+        columns: List[Union[str, List[str]]], transformers: Optional[List[BaseEstimator]]
     ):
         features = []
         for column in columns:
