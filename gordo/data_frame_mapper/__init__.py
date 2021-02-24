@@ -26,7 +26,8 @@ class DataFrameMapper(sklearn_pandas.DataFrameMapper):
 
     @staticmethod
     def _build_features(
-        columns: List[Union[str, List[str]]], transformers: Optional[List[BaseEstimator]]
+        columns: List[Union[str, List[str]]],
+        transformers: Optional[List[BaseEstimator]],
     ):
         features = []
         for column in columns:
