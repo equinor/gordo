@@ -5,16 +5,18 @@ import logging
 import io
 import importlib
 from pprint import pformat
-from typing import Union, Callable, Dict, Any, Optional, Tuple
+from typing import Union, Callable, Dict, Any, Optional, Tuple, List
 from abc import ABCMeta
 from copy import copy, deepcopy
 from importlib.util import find_spec
+from dataclasses import dataclass
 
 import h5py
 import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from tensorflow.python.keras.utils import data_utils
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -472,6 +474,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kind: Union[Callable, str],
         lookback_window: int = 1,
         batch_size: int = 32,
+        timeseries_generator: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
         """
@@ -503,6 +506,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
+        kwargs["timeseries_generator"] = timeseries_generator
 
         # fit_generator_params is a set of strings with the keyword arguments of
         # Keras fit_generator method (excluding "shuffle" as this will be hardcoded).
@@ -532,6 +536,10 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
     def lookahead(self) -> int:
         """Steps ahead in y the model should target"""
         ...
+
+    @property
+    def timeseries_generator(self):
+        return self.kwargs.get("timeseries_generator", None)
 
     def get_metadata(self):
         """
@@ -580,10 +588,10 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         """
 
-        X = X.values if isinstance(X, pd.DataFrame) else X
-        y = y.values if isinstance(y, pd.DataFrame) else y
-
-        X = self._validate_and_fix_size_of_X(X)
+        if not isinstance(X, pd.DataFrame):
+            X = self._validate_and_fix_size_of_X(X)
+        else:
+            pass  # TODO
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
@@ -595,6 +603,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=1,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            config=self.timeseries_generator,
         )
 
         primer_x, primer_y = tsg[0]
@@ -607,6 +616,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             batch_size=self.batch_size,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            config=self.timeseries_generator,
         )
 
         gen_kwargs = {
@@ -655,15 +665,18 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         >>> model_transform.shape
         (2, 2)
         """
-        X = X.values if isinstance(X, pd.DataFrame) else X
+        if not isinstance(X, pd.DataFrame):
+            X = self._validate_and_fix_size_of_X(X)
+        else:
+            pass  # TODO
 
-        X = self._validate_and_fix_size_of_X(X)
         tsg = create_keras_timeseriesgenerator(
             X=X,
             y=X,
             batch_size=10000,
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
+            config=self.timeseries_generator,
         )
         return self.model.predict_generator(tsg)
 
@@ -715,13 +728,35 @@ class KerasLSTMAutoEncoder(KerasLSTMBaseEstimator):
         return 0
 
 
+def pad_x_and_y(
+    X: np.ndarray, y: np.ndarray, lookahead: int
+) -> Tuple[np.ndarray, np.ndarray]:
+    new_length = len(X) + 1 - lookahead
+    if lookahead == 1:
+        return X, y
+    elif lookahead >= 0:
+        pad_kw = dict(maxlen=new_length, dtype=X.dtype)
+
+        if lookahead == 0:
+            X = pad_sequences([X], padding="post", **pad_kw)[0]
+            y = pad_sequences([y], padding="pre", **pad_kw)[0]
+
+        elif lookahead > 1:
+            X = pad_sequences([X], padding="post", truncating="post", **pad_kw)[0]
+            y = pad_sequences([y], padding="pre", truncating="pre", **pad_kw)[0]
+        return X, y
+    else:
+        raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
+
+
 def create_keras_timeseriesgenerator(
-    X: np.ndarray,
-    y: Optional[np.ndarray],
+    X: Union[pd.DataFrame, np.ndarray],
+    y: Optional[Union[pd.DataFrame, np.ndarray]],
     batch_size: int,
     lookback_window: int,
     lookahead: int,
-) -> tensorflow.keras.preprocessing.sequence.TimeseriesGenerator:
+    config: Optional[Dict[str, Any]] = None,
+) -> TimeseriesGenerator:
     """
     Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
     LSTM's, but with the added ability to specify the lookahead of the target in y.
@@ -773,27 +808,195 @@ def create_keras_timeseriesgenerator(
     >>> len(gen[0][0][0][0]) # n_features = 2
     2
     """
-    new_length = len(X) + 1 - lookahead
-    kwargs: Dict[str, Any] = dict(length=lookback_window, batch_size=batch_size)
-    if lookahead == 1:
-        kwargs.update(dict(data=X, targets=y))
+    return timeseries_generators.create_from_config(
+        config,
+        data=X,
+        targets=y,
+        length=lookback_window,
+        batch_size=batch_size,
+        lookahead=lookahead,
+    )
 
-    elif lookahead >= 0:
 
-        pad_kw = dict(maxlen=new_length, dtype=X.dtype)
+class TimeseriesGeneratorTypes:
+    def __init__(self, default_type):
+        self.default_type = default_type
+        self._types = {}
 
-        if lookahead == 0:
-            kwargs["data"] = pad_sequences([X], padding="post", **pad_kw)[0]
-            kwargs["targets"] = pad_sequences([y], padding="pre", **pad_kw)[0]
+    def create_from_config(self, config, **kwargs):
+        if config is None:
+            return self.default_type(**kwargs)
+        else:
+            if "type" not in config:
+                raise ValueError(
+                    'Unspecified "type" attribute for "timeseries_generator"'
+                )
+            type_name = config["type"]
+            if type_name not in self._types:
+                raise ValueError(
+                    f'Unknown type "{type_name}" for "timeseries_generator"'
+                )
+            all_kwargs = copy(config)
+            all_kwargs.pop("type")
+            all_kwargs.update(kwargs)
+            return self._types[type_name](**all_kwargs)
 
-        elif lookahead > 1:
-            kwargs["data"] = pad_sequences(
-                [X], padding="post", truncating="post", **pad_kw
-            )[0]
-            kwargs["targets"] = pad_sequences(
-                [y], padding="pre", truncating="pre", **pad_kw
-            )[0]
-    else:
-        raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
+    def __call__(self, type_name):
+        def wrap(cls):
+            if type_name in self._types:
+                raise ValueError(
+                    f'TimeseriesGenerator type with name "{type_name}" already exists'
+                )
+            self._types[type_name] = cls
+            return cls
 
-    return TimeseriesGenerator(**kwargs)
+        return wrap
+
+
+class DefaultTimeseriesGenerator(TimeseriesGenerator):
+    def __init__(
+        self,
+        data: Union[pd.DataFrame, np.ndarray],
+        targets: Union[pd.DataFrame, np.ndarray],
+        lookahead: int = 1,
+        **kwargs,
+    ):
+        if isinstance(data, pd.DataFrame):
+            data = data.values
+        if isinstance(targets, pd.DataFrame):
+            targets = targets.values
+        data, targets = pad_x_and_y(data, targets, lookahead)
+        super().__init__(data=data, targets=targets, **kwargs)
+
+
+timeseries_generators = TimeseriesGeneratorTypes(
+    default_type=DefaultTimeseriesGenerator
+)
+
+
+@dataclass
+class TimeseriesChunk:
+    start_ts: pd.Timestamp
+    end_ts: pd.Timestamp
+    size: int
+
+
+@dataclass
+class TimeseriesGeneratorContainer:
+    generator: TimeseriesGenerator
+    chunk: TimeseriesChunk
+    length: int
+
+
+@timeseries_generators("GordoTimeseriesGenerator")
+class GordoTimeseriesGenerator(data_utils.Sequence):
+    def __init__(
+        self,
+        data: Union[pd.DataFrame, np.ndarray],
+        targets: Union[pd.DataFrame, np.ndarray],
+        length: int,
+        batch_size: int = 128,
+        shuffle: bool = False,
+        step: Union[pd.Timedelta, str] = "10min",
+        lookahead: int = 1,
+    ):
+        if not isinstance(data, pd.DataFrame):
+            raise ValueError("Data have to be instance of pandas.DataFrame")
+        if not isinstance(targets, pd.DataFrame):
+            raise ValueError("Targets have to be instance of pandas.DataFrame")
+        if len(data) != len(targets):
+            raise ValueError(
+                "Data and targets have to be of same length. "
+                f"Data length is {len(data)}"
+                f" while target length is {len(targets)}"
+            )
+
+        if isinstance(step, str):
+            step = pd.to_timedelta(step)
+        self.step = step
+        self.consecutive_chunks = self.find_consecutive_chunks(data)
+        logger.debug(
+            "GordoTimeseriesGenerator with consecutive_chunks=%s",
+            self.consecutive_chunks,
+        )
+        self.failed_chunks: List[TimeseriesChunk] = []
+        self.generators_containers = self.create_generator_containers(
+            data, targets, length=length, batch_size=batch_size, shuffle=shuffle
+        )
+        logger.debug(
+            "GordoTimeseriesGenerator with generators_containers=%s",
+            self.generators_containers,
+        )
+        if not self.generators_containers:
+            raise ValueError(
+                "Seems like the time series are too small or in random order."
+                "Failed chunks: %s" % self.consecutive_chunks
+            )
+        # TODO use lookahead
+        self.lookahead = lookahead
+
+    def filter_chunks(self, indexes=None):
+        if indexes is not None:
+            self.generators_containers = [
+                self.generators_containers[i] for i in indexes
+            ]
+
+    def __len__(self):
+        return sum(container.length for container in self.generators_containers)
+
+    def find_consecutive_chunks(self, df: pd.DataFrame) -> List[TimeseriesChunk]:
+        chunks = []
+        prev_ts, start_ts, start_i = None, None, 0
+        for i, dt in enumerate(df.index):
+            if prev_ts is None:
+                prev_ts = dt
+                start_ts = dt
+            else:
+                if dt - prev_ts == self.step:
+                    prev_ts = dt
+                else:
+                    chunks.append(TimeseriesChunk(start_ts, prev_ts, i - start_i))
+                    prev_ts, start_ts = None, None
+                    start_i = i
+        if start_ts is not None:
+            chunks.append(TimeseriesChunk(start_ts, prev_ts, len(df.index) - start_i))
+        return chunks
+
+    def create_generator_containers(
+        self,
+        data: pd.DataFrame,
+        targets: pd.DataFrame,
+        length: int,
+        batch_size: int,
+        shuffle: bool,
+    ) -> List[TimeseriesGeneratorContainer]:
+        generator_containers = []
+        for chunk in self.consecutive_chunks:
+            gen_data = data[chunk.start_ts : chunk.end_ts].values
+            gen_target = targets[chunk.start_ts : chunk.end_ts].values
+            try:
+                generator = TimeseriesGenerator(
+                    gen_data,
+                    gen_target,
+                    length=length,
+                    batch_size=batch_size,
+                    shuffle=shuffle,
+                )
+            except ValueError:
+                self.failed_chunks.append(chunk)
+            else:
+                length = len(generator)
+                generator_containers.append(
+                    TimeseriesGeneratorContainer(generator, chunk, length)
+                )
+        return generator_containers
+
+    def __getitem__(self, index):
+        i = -1
+        for container in self.generators_containers:
+            new_i = i + container.length
+            if index <= new_i:
+                gen_i = index - i - 1
+                return container.generator[gen_i]
+            i = new_i
+        raise IndexError(index)

@@ -410,3 +410,6 @@ def test_for_wrong_kind_import():
     X, y = np.random.rand(10, 10), np.random.rand(10, 10)
     with pytest.raises(ValueError):
         model.fit(X, y)
+
+
+# TODO test with GordoTimeseriesGenerator

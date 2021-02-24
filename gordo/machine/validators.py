@@ -14,6 +14,8 @@ from gordo_dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 
+logger.debug("from_definition1=%s", from_definition)
+
 
 class BaseDescriptor:
     """
@@ -85,6 +87,7 @@ class ValidModel(BaseDescriptor):
     def __set__(self, instance, value):
         if getattr(instance, "_strict", True):
             try:
+                logger.debug("from_definition=%s", from_definition)
                 from_definition(value)
             except Exception as e:
                 raise ValueError(f"Pipeline from definition failed: {e}")
