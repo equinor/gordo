@@ -10,7 +10,6 @@ from abc import ABCMeta
 from copy import copy, deepcopy
 from importlib.util import find_spec
 from dataclasses import dataclass
-from copy import copy
 
 import h5py
 import tensorflow.keras.models
