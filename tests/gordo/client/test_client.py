@@ -1,5 +1,5 @@
-"""Tests for gordo.client."""
-# TODO: Move those tests to gordo.client project.
+"""Tests for gordo-client."""
+# TODO: Move those tests to gordo-client project.
 
 import json
 import logging
@@ -13,24 +13,24 @@ import pytest
 import requests
 from click.testing import CliRunner
 from dateutil.parser import isoparse  # type: ignore
-from gordo.client import Client, utils as client_utils
-from gordo.client.forwarders import ForwardPredictionsIntoInflux
-from gordo.client.io import (
+from gordo_client import Client, utils as client_utils
+from gordo_client.forwarders import ForwardPredictionsIntoInflux
+from gordo_client.io import (
     _handle_response,
     HttpUnprocessableEntity,
     BadGordoRequest,
     NotFound,
     ResourceGone,
 )
-from gordo.client.schemas import Machine as ClientMachine
-from gordo.client.utils import PredictionResult
+from gordo_client.schemas import Machine as ClientMachine
+from gordo_client.utils import PredictionResult
 from gordo_dataset.data_provider import providers
 from gordo_dataset.datasets import TimeSeriesDataset
 from mock import patch, call
 from sklearn.base import BaseEstimator
 
 from gordo import serializer
-from gordo.client.cli.client import gordo_client
+from gordo_client.cli.client import gordo_client
 from gordo.machine import Machine
 from gordo.machine.model import utils as model_utils
 from gordo.server import utils as server_utils
@@ -479,9 +479,9 @@ def test_exponential_sleep_time(caplog, gordo_project, ml_server):
     )
 
     with caplog.at_level(logging.CRITICAL):
-        with patch("gordo.client.client.sleep", return_value=None) as time_sleep:
+        with patch("gordo_client.client.sleep", return_value=None) as time_sleep:
             # We simulate repeating timeouts
-            with patch("gordo.client.client._handle_response") as handle_response_mock:
+            with patch("gordo_client.client._handle_response") as handle_response_mock:
                 handle_response_mock.side_effect = TimeoutError()
                 client = Client(project=gordo_project)
 
@@ -501,7 +501,7 @@ def test_exponential_sleep_time(caplog, gordo_project, ml_server):
 
 def test__handle_response_errors():
     """
-    Test expected error raising from gordo.client.io._handle_response
+    Test expected error raising from gordo_client.io._handle_response
     """
     resp = requests.Response()
     resp.status_code = 422
