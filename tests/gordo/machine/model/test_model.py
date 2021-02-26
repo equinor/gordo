@@ -360,8 +360,8 @@ def test_keras_autoencoder_fits_callbacks():
 
 
 def test_parse_module_path():
-    assert KerasBaseEstimator.parse_module_path("gordo.client.Client") == (
-        "gordo.client",
+    assert KerasBaseEstimator.parse_module_path("gordo_client.Client") == (
+        "gordo_client",
         "Client",
     )
     assert KerasBaseEstimator.parse_module_path("gordo.Client") == ("gordo", "Client")
