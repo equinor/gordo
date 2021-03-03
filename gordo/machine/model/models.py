@@ -15,6 +15,7 @@ import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from tensorflow.keras.callbacks import History
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -79,6 +80,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             to Keras' fit() method
         """
         self.build_fn = None
+        self.history = None
 
         self.kind = self.load_kind(kind)
         self.kwargs: Dict[str, Any] = kwargs
@@ -188,13 +190,13 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                 save_model(self.model, h5, overwrite=True, save_format="h5")
                 buf.seek(0)
                 state["model"] = buf
-            if hasattr(self.model, "history"):
+            if hasattr(self, "history"):
                 from tensorflow.python.keras.callbacks import History
 
                 history = History()
-                history.history = self.model.history.history
-                history.params = self.model.history.params
-                history.epoch = self.model.history.epoch
+                history.history = self.history.history
+                history.params = self.history.params
+                history.epoch = self.history.epoch
                 state["history"] = history
         return state
 
@@ -202,8 +204,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if "model" in state:
             with h5py.File(state["model"], compression="lzf", mode="r") as h5:
                 state["model"] = load_model(h5, compile=False)
-            if "history" in state:
-                state["model"].__dict__["history"] = state.pop("history")
         self.__dict__ = state
         return self
 
@@ -280,9 +280,10 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             X = X.values
         if isinstance(y, (pd.DataFrame, xr.DataArray)):
             y = y.values
-        kwargs.setdefault("verbose", 0)
-
-        super().fit(X, y, sample_weight=None, **kwargs)
+        kwargs.setdefault("verbose", 1)
+        history = super().fit(X, y, sample_weight=None, **kwargs)
+        if isinstance(history, History):
+            self.history = history
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -352,13 +353,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         Dict
             Metadata dictionary, including a history object if present
         """
-        if (
-            hasattr(self, "model")
-            and hasattr(self.model, "history")
-            and self.model.history
-        ):
-            history = self.model.history.history
-            history["params"] = self.model.history.params
+        if hasattr(self, "model") and hasattr(self, "history"):
+            history = self.history.history
+            history["params"] = self.history.params
             return {"history": history}
         else:
             return {}
@@ -617,7 +614,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         # shuffle is set to False since we are dealing with time series data and
         # so training data will not be shuffled before each epoch.
-        self.model.fit_generator(tsg, shuffle=False, **gen_kwargs)
+        self.model.fit(tsg, shuffle=False, **gen_kwargs)
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -665,7 +662,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
         )
-        return self.model.predict_generator(tsg)
+        return self.model.predict(tsg)
 
     def score(
         self,

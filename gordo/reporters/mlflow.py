@@ -255,7 +255,8 @@ def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
 
     # Parse fit metrics
     try:
-        meta_params = build_metadata.model.model_meta["history"]["params"]
+        history_metrics = build_metadata.model.model_meta["history"]
+        meta_parms = build_metadata.model.model_meta["history"]["params"]
     except KeyError:
         logger.debug(
             "Key 'build-metadata.model.history.params' not found found in metadata."
@@ -265,16 +266,13 @@ def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
             Metric(k, float(getattr(build_metadata.model, k)), epoch_now(), 0)
             for k in ["model_training_duration_sec"]
         )
-        for m in meta_params["metrics"]:
+        for m in (x for x in history_metrics if x != "params"):
             data = build_metadata.model.model_meta["history"][m]
             metrics.extend(
                 Metric(m, float(x), timestamp=epoch_now(), step=i)
                 for i, x in enumerate(data)
             )
-        params.extend(
-            Param(k, str(meta_params[k]))
-            for k in (p for p in meta_params if p != "metrics")
-        )
+        params.extend(Param(k, str(meta_parms[k])) for k in meta_parms)
 
     return metrics, params
 
