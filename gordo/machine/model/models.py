@@ -426,7 +426,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     >>> model = KerasRawModelRegressor(kind=config)
     >>>
     >>> X, y = np.random.random((10, 4)), np.random.random((10, 1))
-    >>> model.fit(X, y)
+    >>> model.fit(X, y, verbose=0)
     KerasRawModelRegressor(kind: {'compile': {'loss': 'mse', 'optimizer': 'adam'},
      'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'units': 4}},
                                                                 {'tensorflow.keras.layers.Dense': {'units': 1}}]}}})
