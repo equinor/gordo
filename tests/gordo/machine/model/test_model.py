@@ -146,15 +146,15 @@ def test_save_load(model, kind):
     # Assert that epochs list, history dict and params dict in
     # the History object are the same
     assert (
-        model_out.model.history.epoch == model_out_clone.model.history.epoch
+        model_out.history.epoch == model_out_clone.history.epoch
     ), "Epoch lists differ between original and loaded model history"
 
     assert (
-        model_out.model.history.history == model_out_clone.model.history.history
+        model_out.history.history == model_out_clone.history.history
     ), "History dictionary with losses and accuracies differ between original and loaded model history"
 
     assert (
-        model_out.model.history.params == model_out_clone.model.history.params
+        model_out.history.params == model_out_clone.history.params
     ), "Params dictionaries differ between original and loaded model history"
 
 

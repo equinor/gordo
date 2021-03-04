@@ -60,9 +60,7 @@ autoclass_content = "both"
 # Use docstrings from parent classes if not exists in children
 autodoc_inherit_docstrings = True
 
-autodoc_mock_imports = [
-    "tensorflow",
-]
+autodoc_mock_imports = ["tensorflow"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
