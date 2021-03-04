@@ -23,7 +23,7 @@ from sklearn.model_selection import BaseCrossValidator, cross_validate
 from sklearn.pipeline import Pipeline
 
 from gordo.util import disk_registry
-from gordo import serializer, __version__, MAJOR_VERSION, MINOR_VERSION
+from gordo import serializer, __version__, MAJOR_VERSION, MINOR_VERSION, IS_UNSTABLE_VERSION
 from gordo_dataset.dataset import _get_dataset
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
@@ -566,6 +566,7 @@ class ModelBuilder:
                 "evaluation_config": machine.evaluation,
                 "gordo-major-version": MAJOR_VERSION,
                 "gordo-minor-version": MINOR_VERSION,
+                "is-gordo-unstable": IS_UNSTABLE_VERSION,
             },
             sort_keys=True,
             default=str,
