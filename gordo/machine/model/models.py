@@ -280,7 +280,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             X = X.values
         if isinstance(y, (pd.DataFrame, xr.DataArray)):
             y = y.values
-        kwargs.setdefault("verbose", 1)
+        kwargs.setdefault("verbose", 0)
         history = super().fit(X, y, sample_weight=None, **kwargs)
         if isinstance(history, History):
             self.history = history
