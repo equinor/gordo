@@ -23,7 +23,13 @@ from sklearn.model_selection import BaseCrossValidator, cross_validate
 from sklearn.pipeline import Pipeline
 
 from gordo.util import disk_registry
-from gordo import serializer, __version__, MAJOR_VERSION, MINOR_VERSION, IS_UNSTABLE_VERSION
+from gordo import (
+    serializer,
+    __version__,
+    MAJOR_VERSION,
+    MINOR_VERSION,
+    IS_UNSTABLE_VERSION,
+)
 from gordo_dataset.dataset import _get_dataset
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
