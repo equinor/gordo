@@ -20,6 +20,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
 
+      - name: Print
+        run: cat "$GITHUB_EVENT_PATH"
+
       - uses: actions/cache@v1
         if: startsWith(runner.os, 'Linux')
         with:
