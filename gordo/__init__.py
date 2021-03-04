@@ -3,12 +3,6 @@ import traceback
 from packaging import version
 from typing import Tuple
 import warnings
-from pkgutil import extend_path
-
-
-# Denote a package as a namespace package.
-# https://www.python.org/dev/peps/pep-0420/#namespace-packages-today
-__path__ = extend_path(__path__, __name__)  # type: ignore
 
 
 try:
