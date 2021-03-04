@@ -12,10 +12,8 @@ apipkg==1.5
     # via execnet
 appdirs==1.4.3
     # via black
-appnope==0.1.2
-    # via
-    #   ipykernel
-    #   ipython
+argon2-cffi==20.1.0
+    # via notebook
 attrs==19.3.0
     # via
     #   -c full_requirements.txt
@@ -37,6 +35,7 @@ certifi==2019.11.28
 cffi==1.13.2
     # via
     #   -c full_requirements.txt
+    #   argon2-cffi
     #   cryptography
 chardet==3.0.4
     # via
@@ -73,12 +72,6 @@ idna==2.8
     # via
     #   -c full_requirements.txt
     #   requests
-importlib-metadata==1.4.0
-    # via
-    #   -c full_requirements.txt
-    #   jsonschema
-    #   pluggy
-    #   pytest
 influxdb==5.3.0
     # via
     #   -c full_requirements.txt
@@ -143,7 +136,6 @@ more-itertools==8.1.0
     # via
     #   -c full_requirements.txt
     #   pytest
-    #   zipp
 msgpack==0.6.1
     # via
     #   -c full_requirements.txt
@@ -164,7 +156,7 @@ nbformat==5.0.3
     #   ipywidgets
     #   nbconvert
     #   notebook
-notebook==6.0.2
+notebook==6.1.5
     # via
     #   -r test_requirements.in
     #   jupyter
@@ -282,6 +274,7 @@ send2trash==1.5.0
 six==1.15.0
     # via
     #   -c full_requirements.txt
+    #   argon2-cffi
     #   bleach
     #   docker
     #   influxdb
@@ -340,10 +333,6 @@ websocket-client==0.57.0
     #   docker
 widgetsnbextension==3.5.1
     # via ipywidgets
-zipp==2.0.0
-    # via
-    #   -c full_requirements.txt
-    #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
