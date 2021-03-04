@@ -1312,12 +1312,6 @@ spec:
           dependencies:
             - ensure-single-workflow
         {% endfor %}
-        - name: gordo-server
-          template: gordo-server
-          arguments:
-            parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
-          dependencies:{% for machine in machines %}
-            - gordo-mdl-{{ machine.name }}{% endfor %}
         {% for machine in machines %}
         - name: model-builder-{{ machine.name }}
           template: model-builder
@@ -1329,9 +1323,15 @@ spec:
                 value: |
                   {{ machine.to_dict() | tojson }}
           dependencies:
-            - gordo-server
+            - gordo-mdl-{{ machine.name }}
             {% if enable_influx %}- gordo-postgres{% endif %}
         {% endfor %}
+        - name: gordo-server
+          template: gordo-server
+          arguments:
+            parameters: [{name: host-name, value: "gordo-srv-{{ project_name }}" }]
+          dependencies:{% for machine in machines %}
+            - model-builder-{{ machine.name }}{% endfor %}
         - name: postgres-cleanup
           template: postgres-cleanup
           dependencies:
