@@ -1,6 +1,7 @@
 import logging
 import traceback
-from typing import Tuple
+from packaging import version
+from typing import Tuple, cast
 import warnings
 from pkgutil import extend_path
 
@@ -16,25 +17,35 @@ except ImportError:
     __version__ = "0.0.0"
 
 
-def _parse_version(version: str) -> Tuple[int, ...]:
+def _parse_version(input_version: str) -> Tuple[int, int, bool]:
     """
     Takes a string which starts with standard major.minor.patch.
     and returns the split of major and minor version as integers
 
     Parameters
     ----------
-    version: str
+    input_version: str
         The semantic version string
 
     Returns
     -------
-    Tuple[int, int]
-        major and minor versions
+    Tuple[int, int, bool]
+        major and minor versions, and flag "is this unstable version?"
     """
-    return tuple(int(i) for i in version.split(".")[:2])
+    parsed_version = version.parse(input_version)
+    if isinstance(parsed_version, version.Version):
+        is_unstable = parsed_version.is_devrelease or parsed_version.is_prerelease
+        return parsed_version.major, parsed_version.minor, is_unstable
+    else:
+        try:
+            split_version = input_version.split(".")[:2]
+            major, minor = int(split_version[0]), int(split_version[1])
+        except ValueError:
+            raise ValueError("Malformed version %s" % input_version)
+        return major, minor, True
 
 
-MAJOR_VERSION, MINOR_VERSION = _parse_version(__version__)
+MAJOR_VERSION, MINOR_VERSION, IS_UNSTABLE_VERSION = _parse_version(__version__)
 
 try:
     # FIXME(https://github.com/abseil/abseil-py/issues/99)
