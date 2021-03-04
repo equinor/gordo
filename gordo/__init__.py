@@ -1,7 +1,7 @@
 import logging
 import traceback
 from packaging import version
-from typing import Tuple, cast
+from typing import Tuple
 import warnings
 from pkgutil import extend_path
 
