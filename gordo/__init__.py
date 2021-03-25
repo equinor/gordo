@@ -4,11 +4,12 @@ from packaging import version
 from typing import Tuple
 import warnings
 
+DEFAULT_VERSION = "0.0.0"
 
 try:
     from ._version import version as __version__
 except ImportError:
-    __version__ = "0.0.0"
+    __version__ = DEFAULT_VERSION
 
 
 def _parse_version(input_version: str) -> Tuple[int, int, bool]:
@@ -27,16 +28,20 @@ def _parse_version(input_version: str) -> Tuple[int, int, bool]:
         major and minor versions, and flag "is this unstable version?"
     """
     parsed_version = version.parse(input_version)
+    result: Tuple[int, int, bool] = (0, 0, True)
     if isinstance(parsed_version, version.Version):
         is_unstable = parsed_version.is_devrelease or parsed_version.is_prerelease
-        return parsed_version.major, parsed_version.minor, is_unstable
+        result = parsed_version.major, parsed_version.minor, is_unstable
     else:
         try:
             split_version = input_version.split(".")[:2]
             major, minor = int(split_version[0]), int(split_version[1])
         except ValueError:
             raise ValueError("Malformed version %s" % input_version)
-        return major, minor, True
+        result = major, minor, True
+    if input_version == DEFAULT_VERSION:
+        return result[0], result[1], True
+    return result
 
 
 MAJOR_VERSION, MINOR_VERSION, IS_UNSTABLE_VERSION = _parse_version(__version__)

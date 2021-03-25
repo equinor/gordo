@@ -20,7 +20,7 @@ def test_version():
         ("1.1.1", (1, 1, False)),
         ("1.1.1.dev-a1", (1, 1, True)),
         ("0.55.0-rc1", (0, 55, True)),
-        ("0.0.0", (0, 0, False)),
+        ("0.0.0", (0, 0, True)),
     ],
 )
 def test_version_parser(version: str, expected: Tuple[int, int, int]):
