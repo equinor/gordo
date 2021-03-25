@@ -564,6 +564,7 @@ class ModelBuilder:
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)
+        gordo_version = __version__ if IS_UNSTABLE_VERSION else ""
         json_rep = json.dumps(
             {
                 "name": machine.name,
@@ -572,7 +573,7 @@ class ModelBuilder:
                 "evaluation_config": machine.evaluation,
                 "gordo-major-version": MAJOR_VERSION,
                 "gordo-minor-version": MINOR_VERSION,
-                "is-gordo-unstable": IS_UNSTABLE_VERSION,
+                "gordo_version": gordo_version,
             },
             sort_keys=True,
             default=str,
