@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.7.5 as builder
+FROM python:3.7.10 as builder
 
 # Copy source code
 COPY . /code
@@ -22,6 +22,8 @@ FROM python:3.7.5-slim-stretch
 RUN apt-get update && apt-get install -y \
     perl \
     libsqlite3-0 \
+    login \
+    passwd \
  && rm -rf /var/lib/apt/lists/*
 
 # Nonroot user for running CMD
