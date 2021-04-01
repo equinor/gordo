@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.7.10 as builder
+FROM python:3.7.10-buster as builder
 
 # Copy source code
 COPY . /code
@@ -17,14 +17,9 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.7.5-slim-stretch
+FROM python:3.7.10-slim-buster
 
-RUN apt-get update && apt-get install -y \
-    perl \
-    libsqlite3-0 \
-    login \
-    passwd \
- && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && rm -rf /var/lib/apt/lists/*
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
