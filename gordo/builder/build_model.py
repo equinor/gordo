@@ -30,7 +30,7 @@ from gordo import (
     MINOR_VERSION,
     IS_UNSTABLE_VERSION,
 )
-
+from gordo_dataset.dataset import _get_dataset
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
@@ -180,7 +180,7 @@ class ModelBuilder:
             f"Initializing Dataset with config {self.machine.dataset.to_dict()}"
         )
 
-        dataset = self.machine.dataset
+        dataset = _get_dataset(self.machine.dataset.to_dict())
 
         logger.debug("Fetching training data")
         start = time.time()
@@ -197,7 +197,7 @@ class ModelBuilder:
 
         machine: Machine = Machine(
             name=self.machine.name,
-            dataset=self.machine.dataset,
+            dataset=self.machine.dataset.to_dict(),
             metadata=self.machine.metadata,
             model=self.machine.model,
             project_name=self.machine.project_name,
