@@ -25,3 +25,9 @@ def multiply_by(X, factor):
     Multiplies X by a given factor
     """
     return X * factor
+
+def calc_diff(X, period):
+    """
+    Multiplies X by a given factor
+    """
+    return X.diff(period).fillna(method="bfill")

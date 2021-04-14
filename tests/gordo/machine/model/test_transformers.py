@@ -41,6 +41,17 @@ class GordoFunctionTransformerFuncsTestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             self._validate_transformer(tf)
 
+    def test_calculate_difference_function_transformer(self):
+        from gordo.machine.model.transformer_funcs.general import calc_diff
+
+        # Provide a require argument
+        tf = FunctionTransformer(func=calc_diff, kw_args={"period": 2})
+        self._validate_transformer(tf)
+
+        # Ignore the required argument
+        tf = FunctionTransformer(func=calc_diff)
+        with self.assertRaises(TypeError):
+            self._validate_transformer(tf)
 
 @pytest.mark.parametrize("strategy", ["extremes", "minmax"])
 def test_infimputer_basic(strategy):
