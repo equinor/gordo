@@ -62,10 +62,9 @@ jobs:
       - name: Copy Coverage Reports
         run: cp /tmp/coverage-reports/*.xml .
 
-      - uses: codecov/codecov-action@v1
-        with:
-          token: fc2844a2-5a6c-43ef-a758-05bc50562b14
-          fail_ci_if_error: false
+      - name: Check
+        run: |
+          printenv
 
   build-docs:
     runs-on: ubuntu-latest
