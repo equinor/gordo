@@ -12,10 +12,6 @@ apipkg==1.5
     # via execnet
 appdirs==1.4.3
     # via black
-appnope==0.1.2
-    # via
-    #   ipykernel
-    #   ipython
 attrs==19.3.0
     # via
     #   -c full_requirements.txt
@@ -73,12 +69,6 @@ idna==2.8
     # via
     #   -c full_requirements.txt
     #   requests
-importlib-metadata==1.4.0
-    # via
-    #   -c full_requirements.txt
-    #   jsonschema
-    #   pluggy
-    #   pytest
 influxdb==5.3.0
     # via
     #   -c full_requirements.txt
@@ -143,7 +133,6 @@ more-itertools==8.1.0
     # via
     #   -c full_requirements.txt
     #   pytest
-    #   zipp
 msgpack==0.6.1
     # via
     #   -c full_requirements.txt
@@ -199,7 +188,7 @@ ptyprocess==0.6.0
     #   terminado
 py-cpuinfo==5.0.0
     # via pytest-benchmark
-py==1.8.1
+py==1.10.0
     # via pytest
 pycparser==2.19
     # via
@@ -340,10 +329,6 @@ websocket-client==0.57.0
     #   docker
 widgetsnbextension==3.5.1
     # via ipywidgets
-zipp==2.0.0
-    # via
-    #   -c full_requirements.txt
-    #   importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
