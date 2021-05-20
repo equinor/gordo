@@ -42,7 +42,7 @@ RUN pip install gordo-packed.tar.gz[full]
 # Install GordoDeploy dependencies
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.16.9"
-ARG ARGO_VERSION="v3.0.4"
+ARG ARGO_VERSION="v2.12.11"
 
 RUN apt-get update && apt-get install -y \
     curl \
