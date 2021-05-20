@@ -66,7 +66,7 @@ influxdb==5.3.0           # via gordo-client, gordo-dataset
 isodate==0.6.0            # via msrest
 itsdangerous==1.1.0       # via flask
 jeepney==0.6.0            # via -r requirements.in, secretstorage
-jinja2==2.10.3            # via -r requirements.in, flask
+jinja2==2.11.3            # via -r requirements.in, flask
 jmespath==0.9.4           # via azureml-core
 joblib==0.14.1            # via scikit-learn
 jsonpickle==1.2           # via azureml-core, azureml-mlflow
@@ -106,7 +106,7 @@ pyarrow==0.17.1           # via gordo-client, gordo-dataset
 pyasn1-modules==0.2.8     # via google-auth
 pyasn1==0.4.8             # via ndg-httpsclient, pyasn1-modules, rsa
 pycparser==2.19           # via cffi
-pydantic==1.7.3           # via -r requirements.in, gordo-client
+pydantic==1.8.2           # via -r requirements.in, gordo-client
 pyjwt[crypto]==1.7.1      # via adal, azureml-core, msal
 pyopenssl==19.1.0         # via azureml-core, ndg-httpsclient
 pyparsing==2.4.6          # via matplotlib, packaging
@@ -137,7 +137,7 @@ tensorflow-estimator==2.4.0  # via tensorflow
 tensorflow==2.4.1         # via -r requirements.in
 termcolor==1.1.0          # via tensorflow
 threadpoolctl==2.1.0      # via scikit-learn
-typing-extensions==3.7.4.1  # via -r requirements.in, gordo-dataset, tensorflow, typing-inspect
+typing-extensions==3.7.4.3  # via -r requirements.in, gordo-dataset, pydantic, tensorflow, typing-inspect
 typing-inspect==0.5.0     # via dataclasses-json
 urllib3==1.25.7           # via -r requirements.in, azureml-core, requests
 websocket-client==0.57.0  # via docker
