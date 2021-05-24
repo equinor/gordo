@@ -356,49 +356,6 @@ spec:
                       name: api
                       targetPort: 3000
 
-  - name: gordo-grafana-istio
-    resource:
-      action: create
-      setOwnerReference: false
-      manifest: |
-        ---
-        apiVersion: networking.istio.io/v1alpha3
-        kind: VirtualService
-        metadata:
-          name: gordo-grafana-{{project_name}}
-          annotations:
-          labels:
-            app: gordo-grafana-{{project_name}}
-            app.kubernetes.io/name: grafana
-            app.kubernetes.io/component: VirtualService
-            app.kubernetes.io/part-of: gordo
-            app.kubernetes.io/managed-by: gordo
-            applications.gordo.equinor.com/project-name: "{{project_name}}"
-            applications.gordo.equinor.com/project-revision: "{{project_revision}}"
-          {% if owner_references is defined %}
-          ownerReferences: {{owner_references}}
-          {% endif %}
-        spec:
-          hosts:
-            - "*"
-          gateways:
-            - istio-system/istio-gateway
-          http:
-            - match:
-                - uri:
-                    prefix: "/gordo/grafana/{{project_name}}/"
-              rewrite:
-                uri: "/"
-              route:
-                - destination:
-                    host: gordo-grafana-{{project_name}}
-                    port:
-                      number: 3000
-                  headers:
-                    request:
-                      remove:
-                        - Authorization
-
   - name: gordo-grafana-statefulset
     retryStrategy:
       limit: 5
@@ -535,8 +492,6 @@ spec:
         template: gordo-grafana-service
     - - name: gordo-grafana-statefulset
         template: gordo-grafana-statefulset
-    - - name: gordo-grafana-istio
-        template: gordo-grafana-istio
     - - name: gordo-grafana-datasource-creator
         template: gordo-grafana-datasource-creator
 
