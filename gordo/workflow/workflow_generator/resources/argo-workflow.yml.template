@@ -629,7 +629,7 @@ spec:
             spec:
               terminationGracePeriodSeconds: 10
               containers:
-              - image: "postgres:11.12"
+              - image: "postgres:11.2"
                 imagePullPolicy: "IfNotPresent"
                 name: {{postgres_host}}
                 volumeMounts:
