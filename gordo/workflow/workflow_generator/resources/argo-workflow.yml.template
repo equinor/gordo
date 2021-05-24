@@ -394,6 +394,10 @@ spec:
                     host: gordo-grafana-{{project_name}}
                     port:
                       number: 3000
+                  headers:
+                    request:
+                      remove:
+                        - Authorization
 
   - name: gordo-grafana-statefulset
     retryStrategy:
