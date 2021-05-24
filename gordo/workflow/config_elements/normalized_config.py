@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Dict, Any
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
@@ -27,6 +27,9 @@ def _calculate_influx_resources(nr_of_machines):
     }
 
 
+ConfigDict = Dict[str, Any]
+
+
 class NormalizedConfig:
     """
     Handles the conversion of a single Machine representation in config format
@@ -34,7 +37,7 @@ class NormalizedConfig:
     key or the default config globals held here.
     """
 
-    SPLITED_DOCKER_IMAGES = {
+    SPLITED_DOCKER_IMAGES: ConfigDict = {
         "runtime": {
             "deployer": {"image": "gordo-deploy"},
             "server": {"image": "gordo-model-server"},
@@ -44,9 +47,9 @@ class NormalizedConfig:
         }
     }
 
-    UNIFYING_GORDO_VERSION = "1.2.0"
+    UNIFYING_GORDO_VERSION: str = "1.2.0"
 
-    UNIFIED_DOCKER_IMAGES = {
+    UNIFIED_DOCKER_IMAGES: ConfigDict = {
         "runtime": {
             "deployer": {"image": "gordo-base"},
             "server": {"image": "gordo-base"},
@@ -56,7 +59,7 @@ class NormalizedConfig:
         }
     }
 
-    DEFAULT_CONFIG_GLOBALS = {
+    DEFAULT_CONFIG_GLOBALS: ConfigDict = {
         "runtime": {
             "reporters": [],
             "server": {
