@@ -258,7 +258,7 @@ spec:
               {% endif %}
             spec:
               containers:
-              - image: "influxdb:1.7.9-alpine"
+              - image: "influxdb:1.8.5-alpine"
                 imagePullPolicy: "IfNotPresent"
                 name: gordo-influx-{{project_name}}
                 volumeMounts:
@@ -419,7 +419,7 @@ spec:
               securityContext:
                 fsGroup: 472
               containers:
-              - image: "grafana/grafana:6.5.2"
+              - image: "grafana/grafana:7.5.7"
                 env:
                 - name: GF_INSTALL_PLUGINS
                   value: "grafana-worldmap-panel,flant-statusmap-panel,vonage-status-panel"

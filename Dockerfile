@@ -42,7 +42,7 @@ RUN pip install gordo-packed.tar.gz[full]
 # Install GordoDeploy dependencies
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.16.9"
-ARG ARGO_VERSION="v3.0.4"
+ARG ARGO_VERSION="v2.12.11"
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -54,8 +54,9 @@ RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernete
   chmod +x /usr/local/bin/kubectl
 
 #download & install argo
-RUN curl -sSL -o /usr/local/bin/argo https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64 &&\
-  chmod +x /usr/local/bin/argo
+RUN curl -sLO https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64.gz &&\
+    gzip -d < argo-linux-amd64.gz > /usr/local/bin/argo &&\
+    chmod +x /usr/local/bin/argo
 
 COPY ./run_workflow_and_argo.sh ${HOME}/run_workflow_and_argo.sh
 
