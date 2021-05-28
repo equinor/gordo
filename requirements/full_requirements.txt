@@ -54,7 +54,7 @@ google-auth-oauthlib==0.4.1  # via tensorboard
 google-auth==1.10.1       # via google-auth-oauthlib, tensorboard
 google-pasta==0.2.0       # via tensorflow
 gordo-client==3.0.4       # via -r requirements.in
-gordo-dataset==2.5.1      # via -r requirements.in, gordo-client
+gordo-dataset==2.6.2      # via -r requirements.in, gordo-client
 gorilla==0.3.0            # via mlflow
 graphviz==0.13.2          # via catboost
 grpcio==1.32.0            # via tensorboard, tensorflow
