@@ -144,6 +144,8 @@ class Machine:
         Convert to a ``dict`` representation along with all attributes which
         can also be converted to a ``dict``. Can reload with :func:`~Machine.from_dict`
         """
+        print(type(self.dataset))
+        print(self.dataset.to_dict())
         return {
             "name": self.name,
             "dataset": self.dataset.to_dict(),

@@ -12,6 +12,7 @@ from gordo_dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
 from gordo_dataset.base import ConfigurationError
 from gordo_dataset.exceptions import ConfigException, InsufficientDataError
+from gordo_dataset.datasets import TimeSeriesDataset
 from gunicorn.glogging import Logger
 from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 
