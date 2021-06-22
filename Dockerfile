@@ -19,7 +19,13 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
 
 FROM python:3.7.10-slim-buster
 
-RUN apt-get update && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    libgcrypt20=1.8.4-5+deb10u1 \
+    libgnutls30=3.6.7-4+deb10u7 \
+    libhogweed4=3.4.1-1+deb10u1 \
+    liblz4-1=1.8.3-1+deb10u1 \
+    libnettle6=3.4.1-1+deb10u1 \
+ && rm -rf /var/lib/apt/lists/*
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
