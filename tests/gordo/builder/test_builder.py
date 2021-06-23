@@ -13,7 +13,7 @@ from sklearn.base import BaseEstimator
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
-from mock import patch
+from mock import patch, MagicMock
 
 import gordo
 from gordo.builder import ModelBuilder
@@ -64,8 +64,7 @@ def machine_check(machine: Machine, check_history):
 
 
 @pytest.mark.parametrize("scaler", [None, "sklearn.preprocessing.MinMaxScaler"])
-def test_get_metrics_dict_scaler(scaler, mock):
-    mock_model = mock
+def test_get_metrics_dict_scaler(scaler):
     metrics_list = [sklearn.metrics.mean_squared_error]
     # make the features in y be in different scales
     y = pd.DataFrame(
@@ -75,10 +74,12 @@ def test_get_metrics_dict_scaler(scaler, mock):
     metrics_dict = ModelBuilder.build_metrics_dict(metrics_list, y, scaler=scaler)
     metric_func = metrics_dict["mean-squared-error"]
 
-    mock_model.predict = lambda _y: _y * [0.8, 1]
-    mse_feature_one_wrong = metric_func(mock_model, y, y)
-    mock_model.predict = lambda _y: _y * [1, 0.8]
-    mse_feature_two_wrong = metric_func(mock_model, y, y)
+    mock_model1 = MagicMock()
+    mock_model1.predict = lambda _y: _y * [0.8, 1]
+    mse_feature_one_wrong = metric_func(mock_model1, y, y)
+    mock_model2 = MagicMock()
+    mock_model2.predict = lambda _y: _y * [1, 0.8]
+    mse_feature_two_wrong = metric_func(mock_model2, y, y)
 
     if scaler:
         assert np.isclose(mse_feature_one_wrong, mse_feature_two_wrong)
