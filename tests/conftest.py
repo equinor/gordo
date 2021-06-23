@@ -401,9 +401,13 @@ def ml_server(
                     resp = getattr(gordo_server_app, request.method.lower())(
                         request.path_url, headers=dict(request.headers), **kwargs
                     )
+                if type(resp.headers) is not dict:
+                    headers = dict(resp.headers.to_list())
+                else:
+                    headers = resp.headers
                 return (
                     resp.status_code,
-                    resp.headers,
+                    headers,
                     json.dumps(resp.json) if resp.json is not None else resp.data,
                 )
 
