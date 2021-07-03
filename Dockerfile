@@ -60,7 +60,7 @@ RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernete
   chmod +x /usr/local/bin/kubectl
 
 #download & install argo
-RUN curl -sLO https://github.com/argoproj/argo/releases/download/$ARGO_VERSION/argo-linux-amd64.gz &&\
+RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/$ARGO_VERSION/argo-linux-amd64.gz &&\
     gzip -d < argo-linux-amd64.gz > /usr/local/bin/argo &&\
     chmod +x /usr/local/bin/argo
 
