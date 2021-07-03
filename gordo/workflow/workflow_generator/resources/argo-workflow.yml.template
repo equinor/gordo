@@ -767,7 +767,7 @@ spec:
       command: [bash]
       source: |
         echo "Deleting gordo hpa's for project {{project_name}}" \
-         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}}
+         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
          && echo "Deleting Succeeded gordo hpa's for project={{project_name}}"
 
       resources:
