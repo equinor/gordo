@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 PREFIX = "WORKFLOW_GENERATOR"
 DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL = ReportLevel.TRACEBACK
 
+ML_SERVER_HPA_TYPES = ["none", "k8s_cpu"]
+DEFAULT_ML_SERVER_HPA_TYPE = "k8s_cpu"
+
 
 def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel:
     orig_report_level = None
@@ -222,6 +225,13 @@ def workflow_cli(gordo_ctx):
     "--image-pull-policy",
     help="Default imagePullPolicy for all gordo's images",
     envvar=f"{PREFIX}_IMAGE_PULL_POLICY",
+)
+@click.option(
+    "--ml-server-hpa-type",
+    help="HPA type for the ML server",
+    envvar=f"{PREFIX}_ML_SERVER_HPA_TYPE",
+    type=click.Choice(ML_SERVER_HPA_TYPES),
+    default=DEFAULT_ML_SERVER_HPA_TYPE,
 )
 @click.option(
     "--custom-model-builder-envs",

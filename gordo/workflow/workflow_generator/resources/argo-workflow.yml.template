@@ -749,6 +749,34 @@ spec:
                     maxReplicas: {{ max_server_replicas }}
                     targetCPUUtilizationPercentage: 25
 
+  - name: gordo-server-hpa-cleanup
+    retryStrategy:
+      limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
+    metadata:
+      labels:
+        app: gordo-hpa-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
+      imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [bash]
+      source: |
+        echo "Deleting gordo hpa's for project {{project_name}}" \
+         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}}
+         && echo "Deleting Succeeded gordo hpa's for project={{project_name}}"
+
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 1G
+          cpu: 200m
 
   - name: gordo-server-svc
     inputs:
@@ -1042,11 +1070,12 @@ spec:
         template: gordo-server-deployment
         arguments:
           parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
-    - - name: gordo-server-hpa
+    - {% if not ml_server_hpa_type or ml_server_hpa_type == 'k8s_cpu' %}- name: gordo-server-hpa
         template: gordo-server-hpa
         arguments:
-          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
-      - name: gordo-server-svc
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% else %}- name: gordo-server-hpa-cleanup
+        template: gordo-server-hpa-cleanup
+      {% endif %}- name: gordo-server-svc
         template: gordo-server-svc
         arguments:
           parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% if not without_prometheus %}
@@ -1275,7 +1304,7 @@ spec:
          && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
-         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_revision}}" \
          && if [ "{{log_level}}" != "DEBUG" ]; then kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}; fi
 
