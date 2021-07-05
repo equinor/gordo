@@ -769,13 +769,40 @@ spec:
         echo "Deleting gordo hpa's for project {{project_name}}" \
          && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
          && echo "Deleting Succeeded gordo hpa's for project={{project_name}}"
-
       resources:
         requests:
           memory: 50M
           cpu: 10m
         limits:
-          memory: 1G
+          memory: 50M
+          cpu: 200m
+
+  - name: gordo-server-keda-cleanup
+    retryStrategy:
+      limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
+    metadata:
+      labels:
+        app: gordo-hpa-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
+      imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [bash]
+      source: |
+        echo "Deleting gordo ScaledObjects for project {{project_name}}" \
+         && kubectl get scaledobject --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
+         && echo "Deleting Succeeded gordo ScaledObjects for project={{project_name}}"
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 50m
           cpu: 200m
 
   - name: gordo-server-svc
