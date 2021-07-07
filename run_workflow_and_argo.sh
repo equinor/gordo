@@ -26,5 +26,9 @@ fi
 
 argo lint /tmp/generated-config.yml
 if [ "$ARGO_SUBMIT" = true ] ; then
-    argo submit /tmp/generated-config.yml
+    if [[ -n "$ARGO_SERVICE_ACCOUNT" ]]; then
+        argo submit --serviceaccount "$ARGO_SERVICE_ACCOUNT" /tmp/generated-config.yml
+    else
+        argo submit /tmp/generated-config.yml
+    fi
 fi
