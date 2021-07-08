@@ -749,6 +749,51 @@ spec:
                     maxReplicas: {{ max_server_replicas }}
                     targetCPUUtilizationPercentage: 25
 
+{% if with_keda %}
+  - name: gordo-server-keda
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: "gordoserver-scaled-object-{{project_name}}"
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    scaleTargetRef:
+                      apiVersion: apps/v1
+                      kind: Deployment
+                      name: "{{'{{inputs.parameters.host-name}}'}}"
+                    pollingInterval: 30
+                    cooldownPeriod: 600
+                    minReplicaCount: 1
+                    maxReplicaCount: 20
+                    triggers:
+                    - type: prometheus
+                      metadata:
+                        serverAddress: "{{prometheus_server_address}}"
+                        metricName: "{{keda_prometheus_metric_name}}"
+                        threshold: "{{keda_prometheus_threshold}}"
+                        query: "{{keda_prometheus_query}}"{% endif %}
+
   - name: gordo-server-hpa-cleanup
     retryStrategy:
       limit: 5
@@ -766,7 +811,7 @@ spec:
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
       command: [bash]
       source: |
-        echo "Deleting gordo hpa's for project {{project_name}}" \
+        echo "Deleting gordo's hpa for project {{project_name}}" \
          && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
          && echo "Deleting Succeeded gordo hpa's for project={{project_name}}"
       resources:
@@ -776,6 +821,35 @@ spec:
         limits:
           memory: 50M
           cpu: 200m
+
+  {% if with_keda %}
+  - name: gordo-server-keda-cleanup
+    retryStrategy:
+      limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
+    metadata:
+      labels:
+        app: gordo-hpa-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
+      imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [bash]
+      source: |
+        echo "Deleting gordo's ScaledObjects for project {{project_name}}" \
+         && kubectl delete ScaledObject --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
+         && echo "Succeeded deleting gordo's ScaledObjects for project={{project_name}}"
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 50M
+          cpu: 200m{% endif %}
 
   - name: gordo-server-keda-cleanup
     retryStrategy:
@@ -1100,9 +1174,24 @@ spec:
     - {% if not ml_server_hpa_type or ml_server_hpa_type == 'k8s_cpu' %}- name: gordo-server-hpa
         template: gordo-server-hpa
         arguments:
-          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% else %}- name: gordo-server-hpa-cleanup
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% if with_keda %}
+      - name: gordo-server-keda-cleanup
+        template: gordo-server-keda-cleanup
+      {% endif %}{% elif with_keda and ml_server_hpa_type == "keda" %}
+      - name: gordo-server-keda
+        template: gordo-server-keda
+        arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+      - name: gordo-server-hpa-cleanup
         template: gordo-server-hpa-cleanup
-      {% endif %}- name: gordo-server-svc
+      {% else %}{% if with_keda %}
+      - name: gordo-server-keda-cleanup
+        template: gordo-server-keda-cleanup
+      {% endif %}
+      - name: gordo-server-hpa-cleanup
+        template: gordo-server-hpa-cleanup
+      {% endif %}
+      - name: gordo-server-svc
         template: gordo-server-svc
         arguments:
           parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% if not without_prometheus %}

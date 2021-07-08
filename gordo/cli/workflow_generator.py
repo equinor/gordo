@@ -7,6 +7,7 @@ from typing import Dict, Any, TypeVar, Type
 
 import click
 import json
+from jinja2 import Environment, BaseLoader
 
 from pydantic import parse_obj_as, ValidationError
 from gordo import __version__
@@ -22,8 +23,12 @@ logger = logging.getLogger(__name__)
 PREFIX = "WORKFLOW_GENERATOR"
 DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL = ReportLevel.TRACEBACK
 
-ML_SERVER_HPA_TYPES = ["none", "k8s_cpu"]
+ML_SERVER_HPA_TYPES = ["none", "k8s_cpu", "keda"]
 DEFAULT_ML_SERVER_HPA_TYPE = "k8s_cpu"
+
+DEFAULT_KEDA_PROMETHEUS_METRIC_NAME = "gordo_server_request_duration_seconds_count"
+DEFAULT_KEDA_PROMETHEUS_QUERY = 'sum(rate(gordo_server_request_duration_seconds_count{project=~"{{project_name}}",path=~".*prediction"}[30s]))'
+DEFAULT_KEDA_PROMETHEUS_THRESHOLD = "1.0"
 
 
 def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel:
@@ -83,6 +88,29 @@ DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = """
     }
 ]
 """
+
+
+def validate_generate_context(context):
+    if context["ml_server_hpa_type"] == "keda":
+        if not context["with_keda"]:
+            raise click.ClickException(
+                '"--ml-server-hpa-type=keda" is only be supported with "--with-keda" flag'
+            )
+        if not context["prometheus_server_address"]:
+            raise click.ClickException(
+                '--prometheus-server-address should be specified for "--ml-server-hpa-type=keda"'
+            )
+
+
+KEDA_PROMETHEUS_QUERY_ARGS = ["project_name"]
+
+
+def prepare_keda_prometheus_query(context):
+    keda_prometheus_query = context["keda_prometheus_query"]
+    if keda_prometheus_query:
+        template = Environment(loader=BaseLoader).from_string(keda_prometheus_query)
+        kwargs = {k: context[k] for k in KEDA_PROMETHEUS_QUERY_ARGS}
+        return template.render(**kwargs)
 
 
 @click.group("workflow")
@@ -227,6 +255,12 @@ def workflow_cli(gordo_ctx):
     envvar=f"{PREFIX}_IMAGE_PULL_POLICY",
 )
 @click.option(
+    "--with-keda",
+    is_flag=True,
+    help="Enable support for the KEDA autoscaler",
+    envvar=f"{PREFIX}_WITH_KEDA",
+)
+@click.option(
     "--ml-server-hpa-type",
     help="HPA type for the ML server",
     envvar=f"{PREFIX}_ML_SERVER_HPA_TYPE",
@@ -238,6 +272,29 @@ def workflow_cli(gordo_ctx):
     help="List of custom environment variables in ",
     envvar=f"{PREFIX}_CUSTOM_MODEL_BUILDER_ENVS",
     default=DEFAULT_CUSTOM_MODEL_BUILDER_ENVS,
+)
+@click.option(
+    "--prometheus-server-address",
+    help='Prometheus url. Required for "--ml-server-hpa-type=keda"',
+    envvar=f"{PREFIX}_PROMETHEUS_SERVER_ADDRESS",
+)
+@click.option(
+    "--keda-prometheus-metric-name",
+    help="metricName value for the KEDA prometheus scaler",
+    envvar=f"{PREFIX}_KEDA_PROMETHEUS_METRIC_NAME",
+    default=DEFAULT_KEDA_PROMETHEUS_METRIC_NAME,
+)
+@click.option(
+    "--keda-prometheus-query",
+    help="query value for the KEDA prometheus scaler",
+    envvar=f"{PREFIX}_KEDA_PROMETHEUS_QUERY",
+    default=DEFAULT_KEDA_PROMETHEUS_QUERY,
+)
+@click.option(
+    "--keda-prometheus-threshold",
+    help="threshold value for the KEDA prometheus scaler",
+    envvar=f"{PREFIX}_KEDA_PROMETHEUS_THRESHOLD",
+    default=DEFAULT_KEDA_PROMETHEUS_THRESHOLD,
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
@@ -255,6 +312,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     logging.getLogger("gordo").setLevel(log_level.upper())
     context["log_level"] = log_level.upper()
+
+    validate_generate_context(context)
 
     model_builder_env = None
     if context["custom_model_builder_envs"]:
@@ -347,6 +406,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["enable_influx"] = enable_influx
 
     context["postgres_host"] = f"gordo-postgres-{config.project_name}"
+
+    context["keda_prometheus_query"] = prepare_keda_prometheus_query(context)
 
     # If enabling influx, we setup a postgres reporter to send metadata
     # to allowing querying about the machine from grafana
