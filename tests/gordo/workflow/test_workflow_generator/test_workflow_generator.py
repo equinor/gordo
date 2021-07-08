@@ -649,12 +649,27 @@ def _get_names_recursively(steps: list):
     "args,expected_steps",
     [
         ([], ["gordo-server-hpa"]),
-        (["--with-keda"], ['gordo-server-hpa', 'gordo-server-keda-cleanup']),
-        (["--ml-server-hpa-type", "none"], ['gordo-server-hpa-cleanup']),
-        (["--with-keda", "--ml-server-hpa-type", "none"], ['gordo-server-keda-cleanup', 'gordo-server-hpa-cleanup']),
-        (["--ml-server-hpa-type", "k8s_cpu"], ['gordo-server-hpa']),
-        (["--with-keda", "--ml-server-hpa-type", "k8s_cpu"], ['gordo-server-hpa', 'gordo-server-keda-cleanup']),
-        (["--with-keda", "--ml-server-hpa-type", "keda", "--prometheus-server-address", "http://prometheus.local"], ['gordo-server-keda', 'gordo-server-hpa-cleanup']),
+        (["--with-keda"], ["gordo-server-hpa", "gordo-server-keda-cleanup"]),
+        (["--ml-server-hpa-type", "none"], ["gordo-server-hpa-cleanup"]),
+        (
+            ["--with-keda", "--ml-server-hpa-type", "none"],
+            ["gordo-server-keda-cleanup", "gordo-server-hpa-cleanup"],
+        ),
+        (["--ml-server-hpa-type", "k8s_cpu"], ["gordo-server-hpa"]),
+        (
+            ["--with-keda", "--ml-server-hpa-type", "k8s_cpu"],
+            ["gordo-server-hpa", "gordo-server-keda-cleanup"],
+        ),
+        (
+            [
+                "--with-keda",
+                "--ml-server-hpa-type",
+                "keda",
+                "--prometheus-server-address",
+                "http://prometheus.local",
+            ],
+            ["gordo-server-keda", "gordo-server-hpa-cleanup"],
+        ),
     ],
 )
 def test_hpa_types(path_to_config_files: str, args: list, expected_steps: list):
