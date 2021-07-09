@@ -51,6 +51,8 @@ spec:
         app: ensure-single-workflow
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -107,6 +109,8 @@ spec:
         app: apply-with-retries
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -309,6 +313,8 @@ spec:
         app: gordo-influx-database-creator
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -485,6 +491,8 @@ spec:
         app: gordo-grafana-datasource-creator
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -692,6 +700,8 @@ spec:
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
         applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
 {{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     tolerations:
       - effect: NoSchedule
         key: kubernetes.azure.com/scalesetpriority
