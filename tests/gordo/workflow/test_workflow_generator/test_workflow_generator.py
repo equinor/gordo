@@ -635,7 +635,7 @@ def test_default_image_pull_policy(gordo_version, expected):
     assert result == expected
 
 
-def _get_names_recursively(steps: list):
+def _get_names_recursively(steps: list) -> list:
     names = []
     for step in steps:
         if type(step) is list:
@@ -687,3 +687,14 @@ def test_hpa_types(path_to_config_files: str, args: list, expected_steps: list):
             "Unable to found expected gordo-server step '%s' with args: %s"
             % (expected_step, " ".join(args))
         )
+
+
+def test_with_resources_labels(path_to_config_files: str):
+    resources_labels = '{"some_custom_label": "value"}'
+    args = ["--resources-labels", resources_labels]
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", args=args
+    )
+    yaml.safe_load(workflow_str)
+    expected_str = '"some_custom_label": "value"'
+    assert workflow_str.find(expected_str), 'Unable to find label "some_custom_label" in the generated argo-workflow'
