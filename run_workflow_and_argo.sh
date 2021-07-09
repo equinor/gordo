@@ -13,6 +13,11 @@ else
 fi
 
 if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
+  echo "===ENVIRONMENT==="
+  printenv | grep WORKFLOW_GENERATOR
+fi
+
+if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   echo "===CONFIG==="
   cat /tmp/config.yml
 fi
