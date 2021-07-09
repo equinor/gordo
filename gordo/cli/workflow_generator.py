@@ -3,7 +3,7 @@ import time
 import pkg_resources
 import os
 
-from typing import Dict, Any, TypeVar, Type
+from typing import Dict, Any, TypeVar, Type, List, Tuple, cast
 
 import click
 import json
@@ -15,7 +15,6 @@ from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
-from typing import List, Tuple, Any, cast
 
 
 logger = logging.getLogger(__name__)
