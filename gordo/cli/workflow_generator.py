@@ -15,6 +15,7 @@ from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
+from typing import List, Tuple, Any, cast
 
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,27 @@ def prepare_keda_prometheus_query(context):
         template = Environment(loader=BaseLoader).from_string(keda_prometheus_query)
         kwargs = {k: context[k] for k in KEDA_PROMETHEUS_QUERY_ARGS}
         return template.render(**kwargs)
+
+
+def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
+    resources_labels: List[Tuple[str, Any]] = []
+    if value:
+        try:
+            json_value = json.loads(value)
+        except json.JSONDecodeError as e:
+            raise click.ClickException(
+                '"--resources-labels=%s" contains invalid JSON value: %s'
+                % (value, str(e))
+            )
+        if isinstance(json_value, dict):
+            resources_labels = cast(List[Tuple[str, Any]], list(json_value.items()))
+        else:
+            type_name = type(json_value).__name__
+            raise click.ClickException(
+                '"--resources-labels=%s" contains value with type "%s" instead "dict"'
+                % (value, type_name)
+            )
+    return resources_labels
 
 
 @click.group("workflow")
@@ -296,6 +318,12 @@ def workflow_cli(gordo_ctx):
     envvar=f"{PREFIX}_KEDA_PROMETHEUS_THRESHOLD",
     default=DEFAULT_KEDA_PROMETHEUS_THRESHOLD,
 )
+@click.option(
+    "--resources-labels",
+    help="Additional labels for resources. Have to be empty string or a dictionary in JSON format",
+    envvar=f"{PREFIX}_RESOURCE_LABELS",
+    default="",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
@@ -314,6 +342,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["log_level"] = log_level.upper()
 
     validate_generate_context(context)
+
+    context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 
     model_builder_env = None
     if context["custom_model_builder_envs"]:

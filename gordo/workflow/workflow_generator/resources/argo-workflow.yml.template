@@ -18,6 +18,8 @@ metadata:
     applications.gordo.equinor.com/project-name: "{{project_name}}"
     applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if project_workflow %}
     applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
+    {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+    {% endfor %}{% endif %}
   {% if owner_references is defined %}
   ownerReferences: {{owner_references}}
   {% endif %}
@@ -186,6 +188,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                    {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                   {% endif %}
@@ -220,6 +224,8 @@ spec:
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
             applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+            {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+            {% endfor %}{% endif %}
         {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
         {% endif %}
@@ -233,6 +239,8 @@ spec:
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
+                  {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                  {% endfor %}{% endif %}
                 annotations:
                   applications.gordo.equinor.com/project-name: "{{project_name}}"
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
@@ -253,6 +261,8 @@ spec:
             metadata:
               labels:
                 app: gordo-influx-{{project_name}}
+                {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                {% endfor %}{% endif %}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -345,6 +355,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -379,6 +391,8 @@ spec:
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
             applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+            {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+            {% endfor %}{% endif %}
           {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
           {% endif %}
@@ -395,6 +409,8 @@ spec:
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
+                  {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                  {% endfor %}{% endif %}
                 {% if owner_references is defined %}
                 ownerReferences: {{owner_references}}
                 {% endif %}
@@ -412,6 +428,8 @@ spec:
             metadata:
               labels:
                 app: gordo-grafana-{{project_name}}
+                {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                {% endfor %}{% endif %}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -516,6 +534,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -549,6 +569,8 @@ spec:
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
             applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+            {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+            {% endfor %}{% endif %}
           {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
           {% endif %}
@@ -565,6 +587,8 @@ spec:
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
+                  {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                  {% endfor %}{% endif %}
                 {% if owner_references is defined %}
                 ownerReferences: {{owner_references}}
                 {% endif %}
@@ -582,6 +606,8 @@ spec:
             metadata:
               labels:
                 app: {{postgres_host}}
+                {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                {% endfor %}{% endif %}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -737,6 +763,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -774,6 +802,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -875,6 +905,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -914,6 +946,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -959,6 +993,8 @@ spec:
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                       applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -990,6 +1026,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -1123,6 +1161,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
