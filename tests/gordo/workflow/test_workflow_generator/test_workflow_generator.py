@@ -697,4 +697,6 @@ def test_with_resources_labels(path_to_config_files: str):
     )
     yaml.safe_load(workflow_str)
     expected_str = '"some_custom_label": "value"'
-    assert workflow_str.find(expected_str), 'Unable to find label "some_custom_label" in the generated argo-workflow'
+    assert workflow_str.find(
+        expected_str
+    ), 'Unable to find label "some_custom_label" in the generated argo-workflow'
