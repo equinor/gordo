@@ -1372,6 +1372,8 @@ spec:
         app: gordo-influx-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
