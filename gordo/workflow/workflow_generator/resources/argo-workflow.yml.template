@@ -1057,6 +1057,8 @@ spec:
                         labels:
                           app: "{{'{{inputs.parameters.host-name}}'}}"
                           project: "{{project_name}}"
+                          {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                          {% endfor %}{% endif %}
                       spec:
                         priorityClassName: server-priority
                         containers:
