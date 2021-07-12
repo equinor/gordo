@@ -832,7 +832,7 @@ spec:
                         serverAddress: "{{prometheus_server_address}}"
                         metricName: "{{keda_prometheus_metric_name}}"
                         threshold: "{{keda_prometheus_threshold}}"
-                        query: "{{keda_prometheus_query}}"{% endif %}
+                        query: '{{keda_prometheus_query}}'{% endif %}
 
   - name: gordo-server-hpa-cleanup
     retryStrategy:
@@ -1448,7 +1448,9 @@ spec:
          && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
-         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \{% if with_keda %}
+         && kubectl delete ScaledObject --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         {% endif %}
          && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_revision}}" \
          && if [ "{{log_level}}" != "DEBUG" ]; then kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}; fi
 
