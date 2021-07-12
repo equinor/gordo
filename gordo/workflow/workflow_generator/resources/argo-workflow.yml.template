@@ -846,6 +846,8 @@ spec:
         app: gordo-hpa-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -875,6 +877,8 @@ spec:
         app: gordo-hpa-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1255,6 +1259,8 @@ spec:
         app: gordo-client-waiter
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1318,6 +1324,8 @@ spec:
         app: gordo-client
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
 {{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ client_image }}:{{gordo_version}}{% if image_pull_policy %}
