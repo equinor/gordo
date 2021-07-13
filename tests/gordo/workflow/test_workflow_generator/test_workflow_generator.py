@@ -35,14 +35,14 @@ def path_to_config_files():
 
 
 def _generate_test_workflow_yaml(
-    path_to_config_files, config_filename, project_name="test-proj-name"
+    path_to_config_files, config_filename, project_name="test-proj-name", args=None
 ):
     """
     Reads a test-config file with workflow_generator, and returns the parsed
     yaml of the generated workflow
     """
     getvalue = _generate_test_workflow_str(
-        path_to_config_files, config_filename, project_name=project_name
+        path_to_config_files, config_filename, project_name=project_name, args=args
     )
     expanded_template = yaml.load(getvalue, Loader=yaml.FullLoader)
 
@@ -50,14 +50,14 @@ def _generate_test_workflow_yaml(
 
 
 def _generate_test_workflow_str(
-    path_to_config_files, config_filename, project_name="test-proj-name"
+    path_to_config_files, config_filename, project_name="test-proj-name", args=None
 ):
     """
     Reads a test-config file with workflow_generator, and returns the string
     content of the generated workflow
     """
     config_file = os.path.join(path_to_config_files, config_filename)
-    args = [
+    cli_args = [
         "workflow",
         "generate",
         "--machine-config",
@@ -65,10 +65,12 @@ def _generate_test_workflow_str(
         "--project-name",
         project_name,
     ]
+    if args:
+        cli_args.extend(args)
     runner = CliRunner()
 
     with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, args)
+        result = runner.invoke(cli.gordo, cli_args)
 
     if result.exception is not None:
         raise result.exception
@@ -631,3 +633,70 @@ def test_expected_models_in_workflow(repo_dir):
 def test_default_image_pull_policy(gordo_version, expected):
     result = default_image_pull_policy(gordo_version)
     assert result == expected
+
+
+def _get_names_recursively(steps: list) -> list:
+    names = []
+    for step in steps:
+        if type(step) is list:
+            names.extend(_get_names_recursively(step))
+        else:
+            names.append(step["name"])
+    return names
+
+
+@pytest.mark.parametrize(
+    "args,expected_steps",
+    [
+        ([], ["gordo-server-hpa"]),
+        (["--with-keda"], ["gordo-server-hpa", "gordo-server-keda-cleanup"]),
+        (["--ml-server-hpa-type", "none"], ["gordo-server-hpa-cleanup"]),
+        (
+            ["--with-keda", "--ml-server-hpa-type", "none"],
+            ["gordo-server-keda-cleanup", "gordo-server-hpa-cleanup"],
+        ),
+        (["--ml-server-hpa-type", "k8s_cpu"], ["gordo-server-hpa"]),
+        (
+            ["--with-keda", "--ml-server-hpa-type", "k8s_cpu"],
+            ["gordo-server-hpa", "gordo-server-keda-cleanup"],
+        ),
+        (
+            [
+                "--with-keda",
+                "--ml-server-hpa-type",
+                "keda",
+                "--prometheus-server-address",
+                "http://prometheus.local",
+            ],
+            ["gordo-server-keda", "gordo-server-hpa-cleanup"],
+        ),
+    ],
+)
+def test_hpa_types(path_to_config_files: str, args: list, expected_steps: list):
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", args=args
+    )
+    workflow = yaml.safe_load(workflow_str)
+    templates = workflow["spec"]["templates"]
+    gordo_server_step = [step for step in templates if step["name"] == "gordo-server"][
+        0
+    ]
+    names = _get_names_recursively(gordo_server_step["steps"])
+    for expected_step in expected_steps:
+        assert expected_step in names, (
+            "Unable to found expected gordo-server step '%s' with args: %s"
+            % (expected_step, " ".join(args))
+        )
+
+
+def test_with_resources_labels(path_to_config_files: str):
+    resources_labels = '{"some_custom_label": "value"}'
+    args = ["--resources-labels", resources_labels]
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", args=args
+    )
+    yaml.safe_load(workflow_str)
+    expected_str = '"some_custom_label": "value"'
+    assert workflow_str.find(
+        expected_str
+    ), 'Unable to find label "some_custom_label" in the generated argo-workflow'

@@ -18,6 +18,8 @@ metadata:
     applications.gordo.equinor.com/project-name: "{{project_name}}"
     applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if project_workflow %}
     applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
+    {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+    {% endfor %}{% endif %}
   {% if owner_references is defined %}
   ownerReferences: {{owner_references}}
   {% endif %}
@@ -49,6 +51,8 @@ spec:
         app: ensure-single-workflow
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -105,6 +109,8 @@ spec:
         app: apply-with-retries
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -186,6 +192,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                    {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                   {% endif %}
@@ -220,6 +228,8 @@ spec:
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
             applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+            {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+            {% endfor %}{% endif %}
         {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
         {% endif %}
@@ -233,6 +243,8 @@ spec:
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
+                  {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                  {% endfor %}{% endif %}
                 annotations:
                   applications.gordo.equinor.com/project-name: "{{project_name}}"
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
@@ -253,6 +265,8 @@ spec:
             metadata:
               labels:
                 app: gordo-influx-{{project_name}}
+                {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                {% endfor %}{% endif %}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -299,6 +313,8 @@ spec:
         app: gordo-influx-database-creator
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -345,6 +361,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -379,6 +397,8 @@ spec:
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
             applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+            {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+            {% endfor %}{% endif %}
           {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
           {% endif %}
@@ -395,6 +415,8 @@ spec:
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
+                  {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                  {% endfor %}{% endif %}
                 {% if owner_references is defined %}
                 ownerReferences: {{owner_references}}
                 {% endif %}
@@ -412,6 +434,8 @@ spec:
             metadata:
               labels:
                 app: gordo-grafana-{{project_name}}
+                {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                {% endfor %}{% endif %}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -467,6 +491,8 @@ spec:
         app: gordo-grafana-datasource-creator
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -516,6 +542,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -549,6 +577,8 @@ spec:
             app.kubernetes.io/managed-by: gordo
             applications.gordo.equinor.com/project-name: "{{project_name}}"
             applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+            {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+            {% endfor %}{% endif %}
           {% if owner_references is defined %}
           ownerReferences: {{owner_references}}
           {% endif %}
@@ -565,6 +595,8 @@ spec:
                   applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                   app.kubernetes.io/part-of: gordo
                   app.kubernetes.io/managed-by: gordo
+                  {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                  {% endfor %}{% endif %}
                 {% if owner_references is defined %}
                 ownerReferences: {{owner_references}}
                 {% endif %}
@@ -582,6 +614,8 @@ spec:
             metadata:
               labels:
                 app: {{postgres_host}}
+                {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                {% endfor %}{% endif %}
               {% if owner_references is defined %}
               ownerReferences: {{owner_references}}
               {% endif %}
@@ -666,6 +700,8 @@ spec:
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
         applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
 {{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     tolerations:
       - effect: NoSchedule
         key: kubernetes.azure.com/scalesetpriority
@@ -737,6 +773,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -749,6 +787,113 @@ spec:
                     maxReplicas: {{ max_server_replicas }}
                     targetCPUUtilizationPercentage: 25
 
+{% if with_keda %}
+  - name: gordo-server-keda
+    inputs:
+      parameters:
+      - name: host-name
+    steps:
+      - - name: apply-with-retries
+          template: apply-with-retries
+          arguments:
+            parameters:
+              - name: resource
+                value:  |
+                  ---
+                  apiVersion: keda.sh/v1alpha1
+                  kind: ScaledObject
+                  metadata:
+                    name: "gordoserver-scaled-object-{{project_name}}"
+                    labels:
+                      app: "{{'{{inputs.parameters.host-name}}'}}"
+                      app.kubernetes.io/name: model-server
+                      app.kubernetes.io/component: service
+                      app.kubernetes.io/part-of: gordo
+                      app.kubernetes.io/managed-by: gordo
+                      applications.gordo.equinor.com/project-name: "{{project_name}}"
+                      applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
+                    {% if owner_references is defined %}
+                    ownerReferences: {{owner_references}}
+                    {% endif %}
+                  spec:
+                    scaleTargetRef:
+                      apiVersion: apps/v1
+                      kind: Deployment
+                      name: "{{'{{inputs.parameters.host-name}}'}}"
+                    pollingInterval: 30
+                    cooldownPeriod: 600
+                    minReplicaCount: 1
+                    maxReplicaCount: 20
+                    triggers:
+                    - type: prometheus
+                      metadata:
+                        serverAddress: "{{prometheus_server_address}}"
+                        metricName: "{{keda_prometheus_metric_name}}"
+                        threshold: "{{keda_prometheus_threshold}}"
+                        query: '{{keda_prometheus_query}}'{% endif %}
+
+  - name: gordo-server-hpa-cleanup
+    retryStrategy:
+      limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
+    metadata:
+      labels:
+        app: gordo-hpa-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
+      imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [bash]
+      source: |
+        echo "Deleting gordo's hpa for project {{project_name}}" \
+         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
+         && echo "Deleting Succeeded gordo hpa's for project={{project_name}}"
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 50M
+          cpu: 200m
+
+  {% if with_keda %}
+  - name: gordo-server-keda-cleanup
+    retryStrategy:
+      limit: 5
+      retryPolicy: "Always"
+      backoff:
+        duration: "{{retry_backoff_duration}}"
+        factor: {{retry_backoff_factor}}
+    metadata:
+      labels:
+        app: gordo-hpa-cleanup
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
+        applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
+    script:
+      image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
+      imagePullPolicy: "{{image_pull_policy}}"{% endif %}
+      command: [bash]
+      source: |
+        echo "Deleting gordo's ScaledObjects for project {{project_name}}" \
+         && kubectl delete ScaledObject --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
+         && echo "Succeeded deleting gordo's ScaledObjects for project={{project_name}}"
+      resources:
+        requests:
+          memory: 50M
+          cpu: 10m
+        limits:
+          memory: 50M
+          cpu: 200m{% endif %}
 
   - name: gordo-server-svc
     inputs:
@@ -774,6 +919,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -813,6 +960,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -858,6 +1007,8 @@ spec:
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
                       applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.model-name}}'}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -889,6 +1040,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -904,6 +1057,8 @@ spec:
                         labels:
                           app: "{{'{{inputs.parameters.host-name}}'}}"
                           project: "{{project_name}}"
+                          {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                          {% endfor %}{% endif %}
                       spec:
                         priorityClassName: server-priority
                         containers:
@@ -1022,6 +1177,8 @@ spec:
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+                      {% endfor %}{% endif %}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
                     {% endif %}
@@ -1042,10 +1199,26 @@ spec:
         template: gordo-server-deployment
         arguments:
           parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
-    - - name: gordo-server-hpa
+    - {% if not ml_server_hpa_type or ml_server_hpa_type == 'k8s_cpu' %}- name: gordo-server-hpa
         template: gordo-server-hpa
         arguments:
+          parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]{% if with_keda %}
+      - name: gordo-server-keda-cleanup
+        template: gordo-server-keda-cleanup
+      {% endif %}{% elif with_keda and ml_server_hpa_type == "keda" %}
+      - name: gordo-server-keda
+        template: gordo-server-keda
+        arguments:
           parameters: [{name: host-name, value: {{ '"{{inputs.parameters.host-name}}"' }} }]
+      - name: gordo-server-hpa-cleanup
+        template: gordo-server-hpa-cleanup
+      {% else %}{% if with_keda %}
+      - name: gordo-server-keda-cleanup
+        template: gordo-server-keda-cleanup
+      {% endif %}
+      - name: gordo-server-hpa-cleanup
+        template: gordo-server-hpa-cleanup
+      {% endif %}
       - name: gordo-server-svc
         template: gordo-server-svc
         arguments:
@@ -1088,6 +1261,8 @@ spec:
         app: gordo-client-waiter
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1151,6 +1326,8 @@ spec:
         app: gordo-client
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
 {{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ client_image }}:{{gordo_version}}{% if image_pull_policy %}
@@ -1205,6 +1382,8 @@ spec:
         app: gordo-influx-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1237,6 +1416,8 @@ spec:
         app: gordo-postgres-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1266,6 +1447,8 @@ spec:
         app: gordo-cleanup
         applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"
+        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
+        {% endfor %}{% endif %}
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1275,7 +1458,9 @@ spec:
          && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
          && kubectl delete models -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
-         && kubectl delete hpa -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \{% if with_keda %}
+         && kubectl delete ScaledObject --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
+         {% endif %}
          && echo "Deleting Succeeded gordo pods for project={{project_name}} version={{project_revision}}" \
          && if [ "{{log_level}}" != "DEBUG" ]; then kubectl delete pods --field-selector=status.phase==Succeeded -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision={{project_revision}}; fi
 
