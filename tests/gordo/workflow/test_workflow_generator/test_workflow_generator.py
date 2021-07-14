@@ -14,6 +14,7 @@ from click.testing import CliRunner
 
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo import cli
+from gordo.cli.workflow_generator import prepare_keda_parameters
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator.workflow_generator import (
     default_image_pull_policy,
@@ -700,3 +701,15 @@ def test_with_resources_labels(path_to_config_files: str):
     assert workflow_str.find(
         expected_str
     ), 'Unable to find label "some_custom_label" in the generated argo-workflow'
+
+
+def test_prepare_keda_parameters():
+    context = {
+        "project_name": "test",
+        "project_revision": "111",
+        "keda_prometheus_metric_name": "metric_{{project_name}}",
+        "keda_prometheus_query": 'sum(metric{revision="{{project_revision}}"})',
+    }
+    context = prepare_keda_parameters(context)
+    assert context["keda_prometheus_metric_name"] == "metric_test"
+    assert context["keda_prometheus_query"] == 'sum(metric{revision="111"})'
