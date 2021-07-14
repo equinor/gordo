@@ -26,7 +26,9 @@ DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL = ReportLevel.TRACEBACK
 ML_SERVER_HPA_TYPES = ["none", "k8s_cpu", "keda"]
 DEFAULT_ML_SERVER_HPA_TYPE = "k8s_cpu"
 
-DEFAULT_KEDA_PROMETHEUS_METRIC_NAME = "gordo_server_request_duration_seconds_count"
+DEFAULT_KEDA_PROMETHEUS_METRIC_NAME = (
+    "gordo_server_request_duration_seconds_count-{{project_name}}-{{project_revision}}"
+)
 DEFAULT_KEDA_PROMETHEUS_QUERY = 'sum(rate(gordo_server_request_duration_seconds_count{project=~"{{project_name}}",path=~".*prediction"}[30s]))'
 DEFAULT_KEDA_PROMETHEUS_THRESHOLD = "1.0"
 
@@ -102,15 +104,23 @@ def validate_generate_context(context):
             )
 
 
-KEDA_PROMETHEUS_QUERY_ARGS = ["project_name"]
+KEDA_PROMETHEUS_QUERY_ARGS = ["project_name", "project_revision"]
+
+_keda_jinja_env = Environment(loader=BaseLoader())
 
 
-def prepare_keda_prometheus_query(context):
-    keda_prometheus_query = context["keda_prometheus_query"]
-    if keda_prometheus_query:
-        template = Environment(loader=BaseLoader).from_string(keda_prometheus_query)
-        kwargs = {k: context[k] for k in KEDA_PROMETHEUS_QUERY_ARGS}
-        return template.render(**kwargs)
+def render_keda_parameter_value(value: str, context) -> str:
+    template = _keda_jinja_env.from_string(value)
+    kwargs = {k: context[k] for k in KEDA_PROMETHEUS_QUERY_ARGS}
+    return template.render(**kwargs)
+
+
+def prepare_keda_parameters(context):
+    for parameter_name in ("keda_prometheus_metric_name", "keda_prometheus_query"):
+        value = context[parameter_name]
+        if value:
+            context[parameter_name] = render_keda_parameter_value(value, context)
+    return context
 
 
 def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
@@ -436,7 +446,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     context["postgres_host"] = f"gordo-postgres-{config.project_name}"
 
-    context["keda_prometheus_query"] = prepare_keda_prometheus_query(context)
+    context = prepare_keda_parameters(context)
 
     # If enabling influx, we setup a postgres reporter to send metadata
     # to allowing querying about the machine from grafana
