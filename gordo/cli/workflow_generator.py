@@ -30,7 +30,7 @@ DEFAULT_KEDA_PROMETHEUS_METRIC_NAME = (
     "gordo_server_request_duration_seconds_count-{{project_name}}-{{project_revision}}"
 )
 DEFAULT_KEDA_PROMETHEUS_QUERY = 'sum(rate(gordo_server_request_duration_seconds_count{project=~"{{project_name}}",path=~".*prediction"}[30s]))'
-DEFAULT_KEDA_PROMETHEUS_THRESHOLD = "1.0"
+DEFAULT_KEDA_PROMETHEUS_THRESHOLD = "1"
 
 
 def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel:
