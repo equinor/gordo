@@ -29,7 +29,7 @@ DEFAULT_ML_SERVER_HPA_TYPE = "k8s_cpu"
 DEFAULT_KEDA_PROMETHEUS_METRIC_NAME = (
     "gordo_server_request_duration_seconds_count-{{project_name}}-{{project_revision}}"
 )
-DEFAULT_KEDA_PROMETHEUS_QUERY = 'sum(rate(gordo_server_request_duration_seconds_count{project=~"{{project_name}}",path=~".*prediction"}[30s]))'
+DEFAULT_KEDA_PROMETHEUS_QUERY = 'sum(rate(gordo_server_request_duration_seconds_count{project=~"{{project_name}}",path=~".*prediction"}[5m]))'
 DEFAULT_KEDA_PROMETHEUS_THRESHOLD = "1"
 
 
