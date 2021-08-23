@@ -13,7 +13,7 @@ black==19.3b0
 pytest-flakes~=4.0.3
 adal~=1.2
 jupyter~=1.0.0
-notebook~=6.1
+notebook~=6.4
 nbconvert~=6.0
 urllib3~=1.26
 pytest-benchmark~=3.4
