@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.7.10-buster as builder
+FROM python:3.7.11-buster as builder
 
 # Copy source code
 COPY . /code
@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y \
     libhogweed4=3.4.1-1+deb10u1 \
     liblz4-1=1.8.3-1+deb10u1 \
     libnettle6=3.4.1-1+deb10u1 \
+    libssl1.1=1.1.1d-0+deb10u7 \
+    openssl=1.1.1d-0+deb10u7 \
  && rm -rf /var/lib/apt/lists/*
 
 # Nonroot user for running CMD
