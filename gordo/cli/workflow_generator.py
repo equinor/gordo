@@ -323,6 +323,13 @@ def workflow_cli(gordo_ctx):
     envvar=f"{PREFIX}_RESOURCE_LABELS",
     default="",
 )
+@click.option(
+    "--server-termination-grace-period",
+    help="terminationGracePeriodSeconds for the gordo server",
+    envvar=f"{PREFIX}_SERVER_TERMINATION_GRACE_PERIOD",
+    type=int,
+    default=60,
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
