@@ -1061,6 +1061,7 @@ spec:
                           {% endfor %}{% endif %}
                       spec:
                         priorityClassName: server-priority
+                        terminationGracePeriodSeconds: {{ server_termination_grace_period|default(60, true) }}
                         containers:
                            - image: "{{ docker_registry }}/{{ docker_repository }}/{{ server_image }}:{{gordo_version}}"{% if image_pull_policy %}
                              imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1080,7 +1081,6 @@ spec:
                                  port: http-api
                                initialDelaySeconds: 600 # We give it a lot of time to load the model and start up
                                timeoutSeconds: {{ gordo_server_probe_timeout|default(5, true) }}
-                               terminationGracePeriodSeconds: {{ server_termination_grace_period|default(60, true) }}
                              readinessProbe:
                                httpGet:
                                  path: /healthcheck
@@ -1128,7 +1128,6 @@ spec:
                                  port: metrics
                                initialDelaySeconds: 60
                                timeoutSeconds: 5
-                               terminationGracePeriodSeconds: {{ server_termination_grace_period|default(60, true) }}
                              readinessProbe:
                                httpGet:
                                  path: /healthcheck
