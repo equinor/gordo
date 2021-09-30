@@ -1061,6 +1061,7 @@ spec:
                           {% endfor %}{% endif %}
                       spec:
                         priorityClassName: server-priority
+                        terminationGracePeriodSeconds: {{ server_termination_grace_period|default(60, true) }}
                         containers:
                            - image: "{{ docker_registry }}/{{ docker_repository }}/{{ server_image }}:{{gordo_version}}"{% if image_pull_policy %}
                              imagePullPolicy: "{{image_pull_policy}}"{% endif %}
@@ -1145,7 +1146,6 @@ spec:
                                  memory: "{{ prometheus_metrics_server_resources['limits']['memory'] }}M"
                                  cpu: "{{ prometheus_metrics_server_resources['limits']['cpu'] }}m"
                            {% endif %}
-                        terminationGracePeriodSeconds: 1
                         volumes:
                           - name: gstor
                             persistentVolumeClaim:
