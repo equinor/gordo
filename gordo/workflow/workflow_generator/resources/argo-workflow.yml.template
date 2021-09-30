@@ -1146,7 +1146,6 @@ spec:
                                  memory: "{{ prometheus_metrics_server_resources['limits']['memory'] }}M"
                                  cpu: "{{ prometheus_metrics_server_resources['limits']['cpu'] }}m"
                            {% endif %}
-                        terminationGracePeriodSeconds: 1
                         volumes:
                           - name: gstor
                             persistentVolumeClaim:
