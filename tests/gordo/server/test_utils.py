@@ -6,6 +6,7 @@ import numpy as np
 import dateutil
 
 from gordo.server import utils as server_utils
+from gordo.server.utils import find_path_in_dict
 
 
 @pytest.mark.parametrize(
@@ -128,3 +129,42 @@ def test_dataframe_from_dict_ordering(index):
 
     assert np.alltrue(df_out.index == original.index)
     assert np.alltrue(df_out.values == original.values)
+
+
+def test_find_path_in_dict_success():
+
+    assert find_path_in_dict(["first", "second", "third"], {
+       "first": {
+           "second": {
+                "third": {
+                    "value": 43,
+                }
+           }
+       }
+    }) == {'value': 43}
+
+    assert find_path_in_dict(["first"], {
+        "first": {
+            "value": 43,
+        }
+    }) == {'value': 43}
+
+    assert find_path_in_dict([], {
+        "value": 43
+    }) == {'value': 43}
+
+    with pytest.raises(KeyError, match="Unable to find 'first.second'"):
+        find_path_in_dict(["first", "second"], {
+            "first": {
+            }
+        })
+
+    with pytest.raises(KeyError, match="Unable to find 'first.second'"):
+        find_path_in_dict(["first", "second", "third"], {
+            "first": {
+            }
+        })
+
+    with pytest.raises(KeyError, match="Unable to find 'first'"):
+        find_path_in_dict(["first", "second"], {
+        })

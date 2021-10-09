@@ -7,6 +7,7 @@ import os
 import io
 import pickle
 import inject
+import copy
 
 import dateutil
 import timeit
@@ -439,6 +440,24 @@ def normalize_sensor_tags(
     assets_config: AssetsConfig,
     asset: Optional[str] = None,
 ) -> List[SensorTag]:
+    """
+    Load tag information from the metadata
+
+    Parameters
+    ----------
+    build_dataset_metadata: dict
+        build_metadata.dataset part of the metadata
+    tag_list: TagsList
+        Tag list that needs to be loaded
+    assets_config: AssetsConfig
+    asset: Optional[str]
+        Asset name. Useful if the current `dataset` has specified one
+
+    Returns
+    -------
+    List[SensorTag]
+
+    """
     tags: Dict[str, Tag] = OrderedDict()
     for tag in tag_list:
         tag_name: str
@@ -459,3 +478,16 @@ def normalize_sensor_tags(
     for tag_name in tags.keys():
         normalized_tag_list.append(normalized_sensor_tags[tag_name])
     return normalized_tag_list
+
+
+def find_path_in_dict(path: List[str], data: dict) -> dict:
+    reversed_path = copy.copy(path)
+    reversed_path.reverse()
+    curr_data = data
+    while len(reversed_path):
+        key = reversed_path.pop()
+        if key not in curr_data:
+            exception_path = '.'.join(path[:len(path)-len(reversed_path)])
+            raise KeyError("Unable to find '%s'" % exception_path)
+        curr_data = curr_data[key]
+    return curr_data
