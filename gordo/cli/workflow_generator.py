@@ -15,6 +15,7 @@ from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
+from gordo.dependencies import configure_once
 
 
 logger = logging.getLogger(__name__)
@@ -335,6 +336,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     """
     Machine Configuration to Argo Workflow
     """
+
+    configure_once()
 
     context: Dict[Any, Any] = ctx.copy()
     yaml_content = wg.get_dict_from_yaml(context["machine_config"])
