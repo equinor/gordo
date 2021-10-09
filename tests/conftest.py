@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import tempfile
+import inject
 from threading import Lock
 from typing import List
 from unittest.mock import patch
@@ -23,6 +24,7 @@ from gordo.server import server
 from gordo.builder.local_build import local_build
 from gordo_dataset import sensor_tag
 from gordo_dataset.sensor_tag import to_list_of_strings
+from gordo_dataset.assets_config import AssetsConfig
 from gordo.server import server as gordo_ml_server
 
 from tests import utils as tu
@@ -438,3 +440,16 @@ def repo_dir():
     Return the repository directory for gordo infrastructure
     """
     return os.path.join(os.path.dirname(__file__), "..")
+
+
+@pytest.fixture
+def mock_assets_config():
+    return AssetsConfig({})
+
+
+@pytest.fixture(autouse=True)
+def configure_inject(mock_assets_config):
+    inject.clear_and_configure(
+        lambda binder: binder.bind(AssetsConfig, mock_assets_config),
+        bind_in_runtime=False,
+    )

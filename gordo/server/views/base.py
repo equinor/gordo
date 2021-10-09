@@ -16,7 +16,7 @@ from gordo.server.rest_api import Api
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
 from gordo_dataset.sensor_tag import SensorTag
-from gordo.server.utils import normalize_sensor_tags
+from gordo.server.utils import normalize_sensor_tags, find_path_in_dict
 from gordo.server import model_io
 
 
@@ -67,6 +67,14 @@ class BaseModelView(Resource):
         """
         return pd.tseries.frequencies.to_offset(g.metadata["dataset"]["resolution"])
 
+    @staticmethod
+    def load_build_dataset_metadata():
+        try:
+            build_dataset_metadata = find_path_in_dict(["metadata", "build_metadata", "dataset"], g.metadata)
+        except KeyError as e:
+            raise ValueError("Unable to load build dataset metadata: %s" % str(e))
+        return build_dataset_metadata
+
     @property
     def tags(self) -> typing.List[SensorTag]:
         """
@@ -76,10 +84,12 @@ class BaseModelView(Resource):
         -------
         typing.List[SensorTag]
         """
+        tag_list = g.metadata["dataset"]["tag_list"]
+        build_dataset_metadata = self.load_build_dataset_metadata()
         return normalize_sensor_tags(
-            g.metadata["dataset"]["tag_list"],
+            build_dataset_metadata,
+            tag_list,
             asset=g.metadata["dataset"].get("asset"),
-            default_asset=g.metadata["dataset"].get("default_asset"),
         )
 
     @property
@@ -96,10 +106,11 @@ class BaseModelView(Resource):
         if "target_tag_list" in g.metadata["dataset"]:
             orig_target_tag_list = g.metadata["dataset"]["target_tag_list"]
         if orig_target_tag_list:
+            build_dataset_metadata = self.load_build_dataset_metadata()
             return normalize_sensor_tags(
+                build_dataset_metadata,
                 orig_target_tag_list,
                 asset=g.metadata["dataset"].get("asset"),
-                default_asset=g.metadata["dataset"].get("default_asset"),
             )
         else:
             return self.tags
