@@ -147,9 +147,9 @@ google-auth-oauthlib==0.4.1
     # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==3.0.6
+gordo-client==4.0.0.dev2
     # via -r requirements.in
-gordo-dataset==2.7.5
+gordo-dataset==3.0.0rc1
     # via
     #   -r requirements.in
     #   gordo-client
@@ -177,6 +177,8 @@ influxdb==5.3.0
     # via
     #   gordo-client
     #   gordo-dataset
+inject==4.2.0
+    # via gordo-dataset
 isodate==0.6.0
     # via msrest
 itsdangerous==1.1.0
@@ -334,6 +336,7 @@ pydantic==1.8.2
     # via
     #   -r requirements.in
     #   gordo-client
+    #   gordo-dataset
 pyjwt[crypto]==1.7.1
     # via
     #   adal
