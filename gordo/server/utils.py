@@ -23,7 +23,12 @@ from sklearn.base import BaseEstimator
 from werkzeug.exceptions import NotFound
 
 from gordo import serializer
-from gordo_dataset.sensor_tag import normalize_sensor_tag, extract_tag_name, SensorTag, Tag
+from gordo_dataset.sensor_tag import (
+    normalize_sensor_tag,
+    extract_tag_name,
+    SensorTag,
+    Tag,
+)
 from gordo_dataset.dataset_metadata import sensor_tags_from_build_metadata
 from gordo_dataset.assets_config import AssetsConfig
 
@@ -427,8 +432,13 @@ def model_required(f):
 TagsList = List[Union[Dict, List, str, SensorTag]]
 
 
-@inject.autoparams('assets_config')
-def normalize_sensor_tags(build_dataset_metadata: dict, tag_list: TagsList, assets_config: AssetsConfig, asset: Optional[str] = None) -> List[SensorTag]:
+@inject.autoparams("assets_config")
+def normalize_sensor_tags(
+    build_dataset_metadata: dict,
+    tag_list: TagsList,
+    assets_config: AssetsConfig,
+    asset: Optional[str] = None,
+) -> List[SensorTag]:
     tags: Dict[str, Tag] = OrderedDict()
     for tag in tag_list:
         tag_name: str
