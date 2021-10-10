@@ -4,6 +4,8 @@ CVE-2020-14040
 CVE-2020-26160
 CVE-2021-3121
 # Remove after tensorflow update
-CVE-2020-13757 # Fixed in rsa >= 4.1
+# Fixed in rsa >= 4.1
+CVE-2020-13757
 # Remove after mlflow update
-CVE-2021-32839 # Fixed in sqlparse >= 0.4.2
+# Fixed in sqlparse >= 0.4.2
+CVE-2021-32839
