@@ -327,11 +327,7 @@ def test_client_cli_predict(
     )
 
     # Run without any error
-    with patch(
-        "gordo_dataset.sensor_tag._asset_from_tag_name",
-        side_effect=lambda *args, **kwargs: "default",
-    ):
-        out = runner.invoke(gordo_client, args=args)
+    out = runner.invoke(gordo_client, args=args)
     assert out.exit_code == 0, f"{out.output}"
 
     # If we activated forwarder and we had any actual data then there should
@@ -389,11 +385,7 @@ def test_client_cli_predict_non_zero_exit(
 
     # Run without any error
     with caplog.at_level(logging.CRITICAL):
-        with patch(
-            "gordo_dataset.sensor_tag._asset_from_tag_name",
-            side_effect=lambda *args, **kwargs: "default",
-        ):
-            out = runner.invoke(gordo_client, args=args)
+        out = runner.invoke(gordo_client, args=args)
 
     if should_fail:
         assert out.exit_code != 0, f"{out.output or out.exception}"
