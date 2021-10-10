@@ -22,9 +22,7 @@ from sklearn.base import BaseEstimator
 from werkzeug.exceptions import NotFound
 
 from gordo import serializer
-from gordo_dataset.sensor_tag import (
-    SensorTag,
-)
+from gordo_dataset.sensor_tag import SensorTag
 
 """
 Tools used between different views
@@ -430,7 +428,7 @@ def find_path_in_dict(path: List[str], data: dict) -> dict:
     while len(reversed_path):
         key = reversed_path.pop()
         if key not in curr_data:
-            exception_path = '.'.join(path[:len(path)-len(reversed_path)])
+            exception_path = ".".join(path[: len(path) - len(reversed_path)])
             raise KeyError("Unable to find '%s'" % exception_path)
         curr_data = curr_data[key]
     return curr_data

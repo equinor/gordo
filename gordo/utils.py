@@ -4,7 +4,12 @@ from typing import Optional, List, Dict, cast, Union
 import inject
 from gordo_dataset.assets_config import AssetsConfig
 from gordo_dataset.dataset_metadata import sensor_tags_from_build_metadata
-from gordo_dataset.sensor_tag import SensorTag, Tag, normalize_sensor_tag, extract_tag_name
+from gordo_dataset.sensor_tag import (
+    SensorTag,
+    Tag,
+    normalize_sensor_tag,
+    extract_tag_name,
+)
 
 TagsList = List[Union[Dict, List, str, SensorTag]]
 

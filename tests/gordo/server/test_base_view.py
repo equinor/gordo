@@ -16,28 +16,28 @@ from flask import Flask, g
 def test_empty_target_tag_list():
     app = Flask(__name__)
     with app.app_context():
-        g.metadata = {"dataset": {"tag_list": [SensorTag("test", "asset"), "test1"]}, "metadata": {
-            "build_metadata": {
-                "dataset": {
-                    "dataset_meta": {
-                        "tag_loading_metadata": {
-                            "tags": {
-                                "test": {
-                                    "name": "test",
-                                    "asset": "asset",
-                                },
-                                "test1": {
-                                    "name": "test1",
-                                    "asset": "asset1",
+        g.metadata = {
+            "dataset": {"tag_list": [SensorTag("test", "asset"), "test1"]},
+            "metadata": {
+                "build_metadata": {
+                    "dataset": {
+                        "dataset_meta": {
+                            "tag_loading_metadata": {
+                                "tags": {
+                                    "test": {"name": "test", "asset": "asset"},
+                                    "test1": {"name": "test1", "asset": "asset1"},
                                 }
                             }
                         }
                     }
                 }
-            }
-        }}
+            },
+        }
         view = BaseModelView()
-        assert view.target_tags == [SensorTag("test", "asset"), SensorTag("test1", "asset1")]
+        assert view.target_tags == [
+            SensorTag("test", "asset"),
+            SensorTag("test1", "asset1"),
+        ]
 
 
 @pytest.mark.parametrize(

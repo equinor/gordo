@@ -133,38 +133,19 @@ def test_dataframe_from_dict_ordering(index):
 
 def test_find_path_in_dict_success():
 
-    assert find_path_in_dict(["first", "second", "third"], {
-       "first": {
-           "second": {
-                "third": {
-                    "value": 43,
-                }
-           }
-       }
-    }) == {'value': 43}
+    assert find_path_in_dict(
+        ["first", "second", "third"], {"first": {"second": {"third": {"value": 43}}}}
+    ) == {"value": 43}
 
-    assert find_path_in_dict(["first"], {
-        "first": {
-            "value": 43,
-        }
-    }) == {'value': 43}
+    assert find_path_in_dict(["first"], {"first": {"value": 43}}) == {"value": 43}
 
-    assert find_path_in_dict([], {
-        "value": 43
-    }) == {'value': 43}
+    assert find_path_in_dict([], {"value": 43}) == {"value": 43}
 
     with pytest.raises(KeyError, match="Unable to find 'first.second'"):
-        find_path_in_dict(["first", "second"], {
-            "first": {
-            }
-        })
+        find_path_in_dict(["first", "second"], {"first": {}})
 
     with pytest.raises(KeyError, match="Unable to find 'first.second'"):
-        find_path_in_dict(["first", "second", "third"], {
-            "first": {
-            }
-        })
+        find_path_in_dict(["first", "second", "third"], {"first": {}})
 
     with pytest.raises(KeyError, match="Unable to find 'first'"):
-        find_path_in_dict(["first", "second"], {
-        })
+        find_path_in_dict(["first", "second"], {})

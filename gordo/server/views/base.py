@@ -71,7 +71,9 @@ class BaseModelView(Resource):
     @staticmethod
     def load_build_dataset_metadata():
         try:
-            build_dataset_metadata = find_path_in_dict(["metadata", "build_metadata", "dataset"], g.metadata)
+            build_dataset_metadata = find_path_in_dict(
+                ["metadata", "build_metadata", "dataset"], g.metadata
+            )
         except KeyError as e:
             raise ValueError("Unable to load build dataset metadata: %s" % str(e))
         return build_dataset_metadata
@@ -88,9 +90,7 @@ class BaseModelView(Resource):
         tag_list = g.metadata["dataset"]["tag_list"]
         build_dataset_metadata = self.load_build_dataset_metadata()
         return normalize_sensor_tags(
-            build_dataset_metadata,
-            tag_list,
-            asset=g.metadata["dataset"].get("asset"),
+            build_dataset_metadata, tag_list, asset=g.metadata["dataset"].get("asset")
         )
 
     @property
