@@ -215,7 +215,15 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
 
 
 @pytest.fixture(scope="session")
-def trained_model_directories(model_collection_directory: str, config_str: str):
+def session_configure_inject():
+    inject.clear_and_configure(
+        lambda binder: binder.bind(AssetsConfig, AssetsConfig({})),
+        bind_in_runtime=False,
+    )
+
+
+@pytest.fixture(scope="session")
+def trained_model_directories(model_collection_directory: str, config_str: str, session_configure_inject):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
