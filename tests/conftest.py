@@ -256,9 +256,7 @@ def gordo_ml_server_client(
         app = server.build_app()
         app.testing = True
 
-        # always return a valid asset for any tag name
-        with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-            yield app.test_client()
+        yield app.test_client()
 
 
 @pytest.yield_fixture

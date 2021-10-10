@@ -2,12 +2,13 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Union, Optional, Sequence
 
 import numpy as np
 import yaml
 
 from gordo_dataset.base import GordoBaseDataset
+from gordo_dataset.sensor_tag import SensorTag
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,
@@ -17,6 +18,7 @@ from gordo.machine.validators import (
 )
 from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
+from gordo.utils import normalize_sensor_tags, TagsList
 
 
 logger = logging.getLogger(__name__)
@@ -124,6 +126,15 @@ class Machine:
             project_name=project_name,
             evaluation=evaluation,
         )
+
+    def normalize_sensor_tags(self, tag_list: TagsList):
+        # TODO better docstring
+        metadata = self.metadata
+        build_dataset_metadata = metadata.build_metadata.dataset.to_dict()
+        asset: Optional[str] = None
+        if hasattr(self.dataset, "asset"):
+            asset = self.dataset.asset
+        return normalize_sensor_tags(build_dataset_metadata, tag_list, asset=asset)
 
     def __str__(self):
         return yaml.dump(self.to_dict())
