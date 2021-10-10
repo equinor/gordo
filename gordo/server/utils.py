@@ -12,7 +12,7 @@ import copy
 import dateutil
 import timeit
 from datetime import datetime
-from typing import Union, List, Dict, Optional, Set
+from typing import Union, List, Dict, Optional, cast
 from collections import OrderedDict
 
 import pandas as pd
@@ -462,7 +462,7 @@ def normalize_sensor_tags(
     for tag in tag_list:
         tag_name: str
         if type(tag) is str:
-            tags[tag] = tag
+            tags[cast(str, tag)] = tag
         else:
             normalized_tag = normalize_sensor_tag(assets_config, tag, asset)
             tag_name = extract_tag_name(normalized_tag)
