@@ -49,23 +49,6 @@ def test_client_get_metadata(gordo_project, ml_server):
     assert client.get_metadata().get("no-such-target", None) is None
 
 
-def test_client_get_dataset(gordo_project, metadata, ml_server):
-    data_provider = providers.RandomDataProvider(min_size=10)
-    client = Client(project=gordo_project, data_provider=data_provider)
-    start = isoparse("2016-01-01T00:00:00+00:00")
-    end = isoparse("2016-01-01T12:00:00+00:00")
-    machine = Machine(**metadata)
-    assert type(machine.dataset) is TimeSeriesDataset
-    machine.dataset.row_filter_buffer_size = 12
-    machine.dataset.n_samples_threshold = 10
-    client_machine = ClientMachine(**machine.to_dict())
-    dataset = client._get_dataset(client_machine, start, end)
-    assert dataset.row_filter_buffer_size == 0
-    assert dataset.n_samples_threshold == 0
-    assert dataset.low_threshold is None
-    assert dataset.high_threshold is None
-
-
 def test_client_predict_specific_targets(gordo_project, gordo_single_target, ml_server):
     """
     Client.predict should filter any endpoints given to it.
