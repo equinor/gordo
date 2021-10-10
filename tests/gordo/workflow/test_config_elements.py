@@ -133,8 +133,8 @@ def test_machine_from_config(default_globals: dict):
         "dataset": {
             "aggregation_methods": "mean",
             "asset": "global-asset",
+            "assets_config": None,
             "data_provider": None,
-            "default_asset": None,
             "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
             "high_threshold": 50000,
             "interpolation_limit": "8H",
@@ -142,7 +142,6 @@ def test_machine_from_config(default_globals: dict):
             "known_filter_periods": None,
             "low_threshold": -1000,
             "n_samples_threshold": 0,
-            "process_metadata": True,
             "resolution": "10T",
             "row_filter": "",
             "row_filter_buffer_size": 0,

@@ -69,8 +69,7 @@ def _generate_test_workflow_str(
         cli_args.extend(args)
     runner = CliRunner()
 
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, cli_args)
+    result = runner.invoke(cli.gordo, cli_args)
 
     if result.exception is not None:
         raise result.exception
@@ -155,8 +154,7 @@ def test_basic_generation(path_to_config_files):
         os.path.join(path_to_config_files, config_filename)
     )
 
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        machines = NormalizedConfig(yaml_content, project_name=project_name).machines
+    machines = NormalizedConfig(yaml_content, project_name=project_name).machines
 
     assert len(machines) == 2
 
@@ -186,8 +184,7 @@ def test_generation_to_file(tmpdir, path_to_config_files):
         outfile,
     ]
     runner = CliRunner()
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, args)
+    result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0
 
     # Open the file and ensure they are the same
@@ -486,9 +483,9 @@ def test_main_tag_list(output_to_file, path_to_config_files, tmpdir):
         args.extend(["--output-file-tag-list", out_file])
 
     runner = CliRunner()
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, args)
+    result = runner.invoke(cli.gordo, args)
 
+    print(repr(result))
     assert result.exit_code == 0
 
     if output_to_file:
