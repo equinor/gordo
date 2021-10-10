@@ -10,7 +10,6 @@ import tempfile
 import inject
 from threading import Lock
 from typing import List
-from unittest.mock import patch
 
 import docker
 from flask import Request
@@ -22,7 +21,6 @@ from gordo_dataset.sensor_tag import SensorTag
 
 from gordo.server import server
 from gordo.builder.local_build import local_build
-from gordo_dataset import sensor_tag
 from gordo_dataset.sensor_tag import to_list_of_strings
 from gordo_dataset.assets_config import AssetsConfig
 from gordo.server import server as gordo_ml_server

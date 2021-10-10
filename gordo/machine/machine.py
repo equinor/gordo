@@ -2,13 +2,12 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Union, Optional, Sequence
+from typing import Dict, Any, Union, Optional
 
 import numpy as np
 import yaml
 
 from gordo_dataset.base import GordoBaseDataset
-from gordo_dataset.sensor_tag import SensorTag
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,

@@ -11,7 +11,7 @@ import copy
 import dateutil
 import timeit
 from datetime import datetime
-from typing import Union, List, Dict
+from typing import Union, List
 
 import pandas as pd
 import pyarrow as pa
@@ -22,7 +22,6 @@ from sklearn.base import BaseEstimator
 from werkzeug.exceptions import NotFound
 
 from gordo import serializer
-from gordo_dataset.sensor_tag import SensorTag
 
 """
 Tools used between different views
