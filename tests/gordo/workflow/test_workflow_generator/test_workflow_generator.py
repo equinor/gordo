@@ -472,33 +472,6 @@ def test_selective_influx(path_to_config_files):
     assert client_tasks == ["gordo-client-ct-23-0002"]
 
 
-@pytest.mark.parametrize("output_to_file", (True, False))
-def test_main_tag_list(output_to_file, path_to_config_files, tmpdir):
-    config_file = os.path.join(path_to_config_files, "config-test-tag-list.yml")
-    args = ["workflow", "unique-tags", "--machine-config", config_file]
-
-    out_file = os.path.join(tmpdir, "out.txt")
-
-    if output_to_file:
-        args.extend(["--output-file-tag-list", out_file])
-
-    runner = CliRunner()
-    result = runner.invoke(cli.gordo, args)
-
-    print(repr(result))
-    assert result.exit_code == 0
-
-    if output_to_file:
-        assert os.path.isfile(out_file)
-    else:
-        output_tags = set(result.output.split(sep="\n")[:-1])
-        expected_output_tags = {"Tag 1", "Tag 2", "Tag 3", "Tag 4", "Tag 5"}
-
-        assert (
-            output_tags == expected_output_tags
-        ), f"Expected to find: {expected_output_tags}, outputted {output_tags}"
-
-
 def test_valid_dateformats(path_to_config_files):
     output_workflow = _generate_test_workflow_str(
         path_to_config_files, "config-test-allowed-timestamps.yml"

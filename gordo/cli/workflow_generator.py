@@ -520,35 +520,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         project_workflow += 1
 
 
-@click.command("unique-tags")
-@click.option(
-    "--machine-config", type=str, required=True, help="Machine configuration file"
-)
-@click.option(
-    "--output-file-tag-list",
-    type=str,
-    required=False,
-    help="Optional file to dump list of unique tags",
-)
-def unique_tag_list_cli(machine_config: str, output_file_tag_list: str):
-
-    yaml_content = wg.get_dict_from_yaml(machine_config)
-
-    machines = NormalizedConfig(yaml_content, project_name="test-proj-name").machines
-
-    tag_list = set(tag for machine in machines for tag in machine.dataset.tag_list)
-
-    if output_file_tag_list:
-        with open(output_file_tag_list, "w") as output_file:
-            for tag in tag_list:
-                output_file.write(f"{tag.name}\n")
-    else:
-        for tag in tag_list:
-            print(tag.name)
-
-
 workflow_cli.add_command(workflow_generator_cli)
-workflow_cli.add_command(unique_tag_list_cli)
 
 if __name__ == "__main__":
     workflow_cli()
