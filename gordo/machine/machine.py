@@ -2,12 +2,13 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Union, Optional
+from typing import Dict, Any, Union, Optional, List
 
 import numpy as np
 import yaml
 
 from gordo_dataset.base import GordoBaseDataset
+from gordo_dataset.sensor_tag import SensorTag
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,
@@ -126,8 +127,19 @@ class Machine:
             evaluation=evaluation,
         )
 
-    def normalize_sensor_tags(self, tag_list: TagsList):
-        # TODO better docstring
+    def normalize_sensor_tags(self, tag_list: TagsList) -> List[SensorTag]:
+        """
+        Finding assets for all of the tags according to information from the dataset metadata
+
+        Parameters
+        ----------
+        tag_list: TagsList
+
+        Returns
+        -------
+        List[SensorTag]
+
+        """
         metadata = self.metadata
         build_dataset_metadata = metadata.build_metadata.dataset.to_dict()
         asset: Optional[str] = None
