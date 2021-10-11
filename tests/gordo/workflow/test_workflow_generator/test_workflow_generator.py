@@ -69,8 +69,7 @@ def _generate_test_workflow_str(
         cli_args.extend(args)
     runner = CliRunner()
 
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, cli_args)
+    result = runner.invoke(cli.gordo, cli_args)
 
     if result.exception is not None:
         raise result.exception
@@ -155,8 +154,7 @@ def test_basic_generation(path_to_config_files):
         os.path.join(path_to_config_files, config_filename)
     )
 
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        machines = NormalizedConfig(yaml_content, project_name=project_name).machines
+    machines = NormalizedConfig(yaml_content, project_name=project_name).machines
 
     assert len(machines) == 2
 
@@ -186,8 +184,7 @@ def test_generation_to_file(tmpdir, path_to_config_files):
         outfile,
     ]
     runner = CliRunner()
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, args)
+    result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0
 
     # Open the file and ensure they are the same
@@ -473,33 +470,6 @@ def test_selective_influx(path_to_config_files):
 
     # And we have a single client task for the one client we want running
     assert client_tasks == ["gordo-client-ct-23-0002"]
-
-
-@pytest.mark.parametrize("output_to_file", (True, False))
-def test_main_tag_list(output_to_file, path_to_config_files, tmpdir):
-    config_file = os.path.join(path_to_config_files, "config-test-tag-list.yml")
-    args = ["workflow", "unique-tags", "--machine-config", config_file]
-
-    out_file = os.path.join(tmpdir, "out.txt")
-
-    if output_to_file:
-        args.extend(["--output-file-tag-list", out_file])
-
-    runner = CliRunner()
-    with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-        result = runner.invoke(cli.gordo, args)
-
-    assert result.exit_code == 0
-
-    if output_to_file:
-        assert os.path.isfile(out_file)
-    else:
-        output_tags = set(result.output.split(sep="\n")[:-1])
-        expected_output_tags = {"Tag 1", "Tag 2", "Tag 3", "Tag 4", "Tag 5"}
-
-        assert (
-            output_tags == expected_output_tags
-        ), f"Expected to find: {expected_output_tags}, outputted {output_tags}"
 
 
 def test_valid_dateformats(path_to_config_files):

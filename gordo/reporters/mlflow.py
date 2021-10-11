@@ -19,9 +19,9 @@ from pytz import UTC
 
 from gordo.builder import ModelBuilder
 from gordo.machine import Machine
-from gordo_dataset.sensor_tag import normalize_sensor_tags
 from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
+from gordo_dataset.sensor_tag import extract_tag_name
 from .base import BaseReporter
 from .exceptions import ReporterException
 
@@ -231,9 +231,7 @@ def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
 
     # Parse cross-validation metrics
 
-    tag_list = normalize_sensor_tags(
-        machine.dataset.tag_list, asset=machine.dataset.asset
-    )
+    tag_list = machine.normalize_sensor_tags(machine.dataset.tag_list)
     scores = build_metadata.model.cross_validation.scores
 
     keys = sorted(list(scores.keys()))
@@ -242,7 +240,7 @@ def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
     n_folds = len(scores[keys[0]]) - len(subkeys)
     for k in keys:
         # Skip per tag data, produces too many params for MLflow
-        if any([t.name in k for t in tag_list]):
+        if any([extract_tag_name(t) in k for t in tag_list]):
             continue
 
         # Summary stats per metric

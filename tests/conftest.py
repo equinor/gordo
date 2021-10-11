@@ -7,9 +7,9 @@ import logging
 import os
 import re
 import tempfile
+import inject
 from threading import Lock
 from typing import List
-from unittest.mock import patch
 
 import docker
 from flask import Request
@@ -21,8 +21,8 @@ from gordo_dataset.sensor_tag import SensorTag
 
 from gordo.server import server
 from gordo.builder.local_build import local_build
-from gordo_dataset import sensor_tag
 from gordo_dataset.sensor_tag import to_list_of_strings
+from gordo_dataset.assets_config import AssetsConfig
 from gordo.server import server as gordo_ml_server
 
 from tests import utils as tu
@@ -215,7 +215,17 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
 
 
 @pytest.fixture(scope="session")
-def trained_model_directories(model_collection_directory: str, config_str: str):
+def session_configure_inject():
+    inject.clear_and_configure(
+        lambda binder: binder.bind(AssetsConfig, AssetsConfig({})),
+        bind_in_runtime=False,
+    )
+
+
+@pytest.fixture(scope="session")
+def trained_model_directories(
+    model_collection_directory: str, config_str: str, session_configure_inject
+):
     """
     Fixture: Train a basic AutoEncoder and save it to a given directory
     will also save some metadata with the model
@@ -254,9 +264,7 @@ def gordo_ml_server_client(
         app = server.build_app()
         app.testing = True
 
-        # always return a valid asset for any tag name
-        with patch.object(sensor_tag, "_asset_from_tag_name", return_value="default"):
-            yield app.test_client()
+        yield app.test_client()
 
 
 @pytest.yield_fixture
@@ -438,3 +446,16 @@ def repo_dir():
     Return the repository directory for gordo infrastructure
     """
     return os.path.join(os.path.dirname(__file__), "..")
+
+
+@pytest.fixture
+def mock_assets_config():
+    return AssetsConfig({})
+
+
+@pytest.fixture(autouse=True)
+def configure_inject(mock_assets_config):
+    inject.clear_and_configure(
+        lambda binder: binder.bind(AssetsConfig, mock_assets_config),
+        bind_in_runtime=False,
+    )
