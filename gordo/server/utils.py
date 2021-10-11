@@ -421,7 +421,7 @@ def model_required(f):
 
 def find_path_in_dict(path: List[str], data: dict) -> Any:
     """
-    Find a path in dictionary recursively
+    Find a path in `dict` recursively
 
     Examples
     --------
