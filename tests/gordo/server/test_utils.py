@@ -141,11 +141,11 @@ def test_find_path_in_dict_success():
 
     assert find_path_in_dict([], {"value": 43}) == {"value": 43}
 
-    with pytest.raises(KeyError, match="Unable to find 'first.second'"):
+    with pytest.raises(KeyError, match="'first.second' is absent"):
         find_path_in_dict(["first", "second"], {"first": {}})
 
-    with pytest.raises(KeyError, match="Unable to find 'first.second'"):
+    with pytest.raises(KeyError, match="'first.second' is absent"):
         find_path_in_dict(["first", "second", "third"], {"first": {}})
 
-    with pytest.raises(KeyError, match="Unable to find 'first'"):
+    with pytest.raises(KeyError, match="'first' is absent"):
         find_path_in_dict(["first", "second"], {})

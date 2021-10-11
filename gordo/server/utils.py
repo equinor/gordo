@@ -11,7 +11,7 @@ import copy
 import dateutil
 import timeit
 from datetime import datetime
-from typing import Union, List
+from typing import Union, List, Any
 
 import pandas as pd
 import pyarrow as pa
@@ -419,8 +419,24 @@ def model_required(f):
     return wrapper
 
 
-def find_path_in_dict(path: List[str], data: dict) -> dict:
-    # TODO better docstring
+def find_path_in_dict(path: List[str], data: dict) -> Any:
+    """
+    Find a path in dictionary recursively
+
+    Examples
+    --------
+    >>> find_path_in_dict(["parent", "child"], {"parent": {"child": 42}})
+    42
+
+    Parameters
+    ----------
+    path: List[str]
+    data: dict
+
+    Returns
+    -------
+
+    """
     reversed_path = copy.copy(path)
     reversed_path.reverse()
     curr_data = data
@@ -428,6 +444,6 @@ def find_path_in_dict(path: List[str], data: dict) -> dict:
         key = reversed_path.pop()
         if key not in curr_data:
             exception_path = ".".join(path[: len(path) - len(reversed_path)])
-            raise KeyError("Unable to find '%s'" % exception_path)
+            raise KeyError("'%s' is absent" % exception_path)
         curr_data = curr_data[key]
     return curr_data
