@@ -133,7 +133,6 @@ def test_machine_from_config(default_globals: dict):
         "dataset": {
             "aggregation_methods": "mean",
             "asset": "global-asset",
-            "assets_config": None,
             "data_provider": None,
             "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
             "high_threshold": 50000,
