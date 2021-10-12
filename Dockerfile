@@ -47,11 +47,11 @@ RUN pip install -r full_requirements.txt --no-cache-dir
 COPY --from=builder /code/dist/gordo-packed.tar.gz .
 RUN pip install gordo-packed.tar.gz[full]
 
-COPY ./gordo_dataset-3.0.0rc4-py3-none-any.whl /code/dist/gordo_dataset-3.0.0rc4-py3-none-any.whl
+COPY ./gordo_dataset-3.0.0rc3-py3-none-any.whl /code/dist/gordo_dataset-3.0.0rc3-py3-none-any.whl
 
-RUN ls -l /code/dist/gordo_dataset-3.0.0rc4-py3-none-any.whl
+RUN ls -l /code/dist/gordo_dataset-3.0.0rc3-py3-none-any.whl
 
-RUN pip install /code/dist/gordo_dataset-3.0.0rc4-py3-none-any.whl
+RUN pip install /code/dist/gordo_dataset-3.0.0rc3-py3-none-any.whl
 
 RUN pip install azure-storage-file-datalake==12.3.0
 
