@@ -33,7 +33,9 @@ spec:
       claimName: azurefile
   - name: datalake-access-token
     secret:
-      secretName: datalake-access-token # Must be saved{% if volumes %}
+      secretName: datalake-access-token # Must be saved
+  - name: tmpdir
+    emptyDir: {}{% if volumes %}
 {{ volumes | yaml | indent(2, True) }}{% endif %}
 
   templates:
@@ -738,7 +740,10 @@ spec:
 {{ builder_runtime["env"] | yaml | indent(6, True) }}{% endif %}
       volumeMounts:
       - name: azurefile
-        mountPath: /gordo{% if "volumeMounts" in builder_runtime %}
+        mountPath: /gordo
+      - name: tmpdir
+        mountPath: /tmp
+      {% if "volumeMounts" in builder_runtime %}
 {{ builder_runtime["volumeMounts"] | yaml | indent(6, True) }}{% endif %}
       resources:
         requests:
