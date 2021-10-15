@@ -790,7 +790,7 @@ spec:
                       name: "{{'{{inputs.parameters.host-name}}'}}"
                     minReplicas: 1
                     maxReplicas: {{ max_server_replicas }}
-                    targetCPUUtilizationPercentage: 25
+                    targetCPUUtilizationPercentage: {{ server_target_cpu_utilization_percentage }}
 
 {% if with_keda %}
   - name: gordo-server-keda
