@@ -56,9 +56,7 @@ azure-mgmt-storage==7.1.0
 azure-storage-blob==12.9.0
     # via azure-storage-file-datalake
 azure-storage-file-datalake==12.3.1
-    # via
-    #   gordo-client
-    #   gordo-dataset
+    # via gordo-dataset
 azureml-contrib-run==1.0.85
     # via -r mlflow_requirements.in
 azureml-core==1.0.85
@@ -149,9 +147,9 @@ google-auth-oauthlib==0.4.1
     # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==4.0.0.dev4
+gordo-client==4.0.0
     # via -r requirements.in
-gordo-dataset==3.0.0rc3
+gordo-dataset==3.0.0
     # via
     #   -r requirements.in
     #   gordo-client
