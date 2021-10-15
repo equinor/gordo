@@ -331,6 +331,13 @@ def workflow_cli(gordo_ctx):
     type=int,
     default=60,
 )
+@click.option(
+    "--server-target-cpu-utilization-percentage",
+    help="targetCPUUtilizationPercentage for gordo-server's HPA",
+    envvar=f"{PREFIX}_SERVER_TARGET_CPU_UTILIZATION_PERCENTAGE",
+    type=int,
+    default=50,
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
