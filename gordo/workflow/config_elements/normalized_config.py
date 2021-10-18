@@ -77,7 +77,7 @@ class NormalizedConfig:
             "builder": {
                 "resources": {
                     "requests": {"memory": 3900, "cpu": 1001},
-                    "limits": {"memory": 15600, "cpu": 1001},
+                    "limits": {"memory": 31200, "cpu": 1001},
                 },
                 "remote_logging": {"enable": False},
             },
