@@ -67,6 +67,8 @@ backports.tempfile==1.0
     # via azureml-core
 backports.weakref==1.0.post1
     # via backports.tempfile
+cached-property==1.5.2
+    # via h5py
 cachetools==4.1.1
     # via
     #   google-auth
@@ -86,6 +88,8 @@ cffi==1.13.2
     #   cryptography
 chardet==3.0.4
     # via requests
+clang==5.0
+    # via tensorflow
 click==7.1.2
     # via
     #   -r requirements.in
@@ -133,7 +137,7 @@ flask-restplus==0.13.0
     # via -r requirements.in
 flatbuffers==1.12
     # via tensorflow
-gast==0.3.3
+gast==0.4.0
     # via tensorflow
 gitdb2==2.0.6
     # via gitpython
@@ -157,7 +161,7 @@ gorilla==0.3.0
     # via mlflow
 graphviz==0.13.2
     # via catboost
-grpcio==1.32.0
+grpcio==1.41.0
     # via
     #   tensorboard
     #   tensorflow
@@ -165,7 +169,7 @@ gunicorn==20.0.4
     # via
     #   -r requirements.in
     #   mlflow
-h5py==2.10.0
+h5py==3.1.0
     # via
     #   -r requirements.in
     #   tensorflow
@@ -201,6 +205,8 @@ jsonpickle==1.2
     #   azureml-mlflow
 jsonschema==3.2.0
     # via flask-restplus
+keras==2.6.0
+    # via tensorflow
 keras-preprocessing==1.1.2
     # via tensorflow
 kiwisolver==1.1.0
@@ -434,7 +440,6 @@ six==1.15.0
     #   google-auth
     #   google-pasta
     #   grpcio
-    #   h5py
     #   influxdb
     #   isodate
     #   jsonschema
@@ -447,7 +452,6 @@ six==1.15.0
     #   python-dateutil
     #   querystring-parser
     #   retrying
-    #   tensorboard
     #   tensorflow
     #   websocket-client
 smmap2==2.0.5
@@ -462,13 +466,15 @@ stringcase==1.2.0
     # via dataclasses-json
 tabulate==0.8.6
     # via databricks-cli
-tensorboard==2.4.1
+tensorboard==2.7.0
     # via tensorflow
+tensorboard-data-server==0.6.1
+    # via tensorboard
 tensorboard-plugin-wit==1.8.0
     # via tensorboard
-tensorflow==2.4.3
+tensorflow==2.6.0
     # via -r requirements.in
-tensorflow-estimator==2.4.0
+tensorflow-estimator==2.6.0
     # via tensorflow
 termcolor==1.1.0
     # via tensorflow
