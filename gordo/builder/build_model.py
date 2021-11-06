@@ -153,8 +153,9 @@ class ModelBuilder:
                 model, machine = self._build()
                 self.cached_model_path = self._save_model(
                     model=model,
-                    metadata=self._extract_metadata(machine),
+                    machine=machine,
                     output_dir=output_dir,  # type: ignore
+                    checksum=cache_key,
                 )
                 logger.info(f"Built model, and deposited at {self.cached_model_path}")
                 logger.info(f"Writing model-location to model registry")
@@ -166,8 +167,9 @@ class ModelBuilder:
         if output_dir and (self.machine.evaluation.get("cv_mode") != "cross_val_only"):
             self.cached_model_path = self._save_model(
                 model=model,
-                metadata=self._extract_metadata(machine),
+                machine=machine,
                 output_dir=output_dir,
+                checksum=self.cache_key,
             )
         return model, machine
 
@@ -459,27 +461,38 @@ class ModelBuilder:
 
     @staticmethod
     def _save_model(
-        model: BaseEstimator, metadata: dict, output_dir: Union[os.PathLike, str]
+        model: BaseEstimator,
+        machine: Union[Machine, dict],
+        output_dir: Union[os.PathLike, str],
+        checksum: Optional[str] = None,
     ):
         """
         Save the model according to the expected Argo workflow procedure.
-
         Parameters
         ----------
         model: BaseEstimator
             The model to save to the directory with gordo serializer.
-        metadata: dict
-            The model metadata
+        machine: Union[Machine, dict]
+            Machine instance used to build this model.
         output_dir: Union[os.PathLike, str]
             The directory where to save the model, will create directories if needed.
-
+        checksum: Optional[str]
+            Model revision sha512 checksum. Might be taken from `self.check key`
         Returns
         -------
         Union[os.PathLike, str]
             Path to the saved model
         """
         os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
-        serializer.dump(model, output_dir, metadata=metadata)
+        info: Optional[dict] = None
+        if checksum is not None:
+            info = {"checksum": checksum}
+        serializer.dump(
+            model,
+            output_dir,
+            metadata=machine.to_dict() if isinstance(machine, Machine) else machine,
+            info=info,
+        )
         return output_dir
 
     @staticmethod
