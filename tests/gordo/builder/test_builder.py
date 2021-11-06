@@ -120,7 +120,11 @@ def test_output_dir(tmpdir):
     model, machine_out = builder.build()
     machine_check(machine_out, False)
 
-    builder._save_model(model=model, machine=machine_out, output_dir=output_dir)
+    builder._save_model(
+        model=model,
+        metadata=builder._extract_metadata(machine_out),
+        output_dir=output_dir,
+    )
 
     # Assert the model was saved at the location
     # Should be model file, and the metadata
