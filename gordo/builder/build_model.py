@@ -151,13 +151,16 @@ class ModelBuilder:
             # Otherwise build and cache the model
             else:
                 model, machine = self._build()
+                cache_key = self.calculate_cache_key(machine)
                 self.cached_model_path = self._save_model(
                     model=model,
                     machine=machine,
                     output_dir=output_dir,  # type: ignore
                     checksum=cache_key,
                 )
-                logger.info(f"Built model, and deposited at {self.cached_model_path}")
+                logger.info(
+                    f"Built model, and deposited at {self.cached_model_path} with checksum '{cache_key}'"
+                )
                 logger.info(f"Writing model-location to model registry")
                 disk_registry.write_key(  # type: ignore
                     model_register_dir, cache_key, self.cached_model_path
@@ -165,11 +168,9 @@ class ModelBuilder:
 
         # Save model to disk, if we're not building for cv only purposes.
         if output_dir and (self.machine.evaluation.get("cv_mode") != "cross_val_only"):
+            cache_key = self.calculate_cache_key(machine)
             self.cached_model_path = self._save_model(
-                model=model,
-                machine=machine,
-                output_dir=output_dir,
-                checksum=self.cache_key,
+                model=model, machine=machine, output_dir=output_dir, checksum=cache_key
             )
         return model, machine
 

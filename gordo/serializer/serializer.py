@@ -5,7 +5,6 @@ import logging
 import os
 import re
 import pickle
-import copy
 
 from typing import Union, Any, Optional  # pragma: no flakes
 
@@ -74,13 +73,27 @@ def metadata_path(
     Returns path to metadata.json file, if exists.
 
     """
+    return _json_file_path(source_dir, "metadata.json")
+
+
+def _json_file_path(source_dir: Union[os.PathLike, str], file_name: str):
     # Since this function can take the top level dir, or a dir directly
-    # into the first step of the pipeline, we need to check both for metadata
+    # into the first step of the pipeline, we need to check both for the file
     possible_paths = [
-        os.path.join(source_dir, "metadata.json"),
-        os.path.join(source_dir, "..", "metadata.json"),
+        os.path.join(source_dir, file_name),
+        os.path.join(source_dir, "..", file_name),
     ]
     return next((path for path in possible_paths if os.path.exists(path)), None)
+
+
+def _load_json_file(source_dir: Union[os.PathLike, str], file_name: str) -> dict:
+    file_path = _json_file_path(source_dir, file_name)
+
+    if file_path:
+        with open(file_path, "r") as f:
+            return simplejson.load(f)
+    else:
+        raise FileNotFoundError(f"'{file_name}' file not found in '{source_dir}'")
 
 
 def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
@@ -103,18 +116,12 @@ def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
     FileNotFoundError
         If a 'metadata.json' file isn't found in or above the supplied ``source_dir``
     """
-    path = metadata_path(source_dir)
-
-    if path:
-        with open(path, "r") as f:
-            return simplejson.load(f)
-    else:
-        raise FileNotFoundError(
-            f"Metadata file in source dir: '{source_dir}' not found in or up one directory."
-        )
+    return _load_json_file(source_dir, "metadata.json")
 
 
-CHECKSUM_KEY = "checksum"
+def load_info(source_dir: Union[os.PathLike, str]) -> dict:
+    # TODO better docstring
+    return _load_json_file(source_dir, "info.json")
 
 
 def load(source_dir: Union[os.PathLike, str]) -> Any:
