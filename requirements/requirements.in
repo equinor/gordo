@@ -29,4 +29,3 @@ jeepney>=0.6
 packaging~=20.7
 pydantic>=1.7.4
 gordo-client==4.0.0
-grpcio==1.33.1
