@@ -9,3 +9,5 @@ CVE-2020-13757
 # Remove after mlflow update
 # Fixed in sqlparse >= 0.4.2
 CVE-2021-32839
+# Remove after tensorflow and update
+CVE-2018-20060
