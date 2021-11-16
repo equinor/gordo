@@ -32,9 +32,13 @@ jobs:
           python setup.py sdist
           python setup.py bdist_wheel
 
+      - name: Install twine:
+        run: |
+          pip install twine
+
       - name: Publish
         env:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+          TWINE_USER: ${{ secrets.TWINE_USER }}
         run: |
-          pip install twine
-          twine upload -u statoil-travis --skip-existing dist/*
+          twine upload -u $TWINE_USER --skip-existing dist/*
