@@ -12,7 +12,7 @@ python-dateutil~=2.8
 pyyaml~=5.3
 requests~=2.25
 scikit-learn~=0.23
-tensorflow~=2.4.3
+tensorflow~=2.4.4
 Flask~=1.0
 flask-restplus~=0.12
 Werkzeug==0.16.1 # flask-restplus requires Werkzeug, but is incompatible with 1.0.0. When that is fixed this explicit dependency can be dropped

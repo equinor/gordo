@@ -466,7 +466,7 @@ tensorboard==2.4.1
     # via tensorflow
 tensorboard-plugin-wit==1.8.0
     # via tensorboard
-tensorflow==2.4.3
+tensorflow==2.4.4
     # via -r requirements.in
 tensorflow-estimator==2.4.0
     # via tensorflow
