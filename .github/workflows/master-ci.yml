@@ -71,6 +71,8 @@ jobs:
           file: ./Dockerfile
           build-args: |
             BASE_IMAGE=${{ steps.prep.outputs.base_image }}
+          secrets: |
+            pip_index_url=${{ secrets.INDEX_URL }}
           tags: ${{ steps.prep.outputs.tags_gordo_base }}
           labels: |
             org.opencontainers.image.title=gordo-base
