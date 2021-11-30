@@ -26,7 +26,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
-          pip install -r requirements/full_requirements.txt
+          pip install -i "${{ secrets.INDEX_URL }}" -r requirements/full_requirements.txt
 
       - name: Build
         run: |
