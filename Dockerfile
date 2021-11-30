@@ -36,15 +36,14 @@ RUN groupadd -g 999 gordo && \
 ENV HOME "/home/gordo"
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
-RUN --mount=type=secret,id=pip_index_url \
-    pip_index_url="$(cat /run/secrets/pip_index_url)"
-
 # Install requirements separately for improved docker caching
 COPY --from=builder /code/prereq.txt .
-RUN pip install -i "${pip_index_url}" --no-deps -r prereq.txt --no-cache-dir
+RUN --mount=type=secret,id=pip_index_url \
+    pip install -i "$(cat /run/secrets/pip_index_url)" --no-deps -r prereq.txt --no-cache-dir
 
 COPY requirements/full_requirements.txt .
-RUN pip install -i "${pip_index_url}" -r full_requirements.txt --no-cache-dir
+RUN --mount=type=secret,id=pip_index_url \
+    pip install -i "$(cat /run/secrets/pip_index_url)" -r full_requirements.txt --no-cache-dir
 
 # Install gordo, packaged from earlier 'python setup.py sdist'
 COPY --from=builder /code/dist/gordo-packed.tar.gz .
