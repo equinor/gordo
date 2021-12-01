@@ -32,7 +32,7 @@ jobs:
         run: |
           pip install --upgrade pip==20.1.1
           pip install -i "${{ secrets.INDEX_URL }}" -r requirements/full_requirements.txt
-          pip install -i "${{ secrets.INDEX_URL }}" -r requirements/test_requirements.txt
+          pip install -r requirements/test_requirements.txt
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}
