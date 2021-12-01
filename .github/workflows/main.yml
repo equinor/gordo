@@ -31,56 +31,8 @@ jobs:
       - name: Install
         run: |
           pip install --upgrade pip==20.1.1
-          pip install -r requirements/full_requirements.txt
+          pip install -i "${{ secrets.INDEX_URL }}" -r requirements/full_requirements.txt
           pip install -r requirements/test_requirements.txt
 
       - name: Test ${{ matrix.component }}
         run: python setup.py test${{ matrix.component }}
-
-      - name: Save Coverage
-        run: |
-          mkdir -p /tmp/coverage-reports
-          mv ./coverage.xml /tmp/coverage-reports/${{ matrix.component }}-coverage.xml
-          mv ./junit/junit.xml /tmp/coverage-reports/${{ matrix.component }}-junit.xml
-
-      - uses: actions/upload-artifact@v1
-        with:
-          name: Coverage Reports
-          path: /tmp/coverage-reports
-
-  upload-coverage-reports:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v1
-
-      - uses: actions/download-artifact@v1
-        with:
-          name: Coverage Reports
-          path: /tmp/coverage-reports
-
-      - name: Copy Coverage Reports
-        run: cp /tmp/coverage-reports/*.xml .
-
-      - uses: codecov/codecov-action@v1
-        with:
-          token: fc2844a2-5a6c-43ef-a758-05bc50562b14
-          fail_ci_if_error: false
-
-  build-docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - uses: actions/setup-python@v1
-        with:
-          python-version: '3.7' # Version range or exact version of a Python version to use, using semvers version range syntax.
-          architecture: 'x64'
-
-      - name: Install deps
-        run: |
-          pip install --upgrade pip
-          pip install .[docs]
-
-      - name: Build Docs
-        run: make docs
