@@ -86,7 +86,16 @@ DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = """
                 "name": "dl2serviceauth"
             }
         }
-    }
+    },
+    {
+        "name": "REN_DL2_SERVICE_AUTH_STR",
+        "valueFrom": {
+            "secretKeyRef": {
+                "key": "tenant_id_secret",
+                "name": "dl2ren"
+            }
+        }
+    },
 ]
 """
 
