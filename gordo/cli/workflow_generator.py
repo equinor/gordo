@@ -95,7 +95,7 @@ DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = """
                 "name": "dl2ren"
             }
         }
-    },
+    }
 ]
 """
 
