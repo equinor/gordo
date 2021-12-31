@@ -143,7 +143,7 @@ markupsafe==1.1.1
     # via
     #   -c full_requirements.txt
     #   jinja2
-mistune==0.8.4
+mistune==2.0.1
     # via nbconvert
 mock==4.0.3
     # via -r test_requirements.in
