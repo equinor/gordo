@@ -86,7 +86,7 @@ class InfImputer(TransformerMixin):
     def transform(self, X: Union[pd.DataFrame, np.ndarray], y=None):
 
         # Ensure we're dealing with numpy array if it's a dataframe or similar
-        X = X.values if hasattr(X, "values") else X
+        X = X.values if isinstance(X, pd.DataFrame) else X
 
         # Apply specific fill values if provided.
         if self.inf_fill_value is not None:
