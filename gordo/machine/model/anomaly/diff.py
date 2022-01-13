@@ -634,7 +634,7 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
 
     def _calculate_feature_thresholds(
         self, y_true: pd.DataFrame, y_pred: pd.DataFrame
-    ) -> np.ndarray:
+    ) -> Union[float, pd.Series]:
         absolute_error = self._absolute_error(y_true, y_pred)
         return self._calculate_threshold(absolute_error)
 

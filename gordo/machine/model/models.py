@@ -556,7 +556,9 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             )
         return X
 
-    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> "KerasLSTMForecast":
+    def fit(  # type: ignore
+        self, X: np.ndarray, y: np.ndarray, **kwargs
+    ) -> "KerasLSTMForecast":
 
         """
         This fits a one step forecast LSTM architecture.

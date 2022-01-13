@@ -69,10 +69,10 @@ def make_base_dataframe(
     model_output: np.ndarray
         Raw model output
     target_tag_list: Optional[Union[List[SensorTag], List[str]]]
-        Tags to be assigned to ``model-output`` if not assinged but model output matches
+        Tags to be assigned to ``model-output`` if not assigned but model output matches
         model input, ``tags`` will be used.
     index: Optional[np.ndarray]
-        The index which should be assinged to the resulting dataframe, will be clipped
+        The index which should be assigned to the resulting dataframe, will be clipped
         to the length of ``model_output``, should the model output less than its input.
     frequency: Optional[datetime.timedelta]
         The spacing of the time between points.
@@ -92,16 +92,16 @@ def make_base_dataframe(
     names_n_values = (("model-input", model_input), ("model-output", model_output))
 
     # Define the index which all series/dataframes will share
-    index = (
+    normalised_index = (
         index[-len(model_output) :] if index is not None else range(len(model_output))
     )
 
     # Series to hold the start times for each point or just 'None' values
     start_series = pd.Series(
-        index
-        if isinstance(index, pd.DatetimeIndex)
-        else (None for _ in range(len(index))),
-        index=index,
+        normalised_index
+        if isinstance(normalised_index, pd.DatetimeIndex)
+        else (None for _ in range(len(normalised_index))),
+        index=normalised_index,
     )
 
     # Calculate the end times if possible, or also all 'None's
@@ -122,7 +122,7 @@ def make_base_dataframe(
     data: pd.DataFrame = pd.DataFrame(
         {("start", ""): start_series, ("end", ""): end_series},
         columns=columns,
-        index=index,
+        index=normalised_index,
     )
 
     # Begin looping over the model-input and model-output; mapping them into
@@ -150,7 +150,9 @@ def make_base_dataframe(
         )
 
         # Pass valudes, offsetting any differences in length compared to index, as set by model-output size
-        other = pd.DataFrame(values[-len(model_output) :], columns=columns, index=index)
+        other = pd.DataFrame(
+            values[-len(model_output) :], columns=columns, index=normalised_index
+        )
         data = data.join(other)
 
     return data

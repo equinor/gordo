@@ -33,6 +33,7 @@
 * [Uninstall](#Uninstall)
 * [Developer manual](#Developer-manual)
     * [How to prepare working environment](#How-to-prepare-working-environment)
+      * [How to update packages](#How-to-update-packages)
     * [How to run tests locally](#How-to-run-tests-locally)
         * [Tests system requirements](#Tests-system-requirements)
         * [Run tests](#Run-tests)
@@ -73,8 +74,25 @@ This section will explain how to start development of Gordo.
 # then:
 pip install --upgrade pip
 pip install --upgrade pip-tools
-pip install -r requirements/full_requirements.txt
+# Some of the packages are in private pypi (Azure artifacts), so you have to specify its url.
+# After running next command you will be prompted with <PAT name> and <PAT password> for such pypi-url.
+# You might get PAT (personal assess token) by [this instruction](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page#create-a-pat) 
+# in Azure DevOps. This PAT should only have "Packaging -> Read" scope.
+pip install --extra-index-url <https://private-pypi-repo-url/> -r requirements/full_requirements.txt
 pip install -r requirements/test_requirements.txt
+```
+
+#### How to update packages
+Note: you have to install `pip-tools` version higher then `6` for requirements to have same multi-line output format.    
+
+To update some package in `full_requirements.txt`:
+- change its version in `requirements.in` file;
+- (todo once) get credentials to access private pypi 
+(for more details see [How to prepare working environment](#How-to-prepare-working-environment) section);
+- compile requirements:
+```shell
+# this command might be changed with time, so its better to take it from top of the `full_requirements.txt` file.
+pip-compile --extra-index-url <https://private-pypi-repo-url/> --no-emit-index-url --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
 ```
 
 ### How to run tests locally
@@ -82,7 +100,8 @@ pip install -r requirements/test_requirements.txt
 #### Tests system requirements
 To run tests it's required for your system to has (note: commands might differ from your OS):
 - running docker process;
-- available 5432 port for postgres container.
+- available 5432 port for postgres container 
+(`postgresql` container is used, so better to stop your local instance for tests running). 
 
 #### Run tests
 List of commands to run tests can be found [here](/setup.cfg).  
@@ -96,4 +115,6 @@ python3.7 -m pytest ...
 
 #### How to run tests in debug mode
 Note: this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
-On the configuration setup for test running add to `Additional arguments:` in `pytest` section following string: `--ignore benchmarks --cov-report= --no-cov `
+On the configuration setup for test running add to `Additional arguments:` in `pytest` 
+section following string: `--ignore benchmarks --cov-report= --no-cov ` 
+or TEMPORARY remove `--cov-report=xml` and `--cov=gordo` from `pytest.ini` file.
