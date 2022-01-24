@@ -17,7 +17,7 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.7.10-slim-buster
+FROM python:3.10.0rc1-slim-buster
 
 RUN apt-get update && apt-get install -y \
     libgcrypt20=1.8.4-5+deb10u1 \
