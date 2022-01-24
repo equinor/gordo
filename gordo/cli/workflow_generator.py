@@ -347,6 +347,20 @@ def workflow_cli(gordo_ctx):
     type=int,
     default=50,
 )
+@click.option(
+    "--gordo-server-readiness-initial-delay",
+    help="initialDelaySeconds for gordo-server's readinessProbe",
+    envvar=f"{PREFIX}_GORDO_SERVER_READINESS_INITIAL_DELAY",
+    type=int,
+    default=20,
+)
+@click.option(
+    "--gordo-server-liveness-initial-delay",
+    help="initialDelaySeconds for gordo-server's livenessProbe",
+    envvar=f"{PREFIX}_GORDO_SERVER_LIVENESS_INITIAL_DELAY",
+    type=int,
+    default=5,
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
