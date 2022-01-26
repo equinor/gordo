@@ -8,6 +8,7 @@ import io
 import pickle
 import copy
 import re
+import shutil
 
 import dateutil
 import timeit
@@ -20,7 +21,7 @@ import pyarrow.parquet as pq
 from flask import request, g, jsonify, make_response, Response
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
-from werkzeug.exceptions import NotFound, UnprocessableEntity
+from werkzeug.exceptions import NotFound, UnprocessableEntity, InternalServerError
 
 from gordo import serializer
 
@@ -380,6 +381,23 @@ def _load_compressed_metadata(directory: str, name: str):
     """
     metadata = serializer.load_metadata(os.path.join(directory, name))
     return zlib.compress(pickle.dumps(metadata))
+
+
+def delete_revision(directory: str, name: str):
+    """
+    Delete model revision
+
+    Parameters
+    ----------
+    directory - Revision directory
+    name - Model name
+    """
+    full_path = os.path.join(directory, name)
+    if os.path.isfile(os.path.join(full_path, "metadata.json")):
+        raise NotFound("Not found")
+    shutil.rmtree(full_path, ignore_errors=True)
+    if os.path.exists(full_path):
+        raise InternalServerError("Unable to delete this revision")
 
 
 def validate_gordo_name(gordo_name: str):
