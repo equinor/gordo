@@ -371,6 +371,24 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
         }
 
 
+def test_not_gordo_name(tmpdir, trained_model_directory):
+    model_name = "test-model"
+    revision = "111"
+    collection_dir = os.path.join(tmpdir, revision)
+    model_dir = os.path.join(collection_dir, model_name)
+    os.makedirs(collection_dir)
+    shutil.copytree(trained_model_directory, model_dir)
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
+        app.testing = True
+        client = app.test_client()
+        resp = client.get(
+            f"/gordo/v0/test-project/../metadata?revision={revision}"
+        )
+    assert resp.status_code == 422
+
+
 def test_server_version_route(model_collection_directory, gordo_revision):
     """
     Simple route which returns the current version

@@ -7,6 +7,7 @@ import os
 import io
 import pickle
 import copy
+import re
 
 import dateutil
 import timeit
@@ -19,7 +20,7 @@ import pyarrow.parquet as pq
 from flask import request, g, jsonify, make_response, Response
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, UnprocessableEntity
 
 from gordo import serializer
 
@@ -32,6 +33,8 @@ basic dataframe output, respectively.
 """
 
 logger = logging.getLogger(__name__)
+
+gordo_name_re = re.compile(r"^[a-zA-Z\d-]+")
 
 
 def dataframe_into_parquet_bytes(
@@ -379,6 +382,14 @@ def _load_compressed_metadata(directory: str, name: str):
     return zlib.compress(pickle.dumps(metadata))
 
 
+def validate_gordo_name(gordo_name: str):
+    """
+    gordo_name argument should contains alpha-numericals or '-' symbols
+    """
+    if gordo_name and not gordo_name_re.match(gordo_name):
+        raise UnprocessableEntity("gordo_name field has wrong format")
+
+
 def metadata_required(f):
     """
     Decorate a view which has ``gordo_name`` as a url parameter and will
@@ -387,6 +398,7 @@ def metadata_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        validate_gordo_name(gordo_name)
         try:
             g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
@@ -406,6 +418,7 @@ def model_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        validate_gordo_name(gordo_name)
         try:
             g.model = load_model(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
