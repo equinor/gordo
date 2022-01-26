@@ -12,6 +12,7 @@ import logging
 import timeit
 import typing
 import subprocess
+import re
 from functools import wraps
 
 import yaml
@@ -27,6 +28,12 @@ from prometheus_client import CollectorRegistry
 from .prometheus import GordoServerPrometheusMetrics
 
 logger = logging.getLogger(__name__)
+
+revision_re = re.compile(r"^\d+$")
+
+
+def validate_revision(revision: str) -> bool:
+    return bool(revision_re.match(revision))
 
 
 def enable_prometheus():
@@ -178,6 +185,10 @@ def build_app(
         # If a specific revision was requested, update collection_dir
         g.revision = request.args.get("revision") or request.headers.get("revision")
         if g.revision:
+            if not validate_revision(g.revision):
+                return make_response(
+                    jsonify({"error": f"Revision should only contains numbers."}), 410
+                )
             g.collection_dir = os.path.join(g.collection_dir, "..", g.revision)
             try:
                 os.listdir(g.collection_dir)  # List dir to ensure it exists
