@@ -16,7 +16,12 @@ from gordo.server.rest_api import Api
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
 from gordo_dataset.sensor_tag import SensorTag
-from gordo.server.utils import find_path_in_dict
+from gordo.server.utils import (
+    find_path_in_dict,
+    validate_gordo_name,
+    validate_revision,
+    delete_revision,
+)
 from gordo.utils import normalize_sensor_tags
 from gordo.server import model_io
 
@@ -204,6 +209,28 @@ class BaseModelView(Resource):
                 )
 
 
+class DeleteModelRevisionView(Resource):
+    """
+    Endpoints for deleting models
+    """
+
+    def delete(self, gordo_name: str, revision: str, **kwargs):
+        """
+        Delete provided model revision from the disk.
+        """
+        validate_gordo_name(gordo_name)
+        if not validate_revision(revision):
+            return make_response(
+                (jsonify({"error": "Revision should only contains numbers."}), 422)
+            )
+        if revision == g.current_revision:
+            return make_response(
+                (jsonify({"error": "Unable to delete current revision."}), 409)
+            )
+        revision_dir = os.path.join(g.collection_dir, "..", revision)
+        delete_revision(revision_dir, gordo_name)
+
+
 class MetaDataView(Resource):
     """
     Serve model / server metadata
@@ -288,6 +315,10 @@ class ExpectedModels(Resource):
 api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
 api.add_resource(ExpectedModels, "/gordo/v0/<gordo_project>/expected-models")
 api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
+api.add_resource(
+    DeleteModelRevisionView,
+    "/gordo/v0/<gordo_project>/<gordo_name>/revision/<revision>",
+)
 api.add_resource(
     MetaDataView,
     "/gordo/v0/<gordo_project>/<gordo_name>/metadata",

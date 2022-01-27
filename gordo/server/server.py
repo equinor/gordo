@@ -25,6 +25,7 @@ from gordo import __version__
 
 from prometheus_client import CollectorRegistry
 from .prometheus import GordoServerPrometheusMetrics
+from .utils import validate_revision
 
 logger = logging.getLogger(__name__)
 
@@ -178,6 +179,10 @@ def build_app(
         # If a specific revision was requested, update collection_dir
         g.revision = request.args.get("revision") or request.headers.get("revision")
         if g.revision:
+            if not validate_revision(g.revision):
+                return make_response(
+                    jsonify({"error": f"Revision should only contains numbers."}), 410
+                )
             g.collection_dir = os.path.join(g.collection_dir, "..", g.revision)
             try:
                 os.listdir(g.collection_dir)  # List dir to ensure it exists
@@ -192,8 +197,9 @@ def build_app(
     def _revision_used(response):
         if response.is_json:
             data = response.get_json()
-            data["revision"] = g.revision
-            response.set_data(json.dumps(data).encode())
+            if data is not None:
+                data["revision"] = g.revision
+                response.set_data(json.dumps(data).encode())
         response.headers["revision"] = g.revision
         return response
 

@@ -174,6 +174,21 @@ def test_run_server_gevent():
         )
 
 
+def test_not_valid_revision(tmpdir):
+    existed_revision = "111"
+    model_dir = os.path.join(tmpdir, existed_revision)
+    os.mkdir(os.path.join(tmpdir, existed_revision))
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=model_dir):
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
+        app.testing = True
+        client = app.test_client()
+        resp = client.get(f"/gordo/v0/test-project/revisions?revision=not-valid")
+    assert resp.status_code == 410
+    resp_json = resp.json
+    assert resp_json["error"] == "Revision should only contains numbers."
+
+
 @pytest.mark.parametrize("revisions", [("1234", "2345", "3456"), ("1234",)])
 def test_list_revisions(tmpdir, revisions: List[str]):
     """
@@ -289,13 +304,11 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
         else:
             # revision_to_models is empty, so there is nothing on the server.
             # Test that asking for some arbitrary revision will give a 404 and error message
-            resp = client.get(
-                f"/gordo/v0/test-project/models?revision=revision-does-not-exist"
-            )
+            resp = client.get(f"/gordo/v0/test-project/models?revision=77777")
             assert resp.status_code == 410
             assert resp.json == {
-                "error": "Revision 'revision-does-not-exist' not found.",
-                "revision": "revision-does-not-exist",
+                "error": "Revision '77777' not found.",
+                "revision": "77777",
             }
 
 
@@ -334,24 +347,93 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
 
         # Asking for a revision which doesn't exist gives a 410 Gone.
         resp = client.get(
-            f"/gordo/v0/test-project/{model_name}/metadata?revision=does-not-exist"
+            f"/gordo/v0/test-project/{model_name}/metadata?revision=77777"
         )
         assert resp.status_code == 410
         assert resp.json == {
-            "error": "Revision 'does-not-exist' not found.",
-            "revision": "does-not-exist",
+            "error": "Revision '77777' not found.",
+            "revision": "77777",
         }
 
         # Again but by setting header, to ensure we also check the header
         resp = client.get(
             f"/gordo/v0/test-project/{model_name}/metadata",
-            headers={"revision": "does-not-exist"},
+            headers={"revision": "77777"},
         )
         assert resp.status_code == 410
         assert resp.json == {
-            "error": "Revision 'does-not-exist' not found.",
-            "revision": "does-not-exist",
+            "error": "Revision '77777' not found.",
+            "revision": "77777",
         }
+
+
+def copy_tmp_model(trained_model_directory, tmpdir, revision, model_name):
+    model_dir = os.path.join(tmpdir, revision, model_name)
+    shutil.copytree(trained_model_directory, model_dir)
+
+    metadata_file = os.path.join(model_dir, "metadata.json")
+    assert os.path.isfile(metadata_file)
+    with open(metadata_file, "w") as fp:
+        json.dump({"revision": revision, "model": model_name}, fp)
+
+
+def test_delete_revision(trained_model_directory, tmpdir):
+
+    revisions = ["111", "222", "333", "444"]
+    model_name = "test-model"
+    current_revision = revisions[0]
+    collection_dir = os.path.join(tmpdir, current_revision)
+    base_dir = os.path.join(collection_dir, "..")
+
+    for revision in revisions:
+        copy_tmp_model(trained_model_directory, tmpdir, revision, model_name)
+
+    copy_tmp_model(trained_model_directory, tmpdir, "444", "test_model1")
+
+    dir_list = sorted(os.listdir(base_dir))
+    assert dir_list == ["111", "222", "333", "444"]
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
+        app.testing = True
+        client = app.test_client()
+        # Check gordo_name validation
+        resp = client.delete(f"/gordo/v0/test-project/../revision/111")
+        assert resp.status_code == 422
+        # Check revision validation
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/..")
+        assert resp.status_code == 422
+        # Unable to delete current revision
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/111")
+        assert resp.status_code == 409
+        # Succeeded delete
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/333")
+        assert resp.status_code == 200
+        dir_list = sorted(os.listdir(base_dir))
+        assert dir_list == ["111", "222", "444"]
+        # Succeeded delete with additional model
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/444")
+        assert resp.status_code == 200
+        dir_list = sorted(os.listdir(base_dir))
+        assert dir_list == ["111", "222", "444"]
+        revision_dir = os.path.join(base_dir, "444")
+        assert os.listdir(revision_dir) == ["test_model1"]
+
+
+def test_not_gordo_name(tmpdir, trained_model_directory):
+    model_name = "test-model"
+    revision = "111"
+    collection_dir = os.path.join(tmpdir, revision)
+    model_dir = os.path.join(collection_dir, model_name)
+    os.makedirs(collection_dir)
+    shutil.copytree(trained_model_directory, model_dir)
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
+        app.testing = True
+        client = app.test_client()
+        resp = client.get(f"/gordo/v0/test-project/../metadata?revision={revision}")
+    assert resp.status_code == 422
 
 
 def test_server_version_route(model_collection_directory, gordo_revision):

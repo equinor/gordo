@@ -7,6 +7,8 @@ import os
 import io
 import pickle
 import copy
+import re
+import shutil
 
 import dateutil
 import timeit
@@ -19,7 +21,7 @@ import pyarrow.parquet as pq
 from flask import request, g, jsonify, make_response, Response
 from functools import lru_cache, wraps
 from sklearn.base import BaseEstimator
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, UnprocessableEntity, InternalServerError
 
 from gordo import serializer
 
@@ -32,6 +34,13 @@ basic dataframe output, respectively.
 """
 
 logger = logging.getLogger(__name__)
+
+gordo_name_re = re.compile(r"^[a-zA-Z\d-]+")
+revision_re = re.compile(r"^\d+$")
+
+
+def validate_revision(revision: str) -> bool:
+    return bool(revision_re.match(revision))
 
 
 def dataframe_into_parquet_bytes(
@@ -343,6 +352,16 @@ def load_model(directory: str, name: str) -> BaseEstimator:
     return model
 
 
+def check_metadata_file(directory: str, name: str):
+    """
+    Checking if the directory with metadata exists since it might be deleted through DELETE endpoint
+    """
+    # TODO consider using https://pypi.org/project/ring/ with the ability to delete items from lru cache
+    full_model_dir = os.path.join(directory, name)
+    if not serializer.metadata_path(full_model_dir):
+        raise FileNotFoundError("Unable to load metadata.json file")
+
+
 def load_metadata(directory: str, name: str) -> dict:
     """
     Load metadata from a directory for a given model by name.
@@ -379,6 +398,35 @@ def _load_compressed_metadata(directory: str, name: str):
     return zlib.compress(pickle.dumps(metadata))
 
 
+def delete_revision(directory: str, name: str):
+    """
+    Delete model revision
+
+    Parameters
+    ----------
+    directory - Revision directory
+    name - Model name
+    """
+    full_path = os.path.join(directory, name)
+    if not os.path.isfile(os.path.join(full_path, "metadata.json")):
+        raise NotFound("Not found")
+    shutil.rmtree(full_path, ignore_errors=True)
+    if os.path.exists(full_path):
+        raise InternalServerError("Unable to delete this model revision folder")
+    if not os.listdir(directory):
+        shutil.rmtree(directory, ignore_errors=True)
+        if os.path.exists(directory):
+            raise InternalServerError("Unable to delete this revision folder")
+
+
+def validate_gordo_name(gordo_name: str):
+    """
+    gordo_name argument should contains alpha-numericals or '-' symbols
+    """
+    if gordo_name and not gordo_name_re.match(gordo_name):
+        raise UnprocessableEntity("gordo_name field has wrong format")
+
+
 def metadata_required(f):
     """
     Decorate a view which has ``gordo_name`` as a url parameter and will
@@ -387,7 +435,9 @@ def metadata_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        validate_gordo_name(gordo_name)
         try:
+            check_metadata_file(g.collection_dir, gordo_name)
             g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
             raise NotFound(f"No model found for '{gordo_name}'")
@@ -406,7 +456,9 @@ def model_required(f):
 
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
+        validate_gordo_name(gordo_name)
         try:
+            check_metadata_file(g.collection_dir, gordo_name)
             g.model = load_model(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
             raise NotFound(f"No such model found: '{gordo_name}'")
