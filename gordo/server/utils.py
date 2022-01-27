@@ -393,7 +393,7 @@ def delete_revision(directory: str, name: str):
     name - Model name
     """
     full_path = os.path.join(directory, name)
-    if os.path.isfile(os.path.join(full_path, "metadata.json")):
+    if not os.path.isfile(os.path.join(full_path, "metadata.json")):
         raise NotFound("Not found")
     shutil.rmtree(full_path, ignore_errors=True)
     if os.path.exists(full_path):
