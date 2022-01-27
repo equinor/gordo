@@ -400,6 +400,9 @@ def test_delete_revision(trained_model_directory, tmpdir):
         # Check gordo_name validation
         resp = client.delete(f"/gordo/v0/test-project/../revision/111")
         assert resp.status_code == 422
+        # Check revision validation
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/..")
+        assert resp.status_code == 422
         # Unable to delete current revision
         resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/111")
         assert resp.status_code == 409
