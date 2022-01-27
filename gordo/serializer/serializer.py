@@ -66,7 +66,9 @@ def loads(bytes_object: bytes) -> GordoBase:
     return pickle.loads(bytes_object)
 
 
-def metadata_path(source_dir: Union[os.PathLike, str]) -> Optional[Union[os.PathLike, str]]:
+def metadata_path(
+    source_dir: Union[os.PathLike, str]
+) -> Optional[Union[os.PathLike, str]]:
     """
     Returns path to metadata.json file, if exists.
 

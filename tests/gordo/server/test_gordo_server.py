@@ -183,9 +183,7 @@ def test_not_valid_revision(tmpdir):
         app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
-        resp = client.get(
-            f"/gordo/v0/test-project/revisions?revision=not-valid"
-        )
+        resp = client.get(f"/gordo/v0/test-project/revisions?revision=not-valid")
     assert resp.status_code == 410
     resp_json = resp.json
     assert resp_json["error"] == "Revision should only contains numbers."
@@ -306,9 +304,7 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
         else:
             # revision_to_models is empty, so there is nothing on the server.
             # Test that asking for some arbitrary revision will give a 404 and error message
-            resp = client.get(
-                f"/gordo/v0/test-project/models?revision=77777"
-            )
+            resp = client.get(f"/gordo/v0/test-project/models?revision=77777")
             assert resp.status_code == 410
             assert resp.json == {
                 "error": "Revision '77777' not found.",
@@ -395,36 +391,28 @@ def test_delete_revision(trained_model_directory, tmpdir):
     copy_tmp_model(trained_model_directory, tmpdir, "444", "test_model1")
 
     dir_list = sorted(os.listdir(base_dir))
-    assert dir_list == ['111', '222', '333', '444']
+    assert dir_list == ["111", "222", "333", "444"]
 
     with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
         app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
         # Check gordo_name validation
-        resp = client.delete(
-            f"/gordo/v0/test-project/../revision/111"
-        )
+        resp = client.delete(f"/gordo/v0/test-project/../revision/111")
         assert resp.status_code == 422
         # Unable to delete current revision
-        resp = client.delete(
-            f"/gordo/v0/test-project/{model_name}/revision/111"
-        )
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/111")
         assert resp.status_code == 409
         # Succeeded delete
-        resp = client.delete(
-           f"/gordo/v0/test-project/{model_name}/revision/333"
-        )
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/333")
         assert resp.status_code == 200
         dir_list = sorted(os.listdir(base_dir))
-        assert dir_list == ['111', '222', '444']
+        assert dir_list == ["111", "222", "444"]
         # Succeeded delete with additional model
-        resp = client.delete(
-            f"/gordo/v0/test-project/{model_name}/revision/444"
-        )
+        resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/444")
         assert resp.status_code == 200
         dir_list = sorted(os.listdir(base_dir))
-        assert dir_list == ['111', '222', '444']
+        assert dir_list == ["111", "222", "444"]
         revision_dir = os.path.join(base_dir, "444")
         assert os.listdir(revision_dir) == ["test_model1"]
 
@@ -441,9 +429,7 @@ def test_not_gordo_name(tmpdir, trained_model_directory):
         app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
-        resp = client.get(
-            f"/gordo/v0/test-project/../metadata?revision={revision}"
-        )
+        resp = client.get(f"/gordo/v0/test-project/../metadata?revision={revision}")
     assert resp.status_code == 422
 
 

@@ -215,9 +215,9 @@ class DeleteModelRevisionView(Resource):
         """
         validate_gordo_name(gordo_name)
         if revision == g.current_revision:
-            return make_response((jsonify({
-                "error": "Unable to delete current revision."
-            }), 409))
+            return make_response(
+                (jsonify({"error": "Unable to delete current revision."}), 409)
+            )
         revision_dir = os.path.join(g.collection_dir, "..", revision)
         delete_revision(revision_dir, gordo_name)
 
