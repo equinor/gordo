@@ -16,7 +16,7 @@ from gordo.server.rest_api import Api
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
 from gordo_dataset.sensor_tag import SensorTag
-from gordo.server.utils import find_path_in_dict, validate_gordo_name, delete_revision
+from gordo.server.utils import find_path_in_dict, validate_gordo_name, validate_revision, delete_revision
 from gordo.utils import normalize_sensor_tags
 from gordo.server import model_io
 
@@ -214,6 +214,10 @@ class DeleteModelRevisionView(Resource):
         Delete provided model revision from the disk.
         """
         validate_gordo_name(gordo_name)
+        if not validate_revision(revision):
+            return make_response(
+                (jsonify({"error": "Revision should only contains numbers."}), 422)
+            )
         if revision == g.current_revision:
             return make_response(
                 (jsonify({"error": "Unable to delete current revision."}), 409)
