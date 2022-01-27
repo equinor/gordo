@@ -6,7 +6,7 @@ import os
 import re
 import pickle
 
-from typing import Union, Any  # pragma: no flakes
+from typing import Union, Any, Optional  # pragma: no flakes
 
 from sklearn.pipeline import Pipeline
 from sklearn.base import TransformerMixin, BaseEstimator  # noqa
@@ -66,6 +66,20 @@ def loads(bytes_object: bytes) -> GordoBase:
     return pickle.loads(bytes_object)
 
 
+def metadata_path(source_dir: Union[os.PathLike, str]) -> Optional[Union[os.PathLike, str]]:
+    """
+    Returns path to metadata.json file, if exists.
+
+    """
+    # Since this function can take the top level dir, or a dir directly
+    # into the first step of the pipeline, we need to check both for metadata
+    possible_paths = [
+        os.path.join(source_dir, "metadata.json"),
+        os.path.join(source_dir, "..", "metadata.json"),
+    ]
+    return next((path for path in possible_paths if os.path.exists(path)), None)
+
+
 def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
     """
     Load the given metadata.json which was saved during the ``serializer.dump``
@@ -86,13 +100,7 @@ def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
     FileNotFoundError
         If a 'metadata.json' file isn't found in or above the supplied ``source_dir``
     """
-    # Since this function can take the top level dir, or a dir directly
-    # into the first step of the pipeline, we need to check both for metadata
-    possible_paths = [
-        os.path.join(source_dir, "metadata.json"),
-        os.path.join(source_dir, "..", "metadata.json"),
-    ]
-    path = next((path for path in possible_paths if os.path.exists(path)), None)
+    path = metadata_path(source_dir)
 
     if path:
         with open(path, "r") as f:
