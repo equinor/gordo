@@ -347,16 +347,6 @@ def load_model(directory: str, name: str) -> BaseEstimator:
     return model
 
 
-def _check_metadata_file(directory: str, name: str):
-    """
-    Checking if the directory with metadata exists since it might be deleted through DELETE endpoint
-    """
-    # TODO consider using https://pypi.org/project/ring/ with the ability to delete items from lru cache
-    full_model_dir = os.path.join(directory, name)
-    if serializer.metadata_path(full_model_dir):
-        raise FileNotFoundError("Unable to load metadata.json file")
-
-
 def load_metadata(directory: str, name: str) -> dict:
     """
     Load metadata from a directory for a given model by name.
@@ -428,7 +418,6 @@ def metadata_required(f):
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         validate_gordo_name(gordo_name)
         try:
-            _check_metadata_file(g.collection_dir, gordo_name)
             g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
             raise NotFound(f"No model found for '{gordo_name}'")
@@ -449,7 +438,6 @@ def model_required(f):
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         validate_gordo_name(gordo_name)
         try:
-            _check_metadata_file(g.collection_dir, gordo_name)
             g.model = load_model(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
             raise NotFound(f"No such model found: '{gordo_name}'")
