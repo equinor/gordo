@@ -36,6 +36,11 @@ basic dataframe output, respectively.
 logger = logging.getLogger(__name__)
 
 gordo_name_re = re.compile(r"^[a-zA-Z\d-]+")
+revision_re = re.compile(r"^\d+$")
+
+
+def validate_revision(revision: str) -> bool:
+    return bool(revision_re.match(revision))
 
 
 def dataframe_into_parquet_bytes(
@@ -407,7 +412,11 @@ def delete_revision(directory: str, name: str):
         raise NotFound("Not found")
     shutil.rmtree(full_path, ignore_errors=True)
     if os.path.exists(full_path):
-        raise InternalServerError("Unable to delete this revision")
+        raise InternalServerError("Unable to delete this model revision folder")
+    if not os.listdir(directory):
+        shutil.rmtree(directory, ignore_errors=True)
+        if os.path.exists(directory):
+            raise InternalServerError("Unable to delete this revision folder")
 
 
 def validate_gordo_name(gordo_name: str):

@@ -209,16 +209,17 @@ class DeleteModelRevisionView(Resource):
     Endpoints for deleting models
     """
 
-    def delete(self, gordo_name: str, **kwargs):
+    def delete(self, gordo_name: str, revision: str, **kwargs):
         """
         Delete provided model revision from the disk.
         """
         validate_gordo_name(gordo_name)
-        if g.revision == g.current_revision:
+        if revision == g.current_revision:
             return make_response((jsonify({
                 "error": "Unable to delete current revision."
             }), 409))
-        delete_revision(g.collection_dir, gordo_name)
+        revision_dir = os.path.join(g.collection_dir, "..", revision)
+        delete_revision(revision_dir, gordo_name)
 
 
 class MetaDataView(Resource):

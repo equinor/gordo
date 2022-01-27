@@ -371,6 +371,64 @@ def test_request_specific_revision(trained_model_directory, tmpdir, revisions):
         }
 
 
+def copy_tmp_model(trained_model_directory, tmpdir, revision, model_name):
+    model_dir = os.path.join(tmpdir, revision, model_name)
+    shutil.copytree(trained_model_directory, model_dir)
+
+    metadata_file = os.path.join(model_dir, "metadata.json")
+    assert os.path.isfile(metadata_file)
+    with open(metadata_file, "w") as fp:
+        json.dump({"revision": revision, "model": model_name}, fp)
+
+
+def test_delete_revision(trained_model_directory, tmpdir):
+
+    revisions = ["111", "222", "333", "444"]
+    model_name = "test-model"
+    current_revision = revisions[0]
+    collection_dir = os.path.join(tmpdir, current_revision)
+    base_dir = os.path.join(collection_dir, "..")
+
+    for revision in revisions:
+        copy_tmp_model(trained_model_directory, tmpdir, revision, model_name)
+
+    copy_tmp_model(trained_model_directory, tmpdir, "444", "test_model1")
+
+    dir_list = sorted(os.listdir(base_dir))
+    assert dir_list == ['111', '222', '333', '444']
+
+    with tu.temp_env_vars(MODEL_COLLECTION_DIR=collection_dir):
+        app = server.build_app({"ENABLE_PROMETHEUS": False})
+        app.testing = True
+        client = app.test_client()
+        # Check gordo_name validation
+        resp = client.delete(
+            f"/gordo/v0/test-project/../revision/111"
+        )
+        assert resp.status_code == 422
+        # Unable to delete current revision
+        resp = client.delete(
+            f"/gordo/v0/test-project/{model_name}/revision/111"
+        )
+        assert resp.status_code == 409
+        # Succeeded delete
+        resp = client.delete(
+           f"/gordo/v0/test-project/{model_name}/revision/333"
+        )
+        assert resp.status_code == 200
+        dir_list = sorted(os.listdir(base_dir))
+        assert dir_list == ['111', '222', '444']
+        # Succeeded delete with additional model
+        resp = client.delete(
+            f"/gordo/v0/test-project/{model_name}/revision/444"
+        )
+        assert resp.status_code == 200
+        dir_list = sorted(os.listdir(base_dir))
+        assert dir_list == ['111', '222', '444']
+        revision_dir = os.path.join(base_dir, "444")
+        assert os.listdir(revision_dir) == ["test_model1"]
+
+
 def test_not_gordo_name(tmpdir, trained_model_directory):
     model_name = "test-model"
     revision = "111"

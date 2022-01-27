@@ -12,7 +12,6 @@ import logging
 import timeit
 import typing
 import subprocess
-import re
 from functools import wraps
 
 import yaml
@@ -26,14 +25,9 @@ from gordo import __version__
 
 from prometheus_client import CollectorRegistry
 from .prometheus import GordoServerPrometheusMetrics
+from .utils import validate_revision
 
 logger = logging.getLogger(__name__)
-
-revision_re = re.compile(r"^\d+$")
-
-
-def validate_revision(revision: str) -> bool:
-    return bool(revision_re.match(revision))
 
 
 def enable_prometheus():
@@ -203,8 +197,9 @@ def build_app(
     def _revision_used(response):
         if response.is_json:
             data = response.get_json()
-            data["revision"] = g.revision
-            response.set_data(json.dumps(data).encode())
+            if data is not None:
+                data["revision"] = g.revision
+                response.set_data(json.dumps(data).encode())
         response.headers["revision"] = g.revision
         return response
 
