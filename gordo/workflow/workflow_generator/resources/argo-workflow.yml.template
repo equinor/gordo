@@ -1084,13 +1084,13 @@ spec:
                                httpGet:
                                  path: /healthcheck
                                  port: http-api
-                               initialDelaySeconds: {{ gordo_server_liveness_initial_delay|default(5, true) }}
+                               initialDelaySeconds: {{ gordo_server_liveness_initial_delay|default(600, true) }}
                                timeoutSeconds: {{ gordo_server_probe_timeout|default(5, true) }}
                              readinessProbe:
                                httpGet:
                                  path: /healthcheck
                                  port: http-api
-                               initialDelaySeconds: {{ gordo_server_readiness_initial_delay|default(20, true) }}
+                               initialDelaySeconds: {{ gordo_server_readiness_initial_delay|default(5, true) }}
                                timeoutSeconds: {{ gordo_server_probe_timeout|default(5, true) }}
                              env:
                                - name: MODEL_COLLECTION_DIR
