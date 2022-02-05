@@ -273,7 +273,7 @@ numexpr==2.7.1
     # via
     #   -r requirements.in
     #   gordo-dataset
-numpy==1.21.0
+numpy==1.22.2
     # via
     #   -r requirements.in
     #   catboost
