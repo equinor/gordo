@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.7.11-buster as builder
+FROM python:3.7.13-buster as builder
 
 # Copy source code
 COPY . /code
@@ -17,17 +17,7 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.7.10-slim-buster
-
-RUN apt-get update && apt-get install -y \
-    libgcrypt20=1.8.4-5+deb10u1 \
-    libgnutls30=3.6.7-4+deb10u7 \
-    libhogweed4=3.4.1-1+deb10u1 \
-    liblz4-1=1.8.3-1+deb10u1 \
-    libnettle6=3.4.1-1+deb10u1 \
-    libssl1.1=1.1.1d-0+deb10u7 \
-    openssl=1.1.1d-0+deb10u7 \
- && rm -rf /var/lib/apt/lists/*
+FROM python:3.7.13-slim-buster
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
