@@ -340,6 +340,12 @@ def test_build_cv_mode_build_only(tmpdir, runner: CliRunner, machine: Machine):
                 == {}
             )
 
+        info_file = f"{os.path.join(tmpdir, 'info.json')}"
+        with open(info_file) as f:
+            info_json = json.load(f)
+            keys = sorted(info_json.keys())
+            assert keys == ["checksum"]
+
 
 @mock.patch("gordo.reporters.mlflow.get_spauth_kwargs")
 @mock.patch("gordo.reporters.mlflow.get_workspace_kwargs")
