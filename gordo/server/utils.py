@@ -382,7 +382,10 @@ def load_metadata(directory: str, name: str) -> dict:
     return pickle.loads(zlib.decompress(compressed_metadata))
 
 
-@lru_cache(maxsize=25000)
+_n_cached_metadata = int(os.getenv("N_CACHED_METADATA", 250))
+
+
+@lru_cache(maxsize=_n_cached_metadata)
 def _load_compressed_metadata(directory: str, name: str):
     """
     Loads the metadata for model 'name' from directory 'directory', and returns it as a
@@ -427,6 +430,12 @@ def validate_gordo_name(gordo_name: str):
         raise UnprocessableEntity("gordo_name field has wrong format")
 
 
+@lru_cache(maxsize=_n_cached_metadata)
+def load_info(directory: str, name: str) -> dict:
+    # TODO better docstring
+    return serializer.load_info(os.path.join(directory, name))
+
+
 def metadata_required(f):
     """
     Decorate a view which has ``gordo_name`` as a url parameter and will
@@ -436,11 +445,16 @@ def metadata_required(f):
     @wraps(f)
     def wrapper(*args: tuple, gordo_project: str, gordo_name: str, **kwargs: dict):
         validate_gordo_name(gordo_name)
+        g.info = {}
+        try:
+            g.info = load_info(directory=g.collection_dir, name=gordo_name)
+        except FileNotFoundError:
+            pass
         try:
             check_metadata_file(g.collection_dir, gordo_name)
             g.metadata = load_metadata(directory=g.collection_dir, name=gordo_name)
         except FileNotFoundError:
-            raise NotFound(f"No model found for '{gordo_name}'")
+            raise NotFound(f"No metadata found for '{gordo_name}'")
         else:
             return f(*args, **kwargs)
 

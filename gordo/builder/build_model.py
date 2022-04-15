@@ -124,15 +124,16 @@ class ModelBuilder:
         if not model_register_dir:
             model, machine = self._build()
         else:
+            cache_key = self.cache_key
             logger.debug(
                 f"Model caching activated, attempting to read model-location with key "
-                f"{self.cache_key} from register {model_register_dir}"
+                f"{cache_key} from register {model_register_dir}"
             )
-            self.cached_model_path = self.check_cache(model_register_dir)
+            self.cached_model_path = self.check_cache(model_register_dir, cache_key)
 
             if replace_cache:
                 logger.info("replace_cache=True, deleting any existing cache entry")
-                disk_registry.delete_value(model_register_dir, self.cache_key)
+                disk_registry.delete_value(model_register_dir, cache_key)
                 self.cached_model_path = None
 
             # Load the model from previous cached directory
@@ -150,19 +151,26 @@ class ModelBuilder:
             # Otherwise build and cache the model
             else:
                 model, machine = self._build()
+                cache_key = self.calculate_cache_key(machine)
                 self.cached_model_path = self._save_model(
-                    model=model, machine=machine, output_dir=output_dir  # type: ignore
+                    model=model,
+                    machine=machine,
+                    output_dir=output_dir,  # type: ignore
+                    checksum=cache_key,
                 )
-                logger.info(f"Built model, and deposited at {self.cached_model_path}")
+                logger.info(
+                    f"Built model, and deposited at {self.cached_model_path} with checksum '{cache_key}'"
+                )
                 logger.info(f"Writing model-location to model registry")
                 disk_registry.write_key(  # type: ignore
-                    model_register_dir, self.cache_key, self.cached_model_path
+                    model_register_dir, cache_key, self.cached_model_path
                 )
 
         # Save model to disk, if we're not building for cv only purposes.
         if output_dir and (self.machine.evaluation.get("cv_mode") != "cross_val_only"):
+            cache_key = self.calculate_cache_key(machine)
             self.cached_model_path = self._save_model(
-                model=model, machine=machine, output_dir=output_dir
+                model=model, machine=machine, output_dir=output_dir, checksum=cache_key
             )
         return model, machine
 
@@ -446,14 +454,21 @@ class ModelBuilder:
         return len(X) - len(out)
 
     @staticmethod
+    def _extract_metadata(machine: Union[Machine, dict]):
+        if isinstance(machine, Machine):
+            return machine.to_dict()
+        else:
+            return machine
+
+    @staticmethod
     def _save_model(
         model: BaseEstimator,
         machine: Union[Machine, dict],
         output_dir: Union[os.PathLike, str],
+        checksum: Optional[str] = None,
     ):
         """
         Save the model according to the expected Argo workflow procedure.
-
         Parameters
         ----------
         model: BaseEstimator
@@ -462,17 +477,22 @@ class ModelBuilder:
             Machine instance used to build this model.
         output_dir: Union[os.PathLike, str]
             The directory where to save the model, will create directories if needed.
-
+        checksum: Optional[str]
+            Model revision sha512 checksum. Might be taken from `self.check key`
         Returns
         -------
         Union[os.PathLike, str]
             Path to the saved model
         """
         os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
+        info: Optional[dict] = None
+        if checksum is not None:
+            info = {"checksum": checksum}
         serializer.dump(
             model,
             output_dir,
             metadata=machine.to_dict() if isinstance(machine, Machine) else machine,
+            info=info,
         )
         return output_dir
 
@@ -592,7 +612,8 @@ class ModelBuilder:
         logger.debug(f"Calculating model hash key for model: {json_rep}")
         return hashlib.sha3_512(json_rep.encode("ascii")).hexdigest()
 
-    def check_cache(self, model_register_dir: Union[os.PathLike, str]):
+    @staticmethod
+    def check_cache(model_register_dir: Union[os.PathLike, str], cache_key: str):
         """
         Checks if the model is cached, and returns its path if it exists.
 
@@ -608,9 +629,7 @@ class ModelBuilder:
         Union[os.PathLike, None]:
             The path to the cached model, or None if it does not exist.
         """
-        existing_model_location = disk_registry.get_value(
-            model_register_dir, self.cache_key
-        )
+        existing_model_location = disk_registry.get_value(model_register_dir, cache_key)
 
         # Check that the model is actually there
         if existing_model_location and Path(existing_model_location).exists():
@@ -626,7 +645,7 @@ class ModelBuilder:
             return None
         else:
             logger.info(
-                f"Did not find the model with key {self.cache_key} in the register at "
+                f"Did not find the model with key {cache_key} in the register at "
                 f"{model_register_dir}."
             )
             return None

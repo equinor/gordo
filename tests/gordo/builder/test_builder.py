@@ -127,6 +127,9 @@ def test_output_dir(tmpdir):
     assert len(os.listdir(output_dir)) == 2
 
 
+# TODO test with checksum
+
+
 @pytest.mark.parametrize(
     "raw_model_config",
     (
@@ -401,8 +404,8 @@ def test_provide_saved_model_simple_happy_path(tmpdir):
     ModelBuilder(machine).build(output_dir=output_dir)
 
     # Assert the model was saved at the location
-    # Should be model file, and the metadata
-    assert len(os.listdir(output_dir)) == 2
+    # Should be model file, and the metadata, and the info
+    assert len(os.listdir(output_dir)) == 3
 
 
 def test_provide_saved_model_caching_handle_existing_same_dir(tmpdir):

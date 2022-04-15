@@ -242,11 +242,19 @@ class MetaDataView(Resource):
         Get metadata about this endpoint, also serves as /healthcheck endpoint
         """
         model_collection_env_var = current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]
-        return {
-            "gordo-server-version": __version__,
-            "metadata": g.metadata,
-            "env": {model_collection_env_var: os.environ.get(model_collection_env_var)},
-        }
+        metadata = {}
+        if g.info:
+            metadata = g.info
+        metadata.update(
+            {
+                "gordo-server-version": __version__,
+                "metadata": g.metadata,
+                "env": {
+                    model_collection_env_var: os.environ.get(model_collection_env_var)
+                },
+            }
+        )
+        return metadata
 
 
 class DownloadModel(Resource):
