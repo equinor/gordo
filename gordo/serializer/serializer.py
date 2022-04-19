@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 N_STEP_REGEX = re.compile(r".*n_step=([0-9]+)")
 CLASS_REGEX = re.compile(r".*class=(.*$)")
+# Because of pickle.DEFAULT_PROTOCOL in python 3.7
+DEFAULT_PICKLE_PROTOCOL = 3
 
 
 def dumps(model: Union[Pipeline, GordoBase]) -> bytes:
@@ -144,6 +146,14 @@ def load(source_dir: Union[os.PathLike, str]) -> Any:
     -------
     Union[GordoBase, Pipeline, BaseEstimator]
     """
+    info_json: Optional[dict] = None
+    try:
+        info_json = _load_json_file(source_dir, "info.json")
+    except FileNotFoundError:
+        pass
+    pickle_protocol = DEFAULT_PICKLE_PROTOCOL
+    if info_json and "pickle_protocol" in info_json:
+        pickle_protocol = int(info_json["pickle_protocol"])
     # This source dir should have a single pipeline entry directory.
     # may have been passed a top level dir, containing such an entry:
     with open(os.path.join(source_dir, "model.pkl"), "rb") as f:
@@ -191,11 +201,13 @@ def dump(
     ...     serializer.dump(obj=pipe, dest_dir=tmp)
     ...     pipe_clone = serializer.load(source_dir=tmp)
     """
+    pickle_protocol = pickle.DEFAULT_PROTOCOL
     with open(os.path.join(dest_dir, "model.pkl"), "wb") as m:
-        pickle.dump(obj, m)
-    if info is not None:
-        with open(os.path.join(dest_dir, "info.json"), "w") as f:
-            simplejson.dump(info, f, default=str)
+        pickle.dump(obj, m, protocol=pickle_protocol)
+    info = info.copy() if info is not None else {}
+    info["pickle_protocol"] = pickle_protocol
+    with open(os.path.join(dest_dir, "info.json"), "w") as f:
+        simplejson.dump(info, f, default=str)
     if metadata is not None:
         with open(os.path.join(dest_dir, "metadata.json"), "w") as f:
             simplejson.dump(metadata, f, default=str)
