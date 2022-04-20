@@ -15,7 +15,7 @@ stuff.
 
 
 def write_key(registry_dir: Union[os.PathLike, str], key: str, val: AnyStr):
-    """ Registers a key-value combination into the register. Key must valid as a
+    """Registers a key-value combination into the register. Key must valid as a
     filename.
 
     Parameters

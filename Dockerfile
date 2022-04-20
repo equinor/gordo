@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.7.13-buster as builder
+FROM python:3.9.12-buster as builder
 
 # Copy source code
 COPY . /code
@@ -17,7 +17,7 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.7.13-slim-buster
+FROM python:3.9.12-slim-buster
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
@@ -25,6 +25,10 @@ RUN groupadd -g 999 gordo && \
 
 ENV HOME "/home/gordo"
 ENV PATH "${HOME}/.local/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    jq
 
 # Install requirements separately for improved docker caching
 COPY --from=builder /code/prereq.txt .
@@ -43,11 +47,6 @@ RUN pip install gordo-packed.tar.gz[full]
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.16.9"
 ARG ARGO_VERSION="v2.12.11"
-
-RUN apt-get update && apt-get install -y \
-    curl \
-    jq \
- && rm -rf /var/lib/apt/lists/*
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\

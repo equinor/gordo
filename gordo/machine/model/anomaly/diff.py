@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from typing import Optional, Union
+from typing import Optional, Union, cast
 from datetime import timedelta
 
 from sklearn.preprocessing import MinMaxScaler
@@ -244,8 +244,8 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             # Accumulate the rolling mins of diffs into common df
             tag_thresholds_fold = mae.rolling(6).min().max()
             tag_thresholds_fold.name = f"fold-{i}"
-            self.feature_thresholds_per_fold_ = self.feature_thresholds_per_fold_.append(
-                tag_thresholds_fold
+            self.feature_thresholds_per_fold_ = (
+                self.feature_thresholds_per_fold_.append(tag_thresholds_fold)
             )
 
             if self.window is not None:
@@ -259,8 +259,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
                 smooth_tag_thresholds_fold = mae.rolling(self.window).min().max()
                 smooth_tag_thresholds_fold.name = f"fold-{i}"
-                self.smooth_feature_thresholds_per_fold_ = self.smooth_feature_thresholds_per_fold_.append(
-                    smooth_tag_thresholds_fold
+                self.smooth_feature_thresholds_per_fold_ = (
+                    self.smooth_feature_thresholds_per_fold_.append(
+                        smooth_tag_thresholds_fold
+                    )
                 )
 
         # Final thresholds are the thresholds from the last cv split/fold
@@ -340,6 +342,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             features
         """
 
+        if not hasattr(X, "values"):
+            raise ValueError("Unable to find X.values property")
+
         # Get the model output, falling back to transform if 'predict' doesn't exist
         model_output = (
             self.predict(X) if hasattr(self, "predict") else self.transform(X)
@@ -348,7 +353,7 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         # Create the basic dataframe with 'model-output' & 'model-input'
         data = model_utils.make_base_dataframe(
             tags=X.columns,
-            model_input=getattr(X, "values", X),
+            model_input=cast(np.ndarray, X.values),
             model_output=model_output,
             target_tag_list=y.columns,
             index=getattr(X, "index", None),
@@ -395,8 +400,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         if self.window is not None and self.smoothing_method is not None:
             # Calculate scaled tag-level smoothed anomaly scores
             smooth_tag_anomaly_scaled = self._smoothing(tag_anomaly_scaled)
-            smooth_tag_anomaly_scaled.columns = smooth_tag_anomaly_scaled.columns.set_levels(
-                ["smooth-tag-anomaly-scaled"], level=0
+            smooth_tag_anomaly_scaled.columns = (
+                smooth_tag_anomaly_scaled.columns.set_levels(
+                    ["smooth-tag-anomaly-scaled"], level=0
+                )
             )
             data = data.join(smooth_tag_anomaly_scaled)
 
@@ -408,8 +415,10 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             # Calculate unscaled tag-level smoothed anomaly scores
             smooth_tag_anomaly_unscaled = self._smoothing(unscaled_abs_diff)
 
-            smooth_tag_anomaly_unscaled.columns = smooth_tag_anomaly_unscaled.columns.set_levels(
-                ["smooth-tag-anomaly-unscaled"], level=0
+            smooth_tag_anomaly_unscaled.columns = (
+                smooth_tag_anomaly_unscaled.columns.set_levels(
+                    ["smooth-tag-anomaly-unscaled"], level=0
+                )
             )
             data = data.join(smooth_tag_anomaly_unscaled)
 

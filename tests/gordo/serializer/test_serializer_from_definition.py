@@ -120,7 +120,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                         - 0
                                         - 1
                                         copy: true
-                                    - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                    - sklearn.decomposition.TruncatedSVD:
                                         n_components: 2
                                         algorithm: randomized
                                         n_iter: 5
@@ -151,7 +151,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                 - sklearn.pipeline.Pipeline:
                                     - sklearn.preprocessing.MinMaxScaler:
                                         feature_range: [0, 1]
-                                    - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                    - sklearn.decomposition.TruncatedSVD:
                                         n_components: 2
                             - gordo.machine.model.models.{model}:
                                 kind: {model_kind}
@@ -193,7 +193,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
                                     - 0
                                     - 1
                                     copy: true
-                                - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                - sklearn.decomposition.TruncatedSVD:
                                     n_components: 2
                                     algorithm: randomized
                                     n_iter: 5

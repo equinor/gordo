@@ -556,35 +556,35 @@ class ModelBuilder:
     @staticmethod
     def calculate_cache_key(machine: Machine) -> str:
         """
-                Calculates a hash-key from the model and data-config.
+        Calculates a hash-key from the model and data-config.
 
-                Returns
-                -------
-                str:
-                    A 512 byte hex value as a string based on the content of the parameters.
+        Returns
+        -------
+        str:
+            A 512 byte hex value as a string based on the content of the parameters.
 
-                Examples
-                -------
-                >>> from gordo.machine import Machine
-                >>> from gordo_dataset.sensor_tag import SensorTag
-                >>> from gordo.dependencies import configure_once
-                >>> configure_once()
-                >>> machine = Machine(
-                ...     name="special-model-name",
-                ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
-                ...     dataset={
-                ...         "type": "RandomDataset",
-                ...         "train_start_date": "2017-12-25 06:00:00Z",
-                ...         "train_end_date": "2017-12-30 06:00:00Z",
-                ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-                ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
-                ...     },
-                ...     project_name='test-proj'
-                ... )
-                >>> builder = ModelBuilder(machine)
-                >>> len(builder.cache_key)
-                128
-                """
+        Examples
+        -------
+        >>> from gordo.machine import Machine
+        >>> from gordo_dataset.sensor_tag import SensorTag
+        >>> from gordo.dependencies import configure_once
+        >>> configure_once()
+        >>> machine = Machine(
+        ...     name="special-model-name",
+        ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
+        ...     dataset={
+        ...         "type": "RandomDataset",
+        ...         "train_start_date": "2017-12-25 06:00:00Z",
+        ...         "train_end_date": "2017-12-30 06:00:00Z",
+        ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...     },
+        ...     project_name='test-proj'
+        ... )
+        >>> builder = ModelBuilder(machine)
+        >>> len(builder.cache_key)
+        128
+        """
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)

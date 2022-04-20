@@ -653,9 +653,11 @@ def test_hpa_types(path_to_config_files: str, args: list, expected_steps: list):
     ]
     names = _get_names_recursively(gordo_server_step["steps"])
     for expected_step in expected_steps:
-        assert expected_step in names, (
-            "Unable to found expected gordo-server step '%s' with args: %s"
-            % (expected_step, " ".join(args))
+        assert (
+            expected_step in names
+        ), "Unable to found expected gordo-server step '%s' with args: %s" % (
+            expected_step,
+            " ".join(args),
         )
 
 

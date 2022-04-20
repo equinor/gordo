@@ -34,9 +34,9 @@ DEFAULT_EXIT_CODE = 1
 
 class ExceptionsReporter:
     """
-        Helper which can save the exception information in JSON format into the file.
-        This class might be used for storing exception information after termination of the Kubernetes pod.
-        `Information <https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#customizing-the-termination-message>`_
+    Helper which can save the exception information in JSON format into the file.
+    This class might be used for storing exception information after termination of the Kubernetes pod.
+    `Information <https://kubernetes.io/docs/tasks/debug-application-cluster/determine-reason-pod-failure/#customizing-the-termination-message>`_
     """
 
     def __init__(
