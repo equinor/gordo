@@ -357,6 +357,8 @@ typed-ast==1.4.3
     #   mypy
 types-python-dateutil==2.8.11
     # via -r test_requirements.in
+types-pyyaml==6.0.6
+    # via -r test_requirements.in
 types-simplejson==3.17.5
     # via -r test_requirements.in
 typing-extensions==4.2.0
