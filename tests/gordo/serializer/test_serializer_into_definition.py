@@ -153,7 +153,7 @@ sklearn.pipeline.Pipeline:
           - sklearn.preprocessing._data.MinMaxScaler:
               clip: false
               copy: true
-              feature_range: !!python/tuple
+              feature_range:
               - 0
               - 1
           - sklearn.decomposition._truncated_svd.TruncatedSVD:
