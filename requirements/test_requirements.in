@@ -27,6 +27,7 @@ cffi~=1.14.6
 types-simplejson
 types-python-dateutil
 types-PyYAML
+types-setuptools
 # At the bottom are optional dependencies
 mypy>=0.780
 typed-ast~=1.4.3
