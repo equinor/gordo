@@ -1,2 +1,2 @@
-mlflow~=1.5
-azureml-contrib-run~=1.0
+mlflow~=1.25.1
+azureml-contrib-run~=1.36.0
