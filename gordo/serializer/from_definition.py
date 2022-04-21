@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import pydoc
+import importlib
 import copy
 import typing  # noqa
 from typing import Union, Dict, Any, Iterable
@@ -14,7 +14,17 @@ logger = logging.getLogger(__name__)
 
 
 def import_locate(import_path: str) -> Any:
-    return pydoc.locate(import_path)
+    try:
+        module_name, class_name = import_path.rsplit(".", 1)
+    except ValueError:
+        raise ImportError("Malformed import path: %s" % import_path)
+    module = importlib.import_module(module_name)
+    if not hasattr(module, class_name):
+        raise ImportError(
+            "Unable to find class %s in module %s" % (module_name, class_name)
+        )
+    cls = getattr(module, class_name)
+    return cls
 
 
 def from_definition(
@@ -128,9 +138,12 @@ def _build_step(
 
         import_str = list(step.keys())[0]
 
-        StepClass: Union[FeatureUnion, Pipeline, BaseEstimator] = import_locate(
-            import_str
-        )
+        try:
+            StepClass: Union[None, FeatureUnion, Pipeline, BaseEstimator] = import_locate(
+                import_str
+            )
+        except ImportError:
+            StepClass = None
 
         if StepClass is None:
             raise ImportError(f'Could not locate path: "{import_str}"')
@@ -148,7 +161,10 @@ def _build_step(
         if isinstance(params, dict):
             for param, value in params.items():
                 if isinstance(value, str):
-                    possible_func = import_locate(value)
+                    try:
+                        possible_func = import_locate(value)
+                    except ImportError:
+                        possible_func = None
                     if callable(possible_func):
                         params[param] = possible_func
 
@@ -182,7 +198,10 @@ def _build_step(
     # If step is just a string, can initialize it without any params
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
-        Step = import_locate(step)  # type: Union[FeatureUnion, Pipeline, BaseEstimator]
+        try:
+            Step = import_locate(step)
+        except ImportError:
+            Step = None
         if hasattr(Step, "from_definition"):
             return getattr(Step, "from_definition")({})
         else:
@@ -259,7 +278,10 @@ def _load_param_classes(params: dict):
 
         # If value is a simple string, try to load the model/class
         if isinstance(value, str):
-            Model: Union[None, BaseEstimator, Pipeline] = import_locate(value)
+            try:
+                Model: Union[None, BaseEstimator, Pipeline] = import_locate(value)
+            except ImportError:
+                Model = None
             if Model is not None:
                 if hasattr(Model, "from_definition"):
                     params[key] = getattr(Model, "from_definition")({})
@@ -275,7 +297,10 @@ def _load_param_classes(params: dict):
             and isinstance(value[list(value.keys())[0]], dict)
         ):
             import_path = list(value.keys())[0]
-            Model = import_locate(import_path)
+            try:
+                Model = import_locate(import_path)
+            except ImportError:
+                Model = None
 
             sub_params = value[import_path]
 
