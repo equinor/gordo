@@ -140,7 +140,7 @@ gast==0.3.3
     # via tensorflow
 gitdb2==2.0.6
     # via gitpython
-gitpython==3.0.5
+gitpython==3.1.27
     # via
     #   mlflow
     #   mlflow-skinny
@@ -276,7 +276,7 @@ ndg-httpsclient==0.5.1
     # via azureml-core
 numexpr==2.8.1
     # via gordo-dataset
-numpy==1.21.0
+numpy==1.22.2
     # via
     #   catboost
     #   h5py
