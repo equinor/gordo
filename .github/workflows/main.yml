@@ -11,7 +11,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         component: [builder, cli, client, machine, reporters, serializer, server, util, workflow, formatting, allelse]
-        python-version: [3.7]
+        python-version: [3.9]
     steps:
       - uses: actions/checkout@v1
 
@@ -30,7 +30,7 @@ jobs:
 
       - name: Install
         run: |
-          pip install --upgrade pip==20.1.1
+          pip install --upgrade pip~=22.0.4
           pip install --extra-index-url "${{ secrets.INDEX_URL }}" -r requirements/full_requirements.txt
           pip install -r requirements/test_requirements.txt
 

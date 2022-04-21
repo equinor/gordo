@@ -32,7 +32,7 @@ from gordo.machine import Machine
                 steps:
                 - sklearn.decomposition.PCA
                 - sklearn.multioutput.MultiOutputRegressor:
-                    estimator: sklearn.linear_model.base.LinearRegression
+                    estimator: sklearn.linear_model.LinearRegression
         name: crazy-sweet-name
     """,
         """
@@ -55,7 +55,7 @@ from gordo.machine import Machine
                 steps:
                 - sklearn.decomposition.PCA
                 - sklearn.multioutput.MultiOutputRegressor:
-                    estimator: sklearn.linear_model.base.LinearRegression
+                    estimator: sklearn.linear_model.LinearRegression
     """,
     ),
 )
@@ -114,7 +114,7 @@ def test_local_builder_valid_configs(config):
                     steps:
                     - sklearn.decomposition.PCA
                     - sklearn.multioutput.MultiOutputRegressor:
-                        estimator: sklearn.linear_model.base.LinearRegression
+                        estimator: sklearn.linear_model.LinearRegression
         """,
     ),
 )

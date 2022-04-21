@@ -177,7 +177,7 @@ class Machine:
         }
 
     def report(self):
-        """ 
+        """
         Run any reporters in the machine's runtime for the current state.
 
         Reporters implement the :class:`gordo.reporters.base.BaseReporter` and

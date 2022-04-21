@@ -125,48 +125,49 @@ def variations_of_same_pipeline():
 def test_into_definition(variations_of_same_pipeline):
 
     expected_definition = """
-        sklearn.pipeline.Pipeline:
-            memory: null
-            steps:
-                - sklearn.decomposition._pca.PCA:
-                    copy: true
-                    iterated_power: auto
-                    n_components: 2
-                    random_state: null
-                    svd_solver: auto
-                    tol: 0.0
-                    whiten: false
-                - sklearn.pipeline.FeatureUnion:
-                    n_jobs: null
-                    transformer_list:
-                    - sklearn.decomposition._pca.PCA:
-                        copy: true
-                        iterated_power: auto
-                        n_components: 3
-                        random_state: null
-                        svd_solver: auto
-                        tol: 0.0
-                        whiten: false
-                    - sklearn.pipeline.Pipeline:
-                        memory: null
-                        steps:
-                        - sklearn.preprocessing._data.MinMaxScaler:
-                            copy: true
-                            feature_range:
-                              - 0
-                              - 1
-                        - sklearn.decomposition._truncated_svd.TruncatedSVD:
-                            algorithm: randomized
-                            n_components: 2
-                            n_iter: 5
-                            random_state: null
-                            tol: 0.0
-                        verbose: false
-                    transformer_weights: null
-                    verbose: false
-                - gordo.machine.model.models.KerasAutoEncoder:
-                    kind: feedforward_hourglass
-            verbose: false
+sklearn.pipeline.Pipeline:
+  memory: null
+  steps:
+  - sklearn.decomposition._pca.PCA:
+      copy: true
+      iterated_power: auto
+      n_components: 2
+      random_state: null
+      svd_solver: auto
+      tol: 0.0
+      whiten: false
+  - sklearn.pipeline.FeatureUnion:
+      n_jobs: null
+      transformer_list:
+      - sklearn.decomposition._pca.PCA:
+          copy: true
+          iterated_power: auto
+          n_components: 3
+          random_state: null
+          svd_solver: auto
+          tol: 0.0
+          whiten: false
+      - sklearn.pipeline.Pipeline:
+          memory: null
+          steps:
+          - sklearn.preprocessing._data.MinMaxScaler:
+              clip: false
+              copy: true
+              feature_range:
+              - 0
+              - 1
+          - sklearn.decomposition._truncated_svd.TruncatedSVD:
+              algorithm: randomized
+              n_components: 2
+              n_iter: 5
+              random_state: null
+              tol: 0.0
+          verbose: false
+      transformer_weights: null
+      verbose: false
+  - gordo.machine.model.models.KerasAutoEncoder:
+      kind: feedforward_hourglass
+  verbose: false
         """
 
     expected_definition = yaml.safe_load(expected_definition)
@@ -268,7 +269,7 @@ def test_from_into():
                                     - 0
                                     - 1
                                     copy: true
-                                - sklearn.decomposition.truncated_svd.TruncatedSVD:
+                                - sklearn.decomposition.TruncatedSVD:
                                     n_components: 2
                                     algorithm: randomized
                                     n_iter: 5
