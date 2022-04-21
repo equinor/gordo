@@ -29,6 +29,7 @@ types-python-dateutil
 types-PyYAML
 types-setuptools
 types-requests
+types-pytz
 # At the bottom are optional dependencies
 mypy>=0.780
 typed-ast~=1.4.3
