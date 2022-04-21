@@ -55,7 +55,7 @@ from gordo.machine import Machine
                 steps:
                 - sklearn.decomposition.PCA
                 - sklearn.multioutput.MultiOutputRegressor:
-                    estimator: sklearn.linear_model.base.LinearRegression
+                    estimator: sklearn.linear_model.LinearRegression
     """,
     ),
 )
