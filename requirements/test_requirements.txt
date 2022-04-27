@@ -150,8 +150,10 @@ nbformat==5.0.3
     #   nbconvert
     #   notebook
 nest-asyncio==1.5.1
-    # via nbclient
-notebook==6.4.3
+    # via
+    #   nbclient
+    #   notebook
+notebook==6.4.11
     # via -r test_requirements.in
 packaging==20.7
     # via
@@ -265,7 +267,7 @@ requests==2.25.1
     #   responses
 responses==0.13.3
     # via -r test_requirements.in
-send2trash==1.5.0
+send2trash==1.8.0
     # via notebook
 six==1.15.0
     # via
