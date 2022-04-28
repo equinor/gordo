@@ -79,4 +79,4 @@ RUN chown -R gordo:gordo ${HOME}
 # Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
 WORKDIR ${HOME}
 # Switch user
-USER gordo
+USER 999 
