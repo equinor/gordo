@@ -2,8 +2,8 @@
 
 set -e
 
-function_dir=$(dirname $0)
-. $function_dir/functions.sh
+functions_dir=$(dirname $0)
+. $functions_dir/functions.sh
 
 if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   set -x
