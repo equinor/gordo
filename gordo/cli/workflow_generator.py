@@ -68,11 +68,11 @@ class JSONParam(click.ParamType, Generic[T]):
         try:
             data = json.loads(value)
         except json.JSONDecodeError as e:
-            raise self.fail('Malformed JSON string - %s' % str(e))
+            raise self.fail("Malformed JSON string - %s" % str(e))
         try:
             obj = parse_obj_as(self.schema, data)
         except ValidationError as e:
-            raise self.fail('Schema validation error - %s' % str(e))
+            raise self.fail("Schema validation error - %s" % str(e))
         return obj
 
 
@@ -312,7 +312,7 @@ def workflow_cli(gordo_ctx):
     help="List of custom environment variables in ",
     envvar=f"{PREFIX}_CUSTOM_MODEL_BUILDER_ENVS",
     default=DEFAULT_CUSTOM_MODEL_BUILDER_ENVS,
-    type=JSONParam(List[EnvVar])
+    type=JSONParam(List[EnvVar]),
 )
 @click.option(
     "--prometheus-server-address",
@@ -375,7 +375,7 @@ def workflow_cli(gordo_ctx):
     "--security-context",
     help="Workflow securityContext in JSON format",
     envvar=f"{PREFIX}_SECURITY_CONTEXT",
-    type=JSONParam(SecurityContext)
+    type=JSONParam(SecurityContext),
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
@@ -406,7 +406,9 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     model_builder_env = None
     if context["custom_model_builder_envs"]:
-        custom_model_builder_envs = cast(List[EnvVar], context["custom_model_builder_envs"])
+        custom_model_builder_envs = cast(
+            List[EnvVar], context["custom_model_builder_envs"]
+        )
         model_builder_env = [env_var.json() for env_var in custom_model_builder_envs]
     # Create normalized config
     config = NormalizedConfig(
