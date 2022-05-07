@@ -81,13 +81,13 @@ class SELinuxOptions(BaseModel):
 
 
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#seccompprofile-v1-core
-class SeccompProfile:
+class SeccompProfile(BaseModel):
     localhostProfile: Optional[str]
     type: Optional[str]
 
 
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#windowssecuritycontextoptions-v1-core
-class WindowsSecurityContextOptions:
+class WindowsSecurityContextOptions(BaseModel):
     gmsaCredentialSpec: Optional[str]
     gmsaCredentialSpecName: Optional[str]
     runAsUserName: Optional[str]
