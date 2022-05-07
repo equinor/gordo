@@ -64,7 +64,9 @@ class JSONParam(click.ParamType, Generic[T]):
 
     def convert(
         self, value: Any, param: Optional[click.Parameter], ctx: Optional[click.Context]
-    ) -> T:
+    ) -> Optional[T]:
+        if value is None:
+            return None
         try:
             data = json.loads(value)
         except json.JSONDecodeError as e:
@@ -402,14 +404,16 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     if context["security_context"]:
         security_context = cast(SecurityContext, context["security_context"])
-        context["security_context"] = security_context.json()
+        context["security_context"] = security_context.dict(exclude_none=True)
 
     model_builder_env = None
     if context["custom_model_builder_envs"]:
         custom_model_builder_envs = cast(
             List[EnvVar], context["custom_model_builder_envs"]
         )
-        model_builder_env = [env_var.json() for env_var in custom_model_builder_envs]
+        model_builder_env = [
+            env_var.dict(exclude_none=True) for env_var in custom_model_builder_envs
+        ]
     # Create normalized config
     config = NormalizedConfig(
         yaml_content,
