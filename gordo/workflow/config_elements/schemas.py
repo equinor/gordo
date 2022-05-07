@@ -64,3 +64,44 @@ class RemoteLogging(BaseModel):
 
 class BuilderPodRuntime(PodRuntime):
     remote_logging: RemoteLogging
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#capabilities-v1-core
+class Capabilities(BaseModel):
+    add: Optional[List[str]]
+    drop: Optional[List[str]]
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#selinuxoptions-v1-core
+class SELinuxOptions(BaseModel):
+    level: Optional[str]
+    role: Optional[str]
+    type: Optional[str]
+    user: Optional[str]
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#seccompprofile-v1-core
+class SeccompProfile:
+    localhostProfile: Optional[str]
+    type: Optional[str]
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#windowssecuritycontextoptions-v1-core
+class WindowsSecurityContextOptions:
+    gmsaCredentialSpec: Optional[str]
+    gmsaCredentialSpecName: Optional[str]
+    runAsUserName: Optional[str]
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#securitycontext-v1-core
+class SecurityContext(BaseModel):
+    allowPrivilegeEscalation: Optional[bool]
+    capabilities: Optional[Capabilities]
+    privileged: Optional[bool]
+    procMount: Optional[str]
+    readOnlyRootFilesystem: Optional[bool]
+    runAsGroup: Optional[bool]
+    runAsUser: Optional[int]
+    seLinuxOptions: Optional[SELinuxOptions]
+    seccompProfile: Optional[SeccompProfile]
+    windowsOptions: Optional[WindowsSecurityContextOptions]
