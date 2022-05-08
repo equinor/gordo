@@ -66,14 +66,19 @@ class BuilderPodRuntime(PodRuntime):
     remote_logging: RemoteLogging
 
 
+class Model(BaseModel):
+    class Config:
+        extra = "forbid"
+
+
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#capabilities-v1-core
-class Capabilities(BaseModel):
+class Capabilities(Model):
     add: Optional[List[str]]
     drop: Optional[List[str]]
 
 
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#selinuxoptions-v1-core
-class SELinuxOptions(BaseModel):
+class SELinuxOptions(Model):
     level: Optional[str]
     role: Optional[str]
     type: Optional[str]
@@ -81,25 +86,26 @@ class SELinuxOptions(BaseModel):
 
 
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#seccompprofile-v1-core
-class SeccompProfile(BaseModel):
+class SeccompProfile(Model):
     localhostProfile: Optional[str]
     type: Optional[str]
 
 
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#windowssecuritycontextoptions-v1-core
-class WindowsSecurityContextOptions(BaseModel):
+class WindowsSecurityContextOptions(Model):
     gmsaCredentialSpec: Optional[str]
     gmsaCredentialSpecName: Optional[str]
     runAsUserName: Optional[str]
 
 
 # Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#securitycontext-v1-core
-class SecurityContext(BaseModel):
+class SecurityContext(Model):
     allowPrivilegeEscalation: Optional[bool]
     capabilities: Optional[Capabilities]
     privileged: Optional[bool]
     procMount: Optional[str]
     readOnlyRootFilesystem: Optional[bool]
+    runAsNonRoot: Optional[bool]
     runAsGroup: Optional[bool]
     runAsUser: Optional[int]
     seLinuxOptions: Optional[SELinuxOptions]
