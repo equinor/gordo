@@ -12,7 +12,7 @@ except ImportError:
     __version__ = DEFAULT_VERSION
 
 
-def _parse_version(input_version: str) -> Tuple[int, int, bool]:
+def parse_version(input_version: str) -> Tuple[int, int, bool]:
     """
     Takes a string which starts with standard major.minor.patch.
     and returns the split of major and minor version as integers
@@ -44,7 +44,7 @@ def _parse_version(input_version: str) -> Tuple[int, int, bool]:
     return result
 
 
-MAJOR_VERSION, MINOR_VERSION, IS_UNSTABLE_VERSION = _parse_version(__version__)
+MAJOR_VERSION, MINOR_VERSION, IS_UNSTABLE_VERSION = parse_version(__version__)
 
 try:
     # FIXME(https://github.com/abseil/abseil-py/issues/99)
