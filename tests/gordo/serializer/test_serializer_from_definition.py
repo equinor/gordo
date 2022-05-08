@@ -16,13 +16,19 @@ from sklearn.multioutput import MultiOutputRegressor
 
 from gordo import serializer
 from gordo.serializer import from_definition
-from gordo.serializer.from_definition import import_locate
+from gordo.serializer.utils import import_locate, validate_locate
 import gordo.machine.model.transformer_funcs.general
 from gordo.machine.model.register import register_model_builder
 
 from tests.gordo.serializer.definition_test_model import DefinitionTestModel
 
 logger = logging.getLogger(__name__)
+
+
+def test_validate_locate():
+    validate_locate("sklearn.preprocessing.MinMaxScaler")
+    with pytest.raises(ValueError):
+        validate_locate("%wrong.import")
 
 
 def test_import_locate():
