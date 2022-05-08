@@ -21,7 +21,7 @@ def validate_locate(import_path: str):
     import_path_items = import_path.split(".")
     for item in import_path_items:
         if not import_path_item_re.match(item):
-            raise ValueError("Invalid import path \"%s\" item \"%s\"" % (import_path, item))
+            raise ValueError('Invalid import path "%s" item "%s"' % (import_path, item))
 
 
 def import_locate(import_path: str) -> Any:
