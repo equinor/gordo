@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 class ModelBuilder:
     def __init__(self, machine: Machine):
         """
-        Build a model for a given :class:`gordo.workflow.config_elements.machine.Machine`
+        Build a model for a given :class:`gordo.machine.Machine`
 
         Parameters
         ----------

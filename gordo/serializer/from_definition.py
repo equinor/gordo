@@ -1,30 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import importlib
 import copy
 import typing  # noqa
+
 from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
 
+from .utils import import_locate
+
 
 logger = logging.getLogger(__name__)
-
-
-def import_locate(import_path: str) -> Any:
-    try:
-        module_name, class_name = import_path.rsplit(".", 1)
-    except ValueError:
-        raise ImportError("Malformed import path: %s" % import_path)
-    module = importlib.import_module(module_name)
-    if not hasattr(module, class_name):
-        raise ImportError(
-            "Unable to find class %s in module %s" % (module_name, class_name)
-        )
-    cls = getattr(module, class_name)
-    return cls
 
 
 def from_definition(
