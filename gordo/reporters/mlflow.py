@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import tempfile
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Union, Tuple, Optional, Type
 from uuid import uuid4
 
 from azureml.core import Workspace
@@ -480,14 +480,18 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
 
 class MlFlowReporter(BaseReporter):
     @capture_args
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, *args, model_builder_class: Optional[Type[ModelBuilder]] = None, **kwargs):
+        if model_builder_class is None:
+            model_builder_class = ModelBuilder
+        self.model_builder_class = model_builder_class
 
     def report(self, machine: Machine):
 
         workspace_kwargs = get_workspace_kwargs()
         service_principal_kwargs = get_spauth_kwargs()
-        cache_key = ModelBuilder.calculate_cache_key(machine)
+        # TODO something better here
+        model_builder = self.model_builder_class(machine)
+        cache_key = model_builder.calculate_cache_key(machine)
 
         with mlflow_context(
             machine.name, cache_key, workspace_kwargs, service_principal_kwargs

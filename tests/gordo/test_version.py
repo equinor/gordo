@@ -29,4 +29,4 @@ def test_version_parser(version: str, expected: Tuple[int, int, int]):
 
 def test_version_with_error():
     with pytest.raises(ValueError):
-        _parse_version("not_a_version")
+        parse_version("not_a_version")
