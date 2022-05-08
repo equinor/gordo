@@ -589,7 +589,9 @@ class ModelBuilder:
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)
-        major_version, minor_version, is_unstable_version = parse_version(self.gordo_version)
+        major_version, minor_version, is_unstable_version = parse_version(
+            self.gordo_version
+        )
         gordo_version = self.gordo_version if is_unstable_version else ""
         json_rep = json.dumps(
             {
