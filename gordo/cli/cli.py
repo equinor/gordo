@@ -104,8 +104,8 @@ def gordo(gordo_ctx: click.Context, **ctx):
 @click.option(
     "--model-builder-class",
     help="ModelBuilder class import path. "
-         "This should be a subclass of gordo.builder.build_model.ModelBuilder",
-    envvar="MODEL_BUILDER_CLASS"
+    "This should be a subclass of gordo.builder.build_model.ModelBuilder",
+    envvar="MODEL_BUILDER_CLASS",
 )
 @click.option(
     "--print-cv-scores", help="Prints CV scores to stdout", is_flag=True, default=False
