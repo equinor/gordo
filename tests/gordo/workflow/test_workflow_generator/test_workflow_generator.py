@@ -662,17 +662,26 @@ def test_hpa_types(path_to_config_files: str, args: list, expected_steps: list):
 
 
 def test_security_context(path_to_config_files: str):
-    args = ["--security-context", '{"runAsNonRoot": true, "readOnlyRootFilesystem": true}']
+    args = [
+        "--security-context",
+        '{"runAsNonRoot": true, "readOnlyRootFilesystem": true}',
+    ]
     workflow_str = _generate_test_workflow_str(
         path_to_config_files, "config-test-simple.yml", args=args
     )
     workflow = yaml.safe_load(workflow_str)
     assert "securityContext" in workflow["spec"]
-    assert workflow["spec"]["securityContext"] == {'readOnlyRootFilesystem': True, 'runAsNonRoot': True}
+    assert workflow["spec"]["securityContext"] == {
+        "readOnlyRootFilesystem": True,
+        "runAsNonRoot": True,
+    }
 
 
 def test_security_context_failed(path_to_config_files: str):
-    args = ["--security-context", '{"unknownSecurityParam": true, "readOnlyRootFilesystem": true}']
+    args = [
+        "--security-context",
+        '{"unknownSecurityParam": true, "readOnlyRootFilesystem": true}',
+    ]
     with pytest.raises(SystemExit):
         _generate_test_workflow_str(
             path_to_config_files, "config-test-simple.yml", args=args
