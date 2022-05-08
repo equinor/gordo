@@ -36,6 +36,8 @@ def test_import_locate():
     assert obj is MinMaxScaler
     with pytest.raises(ImportError):
         import_locate("sklearn.wrong_import.WrongClass")
+    with pytest.raises(ImportError):
+        import_locate("wrong_import")
 
 
 @pytest.mark.parametrize(
