@@ -482,7 +482,12 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
 
 class MlFlowReporter(BaseReporter):
     @capture_args
-    def __init__(self, *args, model_builder_class: Optional[Union[str, Type[ModelBuilder]]] = None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        model_builder_class: Optional[Union[str, Type[ModelBuilder]]] = None,
+        **kwargs,
+    ):
         if type(model_builder_class) is str:
             model_builder_class = create_model_builder(model_builder_class)
         if model_builder_class is None:
@@ -490,7 +495,6 @@ class MlFlowReporter(BaseReporter):
         self.model_builder_class = cast(Type[ModelBuilder], model_builder_class)
 
     def report(self, machine: Machine):
-
         workspace_kwargs = get_workspace_kwargs()
         service_principal_kwargs = get_spauth_kwargs()
         # TODO something better here
