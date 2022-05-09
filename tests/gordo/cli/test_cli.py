@@ -228,7 +228,7 @@ def test_build_exit_code(exception, exit_code, runner, tmpdir, machine):
 
     logger.info(f"MODEL_CONFIG={json.dumps(machine.model)}")
     with mock.patch(
-        "gordo.cli.cli.ModelBuilder.build",
+        "gordo.build_model.ModelBuilder.build",
         mock.MagicMock(side_effect=exception, autospec=True, return_value=None),
     ):
         with temp_env_vars(
