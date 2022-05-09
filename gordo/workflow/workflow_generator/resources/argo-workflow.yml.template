@@ -738,8 +738,8 @@ spec:
       - name: EXCEPTIONS_REPORTER_FILE
         value: "{{ builder_exceptions_report_file }}"{% endif %}
       - name: EXCEPTIONS_REPORT_LEVEL
-        value: "{{ builder_exceptions_report_level }}"{% if "env" in builder_runtime %}
-{{ builder_runtime["env"] | yaml | indent(6, True) }}{% endif %}
+        value: "{{ builder_exceptions_report_level }}"{% if builder_runtime_env %}
+{{ builder_runtime_env | yaml | indent(6, True) }}{% endif %}
       volumeMounts:
       - name: azurefile
         mountPath: /gordo

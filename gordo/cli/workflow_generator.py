@@ -17,6 +17,7 @@ from gordo.workflow.config_elements.schemas import SecurityContext, EnvVar
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
 from gordo.dependencies import configure_once
+from gordo.serializer.utils import validate_locate
 
 
 logger = logging.getLogger(__name__)
@@ -379,6 +380,11 @@ def workflow_cli(gordo_ctx):
     envvar=f"{PREFIX}_SECURITY_CONTEXT",
     type=JSONParam(SecurityContext),
 )
+@click.option(
+    "--model-builder-class",
+    help="ModelBuilder class",
+    envvar="MODEL_BUILDER_CLASS",
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
@@ -399,6 +405,9 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["log_level"] = log_level.upper()
 
     validate_generate_context(context)
+
+    if context["model_builder_class"]:
+        validate_locate(context["model_builder_class"])
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 
@@ -454,6 +463,18 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["model_builder_image"] = config.globals["runtime"]["builder"]["image"]
 
     context["builder_runtime"] = builder_runtime
+
+    builder_runtime_env = []
+    if "env" in builder_runtime:
+        builder_runtime_env = builder_runtime["env"]
+
+    if builder_runtime_env:
+        if context["model_builder_class"]:
+            builder_runtime_env.append(
+                {"name": "MODEL_BUILDER_CLASS", "value": context["model_builder_class"]}
+            )
+
+    context["builder_runtime_env"] = builder_runtime_env
 
     context["server_resources"] = config.globals["runtime"]["server"]["resources"]
     context["server_image"] = config.globals["runtime"]["server"]["image"]
