@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import tempfile
-from typing import Dict, List, Union, Tuple, Optional, Type
+from typing import Dict, List, Union, Tuple, Optional, Type, cast
 from uuid import uuid4
 
 from azureml.core import Workspace
@@ -22,6 +22,8 @@ from gordo.machine import Machine
 from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
 from gordo_dataset.sensor_tag import extract_tag_name
+from gordo.builder.utils import create_model_builder
+
 from .base import BaseReporter
 from .exceptions import ReporterException
 
@@ -480,10 +482,12 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
 
 class MlFlowReporter(BaseReporter):
     @capture_args
-    def __init__(self, *args, model_builder_class: Optional[Type[ModelBuilder]] = None, **kwargs):
+    def __init__(self, *args, model_builder_class: Optional[Union[str, Type[ModelBuilder]]] = None, **kwargs):
+        if type(model_builder_class) is str:
+            model_builder_class = create_model_builder(model_builder_class)
         if model_builder_class is None:
             model_builder_class = ModelBuilder
-        self.model_builder_class = model_builder_class
+        self.model_builder_class = cast(Type[ModelBuilder], model_builder_class)
 
     def report(self, machine: Machine):
 

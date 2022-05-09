@@ -15,12 +15,11 @@ from gordo_dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
 from gordo_dataset.base import ConfigurationError
 from gordo_dataset.exceptions import ConfigException, InsufficientDataError
-from gordo.serializer.utils import validate_locate, import_locate
 from gunicorn.glogging import Logger
 from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
-from typing import Tuple, List, Any, Optional, Type, cast
+from typing import Tuple, List, Any, cast
+from gordo.builder.utils import create_model_builder
 
-from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
 from gordo.server import server
 from gordo import __version__
@@ -50,16 +49,6 @@ _exceptions_reporter = ExceptionsReporter(
 )
 
 logger = logging.getLogger(__name__)
-
-
-def _create_model_builder(model_builder_class: Optional[str]) -> Type[ModelBuilder]:
-    if model_builder_class is None:
-        return ModelBuilder
-    validate_locate(model_builder_class)
-    cls = import_locate(model_builder_class)
-    if issubclass(cls, ModelBuilder):
-        raise ValueError('"%s" class should be subclass of "%s"')
-    return cls
 
 
 @click.group("gordo")
@@ -188,7 +177,7 @@ def build(
         )
         logger.info(f"Fully expanded model config: {machine.model}")
 
-        cls = _create_model_builder(model_builder_class)
+        cls = create_model_builder(model_builder_class)
         builder = cls(machine=machine)
 
         _, machine_out = builder.build(output_dir, model_register_dir)  # type: ignore
