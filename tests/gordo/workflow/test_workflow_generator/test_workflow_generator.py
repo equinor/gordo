@@ -674,11 +674,15 @@ def recurse_dict(value):
 
 
 def test_recurse_dict():
-    result = sorted(recurse_dict({'b': [{'a':1}, {'d': [2, {'c': 3}]}]}), key=lambda v: v[0])
-    assert result == [('a', 1),
-                      ('b', [{'a': 1}, {'d': [2, {'c': 3}]}]),
-                      ('c', 3),
-                      ('d', [2, {'c': 3}])]
+    result = sorted(
+        recurse_dict({"b": [{"a": 1}, {"d": [2, {"c": 3}]}]}), key=lambda v: v[0]
+    )
+    assert result == [
+        ("a", 1),
+        ("b", [{"a": 1}, {"d": [2, {"c": 3}]}]),
+        ("c", 3),
+        ("d", [2, {"c": 3}]),
+    ]
 
 
 def test_security_context(path_to_config_files: str):
