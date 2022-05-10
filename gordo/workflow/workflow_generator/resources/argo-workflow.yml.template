@@ -26,9 +26,7 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 115200 # 32 hours
   entrypoint: do-all
-  onExit: workflow-cleanup{% if security_context %}
-  securityContext:
-{{ security_context | yaml | indent(4, True) }}{% endif %}
+  onExit: workflow-cleanup
   volumes:
   - name: azurefile
     persistentVolumeClaim:
@@ -60,7 +58,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Ensuring that no other versions of workflows for this project is running at the same time"
         # This fetches all the workflows of the same version as me, and finds the one of them with the earliest start-time
@@ -118,7 +118,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         # Retries a command a configurable number of times with backoff.
         #
@@ -278,7 +280,9 @@ spec:
               containers:
               - image: "influxdb:1.8.5-alpine"
                 imagePullPolicy: "IfNotPresent"
-                name: gordo-influx-{{project_name}}
+                name: gordo-influx-{{project_name}}{% if security_context %}
+                securityContext:
+{{ security_context | yaml | indent(18, True) }}{% endif %}
                 volumeMounts:
                   - name: influx-storage-{{project_revision}}
                     mountPath: /var/lib/influxdb
@@ -322,7 +326,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Creating feeder database for influx for project {{project_name}}" \
         && curl -i -XPOST http://gordo-influx-{{project_name}}:8086/query --data-urlencode "q=CREATE DATABASE feeder"
@@ -462,7 +468,9 @@ spec:
                 - name: SERVER_ENABLE_GZIP
                   value: "true"
                 imagePullPolicy: "IfNotPresent"
-                name: gordo-grafana-{{project_name}}
+                name: gordo-grafana-{{project_name}}{% if security_context %}
+                securityContext:
+{{ security_context | yaml | indent(18, True) }}{% endif %}
                 volumeMounts:
                   - name: grafana-storage-{{project_revision}}
                     mountPath: /var/lib/grafana
@@ -500,7 +508,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Creating grafana influxdb and postgres datasources for project {{project_name}}" \
         && curl -XPOST -H 'Content-Type: application/json' -d '{"name":"InfluxDB", "type":"influxdb", "url":"http://gordo-influx-{{project_name}}:8086", "access":"proxy", "database": "feeder", "isDefault":true, "password": "", "user": "", "basicAuth": false}' http://gordo-grafana-{{project_name}}:3000/api/datasources \
@@ -628,7 +638,9 @@ spec:
               containers:
               - image: "postgres:11.2"
                 imagePullPolicy: "IfNotPresent"
-                name: {{postgres_host}}
+                name: {{postgres_host}}{% if security_context %}
+                securityContext:
+{{ security_context | yaml | indent(20, True) }}{% endif %}
                 volumeMounts:
                   - name: postgres-storage-{{project_revision}}
                     mountPath: /var/lib/postgresql/data/pgdata
@@ -718,7 +730,9 @@ spec:
     container:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ model_builder_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [build]
+      command: [build]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       env:
       - name: OUTPUT_DIR
         value: "/gordo/models/{{project_name}}/models/{{project_revision}}/{{'{{inputs.parameters.machine-name}}'}}"
@@ -858,7 +872,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Deleting gordo's hpa for project {{project_name}}" \
          && kubectl delete hpa --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
@@ -1072,7 +1088,9 @@ spec:
                         containers:
                            - image: "{{ docker_registry }}/{{ docker_repository }}/{{ server_image }}:{{gordo_version}}"{% if image_pull_policy %}
                              imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-                             name: "gordoserver-{{ project_name }}"
+                             name: "gordoserver-{{ project_name }}"{% if security_context %}
+                             securityContext:
+{{ security_context | yaml | indent(32, True) }}{% endif %}
                              volumeMounts:
                                - mountPath: "/gordo"
                                  name: gstor{% if not without_prometheus %}
@@ -1122,7 +1140,9 @@ spec:
                                  cpu: "{{ server_resources['limits']['cpu'] }}m"{% if not without_prometheus %}
                            - image: "{{ docker_registry }}/{{ docker_repository }}/{{ server_image }}:{{gordo_version}}"{% if image_pull_policy %}
                              imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-                             name: "gordoserver-prometheus-{{ project_name }}"
+                             name: "gordoserver-prometheus-{{ project_name }}"{% if security_context %}
+                             securityContext:
+{{ security_context | yaml | indent(32, True) }}{% endif %}
                              volumeMounts:
                                - name: metrics
                                  mountPath: /metrics
@@ -1273,7 +1293,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Waiting until there is less than $GORDO_MAX_CLIENTS instances of gordo client for project_name: $GORDO_PROJECT_NAME, project-revision=$GORDO_PROJECT_REVISION"
         function find_running_pods {
@@ -1339,7 +1361,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ client_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Starting client prediction for machine $GORDO_CLIENT_TARGET" \
         && gordo-client --project $GORDO_CLIENT_PROJECT --parallelism 2 --host $GORDO_CLIENT_HOST --port $GORDO_CLIENT_PORT --scheme $GORDO_CLIENT_SCHEME --metadata $GORDO_CLIENT_METADATA predict --target $GORDO_CLIENT_TARGET --influx-uri $GORDO_CLIENT_PREDICT_INFLUX_URI "$GORDO_TRAIN_START_DATE" $(date --iso-8601=second) --forward-resampled-sensors
@@ -1428,7 +1452,9 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [bash]{% if security_context %}
+      securityContext:
+{{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
         echo "Deleting postgres PVC for {{project_name}} different than {{project_revision}}" \
          && kubectl delete svc -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}},app.kubernetes.io/name=postgres \
