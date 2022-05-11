@@ -13,7 +13,7 @@ from pydantic import parse_obj_as, ValidationError
 from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
-from gordo.workflow.config_elements.schemas import SecurityContext, EnvVar
+from gordo.workflow.config_elements.schemas import SecurityContext, PodSecurityContext, EnvVar
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
 from gordo.dependencies import configure_once
@@ -376,9 +376,15 @@ def workflow_cli(gordo_ctx):
 )
 @click.option(
     "--security-context",
-    help="Workflow securityContext in JSON format",
+    help="Containers securityContext in JSON format",
     envvar=f"{PREFIX}_SECURITY_CONTEXT",
     type=JSONParam(SecurityContext),
+)
+@click.option(
+    "--pod-security-context",
+    help="Global Workflow securityContext in JSON format",
+    envvar=f"{PREFIX}_POD_SECURITY_CONTEXT",
+    type=JSONParam(PodSecurityContext),
 )
 @click.option(
     "--model-builder-class",
@@ -410,6 +416,10 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         validate_locate(context["model_builder_class"])
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
+
+    if context["pod_security_context"]:
+        pod_security_context = cast(PodSecurityContext, context["pod_security_context"])
+        context["pod_security_context"] = pod_security_context.dict(exclude_none=True)
 
     if context["security_context"]:
         security_context = cast(SecurityContext, context["security_context"])

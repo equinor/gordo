@@ -111,3 +111,23 @@ class SecurityContext(Model):
     seLinuxOptions: Optional[SELinuxOptions]
     seccompProfile: Optional[SeccompProfile]
     windowsOptions: Optional[WindowsSecurityContextOptions]
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#sysctl-v1-core
+class Sysctl(Model):
+    name: str
+    value: str
+
+
+# Reference https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#podsecuritypolicy-v1beta1-policy
+class PodSecurityContext(Model):
+    fsGroup: Optional[int]
+    fsGroupChangePolicy: Optional[str]
+    runAsGroup: Optional[int]
+    runAsNonRoot: Optional[bool]
+    runAsUser: Optional[int]
+    seLinuxOptions: Optional[SELinuxOptions]
+    seccompProfile: Optional[SeccompProfile]
+    supplementalGroups: Optional[List[int]]
+    sysctls: Optional[List[Sysctl]]
+    windowsOptions: Optional[WindowsSecurityContextOptions]

@@ -685,6 +685,19 @@ def test_recurse_dict():
     ]
 
 
+def test_pod_security_context(path_to_config_files: str):
+    args = [
+        "--pod-security-context",
+        '{"runAsNonRoot": true}',
+    ]
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", args=args
+    )
+    workflow = yaml.safe_load(workflow_str)
+    assert "securityContext" in workflow["spec"]
+    assert workflow["spec"]["securityContext"] == {'runAsNonRoot': True}
+
+
 def test_security_context(path_to_config_files: str):
     args = [
         "--security-context",

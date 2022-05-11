@@ -26,7 +26,9 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 115200 # 32 hours
   entrypoint: do-all
-  onExit: workflow-cleanup
+  onExit: workflow-cleanup{% if pod_security_context %}
+  securityContext:
+{{ pod_security_context | yaml | indent(4, True) }}{% endif %}
   volumes:
   - name: azurefile
     persistentVolumeClaim:
