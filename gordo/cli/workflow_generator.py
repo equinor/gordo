@@ -13,7 +13,11 @@ from pydantic import parse_obj_as, ValidationError
 from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
-from gordo.workflow.config_elements.schemas import SecurityContext, PodSecurityContext, EnvVar
+from gordo.workflow.config_elements.schemas import (
+    SecurityContext,
+    PodSecurityContext,
+    EnvVar,
+)
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
 from gordo.dependencies import configure_once

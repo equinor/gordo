@@ -695,7 +695,7 @@ def test_pod_security_context(path_to_config_files: str):
     )
     workflow = yaml.safe_load(workflow_str)
     assert "securityContext" in workflow["spec"]
-    assert workflow["spec"]["securityContext"] == {'runAsNonRoot': True}
+    assert workflow["spec"]["securityContext"] == {"runAsNonRoot": True}
 
 
 def test_security_context(path_to_config_files: str):
