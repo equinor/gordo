@@ -57,6 +57,7 @@ RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/$ARGO
     gzip -d < argo-linux-amd64.gz > /usr/local/bin/argo &&\
     chmod +x /usr/local/bin/argo
 
+COPY ./functions.sh ${HOME}/functions.sh
 COPY ./run_workflow_and_argo.sh ${HOME}/run_workflow_and_argo.sh
 
 # Baking in example configs for running tests, as docker.client.containers.run

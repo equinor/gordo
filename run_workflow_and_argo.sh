@@ -1,34 +1,31 @@
 #!/usr/bin/env bash
+
 set -e
+
+functions_dir=$(dirname $0)
+. $functions_dir/functions.sh
+
 if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   set -x
 fi
-if [[ -z "${MACHINE_CONFIG}" && -z "${GORDO_NAME}" ]]; then
-    cp /code/config_crd.yml /tmp/config.yml
-elif [[ -z "${MACHINE_CONFIG}" ]]; then
-    # $GORDO_NAME is set
-    kubectl get gordos ${GORDO_NAME} -o json > /tmp/config.yml
-else
-    echo "$MACHINE_CONFIG" > /tmp/config.yml
-fi
+
+tmpdir="${TMPDIR:-/tmp}"
+
+config_path="$tmpdir/config.yml"
+generated_config_path="$tmpdir/generated-config.yml"
+
+store_config "$config_path"
 
 if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   echo "===CONFIG==="
-  cat /tmp/config.yml
+  cat "$config_path"
 fi
 
-gordo workflow generate --machine-config /tmp/config.yml --output-file /tmp/generated-config.yml
+gordo workflow generate --machine-config "$config_path" --output-file "$generated_config_path"
 
 if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   echo "===GENERATED CONFIG==="
-  cat /tmp/generated-config.yml
+  cat "$generated_config_path"
 fi
 
-argo lint /tmp/generated-config.yml
-if [ "$ARGO_SUBMIT" = true ] ; then
-    if [[ -n "$ARGO_SERVICE_ACCOUNT" ]]; then
-        argo submit --serviceaccount "$ARGO_SERVICE_ACCOUNT" /tmp/generated-config.yml
-    else
-        argo submit /tmp/generated-config.yml
-    fi
-fi
+argo_submit "$generated_config_path"
