@@ -661,6 +661,71 @@ def test_hpa_types(path_to_config_files: str, args: list, expected_steps: list):
         )
 
 
+def recurse_dict(value):
+    if type(value) is list:
+        for item in value:
+            for k, v in recurse_dict(item):
+                yield k, v
+    elif type(value) is dict:
+        for k, v in value.items():
+            for k1, v1 in recurse_dict(v):
+                yield k1, v1
+            yield k, v
+
+
+def test_recurse_dict():
+    result = sorted(
+        recurse_dict({"b": [{"a": 1}, {"d": [2, {"c": 3}]}]}), key=lambda v: v[0]
+    )
+    assert result == [
+        ("a", 1),
+        ("b", [{"a": 1}, {"d": [2, {"c": 3}]}]),
+        ("c", 3),
+        ("d", [2, {"c": 3}]),
+    ]
+
+
+def test_pod_security_context(path_to_config_files: str):
+    args = [
+        "--pod-security-context",
+        '{"runAsNonRoot": true}',
+    ]
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", args=args
+    )
+    workflow = yaml.safe_load(workflow_str)
+    assert "securityContext" in workflow["spec"]
+    assert workflow["spec"]["securityContext"] == {"runAsNonRoot": True}
+
+
+def test_security_context(path_to_config_files: str):
+    args = [
+        "--security-context",
+        '{"runAsNonRoot": true, "readOnlyRootFilesystem": true}',
+    ]
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", args=args
+    )
+    workflow = yaml.safe_load(workflow_str)
+    for k, v in recurse_dict(workflow):
+        if k == "securityContext":
+            assert v == {
+                "readOnlyRootFilesystem": True,
+                "runAsNonRoot": True,
+            }
+
+
+def test_security_context_failed(path_to_config_files: str):
+    args = [
+        "--security-context",
+        '{"unknownSecurityParam": true, "readOnlyRootFilesystem": true}',
+    ]
+    with pytest.raises(SystemExit):
+        _generate_test_workflow_str(
+            path_to_config_files, "config-test-simple.yml", args=args
+        )
+
+
 def test_with_resources_labels(path_to_config_files: str):
     resources_labels = '{"some_custom_label": "value"}'
     args = ["--resources-labels", resources_labels]

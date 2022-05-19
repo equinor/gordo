@@ -26,9 +26,7 @@ from gordo.util import disk_registry
 from gordo import (
     serializer,
     __version__,
-    MAJOR_VERSION,
-    MINOR_VERSION,
-    IS_UNSTABLE_VERSION,
+    parse_version,
 )
 from gordo_dataset.dataset import get_dataset
 from gordo.machine.model.base import GordoBase
@@ -49,7 +47,7 @@ logger = logging.getLogger(__name__)
 class ModelBuilder:
     def __init__(self, machine: Machine):
         """
-        Build a model for a given :class:`gordo.workflow.config_elements.machine.Machine`
+        Build a model for a given :class:`gordo.machine.Machine`
 
         Parameters
         ----------
@@ -88,6 +86,10 @@ class ModelBuilder:
     @cached_model_path.setter
     def cached_model_path(self, value):
         self._cached_model_path = value
+
+    @property
+    def gordo_version(self):
+        return __version__
 
     def build(
         self,
@@ -303,7 +305,7 @@ class ModelBuilder:
                 model_creation_date=str(
                     datetime.datetime.now(datetime.timezone.utc).astimezone()
                 ),
-                model_builder_version=__version__,
+                model_builder_version=self.gordo_version,
                 model_training_duration_sec=time_elapsed_model,
                 cross_validation=CrossValidationMetaData(
                     cv_duration_sec=cv_duration_sec,
@@ -553,8 +555,7 @@ class ModelBuilder:
     def cache_key(self) -> str:
         return self.calculate_cache_key(self.machine)
 
-    @staticmethod
-    def calculate_cache_key(machine: Machine) -> str:
+    def calculate_cache_key(self, machine: Machine) -> str:
         """
         Calculates a hash-key from the model and data-config.
 
@@ -588,15 +589,18 @@ class ModelBuilder:
         # Sets a lot of the parameters to json.dumps explicitly to ensure that we get
         # consistent hash-values even if json.dumps changes their default values
         # (and as such might generate different json which again gives different hash)
-        gordo_version = __version__ if IS_UNSTABLE_VERSION else ""
+        major_version, minor_version, is_unstable_version = parse_version(
+            self.gordo_version
+        )
+        gordo_version = self.gordo_version if is_unstable_version else ""
         json_rep = json.dumps(
             {
                 "name": machine.name,
                 "model_config": machine.model,
                 "data_config": machine.dataset.to_dict(),
                 "evaluation_config": machine.evaluation,
-                "gordo-major-version": MAJOR_VERSION,
-                "gordo-minor-version": MINOR_VERSION,
+                "gordo-major-version": major_version,
+                "gordo-minor-version": minor_version,
                 "gordo_version": gordo_version,
             },
             sort_keys=True,

@@ -7,6 +7,9 @@ CLI interfaces
 import logging
 import sys
 import traceback
+import jinja2
+import yaml
+import click
 
 from gordo_dataset.data_provider.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
@@ -14,13 +17,9 @@ from gordo_dataset.base import ConfigurationError
 from gordo_dataset.exceptions import ConfigException, InsufficientDataError
 from gunicorn.glogging import Logger
 from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
-
-import jinja2
-import yaml
-import click
 from typing import Tuple, List, Any, cast
+from gordo.builder.utils import create_model_builder
 
-from gordo.builder.build_model import ModelBuilder
 from gordo import serializer
 from gordo.server import server
 from gordo import __version__
@@ -35,6 +34,7 @@ from .exceptions_reporter import ReportLevel, ExceptionsReporter
 _exceptions_reporter = ExceptionsReporter(
     (
         (Exception, 1),
+        (ValueError, 2),
         (PermissionError, 20),
         (FileNotFoundError, 30),
         (DatalakeIncompleteTransferException, 40),
@@ -42,6 +42,7 @@ _exceptions_reporter = ExceptionsReporter(
         (NoSuitableDataProviderError, 70),
         (InsufficientDataError, 80),
         (ConfigurationError, 81),
+        (ImportError, 85),
         (ReporterException, 90),
         (ConfigException, 100),
     )
@@ -90,6 +91,12 @@ def gordo(gordo_ctx: click.Context, **ctx):
     ),
 )
 @click.option(
+    "--model-builder-class",
+    help="ModelBuilder class import path. "
+    "This should be a subclass of gordo.builder.build_model.ModelBuilder",
+    envvar="MODEL_BUILDER_CLASS",
+)
+@click.option(
     "--print-cv-scores", help="Prints CV scores to stdout", is_flag=True, default=False
 )
 @click.option(
@@ -117,6 +124,7 @@ def build(
     machine_config: dict,
     output_dir: str,
     model_register_dir: click.Path,
+    model_builder_class: str,
     print_cv_scores: bool,
     model_parameter: List[Tuple[str, Any]],
     exceptions_reporter_file: str,
@@ -137,6 +145,7 @@ def build(
         Path to a directory which will index existing models and their locations, used
         for re-using old models instead of rebuilding them. If omitted then always
         rebuild
+    model_builder_class: str
     print_cv_scores: bool
         Print cross validation scores to stdout
     model_parameter: List[Tuple[str, Any]
@@ -168,7 +177,8 @@ def build(
         )
         logger.info(f"Fully expanded model config: {machine.model}")
 
-        builder = ModelBuilder(machine=machine)
+        cls = create_model_builder(model_builder_class)
+        builder = cls(machine=machine)
 
         _, machine_out = builder.build(output_dir, model_register_dir)  # type: ignore
 

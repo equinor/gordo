@@ -3,12 +3,12 @@
 import pytest
 from typing import Tuple
 
-from gordo import _parse_version, __version__
+from gordo import parse_version, __version__
 
 
 def test_version():
     assert isinstance(__version__, str)
-    major, minor, is_unstable = _parse_version(__version__)
+    major, minor, is_unstable = parse_version(__version__)
     assert isinstance(major, int)
     assert isinstance(minor, int)
     assert isinstance(is_unstable, bool)
@@ -24,9 +24,9 @@ def test_version():
     ],
 )
 def test_version_parser(version: str, expected: Tuple[int, int, int]):
-    assert _parse_version(version) == expected
+    assert parse_version(version) == expected
 
 
 def test_version_with_error():
     with pytest.raises(ValueError):
-        _parse_version("not_a_version")
+        parse_version("not_a_version")
