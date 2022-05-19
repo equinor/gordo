@@ -2,11 +2,16 @@
 
 set -e
 
+if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
+  set -x
+fi
+
 functions_dir=$(dirname $0)
 . $functions_dir/functions.sh
 
-if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
-  set -x
+envs_file="$functions_dir/envs.sh"
+if [[ -f "$envs_file" && -r "$envs_file" ]]; then
+    . "$envs_file"
 fi
 
 tmpdir="${TMPDIR:-/tmp}"
