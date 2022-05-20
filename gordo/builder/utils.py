@@ -10,6 +10,9 @@ def create_model_builder(model_builder_class: Optional[str]) -> Type[ModelBuilde
         return ModelBuilder
     validate_locate(model_builder_class)
     cls = import_locate(model_builder_class)
-    if issubclass(cls, ModelBuilder):
-        raise ValueError('"%s" class should be subclass of "%s"')
+    if not issubclass(cls, ModelBuilder):
+        raise ValueError(
+            '"%s" class located in "%s" should be subclass of "%s"'
+            % (cls.__name__, model_builder_class, ModelBuilder.__name__)
+        )
     return cls
