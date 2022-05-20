@@ -310,7 +310,7 @@ pathspec==0.9.0
     #   azureml-core
 peewee==3.14.10
     # via -r postgres_requirements.in
-pillow==9.1.0
+pillow==9.1.1
     # via matplotlib
 plotly==4.4.1
     # via catboost
