@@ -14,5 +14,8 @@ def test_create_model_builder_success():
 def test_create_model_builder_failed():
     with pytest.raises(ImportError):
         create_model_builder("wrong.import.WrongClass")
-    with pytest.raises(ValueError, match='"Machine" class located in "gordo.machine.Machine" should be subclass of "ModelBuilder"'):
+    with pytest.raises(
+        ValueError,
+        match='"Machine" class located in "gordo.machine.Machine" should be subclass of "ModelBuilder"',
+    ):
         create_model_builder("gordo.machine.Machine")
