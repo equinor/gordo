@@ -60,7 +60,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -120,7 +120,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -328,7 +328,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -510,7 +510,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -874,7 +874,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -907,7 +907,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [sh]
       source: |
         echo "Deleting gordo's ScaledObjects for project {{project_name}}" \
          && kubectl delete ScaledObject --ignore-not-found=true -l applications.gordo.equinor.com/project-name={{project_name}} \
@@ -1295,7 +1295,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -1363,7 +1363,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ client_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -1420,7 +1420,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [sh]
       source: |
         echo "Deleting influx, grafana and PVC for {{project_name}} different than {{project_revision}}" \
          && kubectl delete statefulset -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
@@ -1454,7 +1454,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]{% if security_context %}
+      command: [sh]{% if security_context %}
       securityContext:
 {{ security_context | yaml | indent(8, True) }}{% endif %}
       source: |
@@ -1487,7 +1487,7 @@ spec:
     script:
       image: {{ docker_registry }}/{{ docker_repository }}/{{ deployer_image }}:{{gordo_version}}{% if image_pull_policy %}
       imagePullPolicy: "{{image_pull_policy}}"{% endif %}
-      command: [bash]
+      command: [sh]
       source: |
         echo "Deleting gordo deployments, services, models, and hpa's for project {{project_name}} different than {{project_revision}}" \
          && kubectl delete deployments -l applications.gordo.equinor.com/project-name={{project_name}},applications.gordo.equinor.com/project-revision!={{project_revision}} \
