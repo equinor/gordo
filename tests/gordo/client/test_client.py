@@ -22,10 +22,8 @@ from gordo_client.io import (
     NotFound,
     ResourceGone,
 )
-from gordo_client.schemas import Machine as ClientMachine
 from gordo_client.utils import PredictionResult
-from gordo_dataset.data_provider import providers
-from gordo_dataset.datasets import TimeSeriesDataset
+from gordo_dataset.data_providers import providers
 from mock import patch, call
 from sklearn.base import BaseEstimator
 
@@ -436,7 +434,7 @@ def _machine(name: str) -> Machine:
         config={
             "name": name,
             "dataset": {
-                "tag_list": [SensorTag("tag-1", "foo"), SensorTag("tag-2", "foo")],
+                "tag_list": [SensorTag("tag-1"), SensorTag("tag-2")],
                 "train_start_date": "2016-01-01T00:00:00Z",
                 "train_end_date": "2016-01-05T00:00:00Z",
             },

@@ -114,7 +114,7 @@ class ValidDataProvider(BaseDescriptor):
     def __set__(self, instance, value):
 
         # Avoid circular dependency imports
-        from gordo_dataset.data_provider.base import GordoBaseDataProvider
+        from gordo_dataset.data_providers.base import GordoBaseDataProvider
 
         if not isinstance(value, GordoBaseDataProvider):
             raise TypeError(
@@ -261,7 +261,6 @@ class ValidTagList(BaseDescriptor):
     def __set__(self, instance, value):
         if (
             len(value) == 0
-            or not isinstance(value, list)
             or not any(isinstance(value[0], inst) for inst in (str, dict, SensorTag))
         ):
             raise ValueError(f"Requires setting a non-empty list of strings")

@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
 
-from .utils import import_locate
+from gordo_dataset.import_utils import import_location
 
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ def _build_step(
         try:
             StepClass: Union[
                 None, FeatureUnion, Pipeline, BaseEstimator
-            ] = import_locate(import_str)
+            ] = import_location(import_str)
         except ImportError:
             StepClass = None
 
@@ -150,7 +150,7 @@ def _build_step(
             for param, value in params.items():
                 if isinstance(value, str):
                     try:
-                        possible_func = import_locate(value)
+                        possible_func = import_location(value)
                     except ImportError:
                         possible_func = None
                     if callable(possible_func):
@@ -187,7 +187,7 @@ def _build_step(
     # ie. "sklearn.preprocessing.PCA"
     elif isinstance(step, str):
         try:
-            Step = import_locate(step)
+            Step = import_location(step)
         except ImportError:
             Step = None
         if hasattr(Step, "from_definition"):
@@ -267,7 +267,7 @@ def _load_param_classes(params: dict):
         # If value is a simple string, try to load the model/class
         if isinstance(value, str):
             try:
-                Model: Union[None, BaseEstimator, Pipeline] = import_locate(value)
+                Model: Union[None, BaseEstimator, Pipeline] = import_location(value)
             except ImportError:
                 Model = None
             if Model is not None:
@@ -286,7 +286,7 @@ def _load_param_classes(params: dict):
         ):
             import_path = list(value.keys())[0]
             try:
-                Model = import_locate(import_path)
+                Model = import_location(import_path)
             except ImportError:
                 Model = None
 

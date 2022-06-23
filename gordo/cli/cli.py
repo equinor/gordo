@@ -11,7 +11,7 @@ import jinja2
 import yaml
 import click
 
-from gordo_dataset.data_provider.providers import NoSuitableDataProviderError
+from gordo_dataset.data_providers.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
 from gordo_dataset.base import ConfigurationError
 from gordo_dataset.exceptions import ConfigException, InsufficientDataError

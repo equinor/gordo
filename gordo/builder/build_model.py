@@ -28,7 +28,7 @@ from gordo import (
     __version__,
     parse_version,
 )
-from gordo_dataset.dataset import get_dataset
+from gordo_dataset.base import GordoBaseDataset
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
@@ -66,8 +66,8 @@ class ModelBuilder:
         ...         "type": "RandomDataset",
         ...         "train_start_date": "2017-12-25 06:00:00Z",
         ...         "train_end_date": "2017-12-30 06:00:00Z",
-        ...         "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-        ...         "target_tag_list": [SensorTag("Tag 3", None), SensorTag("Tag 4", None)]
+        ...         "tag_list": [SensorTag("Tag 1"), SensorTag("Tag 2")],
+        ...         "target_tag_list": [SensorTag("Tag 3"), SensorTag("Tag 4")]
         ...     },
         ...     project_name='test-proj',
         ... )
@@ -192,7 +192,7 @@ class ModelBuilder:
             f"Initializing Dataset with config {self.machine.dataset.to_dict()}"
         )
 
-        dataset = get_dataset(self.machine.dataset.to_dict())
+        dataset = GordoBaseDataset.from_dict(self.machine.dataset.to_dict())
 
         logger.debug("Fetching training data")
         start = time.time()
