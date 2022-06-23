@@ -79,7 +79,7 @@ def gordo_targets(gordo_single_target):
 
 @pytest.fixture(scope="session")
 def sensors():
-    return [SensorTag(f"tag-{i}", None) for i in range(4)]
+    return [SensorTag(f"tag-{i}") for i in range(4)]
 
 
 @pytest.fixture(scope="session")
