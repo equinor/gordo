@@ -150,9 +150,9 @@ google-auth-oauthlib==0.4.1
     # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==5.1.1
+gordo-client==5.2.0rc0
     # via -r requirements.in
-gordo-dataset==4.2.3
+gordo-dataset==5.0.0rc2
     # via
     #   -r requirements.in
     #   gordo-client
@@ -178,8 +178,6 @@ importlib-metadata==4.11.3
     #   mlflow
     #   mlflow-skinny
 influxdb==5.3.0
-    # via gordo-dataset
-inject==4.2.0
     # via gordo-dataset
 isodate==0.6.0
     # via msrest
@@ -275,6 +273,7 @@ numpy==1.22.3
     # via
     #   -r requirements.in
     #   catboost
+    #   gordo-dataset
     #   h5py
     #   keras-preprocessing
     #   matplotlib
@@ -298,7 +297,7 @@ packaging==20.7
     #   mlflow
     #   mlflow-skinny
     #   numexpr
-pandas==1.1.4
+pandas==1.4.2
     # via
     #   catboost
     #   gordo-dataset
@@ -369,7 +368,7 @@ python-dateutil==2.8.1
     #   pandas
 python-editor==1.0.4
     # via alembic
-pytz==2019.3
+pytz==2022.1
     # via
     #   azureml-core
     #   flask-restplus
