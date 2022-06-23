@@ -28,8 +28,8 @@ def get_random_data():
         "type": "RandomDataset",
         "train_start_date": dateutil.parser.isoparse("2017-12-25 06:00:00Z"),
         "train_end_date": dateutil.parser.isoparse("2017-12-30 06:00:00Z"),
-        "tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
-        "target_tag_list": [SensorTag("Tag 1", None), SensorTag("Tag 2", None)],
+        "tag_list": [SensorTag("Tag 1"), SensorTag("Tag 2")],
+        "target_tag_list": [SensorTag("Tag 1"), SensorTag("Tag 2")],
     }
     return data
 
@@ -456,7 +456,7 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmpdir):
         (True, None, None, False),
         (True, Metadata(user_defined={"metadata": "something"}), None, False),
         (False, Metadata(user_defined={"metadata": "something"}), None, True),
-        (False, None, [SensorTag("extra_tag", None)], False),
+        (False, None, [SensorTag("extra_tag")], False),
         (False, None, None, True),  # replace_cache gives a new model location
     ],
 )
