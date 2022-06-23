@@ -19,7 +19,6 @@ from gordo.workflow.workflow_generator.workflow_generator import (
     default_image_pull_policy,
 )
 from gordo.util.version import GordoRelease, GordoSpecial, GordoPR, GordoSHA, Special
-from gordo_dataset import sensor_tag
 from typing import List
 
 
