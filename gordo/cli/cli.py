@@ -27,7 +27,6 @@ from gordo.machine import Machine
 from gordo.cli.workflow_generator import workflow_cli
 from gordo.cli.custom_types import key_value_par, HostIP
 from gordo.reporters.exceptions import ReporterException
-from gordo.dependencies import configure_once
 
 from .exceptions_reporter import ReportLevel, ExceptionsReporter
 
@@ -75,8 +74,6 @@ def gordo(gordo_ctx: click.Context, **ctx):
     logging.getLogger("matplotlib").setLevel(logging.INFO)
 
     gordo_ctx.obj = gordo_ctx.params
-
-    configure_once()
 
 
 @click.command()
