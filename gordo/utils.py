@@ -13,9 +13,7 @@ TagsList = List[Union[Dict, List, str, SensorTag]]
 
 
 def normalize_sensor_tags(
-    build_dataset_metadata: dict,
-    tag_list: TagsList,
-    **kwargs: Optional[str]
+    build_dataset_metadata: dict, tag_list: TagsList, **kwargs: Optional[str]
 ) -> List[SensorTag]:
     """
     Load tag information from the metadata
@@ -43,7 +41,9 @@ def normalize_sensor_tags(
             normalized_tag = normalize_sensor_tag(tag, **kwargs)
             tag_name = extract_tag_name(normalized_tag)
             tags[tag_name] = normalized_tag
-    normalized_sensor_tags = sensor_tags_from_build_metadata(build_dataset_metadata, set(tags.keys()))
+    normalized_sensor_tags = sensor_tags_from_build_metadata(
+        build_dataset_metadata, set(tags.keys())
+    )
     normalized_tag_list: List[SensorTag] = []
     for tag_name in tags.keys():
         normalized_tag_list.append(normalized_sensor_tags[tag_name])

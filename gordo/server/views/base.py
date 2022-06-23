@@ -125,11 +125,11 @@ class BaseModelView(Resource):
             orig_target_tag_list = g.metadata["dataset"]["target_tag_list"]
         if orig_target_tag_list:
             build_dataset_metadata = self.load_build_dataset_metadata()
-            additional_fields = self.get_normalize_additional_fields(g.metadata["dataset"])
+            additional_fields = self.get_normalize_additional_fields(
+                g.metadata["dataset"]
+            )
             return normalize_sensor_tags(
-                build_dataset_metadata,
-                orig_target_tag_list,
-                **additional_fields
+                build_dataset_metadata, orig_target_tag_list, **additional_fields
             )
         else:
             return self.tags

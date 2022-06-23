@@ -259,9 +259,8 @@ class ValidTagList(BaseDescriptor):
     """
 
     def __set__(self, instance, value):
-        if (
-            len(value) == 0
-            or not any(isinstance(value[0], inst) for inst in (str, dict, SensorTag))
+        if len(value) == 0 or not any(
+            isinstance(value[0], inst) for inst in (str, dict, SensorTag)
         ):
             raise ValueError(f"Requires setting a non-empty list of strings")
         instance.__dict__[self.name] = value
