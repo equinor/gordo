@@ -93,7 +93,9 @@ def make_base_dataframe(
 
     # Define the index which all series/dataframes will share
     normalised_index = (
-        index[-len(model_output) :] if index is not None else list(range(len(model_output)))
+        index[-len(model_output) :]
+        if index is not None
+        else list(range(len(model_output)))
     )
 
     # Series to hold the start times for each point or just 'None' values
