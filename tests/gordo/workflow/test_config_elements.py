@@ -92,6 +92,7 @@ def test_machine_from_config(default_globals: dict):
         data_provider:
           threads: 10
         dataset:
+          type: RandomDataProvider
           tags: [GRA-TE  -23-0733.PV, GRA-TT  -23-0719.PV, GRA-YE  -23-0751X.PV]
           target_tag_list: [GRA-TE -123-456]
           train_start_date: 2018-01-01T09:00:30Z
@@ -130,9 +131,11 @@ def test_machine_from_config(default_globals: dict):
     # dictionary representation of the machine expected:
     expected = {
         "dataset": {
+            "additional_tags": None,
             "aggregation_methods": "mean",
             "asset": "global-asset",
             "data_provider": None,
+            "default_tag": None,
             "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
             "high_threshold": 500000,
             "interpolation_limit": "48H",
@@ -151,7 +154,7 @@ def test_machine_from_config(default_globals: dict):
             "target_tag_list": ["GRA-TE -123-456"],
             "train_end_date": "2018-01-02T09:00:30+00:00",
             "train_start_date": "2018-01-01T09:00:30+00:00",
-            "type": "TimeSeriesDataset",
+            "type": "gordo_dataset.data_providers.RandomDataProvider",
         },
         "evaluation": {
             "cv_mode": "full_build",
