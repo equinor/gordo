@@ -130,7 +130,7 @@ def _build_step(
             StepClass: Union[
                 None, FeatureUnion, Pipeline, BaseEstimator
             ] = import_location(import_str)
-        except ImportError:
+        except (ImportError, ValueError):
             StepClass = None
 
         if StepClass is None:
@@ -151,7 +151,7 @@ def _build_step(
                 if isinstance(value, str):
                     try:
                         possible_func = import_location(value)
-                    except ImportError:
+                    except (ImportError, ValueError):
                         possible_func = None
                     if callable(possible_func):
                         params[param] = possible_func
@@ -188,7 +188,7 @@ def _build_step(
     elif isinstance(step, str):
         try:
             Step = import_location(step)
-        except ImportError:
+        except (ImportError, ValueError):
             Step = None
         if hasattr(Step, "from_definition"):
             return getattr(Step, "from_definition")({})
@@ -268,7 +268,7 @@ def _load_param_classes(params: dict):
         if isinstance(value, str):
             try:
                 Model: Union[None, BaseEstimator, Pipeline] = import_location(value)
-            except ImportError:
+            except (ImportError, ValueError):
                 Model = None
             if Model is not None:
                 if hasattr(Model, "from_definition"):
@@ -287,7 +287,7 @@ def _load_param_classes(params: dict):
             import_path = list(value.keys())[0]
             try:
                 Model = import_location(import_path)
-            except ImportError:
+            except (ImportError, ValueError):
                 Model = None
 
             sub_params = value[import_path]
