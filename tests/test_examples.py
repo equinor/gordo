@@ -14,41 +14,12 @@ import numpy as np
 
 from nbconvert.exporters import PythonExporter
 
-from gordo_dataset.data_provider.providers import DataLakeProvider
-from gordo_dataset.datasets import TimeSeriesDataset
 from gordo_dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 
-CONFIG = dict(
-    train_start_date=dateutil.parser.isoparse("2014-07-01T00:10:00+00:00"),
-    train_end_date=dateutil.parser.isoparse("2015-01-01T00:00:00+00:00"),
-    tag_list=[SensorTag(name=f"Tag {i}", asset=None) for i in range(10)],
-)
 
-
-def _fake_data():
-    data = pd.DataFrame(
-        {
-            f"sensor_{i}": np.random.random(size=100)
-            for i in range(len(CONFIG["tag_list"]))
-        }
-    )
-    return data, data
-
-
-@mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
-def test_faked_DataLakeBackedDataset(MockDataset):
-
-    provider = DataLakeProvider(storename="dataplatformdlsprod", interactive=True)
-    dataset = TimeSeriesDataset(data_provider=provider, **CONFIG)
-
-    # Should be able to call get_data without being asked to authenticate in tests
-    X, y = dataset.get_data()
-
-
-@mock.patch.object(TimeSeriesDataset, "get_data", return_value=_fake_data())
-def test_notebooks(MockDataset, tmpdir):
+def test_notebooks(tmpdir):
     """
     Ensures all notebooks will run without error
     """
