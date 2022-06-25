@@ -86,7 +86,7 @@ class BaseModelView(Resource):
     @staticmethod
     def get_normalize_additional_fields(dataset: dict[str, Any]):
         additional_fields: dict[str, Optional[str]] = {}
-        if "default_tag" in dataset:
+        if "default_tag" in dataset and dataset["default_tag"]:
             additional_fields = dataset["default_tag"]
         # Keeping back-compatibility for a while
         elif dataset.get("asset", None):
