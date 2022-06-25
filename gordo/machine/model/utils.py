@@ -99,14 +99,14 @@ def make_base_dataframe(
     )
 
     # Series to hold the start times for each point or just 'None' values
-    values: Union[np.ndarray, Iterable]
+    series_values: Union[np.ndarray, Iterable]
     if isinstance(normalised_index, pd.DatetimeIndex):
-        values = normalised_index
+        series_values = normalised_index
     else:
-        values = []
+        series_values = []
         if normalised_index:
-            values = (None for _ in range(len(cast(Sized, normalised_index))))
-    start_series = pd.Series(values, index=normalised_index)
+            series_values = (None for _ in range(len(cast(Sized, normalised_index))))
+    start_series = pd.Series(series_values, index=normalised_index)
 
     # Calculate the end times if possible, or also all 'None's
     end_series = start_series.map(
