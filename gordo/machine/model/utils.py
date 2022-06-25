@@ -3,7 +3,7 @@
 import typing
 import functools
 import logging
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterable, Sized, cast
 from datetime import timedelta, datetime
 
 import numpy as np
@@ -99,12 +99,14 @@ def make_base_dataframe(
     )
 
     # Series to hold the start times for each point or just 'None' values
-    start_series = pd.Series(
-        normalised_index
-        if isinstance(normalised_index, pd.DatetimeIndex)
-        else (None for _ in range(len(normalised_index))),
-        index=normalised_index,
-    )
+    values: Union[np.ndarray, Iterable]
+    if isinstance(normalised_index, pd.DatetimeIndex):
+        values = normalised_index
+    else:
+        values = []
+        if normalised_index:
+            values = (None for _ in range(len(cast(Sized, normalised_index))))
+    start_series = pd.Series(values, index=normalised_index)
 
     # Calculate the end times if possible, or also all 'None's
     end_series = start_series.map(
