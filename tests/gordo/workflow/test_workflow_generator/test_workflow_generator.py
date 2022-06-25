@@ -237,9 +237,13 @@ def test_overrides_builder_datasource(path_to_config_files):
     ]
 
     # This value must be changed if we change the default values
-    assert {"type": "RandomDataProvider"} == yaml.safe_load(
-        model_builder_machine_2_env["machine"]
-    )["dataset"]["data_provider"]
+    assert {
+        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "max_size": 300,
+        "min_size": 100,
+    } == yaml.safe_load(model_builder_machine_2_env["machine"])["dataset"][
+        "data_provider"
+    ]
 
     # ct_23_0003 uses locally overriden request memory
     assert {
