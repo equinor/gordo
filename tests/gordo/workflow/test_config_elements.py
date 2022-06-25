@@ -133,9 +133,9 @@ def test_machine_from_config(default_globals: dict):
             "aggregation_methods": "mean",
             "asset": "global-asset",
             "data_provider": {
-                'max_size': 300,
-                'min_size': 100,
-                'type': 'gordo_dataset.data_providers.providers.RandomDataProvider'
+                "max_size": 300,
+                "min_size": 100,
+                "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
             },
             "default_tag": None,
             "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
