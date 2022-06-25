@@ -566,8 +566,6 @@ class ModelBuilder:
         -------
         >>> from gordo.machine import Machine
         >>> from gordo_dataset.sensor_tag import SensorTag
-        >>> from gordo.dependencies import configure_once
-        >>> configure_once()
         >>> machine = Machine(
         ...     name="special-model-name",
         ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
