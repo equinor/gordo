@@ -30,8 +30,6 @@ def local_build(
     Examples
     --------
     >>> import numpy as np
-    >>> from gordo.dependencies import configure_once
-    >>> configure_once()
     >>> config = '''
     ... machines:
     ...       - dataset:
