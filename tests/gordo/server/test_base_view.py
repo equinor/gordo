@@ -17,7 +17,7 @@ def test_empty_target_tag_list():
     app = Flask(__name__)
     with app.app_context():
         g.metadata = {
-            "dataset": {"tag_list": [SensorTag("test", "asset"), "test1"]},
+            "dataset": {"tag_list": [SensorTag("test"), "test1"]},
             "metadata": {
                 "build_metadata": {
                     "dataset": {
@@ -35,8 +35,8 @@ def test_empty_target_tag_list():
         }
         view = BaseModelView()
         assert view.target_tags == [
-            SensorTag("test", "asset"),
-            SensorTag("test1", "asset1"),
+            SensorTag("test"),
+            SensorTag("test1"),
         ]
 
 
