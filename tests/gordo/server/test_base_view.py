@@ -24,8 +24,8 @@ def test_empty_target_tag_list():
                         "dataset_meta": {
                             "tag_loading_metadata": {
                                 "tags": {
-                                    "test": {"name": "test", "asset": "asset"},
-                                    "test1": {"name": "test1", "asset": "asset1"},
+                                    "test": {"name": "test"},
+                                    "test1": {"name": "test1"},
                                 }
                             }
                         }
