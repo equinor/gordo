@@ -437,6 +437,7 @@ def _machine(name: str) -> Machine:
                 "tag_list": [SensorTag("tag-1"), SensorTag("tag-2")],
                 "train_start_date": "2016-01-01T00:00:00Z",
                 "train_end_date": "2016-01-05T00:00:00Z",
+                "data_provider": {"type": "RandomDataProvider"},
             },
             "model": {"sklearn.linear_model.LinearRegression": {}},
         },

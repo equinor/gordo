@@ -1,7 +1,7 @@
 machines:
   - name: machine-1
     dataset:
-      data_provider: # Should have DataLakeProvider datasource and 20 threads
+      data_provider:
         type: RandomDataProvider
       tags:
         - Tag 1
@@ -24,7 +24,7 @@ machines:
 
   - name: machine-3
     dataset:
-      data_provider: # Should default to DataLakeProvider datasource and 10 threads
+      data_provider:
         type: RandomDataProvider
       tags:
         - Tag 3
