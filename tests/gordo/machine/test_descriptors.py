@@ -95,8 +95,6 @@ def test_valid_tag_list():
 
     # Problem.
     with pytest.raises(ValueError):
-        myclass.value = "not a list"
-    with pytest.raises(ValueError):
         myclass.value = []  # Error with empty list.
 
 

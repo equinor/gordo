@@ -20,7 +20,6 @@ from flask import Flask, g, request, current_app, make_response, jsonify
 from typing import Optional, Any, Dict
 
 from gordo.server import views
-from gordo.dependencies import configure_once
 from gordo import __version__
 
 from prometheus_client import CollectorRegistry
@@ -144,8 +143,6 @@ def build_app(
     """
     Build app and any associated routes
     """
-    configure_once()
-
     app = Flask(__name__)
     app.config.from_object(Config())
     if config is not None:

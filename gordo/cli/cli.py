@@ -11,12 +11,11 @@ import jinja2
 import yaml
 import click
 
-from gordo_dataset.data_provider.providers import NoSuitableDataProviderError
+from gordo_dataset.data_providers.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
 from gordo_dataset.base import ConfigurationError
 from gordo_dataset.exceptions import ConfigException, InsufficientDataError
 from gunicorn.glogging import Logger
-from azure.datalake.store.exceptions import DatalakeIncompleteTransferException
 from typing import Tuple, List, Any, cast
 from gordo.builder.utils import create_model_builder
 
@@ -27,7 +26,6 @@ from gordo.machine import Machine
 from gordo.cli.workflow_generator import workflow_cli
 from gordo.cli.custom_types import key_value_par, HostIP
 from gordo.reporters.exceptions import ReporterException
-from gordo.dependencies import configure_once
 
 from .exceptions_reporter import ReportLevel, ExceptionsReporter
 
@@ -37,7 +35,6 @@ _exceptions_reporter = ExceptionsReporter(
         (ValueError, 2),
         (PermissionError, 20),
         (FileNotFoundError, 30),
-        (DatalakeIncompleteTransferException, 40),
         (SensorTagNormalizationError, 60),
         (NoSuitableDataProviderError, 70),
         (InsufficientDataError, 80),
@@ -75,8 +72,6 @@ def gordo(gordo_ctx: click.Context, **ctx):
     logging.getLogger("matplotlib").setLevel(logging.INFO)
 
     gordo_ctx.obj = gordo_ctx.params
-
-    configure_once()
 
 
 @click.command()

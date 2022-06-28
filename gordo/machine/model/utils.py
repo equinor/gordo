@@ -3,7 +3,7 @@
 import typing
 import functools
 import logging
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Iterable, Sized, cast
 from datetime import timedelta, datetime
 
 import numpy as np
@@ -51,7 +51,7 @@ def make_base_dataframe(
     model_input: np.ndarray,
     model_output: np.ndarray,
     target_tag_list: Optional[Union[List[SensorTag], List[str]]] = None,
-    index: typing.Optional[np.ndarray] = None,
+    index: typing.Optional[Union[np.ndarray, pd.Index]] = None,
     frequency: typing.Optional[timedelta] = None,
 ) -> pd.DataFrame:
     """
@@ -92,17 +92,23 @@ def make_base_dataframe(
     names_n_values = (("model-input", model_input), ("model-output", model_output))
 
     # Define the index which all series/dataframes will share
-    normalised_index = (
-        index[-len(model_output) :] if index is not None else range(len(model_output))
+    normalized_index = (
+        index[-len(model_output) :]
+        if index is not None
+        else list(range(len(model_output)))
     )
 
     # Series to hold the start times for each point or just 'None' values
-    start_series = pd.Series(
-        normalised_index
-        if isinstance(normalised_index, pd.DatetimeIndex)
-        else (None for _ in range(len(normalised_index))),
-        index=normalised_index,
-    )
+    series_values: Union[np.ndarray, Iterable]
+    if isinstance(normalized_index, pd.DatetimeIndex):
+        series_values = normalized_index
+    else:
+        series_values = []
+        if (
+            isinstance(normalized_index, pd.Index) and not normalized_index.empty
+        ) or normalized_index:
+            series_values = (None for _ in range(len(cast(Sized, normalized_index))))
+    start_series = pd.Series(series_values, index=normalized_index)
 
     # Calculate the end times if possible, or also all 'None's
     end_series = start_series.map(
@@ -122,7 +128,7 @@ def make_base_dataframe(
     data: pd.DataFrame = pd.DataFrame(
         {("start", ""): start_series, ("end", ""): end_series},
         columns=columns,
-        index=normalised_index,
+        index=normalized_index,
     )
 
     # Begin looping over the model-input and model-output; mapping them into
@@ -151,7 +157,7 @@ def make_base_dataframe(
 
         # Pass valudes, offsetting any differences in length compared to index, as set by model-output size
         other = pd.DataFrame(
-            values[-len(model_output) :], columns=columns, index=normalised_index
+            values[-len(model_output) :], columns=columns, index=normalized_index
         )
         data = data.join(other)
 

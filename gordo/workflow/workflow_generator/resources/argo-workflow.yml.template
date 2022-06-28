@@ -33,9 +33,6 @@ spec:
   - name: azurefile
     persistentVolumeClaim:
       claimName: azurefile
-  - name: datalake-access-token
-    secret:
-      secretName: datalake-access-token # Must be saved
   - name: tmpdir
     emptyDir: {}{% if volumes %}
 {{ volumes | yaml | indent(2, True) }}{% endif %}

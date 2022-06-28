@@ -19,7 +19,6 @@ from gordo.workflow.workflow_generator.workflow_generator import (
     default_image_pull_policy,
 )
 from gordo.util.version import GordoRelease, GordoSpecial, GordoPR, GordoSHA, Special
-from gordo_dataset import sensor_tag
 from typing import List
 
 
@@ -229,19 +228,31 @@ def test_overrides_builder_datasource(path_to_config_files):
     )
 
     # ct_23_0002 uses the global overriden requests, but default limits
-    assert {"type": "DataLakeProvider", "threads": 20} == yaml.safe_load(
-        model_builder_machine_1_env["machine"]
-    )["dataset"]["data_provider"]
+    assert {
+        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "max_size": 300,
+        "min_size": 100,
+    } == yaml.safe_load(model_builder_machine_1_env["machine"])["dataset"][
+        "data_provider"
+    ]
 
     # This value must be changed if we change the default values
-    assert {"type": "RandomDataProvider"} == yaml.safe_load(
-        model_builder_machine_2_env["machine"]
-    )["dataset"]["data_provider"]
+    assert {
+        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "max_size": 300,
+        "min_size": 100,
+    } == yaml.safe_load(model_builder_machine_2_env["machine"])["dataset"][
+        "data_provider"
+    ]
 
     # ct_23_0003 uses locally overriden request memory
-    assert {"type": "DataLakeProvider", "threads": 10} == yaml.safe_load(
-        model_builder_machine_3_env["machine"]
-    )["dataset"]["data_provider"]
+    assert {
+        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "max_size": 300,
+        "min_size": 100,
+    } == yaml.safe_load(model_builder_machine_3_env["machine"])["dataset"][
+        "data_provider"
+    ]
 
 
 def test_builder_labels(path_to_config_files):

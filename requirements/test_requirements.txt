@@ -250,7 +250,7 @@ python-dateutil==2.8.1
     #   adal
     #   influxdb
     #   jupyter-client
-pytz==2019.3
+pytz==2022.1
     # via
     #   -c full_requirements.txt
     #   influxdb

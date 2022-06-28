@@ -5,7 +5,6 @@ import io
 import logging
 import traceback
 import timeit
-import typing
 
 import pandas as pd
 from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
@@ -24,6 +23,7 @@ from gordo.server.utils import (
 )
 from gordo.utils import normalize_sensor_tags
 from gordo.server import model_io
+from typing import Optional, Any
 
 
 logger = logging.getLogger(__name__)
@@ -83,29 +83,41 @@ class BaseModelView(Resource):
             raise ValueError("Unable to load build dataset metadata: %s" % str(e))
         return build_dataset_metadata
 
+    @staticmethod
+    def get_normalize_additional_fields(dataset: dict[str, Any]):
+        additional_fields: dict[str, Optional[str]] = {}
+        if "default_tag" in dataset and dataset["default_tag"]:
+            additional_fields = dataset["default_tag"]
+        # Keeping back-compatibility for a while
+        elif dataset.get("asset", None):
+            additional_fields["asset"] = dataset["asset"]
+        return additional_fields
+
     @property
-    def tags(self) -> typing.List[SensorTag]:
+    def tags(self) -> list[SensorTag]:
         """
         The input tags for this model
 
         Returns
         -------
-        typing.List[SensorTag]
+        list[SensorTag]
         """
-        tag_list = g.metadata["dataset"]["tag_list"]
+        dataset = g.metadata["dataset"]
+        tag_list = dataset["tag_list"]
         build_dataset_metadata = self.load_build_dataset_metadata()
+        additional_fields = self.get_normalize_additional_fields(dataset)
         return normalize_sensor_tags(
-            build_dataset_metadata, tag_list, asset=g.metadata["dataset"].get("asset")
+            build_dataset_metadata, tag_list, **additional_fields
         )
 
     @property
-    def target_tags(self) -> typing.List[SensorTag]:
+    def target_tags(self) -> list[SensorTag]:
         """
         The target tags for this model
 
         Returns
         -------
-        typing.List[SensorTag]
+        list[SensorTag]
         """
         # TODO refactor this part to have the same tag preparation logic as in TimeSeriesDataset
         orig_target_tag_list = []
@@ -113,10 +125,11 @@ class BaseModelView(Resource):
             orig_target_tag_list = g.metadata["dataset"]["target_tag_list"]
         if orig_target_tag_list:
             build_dataset_metadata = self.load_build_dataset_metadata()
+            additional_fields = self.get_normalize_additional_fields(
+                g.metadata["dataset"]
+            )
             return normalize_sensor_tags(
-                build_dataset_metadata,
-                orig_target_tag_list,
-                asset=g.metadata["dataset"].get("asset"),
+                build_dataset_metadata, orig_target_tag_list, **additional_fields
             )
         else:
             return self.tags
@@ -160,7 +173,7 @@ class BaseModelView(Resource):
                 'time-seconds': '0.1937'
             }
         """
-        context: typing.Dict[typing.Any, typing.Any] = dict()
+        context: dict[Any, Any] = dict()
         X = g.X
         process_request_start_time_s = timeit.default_timer()
 

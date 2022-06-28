@@ -20,8 +20,6 @@ from gordo.workflow.config_elements.schemas import (
 )
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
-from gordo.dependencies import configure_once
-from gordo.serializer.utils import validate_locate
 
 
 logger = logging.getLogger(__name__)
@@ -401,8 +399,6 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     Machine Configuration to Argo Workflow
     """
 
-    configure_once()
-
     context: Dict[Any, Any] = ctx.copy()
     yaml_content = wg.get_dict_from_yaml(context["machine_config"])
 
@@ -415,9 +411,6 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["log_level"] = log_level.upper()
 
     validate_generate_context(context)
-
-    if context["model_builder_class"]:
-        validate_locate(context["model_builder_class"])
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 

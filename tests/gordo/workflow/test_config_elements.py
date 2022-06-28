@@ -4,13 +4,12 @@ import ast
 import json
 import logging
 from io import StringIO
-from datetime import datetime, timezone
 
 import pytest
 import yaml
 
 from gordo import __version__
-from gordo_dataset.datasets import TimeSeriesDataset
+from gordo_dataset.time_series import TimeSeriesDataset
 from gordo.machine import Machine
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
@@ -90,9 +89,8 @@ def test_machine_from_config(default_globals: dict):
 
     element_str = """
         name: ct-23-0001-machine
-        data_provider:
-          threads: 10
         dataset:
+          type: RandomDataset
           tags: [GRA-TE  -23-0733.PV, GRA-TT  -23-0719.PV, GRA-YE  -23-0751X.PV]
           target_tag_list: [GRA-TE -123-456]
           train_start_date: 2018-01-01T09:00:30Z
@@ -131,9 +129,15 @@ def test_machine_from_config(default_globals: dict):
     # dictionary representation of the machine expected:
     expected = {
         "dataset": {
+            "additional_tags": None,
             "aggregation_methods": "mean",
             "asset": "global-asset",
-            "data_provider": None,
+            "data_provider": {
+                "max_size": 300,
+                "min_size": 100,
+                "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+            },
+            "default_tag": None,
             "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
             "high_threshold": 500000,
             "interpolation_limit": "48H",
@@ -152,7 +156,7 @@ def test_machine_from_config(default_globals: dict):
             "target_tag_list": ["GRA-TE -123-456"],
             "train_end_date": "2018-01-02T09:00:30+00:00",
             "train_start_date": "2018-01-01T09:00:30+00:00",
-            "type": "TimeSeriesDataset",
+            "type": "gordo_dataset.time_series.RandomDataset",
         },
         "evaluation": {
             "cv_mode": "full_build",
