@@ -152,7 +152,7 @@ google-pasta==0.2.0
     # via tensorflow
 gordo-client==5.2.0rc0
     # via -r requirements.in
-gordo-dataset==5.0.0rc2
+gordo-dataset==5.0.0rc3
     # via
     #   -r requirements.in
     #   gordo-client
