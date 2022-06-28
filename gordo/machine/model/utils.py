@@ -104,7 +104,9 @@ def make_base_dataframe(
         series_values = normalized_index
     else:
         series_values = []
-        if (isinstance(normalized_index, pd.Index) and not normalized_index.empty) or normalized_index:
+        if (
+            isinstance(normalized_index, pd.Index) and not normalized_index.empty
+        ) or normalized_index:
             series_values = (None for _ in range(len(cast(Sized, normalized_index))))
     start_series = pd.Series(series_values, index=normalized_index)
 
