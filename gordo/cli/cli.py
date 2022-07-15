@@ -13,7 +13,6 @@ import click
 
 from gordo_dataset.data_providers.providers import NoSuitableDataProviderError
 from gordo_dataset.sensor_tag import SensorTagNormalizationError
-from gordo_dataset.base import ConfigurationError
 from gordo_dataset.exceptions import ConfigException, InsufficientDataError
 from gunicorn.glogging import Logger
 from typing import Tuple, List, Any, cast
@@ -38,7 +37,6 @@ _exceptions_reporter = ExceptionsReporter(
         (SensorTagNormalizationError, 60),
         (NoSuitableDataProviderError, 70),
         (InsufficientDataError, 80),
-        (ConfigurationError, 81),
         (ImportError, 85),
         (ReporterException, 90),
         (ConfigException, 100),
