@@ -29,6 +29,7 @@ from gordo import (
     parse_version,
 )
 from gordo_dataset.base import GordoBaseDataset
+from gordo_dataset.import_utils import BackCompatibleLocations
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
@@ -45,7 +46,12 @@ logger = logging.getLogger(__name__)
 
 
 class ModelBuilder:
-    def __init__(self, machine: Machine):
+    def __init__(
+        self,
+        machine: Machine,
+        back_compatibles: Optional[BackCompatibleLocations] = None,
+        default_data_provider: Optional[str] = None,
+    ):
         """
         Build a model for a given :class:`gordo.machine.Machine`
 
@@ -57,7 +63,7 @@ class ModelBuilder:
         -------
         >>> from gordo_dataset.sensor_tag import SensorTag
         >>> from gordo.machine import Machine
-        >>> machine = Machine(
+        >>> machine = Machine.from_config(dict(
         ...     name="special-model-name",
         ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
         ...     dataset={
@@ -68,14 +74,20 @@ class ModelBuilder:
         ...         "target_tag_list": [SensorTag("Tag 3"), SensorTag("Tag 4")]
         ...     },
         ...     project_name='test-proj',
-        ... )
+        ... ))
         >>> builder = ModelBuilder(machine=machine)
         >>> model, machine = builder.build()
         """
         # Avoid overwriting the passed machine, copy doesn't work if it holds
         # reference to a loaded Tensorflow model; .to_dict() serializes it to
         # a primitive dict representation.
-        self.machine = Machine(**machine.to_dict())
+        self.machine = Machine.from_config(
+            machine.to_dict(),
+            back_compatibles=back_compatibles,
+            default_data_provider=default_data_provider,
+        )
+        self.back_compatibles = back_compatibles
+        self.default_data_provider = default_data_provider
 
     @property
     def cached_model_path(self) -> Union[os.PathLike, str, None]:
@@ -146,7 +158,11 @@ class ModelBuilder:
 
                 metadata["runtime"] = self.machine.runtime
 
-                machine = Machine(**metadata)
+                machine = Machine.from_config(
+                    metadata,
+                    back_compatibles=self.back_compatibles,
+                    default_data_provider=self.default_data_provider,
+                )
 
             # Otherwise build and cache the model
             else:
@@ -205,14 +221,18 @@ class ModelBuilder:
 
         cv_duration_sec = None
 
-        machine: Machine = Machine(
-            name=self.machine.name,
-            dataset=self.machine.dataset.to_dict(),
-            metadata=self.machine.metadata,
-            model=self.machine.model,
-            project_name=self.machine.project_name,
-            evaluation=self.machine.evaluation,
-            runtime=self.machine.runtime,
+        machine: Machine = Machine.from_config(
+            dict(
+                name=self.machine.name,
+                dataset=self.machine.dataset.to_dict(),
+                metadata=self.machine.metadata.to_dict(),
+                model=self.machine.model,
+                project_name=self.machine.project_name,
+                evaluation=self.machine.evaluation,
+                runtime=self.machine.runtime,
+            ),
+            back_compatibles=self.back_compatibles,
+            default_data_provider=self.default_data_provider,
         )
 
         split_metadata: Dict[str, Any] = dict()
@@ -566,7 +586,7 @@ class ModelBuilder:
         -------
         >>> from gordo.machine import Machine
         >>> from gordo_dataset.sensor_tag import SensorTag
-        >>> machine = Machine(
+        >>> machine = Machine.from_config(dict(
         ...     name="special-model-name",
         ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},
         ...     dataset={
@@ -577,7 +597,7 @@ class ModelBuilder:
         ...         "target_tag_list": [SensorTag("Tag 3"), SensorTag("Tag 4")]
         ...     },
         ...     project_name='test-proj'
-        ... )
+        ... ))
         >>> builder = ModelBuilder(machine)
         >>> len(builder.cache_key)
         128

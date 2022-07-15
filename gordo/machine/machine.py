@@ -9,6 +9,7 @@ import yaml
 
 from gordo_dataset.base import GordoBaseDataset
 from gordo_dataset.sensor_tag import SensorTag
+from gordo_dataset.import_utils import BackCompatibleLocations
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,
@@ -42,10 +43,10 @@ class Machine:
         self,
         name: str,
         model: dict,
-        dataset: Union[GordoBaseDataset, dict],
+        dataset: GordoBaseDataset,
         project_name: str,
         evaluation: Optional[dict] = None,
-        metadata: Optional[Union[dict, Metadata]] = None,
+        metadata: Optional[Metadata] = None,
         runtime=None,
     ):
 
@@ -54,28 +55,25 @@ class Machine:
         if evaluation is None:
             evaluation = dict(cv_mode="full_build")
         if metadata is None:
-            metadata = dict()
+            metadata = Metadata.from_dict({})
         self.name = name
         self.model = model
-        self.dataset = (
-            dataset
-            if isinstance(dataset, GordoBaseDataset)
-            else GordoBaseDataset.from_dict(dataset)
-        )
+        self.dataset = dataset
         self.runtime = runtime
         self.evaluation = evaluation
-        self.metadata = (
-            metadata
-            if isinstance(metadata, Metadata)
-            else Metadata.from_dict(metadata)  # type: ignore
-        )
+        self.metadata = metadata
         self.project_name = project_name
 
         self.host = f"gordoserver-{self.project_name}-{self.name}"
 
     @classmethod
     def from_config(  # type: ignore
-        cls, config: Dict[str, Any], project_name: str, config_globals=None
+        cls,
+        config: Dict[str, Any],
+        project_name: Optional[str] = None,
+        config_globals=None,
+        back_compatibles: Optional[BackCompatibleLocations] = None,
+        default_data_provider: Optional[str] = None,
     ):
         """
         Construct an instance from a block of YAML config file which represents
@@ -89,6 +87,9 @@ class Machine:
             Name of the project this Machine belongs to.
         config_globals:
             The block of config within the YAML file within `globals`
+        back_compatibles: Optional[BackCompatibleLocations]
+            See `gordo_dataset.import_utils.prepare_back_compatible_locations()` function for reference.
+        default_data_provider: Optional[str]
 
         Returns
         -------
@@ -100,13 +101,22 @@ class Machine:
         name = config["name"]
         model = config.get("model") or config_globals.get("model")
 
+        if project_name is None:
+            project_name = config.get("project_name", None)
+        if project_name is None:
+            raise ValueError("project_name is empty")
+
         local_runtime = config.get("runtime", dict())
         runtime = patch_dict(config_globals.get("runtime", dict()), local_runtime)
 
         dataset_config = patch_dict(
             config.get("dataset", dict()), config_globals.get("dataset", dict())
         )
-        dataset = GordoBaseDataset.from_dict(dataset_config)
+        dataset = GordoBaseDataset.from_dict(
+            dataset_config,
+            back_compatibles=back_compatibles,
+            default_data_provider=default_data_provider,
+        )
         evaluation = patch_dict(
             config_globals.get("evaluation", dict()), config.get("evaluation", dict())
         )
