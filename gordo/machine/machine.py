@@ -47,7 +47,7 @@ class Machine:
         project_name: str,
         evaluation: Optional[dict] = None,
         metadata: Optional[Metadata] = None,
-        runtime=None,
+        runtime: Optional[dict] = None,
     ):
 
         if runtime is None:
@@ -64,6 +64,7 @@ class Machine:
         self.metadata = metadata
         self.project_name = project_name
 
+        # host validation
         self.host = f"gordoserver-{self.project_name}-{self.name}"
 
     @classmethod
@@ -109,13 +110,8 @@ class Machine:
         local_runtime = config.get("runtime", dict())
         runtime = patch_dict(config_globals.get("runtime", dict()), local_runtime)
 
-        dataset_config = patch_dict(
+        dataset = patch_dict(
             config.get("dataset", dict()), config_globals.get("dataset", dict())
-        )
-        dataset = GordoBaseDataset.from_dict(
-            dataset_config,
-            back_compatibles=back_compatibles,
-            default_data_provider=default_data_provider,
         )
         evaluation = patch_dict(
             config_globals.get("evaluation", dict()), config.get("evaluation", dict())
@@ -127,14 +123,18 @@ class Machine:
                 "machine-metadata": config.get("metadata", dict()),
             }
         )
-        return cls(
-            name,
-            model,
-            dataset,
-            metadata=metadata,
-            runtime=runtime,
-            project_name=project_name,
-            evaluation=evaluation,
+        return cls.from_dict(
+            {
+                "name": name,
+                "model": model,
+                "dataset": dataset,
+                "project_name": project_name,
+                "evaluation": evaluation,
+                "metadata": metadata,
+                "runtime": runtime,
+            },
+            back_compatibles=back_compatibles,
+            default_data_provider=default_data_provider,
         )
 
     def normalize_sensor_tags(self, tag_list: TagsList) -> List[SensorTag]:
@@ -164,12 +164,28 @@ class Machine:
         return self.to_dict() == other.to_dict()
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Machine":
+    def from_dict(
+        cls,
+        d: dict[str, Any],
+        back_compatibles: Optional[BackCompatibleLocations] = None,
+        default_data_provider: Optional[str] = None,
+    ) -> "Machine":
         """
         Get an instance from a dict taken from :func:`~Machine.to_dict`
         """
         # No special treatment required, just here for consistency.
-        return cls(**d)
+        args: dict[str, Any] = {}
+        for k, v in d.items():
+            if k == "dataset" and isinstance(v, dict):
+                v = GordoBaseDataset.from_dict(
+                    v,
+                    back_compatibles=back_compatibles,
+                    default_data_provider=default_data_provider,
+                )
+            if k == "metadata" and isinstance(v, dict):
+                v = Metadata.from_dict(v)
+            args[k] = v
+        return cls(**args)
 
     def to_dict(self):
         """

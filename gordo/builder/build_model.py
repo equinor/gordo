@@ -81,7 +81,7 @@ class ModelBuilder:
         # Avoid overwriting the passed machine, copy doesn't work if it holds
         # reference to a loaded Tensorflow model; .to_dict() serializes it to
         # a primitive dict representation.
-        self.machine = Machine.from_config(
+        self.machine = Machine.from_dict(
             machine.to_dict(),
             back_compatibles=back_compatibles,
             default_data_provider=default_data_provider,
@@ -158,7 +158,7 @@ class ModelBuilder:
 
                 metadata["runtime"] = self.machine.runtime
 
-                machine = Machine.from_config(
+                machine = Machine.from_dict(
                     metadata,
                     back_compatibles=self.back_compatibles,
                     default_data_provider=self.default_data_provider,
@@ -221,7 +221,7 @@ class ModelBuilder:
 
         cv_duration_sec = None
 
-        machine: Machine = Machine.from_config(
+        machine: Machine = Machine.from_dict(
             dict(
                 name=self.machine.name,
                 dataset=self.machine.dataset.to_dict(),

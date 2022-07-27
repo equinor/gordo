@@ -210,7 +210,7 @@ def test_get_machine_log_items(metadata):
     """
     Test that dicts are correctly converted to MLflow types or errors raised
     """
-    metrics, params = mlu.get_machine_log_items(Machine(**metadata))
+    metrics, params = mlu.get_machine_log_items(Machine.from_dict(metadata))
 
     assert all(type(m) == Metric for m in metrics)
     assert all(type(p) == Param for p in params)
@@ -265,7 +265,7 @@ def test_mlflow_context_log_metadata(MockClient, tmpdir, metadata):
     """
     Test that call to wrapped function initiates MLflow logging or throws warning
     """
-    metadata = Machine(**metadata)
+    metadata = Machine.from_dict(metadata)
     mlflow.set_tracking_uri(f"file:{tmpdir}")
 
     mock_client = MockClient()
@@ -286,7 +286,7 @@ def test_mlflow_context_log_error(MockClient, metadata):
     """
     Test that an error while logging metadata as an artifact raises MlflowLoggingError
     """
-    metadata = Machine(**metadata)
+    metadata = Machine.from_dict(metadata)
     mock_client = MockClient()
     mock_client.log_artifacts.side_effect = Exception("Some unknown exception!")
 
