@@ -2,13 +2,14 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Union, Optional, List
+from typing import Dict, Any, Optional, List, cast
 
 import numpy as np
 import yaml
 
 from gordo_dataset.base import GordoBaseDataset
 from gordo_dataset.sensor_tag import SensorTag
+from gordo_dataset.import_utils import BackCompatibleLocations
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,
@@ -38,44 +39,47 @@ class Machine:
     runtime = ValidMachineRuntime()
     _strict = True
 
+    @staticmethod
+    def prepare_evaluation(evaluation: Optional[dict]) -> dict:
+        if evaluation is None:
+            evaluation = dict(cv_mode="full_build")
+        return evaluation
+
     def __init__(
         self,
         name: str,
         model: dict,
-        dataset: Union[GordoBaseDataset, dict],
+        dataset: GordoBaseDataset,
         project_name: str,
         evaluation: Optional[dict] = None,
-        metadata: Optional[Union[dict, Metadata]] = None,
-        runtime=None,
+        metadata: Optional[Metadata] = None,
+        runtime: Optional[dict] = None,
     ):
 
         if runtime is None:
             runtime = dict()
-        if evaluation is None:
-            evaluation = dict(cv_mode="full_build")
         if metadata is None:
-            metadata = dict()
+            metadata = cast(Any, Metadata).from_dict({})
         self.name = name
         self.model = model
-        self.dataset = (
-            dataset
-            if isinstance(dataset, GordoBaseDataset)
-            else GordoBaseDataset.from_dict(dataset)
-        )
+        self.dataset = dataset
         self.runtime = runtime
-        self.evaluation = evaluation
-        self.metadata = (
-            metadata
-            if isinstance(metadata, Metadata)
-            else Metadata.from_dict(metadata)  # type: ignore
-        )
+        self.evaluation = self.prepare_evaluation(evaluation)
+        self.metadata = metadata
         self.project_name = project_name
 
+        # host validation
         self.host = f"gordoserver-{self.project_name}-{self.name}"
 
+    # TODO TypedDict for config argument
     @classmethod
     def from_config(  # type: ignore
-        cls, config: Dict[str, Any], project_name: str, config_globals=None
+        cls,
+        config: Dict[str, Any],
+        project_name: Optional[str] = None,
+        config_globals=None,
+        back_compatibles: Optional[BackCompatibleLocations] = None,
+        default_data_provider: Optional[str] = None,
     ):
         """
         Construct an instance from a block of YAML config file which represents
@@ -89,6 +93,9 @@ class Machine:
             Name of the project this Machine belongs to.
         config_globals:
             The block of config within the YAML file within `globals`
+        back_compatibles: Optional[BackCompatibleLocations]
+            See `gordo_dataset.import_utils.prepare_back_compatible_locations()` function for reference.
+        default_data_provider: Optional[str]
 
         Returns
         -------
@@ -100,15 +107,20 @@ class Machine:
         name = config["name"]
         model = config.get("model") or config_globals.get("model")
 
+        if project_name is None:
+            project_name = config.get("project_name", None)
+        if project_name is None:
+            raise ValueError("project_name is empty")
+
         local_runtime = config.get("runtime", dict())
         runtime = patch_dict(config_globals.get("runtime", dict()), local_runtime)
 
-        dataset_config = patch_dict(
+        dataset = patch_dict(
             config.get("dataset", dict()), config_globals.get("dataset", dict())
         )
-        dataset = GordoBaseDataset.from_dict(dataset_config)
+        config_evaluation = cls.prepare_evaluation(config.get("evaluation"))
         evaluation = patch_dict(
-            config_globals.get("evaluation", dict()), config.get("evaluation", dict())
+            config_globals.get("evaluation", dict()), config_evaluation
         )
 
         metadata = Metadata(
@@ -117,14 +129,18 @@ class Machine:
                 "machine-metadata": config.get("metadata", dict()),
             }
         )
-        return cls(
-            name,
-            model,
-            dataset,
-            metadata=metadata,
-            runtime=runtime,
-            project_name=project_name,
-            evaluation=evaluation,
+        return cls.from_dict(
+            {
+                "name": name,
+                "model": model,
+                "dataset": dataset,
+                "project_name": project_name,
+                "evaluation": evaluation,
+                "metadata": metadata,
+                "runtime": runtime,
+            },
+            back_compatibles=back_compatibles,
+            default_data_provider=default_data_provider,
         )
 
     def normalize_sensor_tags(self, tag_list: TagsList) -> List[SensorTag]:
@@ -153,13 +169,30 @@ class Machine:
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
 
+    # TODO TypedDict for d argument
     @classmethod
-    def from_dict(cls, d: dict) -> "Machine":
+    def from_dict(
+        cls,
+        d: dict[str, Any],
+        back_compatibles: Optional[BackCompatibleLocations] = None,
+        default_data_provider: Optional[str] = None,
+    ) -> "Machine":
         """
         Get an instance from a dict taken from :func:`~Machine.to_dict`
         """
         # No special treatment required, just here for consistency.
-        return cls(**d)
+        args: dict[str, Any] = {}
+        for k, v in d.items():
+            if k == "dataset" and isinstance(v, dict):
+                v = GordoBaseDataset.from_dict(
+                    v,
+                    back_compatibles=back_compatibles,
+                    default_data_provider=default_data_provider,
+                )
+            if k == "metadata" and isinstance(v, dict):
+                v = cast(Any, Metadata).from_dict(v)
+            args[k] = v
+        return cls(**args)
 
     def to_dict(self):
         """

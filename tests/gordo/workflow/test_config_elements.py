@@ -25,6 +25,8 @@ def test_dataset_from_dict():
     element_str = """
         name: ct-23-0002
         dataset:
+          data_provider:
+            type: RandomDataProvider
           resolution: 2T
           tag_list:
             - GRA-YE  -23-0751X.PV

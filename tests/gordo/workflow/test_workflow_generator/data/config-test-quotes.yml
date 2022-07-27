@@ -1,6 +1,8 @@
 machines:
   - name: machine-1
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:  # Quotes in the tag-names, because why not
         - CT/1
         - CT"2

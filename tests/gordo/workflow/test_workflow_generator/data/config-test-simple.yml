@@ -1,6 +1,8 @@
 machines:
   - name: machine
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - Tag 1
         - Tag 2

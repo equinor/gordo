@@ -7,6 +7,7 @@ from gordo.machine.validators import fix_runtime
 from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.machine import Machine
 from gordo import __version__
+from gordo_dataset.import_utils import BackCompatibleLocations
 from packaging.version import parse
 from pydantic import parse_obj_as, BaseModel
 
@@ -108,6 +109,8 @@ class NormalizedConfig:
         project_name: str,
         gordo_version: Optional[str] = None,
         model_builder_env: Optional[dict] = None,
+        back_compatibles: Optional[BackCompatibleLocations] = None,
+        default_data_provider: Optional[str] = None,
     ):
         if gordo_version is None:
             gordo_version = __version__
@@ -137,7 +140,11 @@ class NormalizedConfig:
         self.project_name = project_name
         self.machines: List[Machine] = [
             Machine.from_config(
-                conf, project_name=project_name, config_globals=patched_globals
+                conf,
+                project_name=project_name,
+                config_globals=patched_globals,
+                back_compatibles=back_compatibles,
+                default_data_provider=default_data_provider,
             )
             for conf in config["machines"]
         ]

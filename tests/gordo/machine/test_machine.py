@@ -12,7 +12,7 @@ def test_builder_with_reporter(postgresdb, metadata):
     reporter = PostgresReporter(host="localhost")
     metadata["runtime"]["reporters"].append(reporter.to_dict())
 
-    machine = Machine(**metadata)
+    machine = Machine.from_dict(metadata)
 
     with pytest.raises(peewee.DoesNotExist):
         PostgresMachine.get(PostgresMachine.name == machine.name)
