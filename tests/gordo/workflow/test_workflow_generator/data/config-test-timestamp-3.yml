@@ -2,6 +2,8 @@ machines:
 
   - name: machine-1
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - Tag 1
         - Tag 2
@@ -10,6 +12,8 @@ machines:
 
   - name: machine-2
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - Tag 1
         - Tag 2

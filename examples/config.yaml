@@ -12,6 +12,8 @@ spec:
 
       - name: ct-23-0001 #1st machine
         dataset:
+          data_provider:
+            type: RandomDataProvider
           tags: #list of tags for 1st machine
             - GRA-TAG 1
             - GRA-TAG 2
@@ -21,6 +23,8 @@ spec:
 
       - name: ct-23-0002 #2nd machine
         dataset:
+          data_provider:
+            type: RandomDataProvider
           resolution: 2T
           tags: #list of tags for 2nd machine
             - GRA-TAG 1
@@ -38,6 +42,8 @@ spec:
 
       - name: ct-23-0003 #3rd machine
         dataset:
+          data_provider:
+            type: RandomDataProvider
           tags: #list of tags for 3rd machine
             - GRA-TAG 1
             - GRA-TAG 2

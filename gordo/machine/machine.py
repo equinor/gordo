@@ -2,7 +2,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Union, Optional, List
+from typing import Dict, Any, Optional, List, cast
 
 import numpy as np
 import yaml
@@ -39,6 +39,12 @@ class Machine:
     runtime = ValidMachineRuntime()
     _strict = True
 
+    @staticmethod
+    def prepare_evaluation(evaluation: Optional[dict]) -> dict:
+        if evaluation is None:
+            evaluation = dict(cv_mode="full_build")
+        return evaluation
+
     def __init__(
         self,
         name: str,
@@ -52,21 +58,20 @@ class Machine:
 
         if runtime is None:
             runtime = dict()
-        if evaluation is None:
-            evaluation = dict(cv_mode="full_build")
         if metadata is None:
-            metadata = Metadata.from_dict({})
+            metadata = cast(Any, Metadata).from_dict({})
         self.name = name
         self.model = model
         self.dataset = dataset
         self.runtime = runtime
-        self.evaluation = evaluation
+        self.evaluation = self.prepare_evaluation(evaluation)
         self.metadata = metadata
         self.project_name = project_name
 
         # host validation
         self.host = f"gordoserver-{self.project_name}-{self.name}"
 
+    # TODO TypedDict for config argument
     @classmethod
     def from_config(  # type: ignore
         cls,
@@ -113,8 +118,9 @@ class Machine:
         dataset = patch_dict(
             config.get("dataset", dict()), config_globals.get("dataset", dict())
         )
+        config_evaluation = cls.prepare_evaluation(config.get("evaluation"))
         evaluation = patch_dict(
-            config_globals.get("evaluation", dict()), config.get("evaluation", dict())
+            config_globals.get("evaluation", dict()), config_evaluation
         )
 
         metadata = Metadata(
@@ -163,6 +169,7 @@ class Machine:
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
 
+    # TODO TypedDict for d argument
     @classmethod
     def from_dict(
         cls,
@@ -183,7 +190,7 @@ class Machine:
                     default_data_provider=default_data_provider,
                 )
             if k == "metadata" and isinstance(v, dict):
-                v = Metadata.from_dict(v)
+                v = cast(Any, Metadata).from_dict(v)
             args[k] = v
         return cls(**args)
 

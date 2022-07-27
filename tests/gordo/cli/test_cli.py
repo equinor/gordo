@@ -39,11 +39,13 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def machine():
-    return Machine(
-        name="test-model",
-        model=MODEL_CONFIG,
-        dataset=DATA_CONFIG,
-        project_name="project-name",
+    return Machine.from_config(
+        dict(
+            name="test-model",
+            model=MODEL_CONFIG,
+            dataset=DATA_CONFIG,
+            project_name="project-name",
+        )
     )
 
 

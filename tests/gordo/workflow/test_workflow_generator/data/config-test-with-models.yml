@@ -2,6 +2,8 @@ machines:
 
   - name: ct-23-0001 #1st machine
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags: #list of tags for 1st machine
         - GRA-TE  -23-0733.PV
         - GRA-TT  -23-0719.PV
@@ -10,6 +12,8 @@ machines:
 
   - name: ct-23-0002 #2nd machine
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags: #list of tags for 2nd machine
         - CT/1
         - CT/2

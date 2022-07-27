@@ -113,8 +113,13 @@ def test_output_dir(tmpdir):
     model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "some", "sub", "directories")
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     builder = ModelBuilder(machine)
     model, machine_out = builder.build()
@@ -188,8 +193,13 @@ def test_builder_metadata(raw_model_config):
     """
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
     data_config = get_random_data()
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     model, machine_out = ModelBuilder(machine).build()
     # Check metadata, and only verify 'history' if it's a *Keras* type model
@@ -335,8 +345,13 @@ def test_get_metadata_helper(model: BaseEstimator, expect_empty_dict: bool):
 def test_scores_metadata(raw_model_config):
     data_config = get_random_data()
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    machine = Machine(
-        dataset=data_config, model=model_config, name="model-name", project_name="test"
+    machine = Machine.from_config(
+        dict(
+            dataset=data_config,
+            model=model_config,
+            name="model-name",
+            project_name="test",
+        )
     )
     model, machine_out = ModelBuilder(machine).build()
     machine_check(machine_out, False)
@@ -365,8 +380,13 @@ def test_output_scores_metadata():
             """
 
     model_config = yaml.load(raw_model_config, Loader=yaml.FullLoader)
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     model, machine_out = ModelBuilder(machine).build()
     scores_metadata = machine_out.metadata.build_metadata.model.cross_validation.scores
@@ -398,8 +418,13 @@ def test_provide_saved_model_simple_happy_path(tmpdir):
     model_config = {"sklearn.decomposition.PCA": {"svd_solver": "auto"}}
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     ModelBuilder(machine).build(output_dir=output_dir)
 
@@ -415,8 +440,13 @@ def test_provide_saved_model_caching_handle_existing_same_dir(tmpdir):
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
     registry_dir = os.path.join(tmpdir, "registry")
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     builder = ModelBuilder(machine)
     builder.build(output_dir=output_dir, model_register_dir=registry_dir)
@@ -437,8 +467,13 @@ def test_provide_saved_model_caching_handle_existing_different_register(tmpdir):
     output_dir2 = os.path.join(tmpdir, "model2")
 
     registry_dir = os.path.join(tmpdir, "registry")
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     builder = ModelBuilder(machine)
     builder.build(output_dir=output_dir1, model_register_dir=registry_dir)
@@ -497,8 +532,13 @@ def test_provide_saved_model_caching(
     data_config = get_random_data()
     output_dir = os.path.join(tmpdir, "model")
     registry_dir = os.path.join(tmpdir, "registry")
-    machine = Machine(
-        name="model-name", dataset=data_config, model=model_config, project_name="test"
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            project_name="test",
+        )
     )
     _, first_machine = ModelBuilder(machine).build(
         output_dir=output_dir, model_register_dir=registry_dir
@@ -509,13 +549,15 @@ def test_provide_saved_model_caching(
 
     new_output_dir = os.path.join(tmpdir, "model2")
     _, second_machine = ModelBuilder(
-        machine=Machine(
-            name="model-name",
-            dataset=data_config,
-            model=model_config,
-            metadata=metadata,
-            project_name="test",
-            runtime={"something": True},
+        machine=Machine.from_dict(
+            dict(
+                name="model-name",
+                dataset=data_config,
+                model=model_config,
+                metadata=metadata,
+                project_name="test",
+                runtime={"something": True},
+            )
         )
     ).build(
         output_dir=new_output_dir,
@@ -561,12 +603,14 @@ def test_model_builder_metrics_list(metrics_: Optional[List[str]]):
     if metrics_:
         evaluation_config.update({"metrics": metrics_})
 
-    machine = Machine(
-        name="model-name",
-        dataset=data_config,
-        model=model_config,
-        evaluation=evaluation_config,
-        project_name="test",
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            evaluation=evaluation_config,
+            project_name="test",
+        )
     )
     _model, machine = ModelBuilder(machine).build()
 
@@ -628,12 +672,14 @@ def test_setting_seed(seed, model_config):
 
     # Training two instances, without a seed should result in different scores,
     # while doing it with a seed should result in the same scores.
-    machine = Machine(
-        name="model-name",
-        dataset=data_config,
-        model=model_config,
-        evaluation=evaluation_config,
-        project_name="test",
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            evaluation=evaluation_config,
+            project_name="test",
+        )
     )
     _model, machine1 = ModelBuilder(machine).build()
     _model, machine2 = ModelBuilder(machine).build()
@@ -682,12 +728,14 @@ def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
         }
     }
 
-    machine = Machine(
-        name="model-name",
-        dataset=data_config,
-        model=model_config,
-        evaluation=evaluation_config,
-        project_name="test",
+    machine = Machine.from_config(
+        dict(
+            name="model-name",
+            dataset=data_config,
+            model=model_config,
+            evaluation=evaluation_config,
+            project_name="test",
+        )
     )
 
     ModelBuilder(machine).build()
@@ -706,6 +754,6 @@ def test_builder_calls_machine_report(mocked_report_method, metadata):
     When building a machine, the Modelbuilder.build should call Machine.report()
     so that it can run any reporters in the Machine's runtime.
     """
-    machine = Machine(**metadata)
+    machine = Machine.from_dict(metadata)
     ModelBuilder(machine).build()
     assert mocked_report_method.called_once()

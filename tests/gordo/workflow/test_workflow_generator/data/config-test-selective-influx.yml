@@ -2,6 +2,8 @@ machines:
 
   - name: ct-23-0002 #Influx should start up by default for this one
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - CT/1
         - CT/2
@@ -12,6 +14,8 @@ machines:
 
   - name: ct-23-0003 # Dont want influx for this one
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - CT/1
         - CT/2

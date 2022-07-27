@@ -2,6 +2,8 @@ machines:
 
   - name: ct-23-0002 #Uses defaults of everything
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - CT/1
         - CT/2

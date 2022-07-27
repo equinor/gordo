@@ -2,6 +2,8 @@ machines:
 
   - name: ct-23-0002
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - CT/1
         - CT/2
@@ -12,6 +14,8 @@ machines:
 
   - name: ct-23-0003
     dataset:
+      data_provider:
+        type: RandomDataProvider
       tags:
         - CT/1
         - CT/2
