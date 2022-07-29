@@ -748,3 +748,13 @@ def test_with_resources_labels(path_to_config_files: str):
     assert workflow_str.find(
         expected_str
     ), 'Unable to find label "some_custom_label" in the generated argo-workflow'
+
+
+def test_default_data_provider(path_to_config_files: str):
+    args = [
+        "--default-data-provider", "RandomDataProvider"
+    ]
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-empty-default-data-provider.yml", args=args
+    )
+    assert "gordo_dataset.data_providers.providers.RandomDataProvider" in workflow_str
