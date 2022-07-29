@@ -20,6 +20,7 @@ from gordo.workflow.config_elements.schemas import (
 )
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
+from gordo_dataset.back_compatibles import DEFAULT_BACK_COMPATIBLES
 
 
 logger = logging.getLogger(__name__)
@@ -393,6 +394,11 @@ def workflow_cli(gordo_ctx):
     help="ModelBuilder class",
     envvar="MODEL_BUILDER_CLASS",
 )
+@click.option(
+    "--default-data-provider",
+    help="Default data_provider.type for dataset",
+    envvar=f"{PREFIX}_DEFAULT_DATA_PROVIDER"
+)
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
     """
@@ -435,6 +441,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         yaml_content,
         project_name=context["project_name"],
         model_builder_env=model_builder_env,
+        back_compatibles=DEFAULT_BACK_COMPATIBLES,
+        default_data_provider=context["default_data_provider"]
     )
 
     version = parse_version(context["gordo_version"])
