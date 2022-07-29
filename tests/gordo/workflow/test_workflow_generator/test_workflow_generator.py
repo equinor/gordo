@@ -751,9 +751,7 @@ def test_with_resources_labels(path_to_config_files: str):
 
 
 def test_default_data_provider(path_to_config_files: str):
-    args = [
-        "--default-data-provider", "RandomDataProvider"
-    ]
+    args = ["--default-data-provider", "RandomDataProvider"]
     workflow_str = _generate_test_workflow_str(
         path_to_config_files, "config-empty-default-data-provider.yml", args=args
     )
