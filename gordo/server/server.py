@@ -143,6 +143,7 @@ def build_app(
     """
     Build app and any associated routes
     """
+    logger.info("Starting Flask('%s') server", __name__)
     app = Flask(__name__)
     app.config.from_object(Config())
     if config is not None:
