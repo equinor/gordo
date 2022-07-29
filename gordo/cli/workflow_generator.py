@@ -397,7 +397,7 @@ def workflow_cli(gordo_ctx):
 @click.option(
     "--default-data-provider",
     help="Default data_provider.type for dataset",
-    envvar=f"{PREFIX}_DEFAULT_DATA_PROVIDER"
+    envvar=f"{PREFIX}_DEFAULT_DATA_PROVIDER",
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
@@ -442,7 +442,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         project_name=context["project_name"],
         model_builder_env=model_builder_env,
         back_compatibles=DEFAULT_BACK_COMPATIBLES,
-        default_data_provider=context["default_data_provider"]
+        default_data_provider=context["default_data_provider"],
     )
 
     version = parse_version(context["gordo_version"])
