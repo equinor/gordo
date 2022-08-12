@@ -5,7 +5,7 @@ gunicorn~=20.0
 h5py~=3.1.0
 jinja2~=2.11
 python-dateutil~=2.8
-tensorflow~=2.7.0
+tensorflow~=2.7.1
 Flask~=1.0
 flask-restplus~=0.12
 Werkzeug==0.16.1 # flask-restplus requires Werkzeug, but is incompatible with 1.0.0. When that is fixed this explicit dependency can be dropped
@@ -14,8 +14,8 @@ catboost~=0.26.1
 prometheus_client~=0.7.1
 jeepney>=0.6
 packaging~=20.7
-gordo-dataset~=5.0.0rc7
-gordo-client~=5.2.0rc2
+gordo-dataset>=5.0.0,<6.0.0
+gordo-client>=5.2.0,<6.0.0
 # At the bottom are optional dependencies
 scipy~=1.5.4
 cffi~=1.14.6
