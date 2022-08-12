@@ -8,7 +8,7 @@ python-dateutil~=2.8
 tensorflow~=2.7.0
 Flask~=1.0
 flask-restplus~=0.12
-Werkzeug==0.16.1 # flask-restplus requires Werkzeug, but is incompatible with 1.0.0. When that is fixed this explicit dependency can be dropped
+Werkzeug~=1.0.0
 simplejson~=3.17
 catboost~=0.26.1
 prometheus_client~=0.7.1

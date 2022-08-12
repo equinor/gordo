@@ -4,24 +4,24 @@
 #
 #    pip-compile --no-emit-index-url --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in
 #
-absl-py==0.11.0
+absl-py==1.2.0
     # via
     #   tensorboard
     #   tensorflow
-adal==1.2.2
+adal==1.2.7
     # via
     #   azure-datalake-store
     #   azureml-core
     #   msrestazure
-alembic==1.3.3
+alembic==1.8.1
     # via mlflow
-aniso8601==8.0.0
+aniso8601==9.0.1
     # via flask-restplus
 astunparse==1.6.3
     # via tensorflow
-attrs==19.3.0
+attrs==22.1.0
     # via jsonschema
-azure-common==1.1.24
+azure-common==1.1.28
     # via
     #   azure-graphrbac
     #   azure-mgmt-authorization
@@ -30,30 +30,35 @@ azure-common==1.1.24
     #   azure-mgmt-resource
     #   azure-mgmt-storage
     #   azureml-core
-azure-core==1.19.0
+azure-core==1.25.0
     # via
     #   azure-identity
     #   azure-storage-blob
     #   azure-storage-file-datalake
+    #   msrest
 azure-datalake-store==0.0.51
     # via gordo-dataset
 azure-graphrbac==0.61.1
     # via azureml-core
-azure-identity==1.4.1
+azure-identity==1.10.0
     # via gordo-dataset
-azure-mgmt-authorization==0.60.0
+azure-mgmt-authorization==0.61.0
     # via azureml-core
-azure-mgmt-containerregistry==2.8.0
+azure-mgmt-containerregistry==10.0.0
     # via azureml-core
-azure-mgmt-keyvault==2.0.0
+azure-mgmt-core==1.3.2
+    # via
+    #   azure-mgmt-containerregistry
+    #   azure-mgmt-keyvault
+azure-mgmt-keyvault==9.3.0
     # via azureml-core
-azure-mgmt-resource==8.0.0
+azure-mgmt-resource==13.0.0
     # via azureml-core
-azure-mgmt-storage==7.1.0
+azure-mgmt-storage==11.2.0
     # via azureml-core
-azure-storage-blob==12.9.0
+azure-storage-blob==12.13.1
     # via azure-storage-file-datalake
-azure-storage-file-datalake==12.3.1
+azure-storage-file-datalake==12.8.0
     # via gordo-dataset
 azureml-contrib-run==1.36.0
     # via -r mlflow_requirements.in
@@ -65,13 +70,13 @@ backports-tempfile==1.0
     # via azureml-core
 backports-weakref==1.0.post1
     # via backports-tempfile
-cachetools==4.1.1
+cachetools==4.2.4
     # via
     #   google-auth
     #   gordo-dataset
 catboost==0.26.1
     # via -r requirements.in
-certifi==2019.11.28
+certifi==2022.6.15
     # via
     #   msrest
     #   requests
@@ -80,51 +85,50 @@ cffi==1.14.6
     #   -r requirements.in
     #   azure-datalake-store
     #   cryptography
-chardet==3.0.4
+charset-normalizer==2.1.0
     # via requests
-click==8.1.2
+click==7.1.2
     # via
     #   databricks-cli
     #   flask
     #   gordo-client
     #   mlflow
     #   mlflow-skinny
-cloudpickle==1.2.2
+cloudpickle==2.1.0
     # via
     #   mlflow
     #   mlflow-skinny
-configparser==4.0.2
-    # via databricks-cli
-contextlib2==0.6.0.post1
+contextlib2==21.6.0
     # via azureml-core
-cryptography==3.4.6
+cryptography==3.4.8
     # via
     #   adal
     #   azure-identity
     #   azure-storage-blob
     #   azureml-core
+    #   msal
     #   pyjwt
     #   pyopenssl
     #   secretstorage
-cycler==0.10.0
+cycler==0.11.0
     # via matplotlib
-databricks-cli==0.9.1
+databricks-cli==0.17.0
     # via
     #   mlflow
     #   mlflow-skinny
-dataclasses-json==0.3.7
+dataclasses-json==0.5.7
     # via -r requirements.in
-dictdiffer==0.8.1
+dictdiffer==0.9.0
     # via -r requirements.in
-docker==4.1.0
+docker==5.0.3
     # via
     #   azureml-core
     #   mlflow
-entrypoints==0.3
+entrypoints==0.4
     # via
     #   mlflow
     #   mlflow-skinny
-flask==1.1.1
+flask==1.1.4
     # via
     #   -r requirements.in
     #   flask-restplus
@@ -132,38 +136,42 @@ flask==1.1.1
     #   prometheus-flask-exporter
 flask-restplus==0.13.0
     # via -r requirements.in
-flatbuffers==1.12
+flatbuffers==2.0
     # via tensorflow
-gast==0.3.3
+fonttools==4.34.4
+    # via matplotlib
+gast==0.4.0
     # via tensorflow
-gitdb2==2.0.6
+gitdb==4.0.9
     # via gitpython
-gitpython==3.0.5
+gitpython==3.1.27
     # via
     #   mlflow
     #   mlflow-skinny
-google-auth==1.10.1
+google-auth==2.10.0
     # via
     #   google-auth-oauthlib
     #   tensorboard
-google-auth-oauthlib==0.4.1
+google-auth-oauthlib==0.4.6
     # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==5.2.0
+gordo-client==5.2.1
     # via -r requirements.in
 gordo-dataset==5.0.0
     # via
     #   -r requirements.in
     #   gordo-client
-graphviz==0.13.2
+graphviz==0.20.1
     # via catboost
+greenlet==1.1.2
+    # via sqlalchemy
 grpcio==1.34.1
     # via
     #   -r requirements.in
     #   tensorboard
     #   tensorflow
-gunicorn==20.0.4
+gunicorn==20.1.0
     # via
     #   -r requirements.in
     #   mlflow
@@ -171,19 +179,20 @@ h5py==3.1.0
     # via
     #   -r requirements.in
     #   tensorflow
-idna==2.8
+idna==3.3
     # via requests
-importlib-metadata==4.11.3
+importlib-metadata==4.12.0
     # via
+    #   markdown
     #   mlflow
     #   mlflow-skinny
-influxdb==5.3.0
+influxdb==5.3.1
     # via gordo-dataset
-isodate==0.6.0
+isodate==0.6.1
     # via msrest
 itsdangerous==1.1.0
     # via flask
-jeepney==0.6.0
+jeepney==0.8.0
     # via
     #   -r requirements.in
     #   secretstorage
@@ -191,15 +200,15 @@ jinja2==2.11.3
     # via
     #   -r requirements.in
     #   flask
-jmespath==0.9.4
+jmespath==0.10.0
     # via azureml-core
-joblib==0.14.1
+joblib==1.1.0
     # via scikit-learn
-jsonpickle==1.2
+jsonpickle==2.2.0
     # via
     #   azureml-core
     #   azureml-mlflow
-jsonschema==3.2.0
+jsonschema==4.9.1
     # via flask-restplus
 keras==2.7.0
     # via tensorflow
@@ -209,40 +218,38 @@ kiwisolver==1.3.2
     # via
     #   -r requirements.in
     #   matplotlib
-libclang==12.0.0
+libclang==14.0.6
     # via tensorflow
-mako==1.1.1
+mako==1.2.1
     # via alembic
-markdown==3.1.1
+markdown==3.4.1
     # via tensorboard
-markupsafe==1.1.1
+markupsafe==2.1.1
     # via
     #   jinja2
     #   mako
-marshmallow==3.3.0
+marshmallow==3.17.0
     # via
     #   dataclasses-json
     #   gordo-dataset
     #   marshmallow-enum
 marshmallow-enum==1.5.1
     # via dataclasses-json
-matplotlib==3.3.4
+matplotlib==3.5.3
     # via catboost
 mlflow==1.25.1
     # via -r mlflow_requirements.in
-mlflow-skinny==1.25.1
+mlflow-skinny==1.28.0
     # via azureml-mlflow
-more-itertools==8.1.0
-    # via zipp
-msal==1.5.0
+msal==1.18.0
     # via
     #   azure-identity
     #   msal-extensions
-msal-extensions==0.2.2
+msal-extensions==1.0.0
     # via azure-identity
-msgpack==0.6.1
+msgpack==1.0.4
     # via influxdb
-msrest==0.6.21
+msrest==0.7.1
     # via
     #   azure-graphrbac
     #   azure-mgmt-authorization
@@ -254,12 +261,10 @@ msrest==0.6.21
     #   azure-storage-file-datalake
     #   azureml-core
     #   msrestazure
-msrestazure==0.6.2
+msrestazure==0.6.4
     # via
     #   azure-graphrbac
     #   azure-mgmt-authorization
-    #   azure-mgmt-containerregistry
-    #   azure-mgmt-keyvault
     #   azure-mgmt-resource
     #   azure-mgmt-storage
     #   azureml-core
@@ -267,9 +272,9 @@ mypy-extensions==0.4.3
     # via typing-inspect
 ndg-httpsclient==0.5.1
     # via azureml-core
-numexpr==2.8.1
+numexpr==2.8.3
     # via gordo-dataset
-numpy==1.22.3
+numpy==1.23.1
     # via
     #   -r requirements.in
     #   catboost
@@ -287,18 +292,22 @@ numpy==1.22.3
     #   tensorboard
     #   tensorflow
     #   xarray
-oauthlib==3.1.0
-    # via requests-oauthlib
+oauthlib==3.2.0
+    # via
+    #   databricks-cli
+    #   requests-oauthlib
 opt-einsum==3.3.0
     # via tensorflow
-packaging==20.7
+packaging==20.9
     # via
     #   -r requirements.in
+    #   marshmallow
+    #   matplotlib
     #   mlflow
     #   mlflow-skinny
     #   numexpr
     #   xarray
-pandas==1.4.2
+pandas==1.4.3
     # via
     #   catboost
     #   gordo-dataset
@@ -308,21 +317,21 @@ pathspec==0.9.0
     # via
     #   -r requirements.in
     #   azureml-core
-peewee==3.14.10
+peewee==3.15.1
     # via -r postgres_requirements.in
-pillow==9.1.0
+pillow==9.2.0
     # via matplotlib
-plotly==4.4.1
+plotly==5.10.0
     # via catboost
-portalocker==1.7.1
+portalocker==2.5.1
     # via msal-extensions
 prometheus-client==0.7.1
     # via
     #   -r requirements.in
     #   prometheus-flask-exporter
-prometheus-flask-exporter==0.12.1
+prometheus-flask-exporter==0.20.3
     # via mlflow
-protobuf==3.11.2
+protobuf==3.19.4
     # via
     #   mlflow
     #   mlflow-skinny
@@ -339,37 +348,35 @@ pyasn1==0.4.8
     #   rsa
 pyasn1-modules==0.2.8
     # via google-auth
-pycparser==2.19
+pycparser==2.21
     # via cffi
-pydantic==1.8.2
+pydantic==1.9.2
     # via gordo-dataset
-pyjwt[crypto]==1.7.1
+pyjwt[crypto]==2.4.0
     # via
     #   adal
     #   azureml-core
+    #   databricks-cli
     #   msal
-pyopenssl==19.1.0
+pyopenssl==20.0.1
     # via
     #   azureml-core
     #   ndg-httpsclient
-pyparsing==2.4.6
+pyparsing==3.0.9
     # via
     #   matplotlib
     #   packaging
-pyrsistent==0.15.7
+pyrsistent==0.18.1
     # via jsonschema
-python-dateutil==2.8.1
+python-dateutil==2.8.2
     # via
     #   -r requirements.in
     #   adal
-    #   alembic
     #   azureml-core
     #   influxdb
     #   matplotlib
     #   pandas
-python-editor==1.0.4
-    # via alembic
-pytz==2022.1
+pytz==2022.2
     # via
     #   azureml-core
     #   flask-restplus
@@ -384,7 +391,7 @@ pyyaml==5.4.1
     #   mlflow-skinny
 querystring-parser==1.2.4
     # via mlflow
-requests==2.25.1
+requests==2.28.1
     # via
     #   adal
     #   azure-core
@@ -400,13 +407,11 @@ requests==2.25.1
     #   msrest
     #   requests-oauthlib
     #   tensorboard
-requests-oauthlib==1.3.0
+requests-oauthlib==1.3.1
     # via
     #   google-auth-oauthlib
     #   msrest
-retrying==1.3.3
-    # via plotly
-rsa==4.0
+rsa==4.9
     # via google-auth
 scikit-learn==0.24.2
     # via gordo-dataset
@@ -416,98 +421,93 @@ scipy==1.5.4
     #   catboost
     #   mlflow
     #   scikit-learn
-secretstorage==3.1.2
+secretstorage==3.3.2
     # via azureml-core
-simplejson==3.17.2
+simplejson==3.17.6
     # via
     #   -r requirements.in
     #   gordo-client
-six==1.15.0
+six==1.16.0
     # via
-    #   absl-py
     #   astunparse
     #   azure-core
     #   azure-identity
     #   catboost
-    #   cycler
     #   databricks-cli
-    #   docker
     #   flask-restplus
     #   google-auth
     #   google-pasta
     #   grpcio
     #   influxdb
     #   isodate
-    #   jsonschema
     #   keras-preprocessing
-    #   plotly
-    #   protobuf
+    #   msrestazure
     #   pyopenssl
-    #   pyrsistent
     #   python-dateutil
     #   querystring-parser
-    #   retrying
     #   tensorflow
-    #   websocket-client
-smmap2==2.0.5
-    # via gitdb2
-sqlalchemy==1.3.13
+smmap==5.0.0
+    # via gitdb
+sqlalchemy==1.4.40
     # via
     #   alembic
     #   mlflow
 sqlparse==0.4.2
-    # via mlflow
-stringcase==1.2.0
-    # via dataclasses-json
-tabulate==0.8.6
+    # via
+    #   mlflow
+    #   mlflow-skinny
+tabulate==0.8.10
     # via databricks-cli
-tensorboard==2.7.0
+tenacity==8.0.1
+    # via plotly
+tensorboard==2.10.0
     # via tensorflow
 tensorboard-data-server==0.6.1
     # via tensorboard
-tensorboard-plugin-wit==1.8.0
+tensorboard-plugin-wit==1.8.1
     # via tensorboard
-tensorflow==2.7.0
+tensorflow==2.7.3
     # via -r requirements.in
 tensorflow-estimator==2.7.0
     # via tensorflow
-tensorflow-io-gcs-filesystem==0.23.1
+tensorflow-io-gcs-filesystem==0.26.0
     # via tensorflow
 termcolor==1.1.0
     # via tensorflow
-threadpoolctl==2.1.0
+threadpoolctl==3.1.0
     # via scikit-learn
-typing-extensions==4.2.0
+typing-extensions==4.3.0
     # via
     #   -r requirements.in
+    #   azure-core
     #   pydantic
     #   tensorflow
     #   typing-inspect
-typing-inspect==0.5.0
+typing-inspect==0.7.1
     # via dataclasses-json
-urllib3==1.26.5
+urllib3==1.26.7
     # via
     #   azureml-core
     #   requests
-websocket-client==0.57.0
+websocket-client==1.3.3
     # via docker
-werkzeug==0.16.1
+werkzeug==1.0.1
     # via
     #   -r requirements.in
     #   flask
     #   tensorboard
-wheel==0.36.2
+wheel==0.37.1
     # via
     #   astunparse
     #   tensorboard
     #   tensorflow
-wrapt==1.11.2
+wrapt==1.14.1
     # via
     #   gordo-client
     #   tensorflow
-xarray==2022.3.0
+xarray==2022.6.0
     # via gordo-dataset
-zipp==2.0.0
+zipp==3.8.1
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
