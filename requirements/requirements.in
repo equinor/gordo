@@ -14,8 +14,7 @@ catboost~=0.26.1
 prometheus_client~=0.7.1
 jeepney>=0.6
 packaging~=20.7
-gordo-dataset>=5.0.0,<6.0.0
-gordo-client>=5.2.0,<6.0.0
+gordo-client==6.0.0rc0
 # At the bottom are optional dependencies
 scipy~=1.5.4
 cffi~=1.14.6
