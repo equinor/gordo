@@ -7,7 +7,7 @@ from gordo.machine.validators import fix_runtime
 from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.machine import Machine
 from gordo import __version__
-from gordo_dataset.import_utils import BackCompatibleLocations
+from gordo_core.import_utils import BackCompatibleLocations
 from packaging.version import parse
 from pydantic import parse_obj_as, BaseModel
 

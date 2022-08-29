@@ -14,7 +14,7 @@ from gordo import __version__, serializer
 from gordo.server.rest_api import Api
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
-from gordo_dataset.sensor_tag import SensorTag
+from gordo_core.sensor_tag import SensorTag
 from gordo.server.utils import (
     find_path_in_dict,
     validate_gordo_name,

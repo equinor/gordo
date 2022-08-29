@@ -9,7 +9,7 @@ import numpy as np
 
 from gordo.server import utils as server_utils
 from gordo.server.views.base import BaseModelView
-from gordo_dataset.sensor_tag import SensorTag
+from gordo_core.sensor_tag import SensorTag
 from flask import Flask, g
 
 

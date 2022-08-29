@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from gordo import __version__
-from gordo_dataset.time_series import TimeSeriesDataset
+from gordo_core.time_series import TimeSeriesDataset
 from gordo.machine import Machine
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
@@ -137,7 +137,7 @@ def test_machine_from_config(default_globals: dict):
             "data_provider": {
                 "max_size": 300,
                 "min_size": 100,
-                "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+                "type": "gordo_core.data_providers.providers.RandomDataProvider",
             },
             "default_tag": None,
             "filter_periods": {"filter_method": "median", "window": 72, "n_iqr": 1},
@@ -158,7 +158,7 @@ def test_machine_from_config(default_globals: dict):
             "target_tag_list": ["GRA-TE -123-456"],
             "train_end_date": "2018-01-02T09:00:30+00:00",
             "train_start_date": "2018-01-01T09:00:30+00:00",
-            "type": "gordo_dataset.time_series.RandomDataset",
+            "type": "gordo_core.time_series.RandomDataset",
         },
         "evaluation": {
             "cv_mode": "full_build",

@@ -229,7 +229,7 @@ def test_overrides_builder_datasource(path_to_config_files):
 
     # ct_23_0002 uses the global overriden requests, but default limits
     assert {
-        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
     } == yaml.safe_load(model_builder_machine_1_env["machine"])["dataset"][
@@ -238,7 +238,7 @@ def test_overrides_builder_datasource(path_to_config_files):
 
     # This value must be changed if we change the default values
     assert {
-        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
     } == yaml.safe_load(model_builder_machine_2_env["machine"])["dataset"][
@@ -247,7 +247,7 @@ def test_overrides_builder_datasource(path_to_config_files):
 
     # ct_23_0003 uses locally overriden request memory
     assert {
-        "type": "gordo_dataset.data_providers.providers.RandomDataProvider",
+        "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
     } == yaml.safe_load(model_builder_machine_3_env["machine"])["dataset"][
@@ -755,4 +755,4 @@ def test_default_data_provider(path_to_config_files: str):
     workflow_str = _generate_test_workflow_str(
         path_to_config_files, "config-empty-default-data-provider.yml", args=args
     )
-    assert "gordo_dataset.data_providers.providers.RandomDataProvider" in workflow_str
+    assert "gordo_core.data_providers.providers.RandomDataProvider" in workflow_str

@@ -23,7 +23,7 @@ from gordo_client.io import (
     ResourceGone,
 )
 from gordo_client.utils import PredictionResult
-from gordo_dataset.data_providers import providers
+from gordo_core.data_providers import providers
 from mock import patch, call
 from sklearn.base import BaseEstimator
 
@@ -428,7 +428,7 @@ def _machine(name: str) -> Machine:
     """
     Helper to build a basic Machine, only defining its name
     """
-    from gordo_dataset.sensor_tag import SensorTag
+    from gordo_core.sensor_tag import SensorTag
 
     return Machine.from_config(
         config={

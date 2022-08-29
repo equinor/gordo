@@ -20,7 +20,7 @@ from gordo.workflow.config_elements.schemas import (
 )
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
-from gordo_dataset.back_compatibles import DEFAULT_BACK_COMPATIBLES
+from gordo_core.back_compatibles import DEFAULT_BACK_COMPATIBLES
 
 
 logger = logging.getLogger(__name__)

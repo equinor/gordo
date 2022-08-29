@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from typing import Optional, List, Dict, cast, Union
 
-from gordo_dataset.metadata import sensor_tags_from_build_metadata
-from gordo_dataset.sensor_tag import (
+from gordo_core.metadata import sensor_tags_from_build_metadata
+from gordo_core.sensor_tag import (
     SensorTag,
     Tag,
     normalize_sensor_tag,

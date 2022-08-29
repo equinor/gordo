@@ -9,7 +9,7 @@ import dateutil.parser
 import logging
 
 from gordo.serializer import from_definition
-from gordo_dataset.sensor_tag import SensorTag
+from gordo_core.sensor_tag import SensorTag
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class ValidDataset(BaseDescriptor):
     def __set__(self, instance, value):
 
         # Avoid circular dependency imports
-        from gordo_dataset.base import GordoBaseDataset
+        from gordo_core.base import GordoBaseDataset
 
         if not isinstance(value, GordoBaseDataset):
             raise TypeError(
@@ -114,7 +114,7 @@ class ValidDataProvider(BaseDescriptor):
     def __set__(self, instance, value):
 
         # Avoid circular dependency imports
-        from gordo_dataset.data_providers.base import GordoBaseDataProvider
+        from gordo_core.data_providers.base import GordoBaseDataProvider
 
         if not isinstance(value, GordoBaseDataProvider):
             raise TypeError(

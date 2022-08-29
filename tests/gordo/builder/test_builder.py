@@ -17,7 +17,7 @@ from mock import patch, MagicMock
 
 import gordo
 from gordo.builder import ModelBuilder
-from gordo_dataset.sensor_tag import SensorTag
+from gordo_core.sensor_tag import SensorTag
 from gordo.machine.model import models
 from gordo.machine import Machine
 from gordo.machine.metadata import Metadata
