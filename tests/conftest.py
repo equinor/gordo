@@ -16,11 +16,11 @@ import pytest
 import responses
 
 from gordo import serializer
-from gordo_dataset.sensor_tag import SensorTag
+from gordo_core.sensor_tag import SensorTag
 
 from gordo.server import server
 from gordo.builder.local_build import local_build
-from gordo_dataset.sensor_tag import to_list_of_strings
+from gordo_core.sensor_tag import to_list_of_strings
 from gordo.server import server as gordo_ml_server
 
 from tests import utils as tu

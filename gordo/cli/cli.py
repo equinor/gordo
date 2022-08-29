@@ -11,9 +11,9 @@ import jinja2
 import yaml
 import click
 
-from gordo_dataset.data_providers.providers import NoSuitableDataProviderError
-from gordo_dataset.sensor_tag import SensorTagNormalizationError
-from gordo_dataset.exceptions import ConfigException, InsufficientDataError
+from gordo_core.data_providers.providers import NoSuitableDataProviderError
+from gordo_core.sensor_tag import SensorTagNormalizationError
+from gordo_core.exceptions import ConfigException, InsufficientDataError
 from gunicorn.glogging import Logger
 from typing import Tuple, List, Any, cast
 from gordo.builder.utils import create_model_builder

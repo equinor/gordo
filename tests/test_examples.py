@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
-
-import dateutil.parser
 import glob
 import importlib
 import logging
-import mock
 import nbformat
 import os
 import sys
 
-import pandas as pd
-import numpy as np
-
 from nbconvert.exporters import PythonExporter
-
-from gordo_dataset.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 

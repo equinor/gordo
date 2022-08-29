@@ -1,6 +1,6 @@
 from typing import Optional, Type
 
-from gordo_dataset.import_utils import import_location
+from gordo_core.import_utils import import_location
 
 from .build_model import ModelBuilder
 

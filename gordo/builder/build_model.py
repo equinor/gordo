@@ -28,8 +28,8 @@ from gordo import (
     __version__,
     parse_version,
 )
-from gordo_dataset.base import GordoBaseDataset
-from gordo_dataset.import_utils import BackCompatibleLocations
+from gordo_core.base import GordoBaseDataset
+from gordo_core.import_utils import BackCompatibleLocations
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
@@ -61,7 +61,7 @@ class ModelBuilder:
 
         Example
         -------
-        >>> from gordo_dataset.sensor_tag import SensorTag
+        >>> from gordo_core.sensor_tag import SensorTag
         >>> from gordo.machine import Machine
         >>> machine = Machine.from_config(dict(
         ...     name="special-model-name",
@@ -585,7 +585,7 @@ class ModelBuilder:
         Examples
         -------
         >>> from gordo.machine import Machine
-        >>> from gordo_dataset.sensor_tag import SensorTag
+        >>> from gordo_core.sensor_tag import SensorTag
         >>> machine = Machine.from_config(dict(
         ...     name="special-model-name",
         ...     model={"sklearn.decomposition.PCA": {"svd_solver": "auto"}},

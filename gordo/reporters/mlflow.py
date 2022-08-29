@@ -21,7 +21,7 @@ from gordo.builder import ModelBuilder
 from gordo.machine import Machine
 from gordo.machine.machine import MachineEncoder
 from gordo.util.utils import capture_args
-from gordo_dataset.sensor_tag import extract_tag_name
+from gordo_core.sensor_tag import extract_tag_name
 from gordo.builder.utils import create_model_builder
 
 from .base import BaseReporter

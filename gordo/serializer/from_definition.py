@@ -9,7 +9,7 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras.models import Sequential
 
-from gordo_dataset.import_utils import import_location
+from gordo_core.import_utils import import_location
 
 
 logger = logging.getLogger(__name__)

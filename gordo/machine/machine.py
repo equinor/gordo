@@ -7,9 +7,9 @@ from typing import Dict, Any, Optional, List, cast
 import numpy as np
 import yaml
 
-from gordo_dataset.base import GordoBaseDataset
-from gordo_dataset.sensor_tag import SensorTag
-from gordo_dataset.import_utils import BackCompatibleLocations
+from gordo_core.base import GordoBaseDataset
+from gordo_core.sensor_tag import SensorTag
+from gordo_core.import_utils import BackCompatibleLocations
 from gordo.machine.validators import (
     ValidUrlString,
     ValidMetadata,
@@ -94,7 +94,7 @@ class Machine:
         config_globals:
             The block of config within the YAML file within `globals`
         back_compatibles: Optional[BackCompatibleLocations]
-            See `gordo_dataset.import_utils.prepare_back_compatible_locations()` function for reference.
+            See `gordo_core.import_utils.prepare_back_compatible_locations()` function for reference.
         default_data_provider: Optional[str]
 
         Returns

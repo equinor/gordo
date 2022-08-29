@@ -13,7 +13,7 @@ from influxdb import InfluxDBClient
 
 
 from gordo.machine.model import models
-from gordo_dataset.sensor_tag import SensorTag
+from gordo_core.sensor_tag import SensorTag
 
 logger = logging.getLogger(__name__)
 
