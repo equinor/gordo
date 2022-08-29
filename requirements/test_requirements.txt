@@ -52,7 +52,6 @@ cryptography==3.4.6
     # via
     #   -c full_requirements.txt
     #   adal
-    #   pyjwt
 decorator==4.4.1
     # via ipython
 defusedxml==0.6.0
@@ -81,7 +80,7 @@ iniconfig==1.1.1
     # via pytest
 ipykernel==5.1.3
     # via notebook
-ipython==7.11.1
+ipython==7.16.3
     # via ipykernel
 ipython-genutils==0.2.0
     # via
@@ -201,7 +200,7 @@ pygments==2.9.0
     #   ipython
     #   jupyterlab-pygments
     #   nbconvert
-pyjwt[crypto]==1.7.1
+pyjwt==1.7.1
     # via
     #   -c full_requirements.txt
     #   adal
@@ -328,7 +327,6 @@ types-urllib3==1.26.13
 typing-extensions==4.2.0
     # via
     #   -c full_requirements.txt
-    #   black
     #   mypy
 urllib3==1.26.5
     # via
