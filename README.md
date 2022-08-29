@@ -33,11 +33,10 @@
 * [Uninstall](#Uninstall)
 * [Developer manual](#Developer-manual)
     * [How to prepare working environment](#How-to-prepare-working-environment)
-      * [How to update packages](#How-to-update-packages)
+        * [How to update packages](#How-to-update-packages)
     * [How to run tests locally](#How-to-run-tests-locally)
         * [Tests system requirements](#Tests-system-requirements)
         * [Run tests](#Run-tests)
-        * [How to run tests in debug mode](#How-to-run-tests-in-debug-mode)
 
 ## About
 
