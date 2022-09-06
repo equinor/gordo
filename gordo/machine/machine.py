@@ -2,7 +2,8 @@
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional, List, cast
+from typing import Any, Optional, List, cast
+from copy import copy
 
 import numpy as np
 import yaml
@@ -21,6 +22,7 @@ from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.utils import normalize_sensor_tags, TagsList
 
+from .loader import MachineConfig, GlobalsConfig
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +77,9 @@ class Machine:
     @classmethod
     def from_config(  # type: ignore
         cls,
-        config: Dict[str, Any],
+        config: MachineConfig,
         project_name: Optional[str] = None,
-        config_globals=None,
+        config_globals: GlobalsConfig = None,
         back_compatibles: Optional[BackCompatibleLocations] = None,
         default_data_provider: Optional[str] = None,
     ):
@@ -87,7 +89,7 @@ class Machine:
 
         Parameters
         ----------
-        config: dict
+        config: MachineConfig
             The loaded block of config which represents a 'Machine' in YAML
         project_name: str
             Name of the project this Machine belongs to.
@@ -173,7 +175,7 @@ class Machine:
     @classmethod
     def from_dict(
         cls,
-        d: dict[str, Any],
+        d: MachineConfig,
         back_compatibles: Optional[BackCompatibleLocations] = None,
         default_data_provider: Optional[str] = None,
     ) -> "Machine":
@@ -181,17 +183,15 @@ class Machine:
         Get an instance from a dict taken from :func:`~Machine.to_dict`
         """
         # No special treatment required, just here for consistency.
-        args: dict[str, Any] = {}
-        for k, v in d.items():
-            if k == "dataset" and isinstance(v, dict):
-                v = GordoBaseDataset.from_dict(
-                    v,
-                    back_compatibles=back_compatibles,
-                    default_data_provider=default_data_provider,
-                )
-            if k == "metadata" and isinstance(v, dict):
-                v = cast(Any, Metadata).from_dict(v)
-            args[k] = v
+        args: MachineConfig = copy(d)
+        if "dataset" in args and isinstance(args["dataset"], dict):
+            args["dataset"] = GordoBaseDataset.from_dict(
+                args["dataset"],
+                back_compatibles=back_compatibles,
+                default_data_provider=default_data_provider,
+            )
+        if "metadata" in args and isinstance(args["metadata"], dict):
+            args["metadata"] = Metadata.from_dict(args["metadata"])
         return cls(**args)
 
     def to_dict(self):

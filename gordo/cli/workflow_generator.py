@@ -443,6 +443,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         model_builder_env=model_builder_env,
         back_compatibles=DEFAULT_BACK_COMPATIBLES,
         default_data_provider=context["default_data_provider"],
+        json_path="spec.config",
     )
 
     version = parse_version(context["gordo_version"])
