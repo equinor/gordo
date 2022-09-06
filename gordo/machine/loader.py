@@ -30,26 +30,24 @@ class MachineConfig(_BaseConfig):
     project_name: str
 
 
-_FIELDS = ("model", "dataset", "evaluation", "metadata", "runtime")
+_FIELDS = frozenset(("model", "dataset", "evaluation", "metadata", "runtime"))
 
 
 def _load_config(config: dict, json_path: str = None) -> dict:
     new_config = copy(config)
-    for field in _FIELDS:
-        val = config.get(field)
-        if type(val) is str:
-            try:
-                new_val = yaml.safe_load(val)
-            except yaml.YAMLError as e:
-                json_paths = []
-                if json_path is not None:
-                    json_paths.append(json_path)
-                json_paths.append(field)
-                message = "Error loading YAML from '%s'" % ".".join(json_paths)
-                raise MachineConfigException(message + ": " + str(e))
-        else:
-            new_val = val
-        new_config[field] = new_val
+    for field in config.keys():
+        if field in _FIELDS:
+            val = config.get(field)
+            if type(val) is str:
+                try:
+                    new_config[field] = yaml.safe_load(val)
+                except yaml.YAMLError as e:
+                    json_paths = []
+                    if json_path is not None:
+                        json_paths.append(json_path)
+                    json_paths.append(field)
+                    message = "Error loading YAML from '%s'" % ".".join(json_paths)
+                    raise MachineConfigException(message + ": " + str(e))
     return new_config
 
 
@@ -63,5 +61,5 @@ def load_machine_config(config: dict, json_path: str = None) -> MachineConfig:
     return machine_config
 
 
-def load_global_config(config: dict, json_path: str = None) -> GlobalsConfig:
+def load_globals_config(config: dict, json_path: str = None) -> GlobalsConfig:
     return _load_config(config, json_path)

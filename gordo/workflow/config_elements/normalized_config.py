@@ -9,7 +9,7 @@ from gordo.machine import (
     Machine,
     GlobalsConfig,
     load_machine_config,
-    load_global_config,
+    load_globals_config,
 )
 from gordo import __version__
 from gordo_core.import_utils import BackCompatibleLocations
@@ -132,7 +132,7 @@ class NormalizedConfig:
             len(config["machines"])
         )
 
-        passed_globals = load_global_config(
+        passed_globals = load_globals_config(
             config.get("globals", dict()), join_json_paths("globals", json_path)
         )
 
