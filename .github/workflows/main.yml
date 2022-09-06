@@ -30,8 +30,8 @@ jobs:
 
       - name: Install
         run: |
-          pip install --upgrade pip~=22.0.4
-          pip install --extra-index-url "${{ secrets.INDEX_URL }}" -r requirements/full_requirements.txt
+          pip install --upgrade "pip>=22.2.2,<23.0.0"
+          pip install -r requirements/full_requirements.txt
           pip install -r requirements/test_requirements.txt
 
       - name: Test ${{ matrix.component }}

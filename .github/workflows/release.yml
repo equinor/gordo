@@ -23,9 +23,8 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install --upgrade pip
-          pip uninstall -y aws-sam-cli pyyaml # Workaround for fixing an issue with incompatible package versions
-          pip install --extra-index-url "${{ secrets.INDEX_URL }}" -r requirements/full_requirements.txt
+          pip install --upgrade "pip>=22.2.2,<23.0.0"
+          pip install -r requirements/full_requirements.txt
 
       - name: Build
         run: |
