@@ -114,15 +114,17 @@ class Machine:
         if project_name is None:
             raise ValueError("project_name is empty")
 
-        local_runtime = config.get("runtime", dict())
-        runtime = patch_dict(config_globals.get("runtime", dict()), local_runtime)
+        local_runtime = cast(dict, config.get("runtime", dict()))
+        runtime = patch_dict(
+            cast(dict, config_globals.get("runtime", dict())), local_runtime
+        )
 
         dataset = patch_dict(
             config.get("dataset", dict()), config_globals.get("dataset", dict())
         )
         config_evaluation = cls.prepare_evaluation(config.get("evaluation"))
         evaluation = patch_dict(
-            config_globals.get("evaluation", dict()), config_evaluation
+            cast(dict, config_globals.get("evaluation", dict())), config_evaluation
         )
 
         metadata = Metadata(
@@ -183,7 +185,7 @@ class Machine:
         Get an instance from a dict taken from :func:`~Machine.to_dict`
         """
         # No special treatment required, just here for consistency.
-        args: MachineConfig = copy(d)
+        args = copy(d)
         if "dataset" in args and isinstance(args["dataset"], dict):
             args["dataset"] = GordoBaseDataset.from_dict(
                 args["dataset"],
@@ -191,7 +193,9 @@ class Machine:
                 default_data_provider=default_data_provider,
             )
         if "metadata" in args and isinstance(args["metadata"], dict):
-            args["metadata"] = Metadata.from_dict(args["metadata"])
+            args["metadata"] = cast(
+                Optional[Metadata], Metadata.from_dict(args["metadata"])
+            )
         return cls(**args)
 
     def to_dict(self):

@@ -1,7 +1,7 @@
 import yaml
 
 from copy import copy
-from typing import TypedDict, Optional, Union
+from typing import TypedDict, Optional, Union, cast
 
 from gordo_core.exceptions import ConfigException
 
@@ -27,7 +27,7 @@ class GlobalsConfig(_BaseConfig):
 
 class MachineConfig(_BaseConfig):
     name: str
-    project_name: str
+    project_name: Optional[str]
 
 
 _FIELDS = frozenset(("model", "dataset", "evaluation", "metadata", "runtime"))
@@ -55,11 +55,11 @@ def load_machine_config(config: dict, json_path: str = None) -> MachineConfig:
     machine_config = _load_config(config, json_path)
     if machine_config.get("name") is None:
         message = ""
-        if json_path is None:
+        if json_path is not None:
             message += "in '%s'" % json_path
-        raise MachineConfigException("name is empty" + json_path)
-    return machine_config
+        raise MachineConfigException("name is empty" + message)
+    return cast(MachineConfig, machine_config)
 
 
 def load_globals_config(config: dict, json_path: str = None) -> GlobalsConfig:
-    return _load_config(config, json_path)
+    return cast(GlobalsConfig, _load_config(config, json_path))
