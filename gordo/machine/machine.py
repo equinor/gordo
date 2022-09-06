@@ -107,7 +107,10 @@ class Machine:
             config_globals = dict()
 
         name = config["name"]
-        model = config.get("model") or config_globals.get("model")
+        config_model = config.get("model") or config_globals.get("model")
+        if config_model is None:
+            raise ValueError("model is empty")
+        model = cast(dict, config_model)
 
         if project_name is None:
             project_name = config.get("project_name", None)
@@ -193,9 +196,7 @@ class Machine:
                 default_data_provider=default_data_provider,
             )
         if "metadata" in args and isinstance(args["metadata"], dict):
-            args["metadata"] = cast(
-                Optional[Metadata], Metadata.from_dict(args["metadata"])
-            )
+            args["metadata"] = cast(Any, Metadata).from_dict(args["metadata"])
         return cls(**args)
 
     def to_dict(self):
