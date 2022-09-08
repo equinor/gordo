@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional, Type
+from typing import List, Optional, Type, cast
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
@@ -149,7 +149,9 @@ class NormalizedConfig:
                 default_globals["runtime"]["builder"] = {}
             default_globals["runtime"]["builder"]["env"] = model_builder_env
 
-        patched_globals = patch_dict(default_globals, passed_globals)
+        patched_globals = patch_dict(
+            cast(dict, default_globals), cast(dict, passed_globals)
+        )
         patched_globals = self.prepare_patched_globals(patched_globals)
 
         self.project_name = project_name
@@ -202,4 +204,4 @@ class NormalizedConfig:
         else:
             docker_images = cls.SPLITED_DOCKER_IMAGES
         default_globals = cls.DEFAULT_CONFIG_GLOBALS
-        return patch_dict(copy(default_globals), docker_images)
+        return patch_dict(cast(dict, copy(default_globals)), cast(dict, docker_images))
