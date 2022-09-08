@@ -185,18 +185,20 @@ class Machine:
         default_data_provider: Optional[str] = None,
     ) -> "Machine":
         """
-        Get an instance from a dict taken from :func:`~Machine.to_dict`
+        Create
+        A dict taken from either gordo config or :func:`~Machine.to_dict`.
         """
         # No special treatment required, just here for consistency.
-        args = copy(d)
-        if "dataset" in args and isinstance(args["dataset"], dict):
-            args["dataset"] = GordoBaseDataset.from_dict(
-                args["dataset"],
+        d = copy(d)
+        if "dataset" in d and isinstance(d["dataset"], dict):
+            d["dataset"] = GordoBaseDataset.from_dict(
+                d["dataset"],
                 back_compatibles=back_compatibles,
                 default_data_provider=default_data_provider,
             )
-        if "metadata" in args and isinstance(args["metadata"], dict):
-            args["metadata"] = cast(Any, Metadata).from_dict(args["metadata"])
+        if "metadata" in d and isinstance(d["metadata"], dict):
+            d["metadata"] = cast(Any, Metadata).from_dict(d["metadata"])
+        args = cast(dict, d)
         return cls(**args)
 
     def to_dict(self):
