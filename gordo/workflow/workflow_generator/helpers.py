@@ -1,8 +1,8 @@
 import dictdiffer
 
-from typing import TypeVar
+from typing import TypeVar, TypedDict
 
-T = TypeVar("T", bound=dict)
+T = TypeVar("T", dict, TypedDict)
 
 
 def patch_dict(original_dict: T, patch_dictionary: T) -> T:
