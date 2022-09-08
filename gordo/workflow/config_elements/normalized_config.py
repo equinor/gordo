@@ -149,8 +149,9 @@ class NormalizedConfig:
                 default_globals["runtime"]["builder"] = {}
             default_globals["runtime"]["builder"]["env"] = model_builder_env
 
-        patched_globals = patch_dict(
-            cast(dict, default_globals), cast(dict, passed_globals)
+        patched_globals = cast(
+            GlobalsConfig,
+            patch_dict(cast(dict, default_globals), cast(dict, passed_globals)),
         )
         patched_globals = self.prepare_patched_globals(patched_globals)
 
@@ -204,4 +205,7 @@ class NormalizedConfig:
         else:
             docker_images = cls.SPLITED_DOCKER_IMAGES
         default_globals = cls.DEFAULT_CONFIG_GLOBALS
-        return patch_dict(cast(dict, copy(default_globals)), cast(dict, docker_images))
+        return cast(
+            GlobalsConfig,
+            patch_dict(cast(dict, copy(default_globals)), cast(dict, docker_images)),
+        )
