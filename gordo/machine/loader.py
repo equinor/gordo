@@ -16,9 +16,9 @@ class MachineConfigException(ConfigException):
 class _BaseConfig(TypedDict, total=False):
     model: dict
     dataset: Union[dict, GordoBaseDataset]
-    evaluation: Optional[dict]
-    metadata: Optional[Union[dict, Metadata]]
-    runtime: Optional[dict]
+    evaluation: dict
+    metadata: Union[dict, Metadata]
+    runtime: dict
 
 
 class GlobalsConfig(_BaseConfig):
@@ -27,7 +27,7 @@ class GlobalsConfig(_BaseConfig):
 
 class MachineConfig(_BaseConfig):
     name: str
-    project_name: Optional[str]
+    project_name: str
 
 
 _FIELDS = frozenset(("model", "dataset", "evaluation", "metadata", "runtime"))
