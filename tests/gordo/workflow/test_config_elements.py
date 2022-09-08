@@ -12,7 +12,7 @@ import yaml
 
 from gordo import __version__
 from gordo_core.time_series import TimeSeriesDataset
-from gordo.machine import Machine, MachineConfig
+from gordo.machine import Machine, MachineConfig, GlobalsConfig
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
 
@@ -118,7 +118,7 @@ def test_machine_from_config(default_globals: dict):
     machine = Machine.from_config(
         cast(MachineConfig, element),
         project_name="test-project-name",
-        config_globals=default_globals,
+        config_globals=cast(GlobalsConfig, default_globals),
     )
     logger.info(f"{machine}")
     assert isinstance(machine, Machine)
@@ -251,5 +251,5 @@ def test_invalid_model(default_globals: dict):
         Machine.from_config(
             cast(MachineConfig, element),
             project_name="test-project-name",
-            config_globals=default_globals,
+            config_globals=cast(GlobalsConfig, default_globals),
         )
