@@ -156,7 +156,8 @@ def build(
             machine_config["model"] = expand_model(machine_config["model"], parameters)
 
         machine: Machine = Machine.from_config(
-            load_machine_config(machine_config), project_name=machine_config["project_name"]
+            load_machine_config(machine_config),
+            project_name=machine_config["project_name"],
         )
 
         logger.info(f"Building, output will be at: {output_dir}")
