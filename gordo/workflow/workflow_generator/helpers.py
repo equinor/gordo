@@ -1,7 +1,11 @@
 import dictdiffer
 
+from typing import TypeVar
 
-def patch_dict(original_dict: dict, patch_dictionary: dict) -> dict:
+T = TypeVar("T", bound=dict)
+
+
+def patch_dict(original_dict: T, patch_dictionary: T) -> T:
     """Patches a dict with another. Patching means that any path defines in the
     patch is either added (if it does not exist), or replaces the existing value (if
     it exists). Nothing is removed from the original dict, only added/replaced.
