@@ -106,7 +106,7 @@ entrypoints==0.3
     # via
     #   mlflow
     #   mlflow-skinny
-flask==1.1.1
+flask==1.0.1
     # via
     #   -r requirements.in
     #   flask-restplus
@@ -161,13 +161,15 @@ influxdb==5.3.0
     # via gordo-core
 isodate==0.6.0
     # via msrest
-itsdangerous==1.1.0
-    # via flask
+itsdangerous==2.0.0
+    # via
+    #   -r requirements.in
+    #   flask
 jeepney==0.6.0
     # via
     #   -r requirements.in
     #   secretstorage
-jinja2==2.11.3
+jinja2==2.10.3
     # via
     #   -r requirements.in
     #   flask
@@ -195,11 +197,11 @@ mako==1.1.1
     # via alembic
 markdown==3.1.1
     # via tensorboard
-markupsafe==2.1.1
+markupsafe==2.0.1
     # via
+    #   -r requirements.in
     #   jinja2
     #   mako
-    #   werkzeug
 marshmallow==3.3.0
     # via
     #   dataclasses-json
@@ -452,7 +454,7 @@ urllib3==1.26.5
     #   requests
 websocket-client==0.57.0
     # via docker
-werkzeug==2.2.2
+werkzeug==0.14
     # via
     #   -r requirements.in
     #   flask
