@@ -11,20 +11,13 @@ from gordo.machine import (
     load_machine_config,
     load_globals_config,
 )
+from gordo.utils import join_json_paths
 from gordo import __version__
 from gordo_core.import_utils import BackCompatibleLocations
 from packaging.version import parse
 from pydantic import parse_obj_as, BaseModel
 
 from .schemas import BuilderPodRuntime, PodRuntime, Volume
-
-
-def join_json_paths(element: str, json_path: str = None) -> str:
-    json_paths = []
-    if json_path:
-        json_paths.append(json_path)
-    json_paths.append(element)
-    return ".".join(json_paths)
 
 
 def _calculate_influx_resources(nr_of_machines):
