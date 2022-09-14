@@ -1,7 +1,7 @@
 machines:
 
   - name: ct-23-0002 #Influx should start up by default for this one
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -13,7 +13,7 @@ machines:
 
 
   - name: ct-23-0003 # Dont want influx for this one
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -26,7 +26,7 @@ machines:
       influx:
         enable: False
 globals:
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler

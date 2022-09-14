@@ -32,7 +32,7 @@ def local_build(
     >>> import numpy as np
     >>> config = '''
     ... machines:
-    ...       - dataset:
+    ...       - dataset: |
     ...           tags:
     ...             - SOME-TAG1
     ...             - SOME-TAG2
@@ -44,9 +44,9 @@ def local_build(
     ...           asset: asgb
     ...           data_provider:
     ...             type: RandomDataProvider
-    ...         metadata:
+    ...         metadata: |
     ...           information: Some sweet information about the model
-    ...         model:
+    ...         model: |
     ...           gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
     ...             base_estimator:
     ...               sklearn.pipeline.Pipeline:

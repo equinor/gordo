@@ -1,7 +1,7 @@
 machines:       
 
   - name: ct-23-0001 #1st machine       
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags: #list of tags for 1st machine
@@ -11,7 +11,7 @@ machines:
       train_end_date: 2018-09-15T03:01:00+01:00 
 
   - name: ct-23-0002 #2nd machine       
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags: #list of tags for 2nd machine
@@ -22,12 +22,12 @@ machines:
       train_end_date: 2018-09-15T03:01:00+01:00 
 
 globals:        
-  model:        
+  model: |
     sklearn.pipeline.Pipeline:  
       steps:    
         - sklearn.preprocessing.MinMaxScaler       
         - gordo.machine.model.models.KerasAutoEncoder:
             kind: feedforward_hourglass 
-  runtime:      
+  runtime: |
     log_level: debug
 

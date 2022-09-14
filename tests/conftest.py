@@ -152,7 +152,7 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
     """
     return f"""
             machines:
-              - dataset:
+              - dataset: |
                   tags:
                     - {sensors[0].name}
                     - {sensors[1].name}
@@ -168,9 +168,9 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
                   asset: asgb
                   data_provider:
                     type: RandomDataProvider
-                metadata:
+                metadata: |
                   information: Some sweet information about the model
-                model:
+                model: |
                   gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                     require_thresholds: false
                     base_estimator:
@@ -180,7 +180,7 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
                         - gordo.machine.model.models.KerasAutoEncoder:
                             kind: feedforward_hourglass
                 name: {gordo_name}
-              - dataset:
+              - dataset: |
                   tags:
                     - {sensors[0].name}
                     - {sensors[1].name}
@@ -196,9 +196,9 @@ def config_str(gordo_name: str, second_gordo_name: str, sensors: List[SensorTag]
                   asset: asgb
                   data_provider:
                     type: RandomDataProvider
-                metadata:
+                metadata: |
                   information: Some sweet information about the model
-                model:
+                model: |
                   gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
                     window: 144
                     require_thresholds: false

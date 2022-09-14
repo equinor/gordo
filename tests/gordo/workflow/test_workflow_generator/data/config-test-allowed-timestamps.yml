@@ -1,7 +1,7 @@
 machines:
 
   - name: machine-1
-    dataset:
+    dataset: |
       data_provider: {
         type: RandomDataProvider
       }
@@ -12,7 +12,7 @@ machines:
       train_end_date: "2017-11-07T10:10:01+00:00"
 
   - name: machine-2
-    dataset:
+    dataset: |
       data_provider: {
         type: RandomDataProvider
       }
@@ -24,7 +24,7 @@ machines:
       train_end_date: '2017-11-07T11:10:00+00:00'
 
   - name: machine-3
-    dataset:
+    dataset: |
       data_provider: {
         type: RandomDataProvider
       }
@@ -37,7 +37,7 @@ machines:
 
 
 globals:
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler

@@ -26,7 +26,7 @@ def test_dataset_from_dict():
     """
     element_str = """
         name: ct-23-0002
-        dataset:
+        dataset: |
           data_provider:
             type: RandomDataProvider
           resolution: 2T

@@ -1,6 +1,6 @@
 machines:
   - name: machine-1
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:  # Quotes in the tag-names, because why not
@@ -16,7 +16,7 @@ machines:
 
 
 globals:
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler
