@@ -77,7 +77,7 @@ class Machine:
     @classmethod
     def from_config(  # type: ignore
         cls,
-        config: Union[MachineConfig, ModelConfig],
+        config: dict[str, Any],
         project_name: Optional[str] = None,
         config_globals: GlobalsConfig = None,
         back_compatibles: Optional[BackCompatibleLocations] = None,
@@ -89,7 +89,7 @@ class Machine:
 
         Parameters
         ----------
-        config: MachineConfig
+        config: dict[str, Any]
             The loaded block of config which represents a 'Machine' in YAML
         project_name: str
             Name of the project this Machine belongs to.
@@ -180,7 +180,7 @@ class Machine:
     @classmethod
     def from_dict(
         cls,
-        d: MachineConfig,
+        d: ModelConfig,
         back_compatibles: Optional[BackCompatibleLocations] = None,
         default_data_provider: Optional[str] = None,
     ) -> "Machine":
