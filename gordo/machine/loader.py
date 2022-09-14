@@ -112,6 +112,6 @@ def load_model_config(config: dict, json_path: str = None) -> ModelConfig:
     model_config = cast(ModelConfig, load_machine_config(config, json_path))
     if not model_config.get("project_name"):
         raise MachineConfigException(
-            "'%s' is empty" % join_json_paths("name", json_path)
+            "'%s' is empty" % join_json_paths("project_name", json_path)
         )
     return model_config
