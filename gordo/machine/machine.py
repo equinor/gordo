@@ -2,7 +2,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional, List, Union, cast
+from typing import Any, Optional, List, cast
 from copy import copy
 
 import numpy as np
@@ -22,7 +22,7 @@ from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.utils import normalize_sensor_tags, TagsList
 
-from .loader import ModelConfig, MachineConfig, GlobalsConfig
+from .loader import ModelConfig, GlobalsConfig
 
 logger = logging.getLogger(__name__)
 
