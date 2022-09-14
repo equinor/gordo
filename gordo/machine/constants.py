@@ -1,1 +1,3 @@
-MACHINE_YAML_FIELDS = frozenset(("model", "dataset", "evaluation", "metadata", "runtime"))
+MACHINE_YAML_FIELDS = frozenset(
+    ("model", "dataset", "evaluation", "metadata", "runtime")
+)
