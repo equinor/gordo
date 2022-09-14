@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional, Type, cast
+from typing import List, Optional, Type, Any, cast
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
@@ -156,7 +156,7 @@ class NormalizedConfig:
                 conf, join_json_paths("machines[%d]" % i, json_path)
             )
             machine = Machine.from_config(
-                machine_config,
+                cast(dict[str, Any], machine_config),
                 project_name=project_name,
                 config_globals=patched_globals,
                 back_compatibles=back_compatibles,
@@ -166,7 +166,7 @@ class NormalizedConfig:
 
         self.machines = machines
 
-        self.globals: dict = patched_globals
+        self.globals: GlobalsConfig = patched_globals
 
     @staticmethod
     def prepare_runtime(runtime: dict) -> dict:
