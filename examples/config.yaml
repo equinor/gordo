@@ -11,7 +11,7 @@ spec:
     machines:
 
       - name: ct-23-0001 #1st machine
-        dataset:
+        dataset: |
           data_provider:
             type: RandomDataProvider
           tags: #list of tags for 1st machine
@@ -22,7 +22,7 @@ spec:
           train_end_date: 2018-09-15T03:01:00+01:00
 
       - name: ct-23-0002 #2nd machine
-        dataset:
+        dataset: |
           data_provider:
             type: RandomDataProvider
           resolution: 2T
@@ -32,7 +32,7 @@ spec:
             - GRA-TAG 3
           train_start_date: 2018-05-20T01:00:04+02:00
           train_end_date: 2019-05-10T15:05:50+02:00
-        runtime:
+        runtime: |
           builder: #one can override just a single resource request as well
             resources:
               requests:
@@ -41,7 +41,7 @@ spec:
             enable: False
 
       - name: ct-23-0003 #3rd machine
-        dataset:
+        dataset: |
           data_provider:
             type: RandomDataProvider
           tags: #list of tags for 3rd machine
@@ -52,7 +52,7 @@ spec:
           train_end_date: 2019-03-11T11:05:10+02:00
 
     globals:
-      runtime:
+      runtime: |
         influx: # Change to False to disable influx. Default value: True
           enable: True
         builder: # The model builder can be customized per-machine, or set globally
@@ -71,7 +71,7 @@ spec:
             limits: # The resources we are limited to using.
               memory: 2000 #Kill the server if it uses more than 2GB
               cpu: 2000 #Throttle the server to never using more than 2 cores
-      model:
+      model: |
         gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
           base_estimator:
             sklearn.pipeline.Pipeline:
