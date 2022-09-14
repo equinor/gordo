@@ -22,6 +22,7 @@ from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.utils import normalize_sensor_tags, TagsList
 
+from .constants import MACHINE_YAML_FIELDS
 from .loader import ModelConfig, GlobalsConfig
 
 logger = logging.getLogger(__name__)
@@ -215,6 +216,20 @@ class Machine:
             "project_name": self.project_name,
             "evaluation": self.evaluation,
         }
+
+    def to_json(self):
+        """
+        Returns
+        -------
+            string JSON representation of the machine.
+        """
+        config = self.to_dict()
+        json_config = {}
+        for k, v in config.items():
+            if k in MACHINE_YAML_FIELDS:
+                v = json.dumps(v)
+            json_config[k] = v
+        return json_config
 
     def report(self):
         """

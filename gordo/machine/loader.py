@@ -9,6 +9,8 @@ from gordo.machine.metadata import Metadata
 from gordo.utils import join_json_paths
 from gordo_core.base import GordoBaseDataset
 
+from .constants import MACHINE_YAML_FIELDS
+
 
 class MachineConfigException(ConfigException):
     pass
@@ -34,13 +36,10 @@ class ModelConfig(MachineConfig):
     project_name: str
 
 
-_FIELDS = frozenset(("model", "dataset", "evaluation", "metadata", "runtime"))
-
-
 def _load_config(config: dict, json_path: str = None) -> dict:
     new_config = copy(config)
     for field in config.keys():
-        if field in _FIELDS:
+        if field in MACHINE_YAML_FIELDS:
             val = config.get(field)
             if type(val) is str:
                 try:

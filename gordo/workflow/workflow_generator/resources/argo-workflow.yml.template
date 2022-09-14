@@ -1524,7 +1524,7 @@ spec:
                 value: "{{ machine.name }}"
               - name: config
                 value: |
-                  {{ machine.to_dict() | tojson }}
+                  {{ machine.to_json() }}
           dependencies:
             - ensure-single-workflow
         {% endfor %}
