@@ -116,7 +116,7 @@ def test_machine_from_config(default_globals: dict):
     """
     element = get_dict_from_yaml(StringIO(element_str))
     machine = Machine.from_config(
-        cast(MachineConfig, element),
+        element,
         project_name="test-project-name",
         config_globals=cast(GlobalsConfig, default_globals),
     )
@@ -249,7 +249,7 @@ def test_invalid_model(default_globals: dict):
     element = get_dict_from_yaml(StringIO(element_str))
     with pytest.raises(ValueError):
         Machine.from_config(
-            cast(MachineConfig, element),
+            element,
             project_name="test-project-name",
             config_globals=cast(GlobalsConfig, default_globals),
         )
