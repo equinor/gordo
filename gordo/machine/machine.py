@@ -2,7 +2,7 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Optional, List, cast
+from typing import Any, Optional, List, Callable, cast
 from copy import copy
 
 import numpy as np
@@ -24,6 +24,7 @@ from gordo.utils import normalize_sensor_tags, TagsList
 
 from .constants import MACHINE_YAML_FIELDS
 from .loader import ModelConfig, GlobalsConfig
+from .encoders import MachineJSONEncoder, MachineSafeDumper, multiline_str
 
 logger = logging.getLogger(__name__)
 
@@ -172,7 +173,7 @@ class Machine:
         return normalize_sensor_tags(build_dataset_metadata, tag_list, asset=asset)
 
     def __str__(self):
-        return yaml.dump(self.to_dict())
+        return self.to_yaml()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -217,19 +218,34 @@ class Machine:
             "evaluation": self.evaluation,
         }
 
+    def _to_yaml_dict(self, yaml_serializer: Callable[[Any], str] = None):
+        if yaml_serializer is None:
+            raise ValueError("yaml_serializer is empty")
+        machine = self.to_dict()
+        config = {}
+        for k, v in machine.items():
+            if k in MACHINE_YAML_FIELDS:
+                v = yaml_serializer(v)
+            config[k] = v
+        return config
+
     def to_json(self):
         """
         Returns
         -------
             string JSON representation of the machine.
         """
-        config = self.to_dict()
-        json_config = {}
-        for k, v in config.items():
-            if k in MACHINE_YAML_FIELDS:
-                v = json.dumps(v)
-            json_config[k] = v
-        return json_config
+        json_dumps: Callable[[Any], Any] = lambda v: json.dumps(v, cls=MachineJSONEncoder)
+        return json_dumps(self._to_yaml_dict(json_dumps))
+
+    def to_yaml(self):
+        """
+        Returns
+        -------
+            string YAML representation of the machine.
+        """
+        yaml_dump: Callable[[Any], Any] = lambda v: multiline_str(v)
+        return yaml.dump(self._to_yaml_dict(yaml_dump), Dumper=MachineSafeDumper)
 
     def report(self):
         """
