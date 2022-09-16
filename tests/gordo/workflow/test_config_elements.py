@@ -37,7 +37,9 @@ def test_dataset_from_dict():
           train_start_date: 2011-05-20T01:00:04+02:00
           train_end_date: 2018-05-10T15:05:50+02:00
     """
-    dataset_config = load_machine_config(get_dict_from_yaml(StringIO(element_str)))["dataset"]
+    dataset_config = load_machine_config(get_dict_from_yaml(StringIO(element_str)))[
+        "dataset"
+    ]
     dataset = TimeSeriesDataset.from_dict(dataset_config.copy())
     asdict = dataset.to_dict()
     assert asdict["tag_list"] == [
