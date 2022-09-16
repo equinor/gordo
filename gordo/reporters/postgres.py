@@ -13,7 +13,7 @@ from playhouse.shortcuts import dict_to_model, model_to_dict
 from .base import BaseReporter
 from gordo.util.utils import capture_args
 from gordo.machine import Machine as GordoMachine
-from gordo.machine.machine import MachineEncoder
+from gordo.machine.encoders import MachineJSONEncoder
 from .exceptions import ReporterException
 
 
@@ -76,8 +76,10 @@ class PostgresReporter(BaseReporter):
             with self.db.atomic():
                 logger.info(f"Inserting machine {machine.name} in sql")  # type: ignore
 
-                # Ensure it's serializable using MachineEncoder
-                record = json.loads(json.dumps(machine.to_dict(), cls=MachineEncoder))
+                # Ensure it's serializable using MachineJSONEncoder
+                record = json.loads(
+                    json.dumps(machine.to_dict(), cls=MachineJSONEncoder)
+                )
                 model = dict_to_model(Machine, record, ignore_unknown=True)
                 try:
                     Machine.get(Machine.name == machine.name)
