@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from datetime import datetime
 from typing import Any, Optional, List, Callable, cast
 from copy import copy
 
-import numpy as np
 import yaml
 
 from gordo_core.base import GordoBaseDataset
