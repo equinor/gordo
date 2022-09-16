@@ -36,7 +36,7 @@ def _multiline_str_representer(dumper: yaml.SafeDumper, data: Any):
 
 
 def _datetime_representer(dumper: yaml.SafeDumper, data: Any):
-    return dumper.represent_str(data.strftime("%Y-%m-%d %H:%M:%S.%f+%z"))
+    return dumper.represent_str(data.strftime(DATETIME_FORMAT))
 
 
 def _sensor_tag_representer(dumper: yaml.SafeDumper, data: Any):

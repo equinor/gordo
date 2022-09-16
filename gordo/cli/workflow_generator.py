@@ -2,6 +2,7 @@ import logging
 import time
 import pkg_resources
 import os
+import json
 
 from typing import Dict, Any, TypeVar, Type, List, Tuple, Optional, Generic, cast
 
@@ -408,26 +409,6 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context: Dict[Any, Any] = ctx.copy()
     yaml_content = wg.get_dict_from_yaml(context["machine_config"])
 
-    try:
-        log_level = yaml_content["globals"]["runtime"]["log_level"]
-    except KeyError:
-        log_level = os.getenv("GORDO_LOG_LEVEL", gordo_ctx.obj["log_level"])
-
-    logging.getLogger("gordo").setLevel(log_level.upper())
-    context["log_level"] = log_level.upper()
-
-    validate_generate_context(context)
-
-    context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
-
-    if context["pod_security_context"]:
-        pod_security_context = cast(PodSecurityContext, context["pod_security_context"])
-        context["pod_security_context"] = pod_security_context.dict(exclude_none=True)
-
-    if context["security_context"]:
-        security_context = cast(SecurityContext, context["security_context"])
-        context["security_context"] = security_context.dict(exclude_none=True)
-
     model_builder_env = None
     if context["custom_model_builder_envs"]:
         custom_model_builder_envs = cast(
@@ -445,6 +426,26 @@ def workflow_generator_cli(gordo_ctx, **ctx):
         default_data_provider=context["default_data_provider"],
         json_path="spec.config",
     )
+
+    try:
+        log_level = config.globals["runtime"]["log_level"]
+    except KeyError:
+        log_level = os.getenv("GORDO_LOG_LEVEL", gordo_ctx.obj["log_level"])
+
+    logging.getLogger("gordo").setLevel(log_level.upper())
+    context["log_level"] = log_level.upper()
+
+    validate_generate_context(context)
+
+    context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
+
+    if context["pod_security_context"]:
+        pod_security_context = cast(PodSecurityContext, context["pod_security_context"])
+        context["pod_security_context"] = pod_security_context.dict(exclude_none=True)
+
+    if context["security_context"]:
+        security_context = cast(SecurityContext, context["security_context"])
+        context["security_context"] = security_context.dict(exclude_none=True)
 
     version = parse_version(context["gordo_version"])
     if "image_pull_policy" not in context or not context["image_pull_policy"]:
