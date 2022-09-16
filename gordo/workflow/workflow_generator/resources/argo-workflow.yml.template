@@ -1524,7 +1524,7 @@ spec:
                 value: "{{ machine.name }}"
               - name: config
                 value: |
-                  {{ machine.to_json() }}
+{{ machine.to_yaml() | indent(18, True) }}
           dependencies:
             - ensure-single-workflow
         {% endfor %}
