@@ -17,6 +17,7 @@ from gordo.server.utils import (
     validate_revision,
     delete_revision,
 )
+from gordo.server.properties import get_tags, get_target_tags
 from gordo.server import model_io
 from typing import Any
 
@@ -31,7 +32,7 @@ base_blueprint = Blueprint("base_model_view", __name__)
 )
 @server_utils.model_required
 @server_utils.extract_X_y
-def post_prediction(self):
+def post_prediction():
     """
     Process a POST request by using provided user data
 
@@ -96,10 +97,10 @@ def post_prediction(self):
             f"{get_model_output_time_s-process_request_start_time_s} s"
         )
         data = model_utils.make_base_dataframe(
-            tags=self.tags,
+            tags=get_tags(),
             model_input=X.values if isinstance(X, pd.DataFrame) else X,
             model_output=output,
-            target_tag_list=self.target_tags,
+            target_tag_list=get_target_tags(),
             index=X.index,
         )
         if request.args.get("format") == "parquet":
@@ -130,6 +131,7 @@ def delete_model_revision(gordo_name: str, revision: str, **kwargs):
         )
     revision_dir = os.path.join(g.collection_dir, "..", revision)
     delete_revision(revision_dir, gordo_name)
+    return make_response(jsonify({"ok": True}), 200)
 
 
 @base_blueprint.route(

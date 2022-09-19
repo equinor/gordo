@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 
 from typing import Optional, Any
@@ -6,7 +8,36 @@ from flask import g
 from gordo_core.sensor_tag import SensorTag
 
 from gordo.utils import normalize_sensor_tags
-from .utils import find_path_in_dict
+
+
+def find_path_in_dict(path: list[str], data: dict) -> Any:
+    """
+    Find a path in `dict` recursively
+
+    Examples
+    --------
+    >>> find_path_in_dict(["parent", "child"], {"parent": {"child": 42}})
+    42
+
+    Parameters
+    ----------
+    path: List[str]
+    data: dict
+
+    Returns
+    -------
+
+    """
+    reversed_path = copy.copy(path)
+    reversed_path.reverse()
+    curr_data = data
+    while len(reversed_path):
+        key = reversed_path.pop()
+        if key not in curr_data:
+            exception_path = ".".join(path[: len(path) - len(reversed_path)])
+            raise KeyError("'%s' is absent" % exception_path)
+        curr_data = curr_data[key]
+    return curr_data
 
 
 def get_frequency():
