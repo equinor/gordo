@@ -82,37 +82,7 @@ class JSONParam(click.ParamType, Generic[T]):
         return obj
 
 
-DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = """
-[
-    {
-        "name": "DL_SERVICE_AUTH_STR",
-        "valueFrom": {
-            "secretKeyRef": {
-                "key": "tenant_id_secret",
-                "name": "dlserviceauth"
-            }
-        }
-    },
-    {
-        "name": "DL2_SERVICE_AUTH_STR",
-        "valueFrom": {
-            "secretKeyRef": {
-                "key": "tenant_id_secret",
-                "name": "dl2serviceauth"
-            }
-        }
-    },
-    {
-        "name": "REN_DL2_SERVICE_AUTH_STR",
-        "valueFrom": {
-            "secretKeyRef": {
-                "key": "tenant_id_secret",
-                "name": "dl2ren"
-            }
-        }
-    }
-]
-"""
+DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = "[]"
 
 
 def validate_generate_context(context):
