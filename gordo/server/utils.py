@@ -25,6 +25,8 @@ from werkzeug.exceptions import NotFound, UnprocessableEntity, InternalServerErr
 
 from gordo import serializer
 
+from .properties import get_tags, get_target_tags
+
 """
 Tools used between different views
 
@@ -278,7 +280,7 @@ def extract_X_y(method):
     """
 
     @functools.wraps(method)
-    def wrapper_method(self, *args, **kwargs):
+    def wrapper_method(*args, **kwargs):
         start_time = timeit.default_timer()
         # Data provided by the client
         if request.method == "POST":
@@ -299,11 +301,11 @@ def extract_X_y(method):
                 if y is not None:
                     y = dataframe_from_parquet_bytes(y.read())
 
-            X = _verify_dataframe(X, [t.name for t in self.tags])
+            X = _verify_dataframe(X, [t.name for t in get_tags()])
 
             # Verify y if it's not None
             if y is not None:
-                y = _verify_dataframe(y, [t.name for t in self.target_tags])
+                y = _verify_dataframe(y, [t.name for t in get_target_tags()])
 
             # If either X or y came back as a Response type, there was an error
             for data_or_resp in [X, y]:
@@ -324,7 +326,7 @@ def extract_X_y(method):
         logger.debug(f"Time to parse X and y: {timeit.default_timer() - start_time}s")
 
         # And run the original method.
-        return method(self, *args, **kwargs)
+        return method(*args, **kwargs)
 
     return wrapper_method
 

@@ -8,342 +8,208 @@ import timeit
 
 import pandas as pd
 from flask import Blueprint, current_app, g, send_file, make_response, jsonify, request
-from flask_restplus import Resource, fields
 
 from gordo import __version__, serializer
-from gordo.server.rest_api import Api
 from gordo.server import utils as server_utils
 from gordo.machine.model import utils as model_utils
-from gordo_core.sensor_tag import SensorTag
 from gordo.server.utils import (
-    find_path_in_dict,
     validate_gordo_name,
     validate_revision,
     delete_revision,
 )
-from gordo.utils import normalize_sensor_tags
 from gordo.server import model_io
-from typing import Optional, Any
+from typing import Any
 
 
 logger = logging.getLogger(__name__)
 
 base_blueprint = Blueprint("base_model_view", __name__)
 
-api = Api(
-    app=base_blueprint,
-    title="Gordo Base Model View API Docs",
-    version=__version__,
-    description="Documentation for the Gordo ML Server",
-    default_label="Gordo Endpoints",
-)
 
-# POST type declarations
-API_MODEL_INPUT_POST = api.model(
-    "Prediction - Multiple Samples", {"X": fields.List(fields.List(fields.Float))}
+@base_blueprint.route(
+    "/gordo/v0/<gordo_project>/<gordo_name>/prediction", methods=["POST"]
 )
-API_MODEL_OUTPUT_POST = api.model(
-    "Prediction - Output from POST", {"output": fields.List(fields.List(fields.Float))}
-)
-_tags = {
-    fields.String: fields.Float
-}  # tags of single prediction record {'tag-name': tag-value}
-_single_prediction_record = {
-    "start": fields.DateTime,
-    "end": fields.DateTime,
-    "tags": fields.Nested(_tags),
-    "total_abnormality": fields.Float,
-}
-
-
-class BaseModelView(Resource):
+@server_utils.model_required
+@server_utils.extract_X_y
+def post_prediction(self):
     """
-    The base model view.
+    Process a POST request by using provided user data
+
+    A typical response might look like this
+
+    .. code-block:: python
+
+        {
+            'data': [
+                {
+                    'end': ['2016-01-01T00:10:00+00:00'],
+                    'model-output': [0.0005317790200933814,
+                                     -0.0001525811239844188,
+                                     0.0008310950361192226,
+                                     0.0015755111817270517],
+                    'original-input': [0.9135588550070414,
+                                       0.3472517774179448,
+                                       0.8994921857179736,
+                                       0.11982773108991263],
+                    'start': ['2016-01-01T00:00:00+00:00'],
+                },
+                ...
+            ],
+
+            'tags': [
+                {'asset': None, 'name': 'tag-0'},
+                {'asset': None, 'name': 'tag-1'},
+                {'asset': None, 'name': 'tag-2'},
+                {'asset': None, 'name': 'tag-3'}
+            ],
+            'time-seconds': '0.1937'
+        }
     """
+    context: dict[Any, Any] = dict()
+    X = g.X
+    process_request_start_time_s = timeit.default_timer()
 
-    methods = ["POST"]
-
-    y: pd.DataFrame = None
-    X: pd.DataFrame = None
-
-    @property
-    def frequency(self):
-        """
-        The frequency the model was trained with in the dataset
-        """
-        return pd.tseries.frequencies.to_offset(g.metadata["dataset"]["resolution"])
-
-    @staticmethod
-    def load_build_dataset_metadata():
-        try:
-            build_dataset_metadata = find_path_in_dict(
-                ["metadata", "build_metadata", "dataset"], g.metadata
-            )
-        except KeyError as e:
-            raise ValueError("Unable to load build dataset metadata: %s" % str(e))
-        return build_dataset_metadata
-
-    @staticmethod
-    def get_normalize_additional_fields(dataset: dict[str, Any]):
-        additional_fields: dict[str, Optional[str]] = {}
-        if "default_tag" in dataset and dataset["default_tag"]:
-            additional_fields = dataset["default_tag"]
-        # Keeping back-compatibility for a while
-        elif dataset.get("asset", None):
-            additional_fields["asset"] = dataset["asset"]
-        return additional_fields
-
-    @property
-    def tags(self) -> list[SensorTag]:
-        """
-        The input tags for this model
-
-        Returns
-        -------
-        list[SensorTag]
-        """
-        dataset = g.metadata["dataset"]
-        tag_list = dataset["tag_list"]
-        build_dataset_metadata = self.load_build_dataset_metadata()
-        additional_fields = self.get_normalize_additional_fields(dataset)
-        return normalize_sensor_tags(
-            build_dataset_metadata, tag_list, **additional_fields
+    try:
+        output = model_io.get_model_output(model=g.model, X=X)
+    except ValueError as err:
+        tb = traceback.format_exc()
+        logger.error(
+            f"Failed to predict or transform; error: {err} - \nTraceback: {tb}"
         )
+        context["error"] = f"ValueError: {str(err)}"
+        return make_response((jsonify(context), 400))
 
-    @property
-    def target_tags(self) -> list[SensorTag]:
-        """
-        The target tags for this model
+    # Model may only be a transformer, probably an AttributeError, but catch all to avoid logging other
+    # exceptions twice if it happens.
+    except Exception as exc:
+        tb = traceback.format_exc()
+        logger.error(
+            f"Failed to predict or transform; error: {exc} - \nTraceback: {tb}"
+        )
+        context["error"] = "Something unexpected happened; check your input data"
+        return make_response((jsonify(context), 400))
 
-        Returns
-        -------
-        list[SensorTag]
-        """
-        # TODO refactor this part to have the same tag preparation logic as in TimeSeriesDataset
-        orig_target_tag_list = []
-        if "target_tag_list" in g.metadata["dataset"]:
-            orig_target_tag_list = g.metadata["dataset"]["target_tag_list"]
-        if orig_target_tag_list:
-            build_dataset_metadata = self.load_build_dataset_metadata()
-            additional_fields = self.get_normalize_additional_fields(
-                g.metadata["dataset"]
-            )
-            return normalize_sensor_tags(
-                build_dataset_metadata, orig_target_tag_list, **additional_fields
+    else:
+        get_model_output_time_s = timeit.default_timer()
+        logger.debug(
+            f"Calculating model output took "
+            f"{get_model_output_time_s-process_request_start_time_s} s"
+        )
+        data = model_utils.make_base_dataframe(
+            tags=self.tags,
+            model_input=X.values if isinstance(X, pd.DataFrame) else X,
+            model_output=output,
+            target_tag_list=self.target_tags,
+            index=X.index,
+        )
+        if request.args.get("format") == "parquet":
+            return send_file(
+                io.BytesIO(server_utils.dataframe_into_parquet_bytes(data)),
+                mimetype="application/octet-stream",
             )
         else:
-            return self.tags
-
-    @api.response(200, "Success", API_MODEL_OUTPUT_POST)
-    @api.expect(API_MODEL_INPUT_POST, validate=False)
-    @api.doc(params={"X": "Nested or single list of sample(s) to predict"})
-    @server_utils.model_required
-    @server_utils.extract_X_y
-    def post(self):
-        """
-        Process a POST request by using provided user data
-
-        A typical response might look like this
-
-        .. code-block:: python
-
-            {
-                'data': [
-                    {
-                        'end': ['2016-01-01T00:10:00+00:00'],
-                        'model-output': [0.0005317790200933814,
-                                         -0.0001525811239844188,
-                                         0.0008310950361192226,
-                                         0.0015755111817270517],
-                        'original-input': [0.9135588550070414,
-                                           0.3472517774179448,
-                                           0.8994921857179736,
-                                           0.11982773108991263],
-                        'start': ['2016-01-01T00:00:00+00:00'],
-                    },
-                    ...
-                ],
-
-                'tags': [
-                    {'asset': None, 'name': 'tag-0'},
-                    {'asset': None, 'name': 'tag-1'},
-                    {'asset': None, 'name': 'tag-2'},
-                    {'asset': None, 'name': 'tag-3'}
-                ],
-                'time-seconds': '0.1937'
-            }
-        """
-        context: dict[Any, Any] = dict()
-        X = g.X
-        process_request_start_time_s = timeit.default_timer()
-
-        try:
-            output = model_io.get_model_output(model=g.model, X=X)
-        except ValueError as err:
-            tb = traceback.format_exc()
-            logger.error(
-                f"Failed to predict or transform; error: {err} - \nTraceback: {tb}"
-            )
-            context["error"] = f"ValueError: {str(err)}"
-            return make_response((jsonify(context), 400))
-
-        # Model may only be a transformer, probably an AttributeError, but catch all to avoid logging other
-        # exceptions twice if it happens.
-        except Exception as exc:
-            tb = traceback.format_exc()
-            logger.error(
-                f"Failed to predict or transform; error: {exc} - \nTraceback: {tb}"
-            )
-            context["error"] = "Something unexpected happened; check your input data"
-            return make_response((jsonify(context), 400))
-
-        else:
-            get_model_output_time_s = timeit.default_timer()
-            logger.debug(
-                f"Calculating model output took "
-                f"{get_model_output_time_s-process_request_start_time_s} s"
-            )
-            data = model_utils.make_base_dataframe(
-                tags=self.tags,
-                model_input=X.values if isinstance(X, pd.DataFrame) else X,
-                model_output=output,
-                target_tag_list=self.target_tags,
-                index=X.index,
-            )
-            if request.args.get("format") == "parquet":
-                return send_file(
-                    io.BytesIO(server_utils.dataframe_into_parquet_bytes(data)),
-                    mimetype="application/octet-stream",
-                )
-            else:
-                context["data"] = server_utils.dataframe_to_dict(data)
-                return make_response(
-                    (jsonify(context), context.pop("status-code", 200))
-                )
+            context["data"] = server_utils.dataframe_to_dict(data)
+            return make_response((jsonify(context), context.pop("status-code", 200)))
 
 
-class DeleteModelRevisionView(Resource):
+@base_blueprint.route(
+    "/gordo/v0/<gordo_project>/<gordo_name>/revision/<revision>", methods=["DELETE"]
+)
+def delete_model_revision(gordo_name: str, revision: str, **kwargs):
     """
-    Endpoints for deleting models
+    Delete provided model revision from the disk.
     """
-
-    def delete(self, gordo_name: str, revision: str, **kwargs):
-        """
-        Delete provided model revision from the disk.
-        """
-        validate_gordo_name(gordo_name)
-        if not validate_revision(revision):
-            return make_response(
-                (jsonify({"error": "Revision should only contains numbers."}), 422)
-            )
-        if revision == g.current_revision:
-            return make_response(
-                (jsonify({"error": "Unable to delete current revision."}), 409)
-            )
-        revision_dir = os.path.join(g.collection_dir, "..", revision)
-        delete_revision(revision_dir, gordo_name)
+    validate_gordo_name(gordo_name)
+    if not validate_revision(revision):
+        return make_response(
+            (jsonify({"error": "Revision should only contains numbers."}), 422)
+        )
+    if revision == g.current_revision:
+        return make_response(
+            (jsonify({"error": "Unable to delete current revision."}), 409)
+        )
+    revision_dir = os.path.join(g.collection_dir, "..", revision)
+    delete_revision(revision_dir, gordo_name)
 
 
-class MetaDataView(Resource):
+@base_blueprint.route(
+    "/gordo/v0/<gordo_project>/<gordo_name>/metadata", methods=["GET"]
+)
+@base_blueprint.route(
+    "/gordo/v0/<gordo_project>/<gordo_name>/healthcheck", methods=["GET"]
+)
+@server_utils.metadata_required
+def get_metadata():
     """
     Serve model / server metadata
+
+    Get metadata about this endpoint, also serves as /healthcheck endpoint
     """
-
-    @server_utils.metadata_required
-    def get(self):
-        """
-        Get metadata about this endpoint, also serves as /healthcheck endpoint
-        """
-        model_collection_env_var = current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]
-        metadata = {}
-        if g.info:
-            metadata = g.info
-        metadata.update(
-            {
-                "gordo-server-version": __version__,
-                "metadata": g.metadata,
-                "env": {
-                    model_collection_env_var: os.environ.get(model_collection_env_var)
-                },
-            }
-        )
-        return metadata
+    model_collection_env_var = current_app.config["MODEL_COLLECTION_DIR_ENV_VAR"]
+    metadata = {}
+    if g.info:
+        metadata = g.info
+    metadata.update(
+        {
+            "gordo-server-version": __version__,
+            "metadata": g.metadata,
+            "env": {model_collection_env_var: os.environ.get(model_collection_env_var)},
+        }
+    )
+    return metadata
 
 
-class DownloadModel(Resource):
+@base_blueprint.route(
+    "/gordo/v0/<gordo_project>/<gordo_name>/download-model", methods=["GET"]
+)
+@server_utils.model_required
+def get_download_model():
     """
     Download the trained model
 
-    suitable for reloading via :func:`gordo.serializer.serializer.loads`
+    Responds with a serialized copy of the current model being served.
+
+    Returns
+    -------
+    bytes
+        Results from ``gordo.serializer.dumps()``
     """
-
-    @api.doc(description="Download model, loadable via gordo.serializer.loads")
-    @server_utils.model_required
-    def get(self):
-        """
-        Responds with a serialized copy of the current model being served.
-
-        Returns
-        -------
-        bytes
-            Results from ``gordo.serializer.dumps()``
-        """
-        serialized_model = serializer.dumps(g.model)
-        buff = io.BytesIO(serialized_model)
-        return send_file(buff, attachment_filename="model.tar.gz")
+    serialized_model = serializer.dumps(g.model)
+    buff = io.BytesIO(serialized_model)
+    return send_file(buff, attachment_filename="model.tar.gz")
 
 
-class ModelListView(Resource):
+@base_blueprint.route("/gordo/v0/<gordo_project>/models", methods=["GET"])
+def get_model_list(gordo_project: str):
     """
     List the current models capable of being served by the server
     """
-
-    @api.doc(description="List the name of the models capable of being served.")
-    def get(self, gordo_project: str):
-        try:
-            available_models = os.listdir(g.collection_dir)
-        except FileNotFoundError:
-            available_models = []
-        finally:
-            return jsonify({"models": available_models})
+    available_models = []
+    try:
+        available_models = os.listdir(g.collection_dir)
+    except FileNotFoundError:
+        available_models = []
+    finally:
+        return jsonify({"models": available_models})
 
 
-class RevisionListView(Resource):
+@base_blueprint.route("/gordo/v0/<gordo_project>/revisions", methods=["GET"])
+def get_revision_list(gordo_project: str):
     """
     List the available revisions the model can serve.
     """
-
-    @api.doc(description="Available revisions of the project that can be served.")
-    def get(self, gordo_project: str):
-        try:
-            available_revisions = os.listdir(os.path.join(g.collection_dir, ".."))
-        except FileNotFoundError:
-            logger.error(
-                f"Attempted to list directories above {g.collection_dir} but failed with: {traceback.format_exc()}"
-            )
-            available_revisions = [g.current_revision]
-        return jsonify(
-            {"latest": g.current_revision, "available-revisions": available_revisions}
+    try:
+        available_revisions = os.listdir(os.path.join(g.collection_dir, ".."))
+    except FileNotFoundError:
+        logger.error(
+            f"Attempted to list directories above {g.collection_dir} but failed with: {traceback.format_exc()}"
         )
+        available_revisions = [g.current_revision]
+    return jsonify(
+        {"latest": g.current_revision, "available-revisions": available_revisions}
+    )
 
 
-class ExpectedModels(Resource):
-    @api.doc(description="Models that the server expects to be able to serve.")
-    def get(self, gordo_project: str):
-        return jsonify({"expected-models": current_app.config["EXPECTED_MODELS"]})
-
-
-api.add_resource(ModelListView, "/gordo/v0/<gordo_project>/models")
-api.add_resource(ExpectedModels, "/gordo/v0/<gordo_project>/expected-models")
-api.add_resource(BaseModelView, "/gordo/v0/<gordo_project>/<gordo_name>/prediction")
-api.add_resource(
-    DeleteModelRevisionView,
-    "/gordo/v0/<gordo_project>/<gordo_name>/revision/<revision>",
-)
-api.add_resource(
-    MetaDataView,
-    "/gordo/v0/<gordo_project>/<gordo_name>/metadata",
-    "/gordo/v0/<gordo_project>/<gordo_name>/healthcheck",
-)
-api.add_resource(DownloadModel, "/gordo/v0/<gordo_project>/<gordo_name>/download-model")
-api.add_resource(RevisionListView, "/gordo/v0/<gordo_project>/revisions")
+@base_blueprint.route("/gordo/v0/<gordo_project>/expected-models", methods=["GET"])
+def get(gordo_project: str):
+    return jsonify({"expected-models": current_app.config["EXPECTED_MODELS"]})
