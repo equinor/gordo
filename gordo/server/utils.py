@@ -6,14 +6,13 @@ import zlib
 import os
 import io
 import pickle
-import copy
 import re
 import shutil
 
 import dateutil
 import timeit
 from datetime import datetime
-from typing import Union, List, Any
+from typing import Union, List
 
 import pandas as pd
 import pyarrow as pa
@@ -24,6 +23,8 @@ from sklearn.base import BaseEstimator
 from werkzeug.exceptions import NotFound, UnprocessableEntity, InternalServerError
 
 from gordo import serializer
+
+from .properties import get_tags, get_target_tags
 
 """
 Tools used between different views
@@ -278,7 +279,7 @@ def extract_X_y(method):
     """
 
     @functools.wraps(method)
-    def wrapper_method(self, *args, **kwargs):
+    def wrapper_method(*args, **kwargs):
         start_time = timeit.default_timer()
         # Data provided by the client
         if request.method == "POST":
@@ -299,11 +300,11 @@ def extract_X_y(method):
                 if y is not None:
                     y = dataframe_from_parquet_bytes(y.read())
 
-            X = _verify_dataframe(X, [t.name for t in self.tags])
+            X = _verify_dataframe(X, [t.name for t in get_tags()])
 
             # Verify y if it's not None
             if y is not None:
-                y = _verify_dataframe(y, [t.name for t in self.target_tags])
+                y = _verify_dataframe(y, [t.name for t in get_target_tags()])
 
             # If either X or y came back as a Response type, there was an error
             for data_or_resp in [X, y]:
@@ -324,7 +325,7 @@ def extract_X_y(method):
         logger.debug(f"Time to parse X and y: {timeit.default_timer() - start_time}s")
 
         # And run the original method.
-        return method(self, *args, **kwargs)
+        return method(*args, **kwargs)
 
     return wrapper_method
 
@@ -483,33 +484,3 @@ def model_required(f):
             )
 
     return wrapper
-
-
-def find_path_in_dict(path: List[str], data: dict) -> Any:
-    """
-    Find a path in `dict` recursively
-
-    Examples
-    --------
-    >>> find_path_in_dict(["parent", "child"], {"parent": {"child": 42}})
-    42
-
-    Parameters
-    ----------
-    path: List[str]
-    data: dict
-
-    Returns
-    -------
-
-    """
-    reversed_path = copy.copy(path)
-    reversed_path.reverse()
-    curr_data = data
-    while len(reversed_path):
-        key = reversed_path.pop()
-        if key not in curr_data:
-            exception_path = ".".join(path[: len(path) - len(reversed_path)])
-            raise KeyError("'%s' is absent" % exception_path)
-        curr_data = curr_data[key]
-    return curr_data

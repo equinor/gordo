@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from gordo.server import utils as server_utils
-from gordo.server.views.base import BaseModelView
+from gordo.server.properties import get_target_tags
 from gordo_core.sensor_tag import SensorTag
 from flask import Flask, g
 
@@ -33,8 +33,7 @@ def test_empty_target_tag_list():
                 }
             },
         }
-        view = BaseModelView()
-        assert view.target_tags == [
+        assert get_target_tags() == [
             SensorTag("test"),
             SensorTag("test1"),
         ]

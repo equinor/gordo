@@ -14,12 +14,8 @@ adal==1.2.2
     #   msrestazure
 alembic==1.3.3
     # via mlflow
-aniso8601==8.0.0
-    # via flask-restplus
 astunparse==1.6.3
     # via tensorflow
-attrs==19.3.0
-    # via jsonschema
 azure-common==1.1.24
     # via
     #   azure-graphrbac
@@ -109,11 +105,8 @@ entrypoints==0.3
 flask==1.1.1
     # via
     #   -r requirements.in
-    #   flask-restplus
     #   mlflow
     #   prometheus-flask-exporter
-flask-restplus==0.13.0
-    # via -r requirements.in
 flatbuffers==1.12
     # via tensorflow
 gast==0.3.3
@@ -179,8 +172,6 @@ jsonpickle==1.2
     # via
     #   azureml-core
     #   azureml-mlflow
-jsonschema==3.2.0
-    # via flask-restplus
 keras==2.7.0
     # via tensorflow
 keras-preprocessing==1.1.2
@@ -324,8 +315,6 @@ pyparsing==2.4.6
     # via
     #   matplotlib
     #   packaging
-pyrsistent==0.15.7
-    # via jsonschema
 python-dateutil==2.8.1
     # via
     #   -r requirements.in
@@ -340,7 +329,6 @@ python-editor==1.0.4
 pytz==2022.1
     # via
     #   azureml-core
-    #   flask-restplus
     #   influxdb
     #   mlflow
     #   mlflow-skinny
@@ -395,17 +383,14 @@ six==1.15.0
     #   cycler
     #   databricks-cli
     #   docker
-    #   flask-restplus
     #   google-auth
     #   google-pasta
     #   grpcio
     #   influxdb
-    #   jsonschema
     #   keras-preprocessing
     #   plotly
     #   protobuf
     #   pyopenssl
-    #   pyrsistent
     #   python-dateutil
     #   querystring-parser
     #   retrying

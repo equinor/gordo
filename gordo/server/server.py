@@ -19,7 +19,7 @@ from flask import Flask, g, request, current_app, make_response, jsonify
 
 from typing import Optional, Any, Dict
 
-from gordo.server import views
+from gordo.server import blueprints
 from gordo import __version__
 
 from prometheus_client import CollectorRegistry
@@ -149,8 +149,8 @@ def build_app(
     if config is not None:
         app.config.update(**config)
 
-    app.register_blueprint(views.base_blueprint)
-    app.register_blueprint(views.anomaly_blueprint)
+    app.register_blueprint(blueprints.base_blueprint)
+    app.register_blueprint(blueprints.anomaly_blueprint)
 
     app.wsgi_app = adapt_proxy_deployment(app.wsgi_app)  # type: ignore
     app.url_map.strict_slashes = False  # /path and /path/ are ok.

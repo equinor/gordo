@@ -6,7 +6,7 @@ import numpy as np
 import dateutil
 
 from gordo.server import utils as server_utils
-from gordo.server.utils import find_path_in_dict
+from gordo.server.properties import find_path_in_dict
 
 
 @pytest.mark.parametrize(
