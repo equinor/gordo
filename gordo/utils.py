@@ -48,3 +48,32 @@ def normalize_sensor_tags(
     for tag_name in tags.keys():
         normalized_tag_list.append(normalized_sensor_tags[tag_name])
     return normalized_tag_list
+
+
+def join_json_paths(element: str, json_path: str = None) -> str:
+    """
+    Join two JSON paths
+
+    Examples
+    --------
+    >>> join_json_paths("machines[0]", "spec.config")
+    'spec.config.machines[0]'
+    >>> join_json_paths("dataset")
+    'dataset'
+
+    Parameters
+    ----------
+    element: str
+        Element name
+    json_path: str
+        Root JSON path
+
+    Returns
+    -------
+
+    """
+    json_paths = []
+    if json_path:
+        json_paths.append(json_path)
+    json_paths.append(element)
+    return ".".join(json_paths)

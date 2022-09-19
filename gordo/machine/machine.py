@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from datetime import datetime
-from typing import Dict, Any, Optional, List, cast
+from typing import Any, Optional, List, Callable, cast
+from copy import copy
 
-import numpy as np
 import yaml
 
 from gordo_core.base import GordoBaseDataset
@@ -21,6 +20,9 @@ from gordo.machine.metadata import Metadata
 from gordo.workflow.workflow_generator.helpers import patch_dict
 from gordo.utils import normalize_sensor_tags, TagsList
 
+from .constants import MACHINE_YAML_FIELDS
+from .loader import ModelConfig, GlobalsConfig
+from .encoders import MachineJSONEncoder, MachineSafeDumper, multiline_str
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +77,9 @@ class Machine:
     @classmethod
     def from_config(  # type: ignore
         cls,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         project_name: Optional[str] = None,
-        config_globals=None,
+        config_globals: GlobalsConfig = None,
         back_compatibles: Optional[BackCompatibleLocations] = None,
         default_data_provider: Optional[str] = None,
     ):
@@ -87,7 +89,7 @@ class Machine:
 
         Parameters
         ----------
-        config: dict
+        config: dict[str, Any]
             The loaded block of config which represents a 'Machine' in YAML
         project_name: str
             Name of the project this Machine belongs to.
@@ -105,22 +107,27 @@ class Machine:
             config_globals = dict()
 
         name = config["name"]
-        model = config.get("model") or config_globals.get("model")
+        config_model = config.get("model") or config_globals.get("model")
+        if config_model is None:
+            raise ValueError("model is empty")
+        model = cast(dict, config_model)
 
         if project_name is None:
             project_name = config.get("project_name", None)
         if project_name is None:
             raise ValueError("project_name is empty")
 
-        local_runtime = config.get("runtime", dict())
-        runtime = patch_dict(config_globals.get("runtime", dict()), local_runtime)
+        local_runtime = cast(dict, config.get("runtime", dict()))
+        runtime = patch_dict(
+            cast(dict, config_globals.get("runtime", dict())), local_runtime
+        )
 
         dataset = patch_dict(
             config.get("dataset", dict()), config_globals.get("dataset", dict())
         )
         config_evaluation = cls.prepare_evaluation(config.get("evaluation"))
         evaluation = patch_dict(
-            config_globals.get("evaluation", dict()), config_evaluation
+            cast(dict, config_globals.get("evaluation", dict())), config_evaluation
         )
 
         metadata = Metadata(
@@ -164,7 +171,7 @@ class Machine:
         return normalize_sensor_tags(build_dataset_metadata, tag_list, asset=asset)
 
     def __str__(self):
-        return yaml.dump(self.to_dict())
+        return self.to_yaml()
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -173,25 +180,25 @@ class Machine:
     @classmethod
     def from_dict(
         cls,
-        d: dict[str, Any],
+        d: ModelConfig,
         back_compatibles: Optional[BackCompatibleLocations] = None,
         default_data_provider: Optional[str] = None,
     ) -> "Machine":
         """
-        Get an instance from a dict taken from :func:`~Machine.to_dict`
+        Create
+        A dict taken from either gordo config or :func:`~Machine.to_dict`.
         """
         # No special treatment required, just here for consistency.
-        args: dict[str, Any] = {}
-        for k, v in d.items():
-            if k == "dataset" and isinstance(v, dict):
-                v = GordoBaseDataset.from_dict(
-                    v,
-                    back_compatibles=back_compatibles,
-                    default_data_provider=default_data_provider,
-                )
-            if k == "metadata" and isinstance(v, dict):
-                v = cast(Any, Metadata).from_dict(v)
-            args[k] = v
+        d = copy(d)
+        if "dataset" in d and isinstance(d["dataset"], dict):
+            d["dataset"] = GordoBaseDataset.from_dict(
+                d["dataset"],
+                back_compatibles=back_compatibles,
+                default_data_provider=default_data_provider,
+            )
+        if "metadata" in d and isinstance(d["metadata"], dict):
+            d["metadata"] = cast(Any, Metadata).from_dict(d["metadata"])
+        args = cast(dict, d)
         return cls(**args)
 
     def to_dict(self):
@@ -208,6 +215,39 @@ class Machine:
             "project_name": self.project_name,
             "evaluation": self.evaluation,
         }
+
+    def _to_yaml_dict(self, yaml_serializer: Callable[[Any], str] = None):
+        if yaml_serializer is None:
+            raise ValueError("yaml_serializer is empty")
+        machine = self.to_dict()
+        config = {}
+        for k, v in machine.items():
+            if k in MACHINE_YAML_FIELDS:
+                v = yaml_serializer(v)
+            config[k] = v
+        return config
+
+    def to_json(self):
+        """
+        Returns
+        -------
+            string JSON representation of the machine.
+        """
+        json_dumps: Callable[[Any], Any] = lambda v: json.dumps(
+            v, cls=MachineJSONEncoder
+        )
+        return json_dumps(self._to_yaml_dict(json_dumps))
+
+    def to_yaml(self):
+        """
+        Returns
+        -------
+            string YAML representation of the machine.
+        """
+        yaml_dump: Callable[[Any], Any] = lambda v: multiline_str(
+            yaml.dump(v, Dumper=MachineSafeDumper)
+        )
+        return yaml.dump(self._to_yaml_dict(yaml_dump), Dumper=MachineSafeDumper)
 
     def report(self):
         """
@@ -230,28 +270,3 @@ class Machine:
         for reporter in map(BaseReporter.from_dict, self.runtime.get("reporters", [])):
             logger.debug(f"Using reporter: {reporter}")
             reporter.report(self)
-
-
-class MachineEncoder(json.JSONEncoder):
-    """
-    A JSONEncoder for machine objects, handling datetime.datetime objects as strings
-    and handles any numpy numeric instances; both of which common in the ``dict``
-    representation of a :class:`~gordo.machine.Machine`
-
-    Example
-    -------
-    >>> from pytz import UTC
-    >>> s = json.dumps({"now":datetime.now(tz=UTC)}, cls=MachineEncoder, indent=4)
-    >>> s = '{"now": "2019-11-22 08:34:41.636356+"}'
-    """
-
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.strftime("%Y-%m-%d %H:%M:%S.%f+%z")
-        # Typecast builtin and numpy ints and floats to builtin types
-        elif np.issubdtype(type(obj), np.floating):
-            return float(obj)
-        elif np.issubdtype(type(obj), np.integer):
-            return int(obj)
-        else:
-            return json.JSONEncoder.default(self, obj)

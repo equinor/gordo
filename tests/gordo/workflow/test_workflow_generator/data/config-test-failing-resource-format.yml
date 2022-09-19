@@ -1,7 +1,7 @@
 machines:
 
   - name: ct-23-0002
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -12,13 +12,13 @@ machines:
       train_end_date: 2018-09-15T03:01:00+01:00
 
 globals:
-  runtime: #ERROR: This should fail because the resources should be ints, not strings
+  runtime: | #ERROR: This should fail because the resources should be ints, not strings
     influx:
       resources:
         requests:
           memory: 321M
 
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler

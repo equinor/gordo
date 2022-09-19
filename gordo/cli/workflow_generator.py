@@ -408,8 +408,26 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context: Dict[Any, Any] = ctx.copy()
     yaml_content = wg.get_dict_from_yaml(context["machine_config"])
 
+    model_builder_env = None
+    if context["custom_model_builder_envs"]:
+        custom_model_builder_envs = cast(
+            List[EnvVar], context["custom_model_builder_envs"]
+        )
+        model_builder_env = [
+            env_var.dict(exclude_none=True) for env_var in custom_model_builder_envs
+        ]
+    # Create normalized config
+    config = NormalizedConfig(
+        yaml_content,
+        project_name=context["project_name"],
+        model_builder_env=model_builder_env,
+        back_compatibles=DEFAULT_BACK_COMPATIBLES,
+        default_data_provider=context["default_data_provider"],
+        json_path="spec.config",
+    )
+
     try:
-        log_level = yaml_content["globals"]["runtime"]["log_level"]
+        log_level = config.globals["runtime"]["log_level"]
     except KeyError:
         log_level = os.getenv("GORDO_LOG_LEVEL", gordo_ctx.obj["log_level"])
 
@@ -427,23 +445,6 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     if context["security_context"]:
         security_context = cast(SecurityContext, context["security_context"])
         context["security_context"] = security_context.dict(exclude_none=True)
-
-    model_builder_env = None
-    if context["custom_model_builder_envs"]:
-        custom_model_builder_envs = cast(
-            List[EnvVar], context["custom_model_builder_envs"]
-        )
-        model_builder_env = [
-            env_var.dict(exclude_none=True) for env_var in custom_model_builder_envs
-        ]
-    # Create normalized config
-    config = NormalizedConfig(
-        yaml_content,
-        project_name=context["project_name"],
-        model_builder_env=model_builder_env,
-        back_compatibles=DEFAULT_BACK_COMPATIBLES,
-        default_data_provider=context["default_data_provider"],
-    )
 
     version = parse_version(context["gordo_version"])
     if "image_pull_policy" not in context or not context["image_pull_policy"]:

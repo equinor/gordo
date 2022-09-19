@@ -21,7 +21,7 @@ from gordo.builder.utils import create_model_builder
 from gordo import serializer
 from gordo.server import server
 from gordo import __version__
-from gordo.machine import Machine
+from gordo.machine import Machine, load_model_config
 from gordo.cli.workflow_generator import workflow_cli
 from gordo.cli.custom_types import key_value_par, HostIP
 from gordo.reporters.exceptions import ReporterException
@@ -156,7 +156,8 @@ def build(
             machine_config["model"] = expand_model(machine_config["model"], parameters)
 
         machine: Machine = Machine.from_config(
-            machine_config, project_name=machine_config["project_name"]
+            cast(dict[str, Any], load_model_config(machine_config)),
+            project_name=machine_config["project_name"],
         )
 
         logger.info(f"Building, output will be at: {output_dir}")

@@ -1,7 +1,7 @@
 machines:
 
   - name: ct-23-0002
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -13,7 +13,7 @@ machines:
 
 
   - name: ct-23-0003
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -25,10 +25,10 @@ machines:
 
 # We disable influx globally
 globals:
-  runtime:
+  runtime: |
     influx:
       enable: False
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler

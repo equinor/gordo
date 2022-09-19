@@ -1,7 +1,7 @@
 machines:
 
   - name: ct-23-0002 #Uses defaults of everything
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -12,7 +12,7 @@ machines:
       train_end_date: 2018-09-15T03:01:00+01:00
 
 globals:
-  runtime:
+  runtime: |
     builder:
       metadata:
         labels:
@@ -35,7 +35,7 @@ globals:
         readOnly: true
         volumeAttributes:
           secretProviderClass: kv-sync
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler

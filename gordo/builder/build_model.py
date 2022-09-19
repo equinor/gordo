@@ -33,7 +33,7 @@ from gordo_core.import_utils import BackCompatibleLocations
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.utils import metric_wrapper
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
-from gordo.machine import Machine
+from gordo.machine import Machine, load_model_config
 from gordo.machine.metadata import (
     BuildMetadata,
     ModelBuildMetadata,
@@ -159,7 +159,7 @@ class ModelBuilder:
                 metadata["runtime"] = self.machine.runtime
 
                 machine = Machine.from_dict(
-                    metadata,
+                    load_model_config(metadata),
                     back_compatibles=self.back_compatibles,
                     default_data_provider=self.default_data_provider,
                 )

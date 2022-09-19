@@ -1,7 +1,7 @@
 machines:
 
   - name: machine-1
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -11,7 +11,7 @@ machines:
       train_end_date: 2017-11-07T10:10:00+00:00
 
   - name: machine-2
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:

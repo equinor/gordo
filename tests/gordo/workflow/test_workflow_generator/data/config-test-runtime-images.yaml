@@ -1,7 +1,7 @@
 machines:
 
   - name: ct-23-0002 #Uses defaults of everything
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -13,7 +13,7 @@ machines:
 
 
   - name: ct-23-0003 #Modifies server.resources.requests.memory
-    dataset:
+    dataset: |
       data_provider:
         type: RandomDataProvider
       tags:
@@ -24,7 +24,7 @@ machines:
       train_end_date: 2018-09-15T03:01:00+01:00
 
 globals:
-  runtime: #We request some different resources for the server, but not change limit
+  runtime: | #We request some different resources for the server, but not change limit
     server:
       image: "new-server-image"
       resources:
@@ -57,7 +57,7 @@ globals:
           memory: 320 # This is illegal since it is smaller than request, and will be bumped to 321
 
 
-  model:
+  model: |
     sklearn.pipeline.Pipeline:
       steps:
         - sklearn.preprocessing.MinMaxScaler

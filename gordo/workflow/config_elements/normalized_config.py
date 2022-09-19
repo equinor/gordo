@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
-from typing import List, Optional, Type, Dict, Any
+from typing import List, Optional, Type, Any, cast
 from copy import copy
 
 from gordo.machine.validators import fix_runtime
 from gordo.workflow.workflow_generator.helpers import patch_dict
-from gordo.machine import Machine
+from gordo.machine import (
+    Machine,
+    GlobalsConfig,
+    load_machine_config,
+    load_globals_config,
+)
+from gordo.utils import join_json_paths
 from gordo import __version__
 from gordo_core.import_utils import BackCompatibleLocations
 from packaging.version import parse
@@ -28,9 +34,6 @@ def _calculate_influx_resources(nr_of_machines):
     }
 
 
-ConfigDict = Dict[str, Any]
-
-
 class NormalizedConfig:
     """
     Handles the conversion of a single Machine representation in config format
@@ -38,7 +41,7 @@ class NormalizedConfig:
     key or the default config globals held here.
     """
 
-    SPLITED_DOCKER_IMAGES: ConfigDict = {
+    SPLITED_DOCKER_IMAGES: GlobalsConfig = {
         "runtime": {
             "deployer": {"image": "gordo-deploy"},
             "server": {"image": "gordo-model-server"},
@@ -50,7 +53,7 @@ class NormalizedConfig:
 
     UNIFYING_GORDO_VERSION: str = "1.2.0"
 
-    UNIFIED_DOCKER_IMAGES: ConfigDict = {
+    UNIFIED_DOCKER_IMAGES: GlobalsConfig = {
         "runtime": {
             "deployer": {"image": "gordo-base"},
             "server": {"image": "gordo-base"},
@@ -60,7 +63,7 @@ class NormalizedConfig:
         }
     }
 
-    DEFAULT_CONFIG_GLOBALS: ConfigDict = {
+    DEFAULT_CONFIG_GLOBALS: GlobalsConfig = {
         "runtime": {
             "reporters": [],
             "server": {
@@ -111,6 +114,7 @@ class NormalizedConfig:
         model_builder_env: Optional[dict] = None,
         back_compatibles: Optional[BackCompatibleLocations] = None,
         default_data_provider: Optional[str] = None,
+        json_path: Optional[str] = None,
     ):
         if gordo_version is None:
             gordo_version = __version__
@@ -121,35 +125,48 @@ class NormalizedConfig:
             len(config["machines"])
         )
 
-        passed_globals = config.get("globals", dict())
+        passed_globals = load_globals_config(
+            config.get("globals", dict()), join_json_paths("globals", json_path)
+        )
 
         # keeping it for back-compatibility
         if model_builder_env is not None and not (
-            passed_globals
-            and "runtime" in passed_globals
-            and "builder" in passed_globals["runtime"]
-            and "env" in passed_globals["runtime"]["builder"]
+            default_globals
+            and "runtime" in default_globals
+            and "builder" in default_globals["runtime"]
+            and "env" in default_globals["runtime"]["builder"]
         ):
+            if "runtime" not in default_globals:
+                default_globals["runtime"] = {}
             if "builder" not in default_globals["runtime"]:
                 default_globals["runtime"]["builder"] = {}
             default_globals["runtime"]["builder"]["env"] = model_builder_env
 
-        patched_globals = patch_dict(default_globals, passed_globals)
+        patched_globals = cast(
+            GlobalsConfig,
+            patch_dict(cast(dict, default_globals), cast(dict, passed_globals)),
+        )
         patched_globals = self.prepare_patched_globals(patched_globals)
 
         self.project_name = project_name
-        self.machines: List[Machine] = [
-            Machine.from_config(
-                conf,
+
+        machines: list[Machine] = []
+        for i, conf in enumerate(config["machines"]):
+            machine_config = load_machine_config(
+                conf, join_json_paths("machines[%d]" % i, json_path)
+            )
+            machine = Machine.from_config(
+                cast(dict[str, Any], machine_config),
                 project_name=project_name,
                 config_globals=patched_globals,
                 back_compatibles=back_compatibles,
                 default_data_provider=default_data_provider,
             )
-            for conf in config["machines"]
-        ]
+            machines.append(machine)
 
-        self.globals: dict = patched_globals
+        self.machines = machines
+
+        self.globals: GlobalsConfig = patched_globals
 
     @staticmethod
     def prepare_runtime(runtime: dict) -> dict:
@@ -166,14 +183,14 @@ class NormalizedConfig:
         return runtime
 
     @classmethod
-    def prepare_patched_globals(cls, patched_globals: dict) -> dict:
+    def prepare_patched_globals(cls, patched_globals: GlobalsConfig) -> GlobalsConfig:
         runtime = fix_runtime(patched_globals.get("runtime"))
         runtime = cls.prepare_runtime(runtime)
         patched_globals["runtime"] = runtime
         return patched_globals
 
     @classmethod
-    def get_default_globals(cls, gordo_version: str) -> dict:
+    def get_default_globals(cls, gordo_version: str) -> GlobalsConfig:
         current_version = parse(gordo_version)
         unifying_version = parse(cls.UNIFYING_GORDO_VERSION)
         if current_version >= unifying_version:
@@ -181,4 +198,7 @@ class NormalizedConfig:
         else:
             docker_images = cls.SPLITED_DOCKER_IMAGES
         default_globals = cls.DEFAULT_CONFIG_GLOBALS
-        return patch_dict(copy(default_globals), docker_images)
+        return cast(
+            GlobalsConfig,
+            patch_dict(cast(dict, copy(default_globals)), cast(dict, docker_images)),
+        )

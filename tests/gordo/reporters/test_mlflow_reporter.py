@@ -7,7 +7,7 @@ import mock
 import pytest
 
 import gordo.reporters.mlflow as mlu
-import gordo.machine.machine
+from gordo.machine.encoders import MachineJSONEncoder
 from gordo.machine import Machine
 from gordo.reporters.exceptions import ReporterException
 
@@ -257,7 +257,7 @@ def test_MachineEncoder(metadata):
     """
     Test that metadata can dump successfully with MachineEncoder
     """
-    assert json.dumps(metadata, cls=gordo.machine.machine.MachineEncoder)
+    assert json.dumps(metadata, cls=MachineJSONEncoder)
 
 
 @mock.patch("gordo.reporters.mlflow.MlflowClient", autospec=True)

@@ -3,14 +3,16 @@
 import ast
 import json
 import logging
+
 from io import StringIO
+from typing import cast
 
 import pytest
 import yaml
 
 from gordo import __version__
 from gordo_core.time_series import TimeSeriesDataset
-from gordo.machine import Machine
+from gordo.machine import Machine, GlobalsConfig, load_machine_config
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator.workflow_generator import get_dict_from_yaml
 
@@ -24,7 +26,7 @@ def test_dataset_from_dict():
     """
     element_str = """
         name: ct-23-0002
-        dataset:
+        dataset: |
           data_provider:
             type: RandomDataProvider
           resolution: 2T
@@ -35,7 +37,9 @@ def test_dataset_from_dict():
           train_start_date: 2011-05-20T01:00:04+02:00
           train_end_date: 2018-05-10T15:05:50+02:00
     """
-    dataset_config = get_dict_from_yaml(StringIO(element_str))["dataset"]
+    dataset_config = load_machine_config(get_dict_from_yaml(StringIO(element_str)))[
+        "dataset"
+    ]
     dataset = TimeSeriesDataset.from_dict(dataset_config.copy())
     asdict = dataset.to_dict()
     assert asdict["tag_list"] == [
@@ -114,7 +118,9 @@ def test_machine_from_config(default_globals: dict):
     """
     element = get_dict_from_yaml(StringIO(element_str))
     machine = Machine.from_config(
-        element, project_name="test-project-name", config_globals=default_globals
+        element,
+        project_name="test-project-name",
+        config_globals=cast(GlobalsConfig, default_globals),
     )
     logger.info(f"{machine}")
     assert isinstance(machine, Machine)
@@ -245,5 +251,7 @@ def test_invalid_model(default_globals: dict):
     element = get_dict_from_yaml(StringIO(element_str))
     with pytest.raises(ValueError):
         Machine.from_config(
-            element, project_name="test-project-name", config_globals=default_globals
+            element,
+            project_name="test-project-name",
+            config_globals=cast(GlobalsConfig, default_globals),
         )

@@ -19,7 +19,7 @@ from pytz import UTC
 
 from gordo.builder import ModelBuilder
 from gordo.machine import Machine
-from gordo.machine.machine import MachineEncoder
+from gordo.machine.encoders import MachineJSONEncoder
 from gordo.util.utils import capture_args
 from gordo_core.sensor_tag import extract_tag_name
 from gordo.builder.utils import create_model_builder
@@ -473,7 +473,7 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
         with tempfile.TemporaryDirectory(dir="./") as tmp_dir:
             fp = os.path.join(tmp_dir, f"metadata.json")
             with open(fp, "w") as fh:
-                json.dump(machine.to_dict(), fh, cls=MachineEncoder)
+                json.dump(machine.to_dict(), fh, cls=MachineJSONEncoder)
             mlflow_client.log_artifacts(run_id=run_id, local_dir=tmp_dir)
     # Map to MlflowLoggingError for coding errors in the model builder
     except Exception as e:
