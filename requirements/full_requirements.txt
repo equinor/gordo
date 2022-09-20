@@ -47,6 +47,7 @@ charset-normalizer==2.1.1
     # via requests
 click==7.1.2
     # via
+    #   -r requirements.in
     #   databricks-cli
     #   flask
     #   gordo-client
@@ -75,8 +76,10 @@ dataclasses-json==0.5.7
     # via -r requirements.in
 dictdiffer==0.9.0
     # via -r requirements.in
-docker==6.0.0
-    # via mlflow
+docker==4.4.4
+    # via
+    #   -r mlflow_requirements.in
+    #   mlflow
 entrypoints==0.4
     # via
     #   mlflow
@@ -106,7 +109,7 @@ google-auth-oauthlib==0.4.6
     # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==6.0.0rc0
+gordo-client==6.0.0
     # via -r requirements.in
 gordo-core==0.1.3
     # via gordo-client
@@ -218,7 +221,6 @@ opt-einsum==3.3.0
 packaging==20.9
     # via
     #   -r requirements.in
-    #   docker
     #   marshmallow
     #   matplotlib
     #   mlflow
@@ -330,6 +332,7 @@ six==1.16.0
     #   azure-identity
     #   catboost
     #   databricks-cli
+    #   docker
     #   google-auth
     #   google-pasta
     #   grpcio
@@ -380,9 +383,7 @@ typing-extensions==4.3.0
 typing-inspect==0.8.0
     # via dataclasses-json
 urllib3==1.26.12
-    # via
-    #   docker
-    #   requests
+    # via requests
 websocket-client==1.4.1
     # via docker
 werkzeug==1.0.1

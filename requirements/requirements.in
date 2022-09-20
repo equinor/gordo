@@ -10,4 +10,4 @@ simplejson~=3.17
 catboost~=0.26
 prometheus_client~=0.7
 packaging~=20.7
-gordo-client==6.0.0rc0
+gordo-client~=6.0
