@@ -8,53 +8,29 @@ absl-py==1.2.0
     # via
     #   tensorboard
     #   tensorflow
-adal==1.2.7
-    # via
-    #   azureml-core
-    #   msrestazure
 alembic==1.8.1
     # via mlflow
 astunparse==1.6.3
     # via tensorflow
 azure-common==1.1.28
-    # via
-    #   azure-graphrbac
-    #   azure-mgmt-authorization
-    #   azure-mgmt-containerregistry
-    #   azure-mgmt-keyvault
-    #   azure-mgmt-resource
-    #   azure-mgmt-storage
-    #   azureml-core
+    # via azureml-mlflow
 azure-core==1.25.1
     # via
+    #   azure-identity
     #   azure-mgmt-core
+    #   azure-storage-blob
+    #   azureml-mlflow
     #   msrest
-azure-graphrbac==0.61.1
-    # via azureml-core
-azure-mgmt-authorization==0.61.0
-    # via azureml-core
-azure-mgmt-containerregistry==10.0.0
-    # via azureml-core
-azure-mgmt-core==1.3.2
-    # via
-    #   azure-mgmt-containerregistry
-    #   azure-mgmt-keyvault
-azure-mgmt-keyvault==9.3.0
-    # via azureml-core
-azure-mgmt-resource==13.0.0
-    # via azureml-core
-azure-mgmt-storage==11.2.0
-    # via azureml-core
-azureml-contrib-run==1.36.0
-    # via -r mlflow_requirements.in
-azureml-core==1.36.0.post2
+azure-identity==1.11.0
     # via azureml-mlflow
-azureml-mlflow==1.36.0
+azure-mgmt-core==1.3.2
+    # via azureml-mlflow
+azure-storage-blob==12.13.0
+    # via azureml-mlflow
+azureml-contrib-run==1.45.0
+    # via -r mlflow_requirements.in
+azureml-mlflow==1.45.0
     # via azureml-contrib-run
-backports-tempfile==1.0
-    # via azureml-core
-backports-weakref==1.0.post1
-    # via backports-tempfile
 cachetools==4.2.4
     # via
     #   google-auth
@@ -80,16 +56,15 @@ cloudpickle==2.2.0
     # via
     #   mlflow
     #   mlflow-skinny
-contextlib2==21.6.0
-    # via azureml-core
 contourpy==1.0.5
     # via matplotlib
-cryptography==3.4.8
+cryptography==38.0.1
     # via
-    #   adal
-    #   azureml-core
-    #   pyopenssl
-    #   secretstorage
+    #   azure-identity
+    #   azure-storage-blob
+    #   azureml-mlflow
+    #   msal
+    #   pyjwt
 cycler==0.11.0
     # via matplotlib
 databricks-cli==0.17.3
@@ -100,10 +75,8 @@ dataclasses-json==0.5.7
     # via -r requirements.in
 dictdiffer==0.9.0
     # via -r requirements.in
-docker==5.0.3
-    # via
-    #   azureml-core
-    #   mlflow
+docker==6.0.0
+    # via mlflow
 entrypoints==0.4
     # via
     #   mlflow
@@ -166,20 +139,14 @@ isodate==0.6.1
     # via msrest
 itsdangerous==1.1.0
     # via flask
-jeepney==0.8.0
-    # via secretstorage
 jinja2==2.11.3
     # via
     #   -r requirements.in
     #   flask
-jmespath==0.10.0
-    # via azureml-core
 joblib==1.2.0
     # via scikit-learn
 jsonpickle==2.2.0
-    # via
-    #   azureml-core
-    #   azureml-mlflow
+    # via azureml-mlflow
 keras==2.7.0
     # via tensorflow
 keras-preprocessing==1.1.2
@@ -204,33 +171,24 @@ marshmallow-enum==1.5.1
     # via dataclasses-json
 matplotlib==3.6.0
     # via catboost
-mlflow==1.25.1
+mlflow==1.29.0
     # via -r mlflow_requirements.in
 mlflow-skinny==1.29.0
     # via azureml-mlflow
+msal==1.18.0
+    # via
+    #   azure-identity
+    #   msal-extensions
+msal-extensions==1.0.0
+    # via azure-identity
 msgpack==1.0.4
     # via influxdb
 msrest==0.7.1
     # via
-    #   azure-graphrbac
-    #   azure-mgmt-authorization
-    #   azure-mgmt-containerregistry
-    #   azure-mgmt-keyvault
-    #   azure-mgmt-resource
-    #   azure-mgmt-storage
-    #   azureml-core
-    #   msrestazure
-msrestazure==0.6.4
-    # via
-    #   azure-graphrbac
-    #   azure-mgmt-authorization
-    #   azure-mgmt-resource
-    #   azure-mgmt-storage
-    #   azureml-core
+    #   azure-storage-blob
+    #   azureml-mlflow
 mypy-extensions==0.4.3
     # via typing-inspect
-ndg-httpsclient==0.5.1
-    # via azureml-core
 numexpr==2.8.3
     # via gordo-core
 numpy==1.23.3
@@ -260,6 +218,7 @@ opt-einsum==3.3.0
 packaging==20.9
     # via
     #   -r requirements.in
+    #   docker
     #   marshmallow
     #   matplotlib
     #   mlflow
@@ -272,14 +231,14 @@ pandas==1.5.0
     #   gordo-core
     #   mlflow
     #   xarray
-pathspec==0.10.1
-    # via azureml-core
 peewee==3.15.2
     # via -r postgres_requirements.in
 pillow==9.2.0
     # via matplotlib
 plotly==5.10.0
     # via catboost
+portalocker==2.5.1
+    # via msal-extensions
 prometheus-client==0.14.1
     # via
     #   -r requirements.in
@@ -298,7 +257,6 @@ pyarrow==6.0.1
     # via gordo-core
 pyasn1==0.4.8
     # via
-    #   ndg-httpsclient
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.2.8
@@ -307,15 +265,10 @@ pycparser==2.21
     # via cffi
 pydantic==1.10.2
     # via gordo-client
-pyjwt==2.5.0
+pyjwt[crypto]==2.5.0
     # via
-    #   adal
-    #   azureml-core
     #   databricks-cli
-pyopenssl==20.0.1
-    # via
-    #   azureml-core
-    #   ndg-httpsclient
+    #   msal
 pyparsing==3.0.9
     # via
     #   matplotlib
@@ -323,14 +276,12 @@ pyparsing==3.0.9
 python-dateutil==2.8.2
     # via
     #   -r requirements.in
-    #   adal
-    #   azureml-core
+    #   azureml-mlflow
     #   influxdb
     #   matplotlib
     #   pandas
 pytz==2022.2.1
     # via
-    #   azureml-core
     #   influxdb
     #   mlflow
     #   mlflow-skinny
@@ -344,15 +295,14 @@ querystring-parser==1.2.4
     # via mlflow
 requests==2.28.1
     # via
-    #   adal
     #   azure-core
-    #   azureml-core
     #   databricks-cli
     #   docker
     #   gordo-client
     #   influxdb
     #   mlflow
     #   mlflow-skinny
+    #   msal
     #   msrest
     #   requests-oauthlib
     #   tensorboard
@@ -369,8 +319,6 @@ scipy==1.9.1
     #   catboost
     #   mlflow
     #   scikit-learn
-secretstorage==3.3.3
-    # via azureml-core
 simplejson==3.17.6
     # via
     #   -r requirements.in
@@ -379,6 +327,7 @@ six==1.16.0
     # via
     #   astunparse
     #   azure-core
+    #   azure-identity
     #   catboost
     #   databricks-cli
     #   google-auth
@@ -387,8 +336,6 @@ six==1.16.0
     #   influxdb
     #   isodate
     #   keras-preprocessing
-    #   msrestazure
-    #   pyopenssl
     #   python-dateutil
     #   querystring-parser
     #   tensorflow
@@ -422,6 +369,8 @@ termcolor==2.0.1
     # via tensorflow
 threadpoolctl==3.1.0
     # via scikit-learn
+types-cryptography==3.3.23
+    # via pyjwt
 typing-extensions==4.3.0
     # via
     #   azure-core
@@ -430,9 +379,9 @@ typing-extensions==4.3.0
     #   typing-inspect
 typing-inspect==0.8.0
     # via dataclasses-json
-urllib3==1.26.7
+urllib3==1.26.12
     # via
-    #   azureml-core
+    #   docker
     #   requests
 websocket-client==1.4.1
     # via docker
