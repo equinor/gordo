@@ -398,7 +398,11 @@ def ml_server(
                         request.path_url, headers=dict(request.headers), **kwargs
                     )
                 if type(resp.headers) is not dict:
-                    headers_list = resp.headers.to_wsgi_list() if hasattr(resp.headers, "to_wsgi_list") else resp.headers.to_list()
+                    headers_list = (
+                        resp.headers.to_wsgi_list()
+                        if hasattr(resp.headers, "to_wsgi_list")
+                        else resp.headers.to_list()
+                    )
                     headers = dict(headers_list)
                 else:
                     headers = resp.headers
