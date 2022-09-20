@@ -1,3 +1,4 @@
-mlflow~=1.25
-azureml-contrib-run~=1.36
+mlflow~=1.25.0
+azureml-contrib-run~=1.44.0
+azureml-core~=1.44.0
 docker~=4.0

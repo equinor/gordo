@@ -98,7 +98,7 @@ jupyter-core==4.11.1
     #   notebook
 jupyterlab-pygments==0.2.2
     # via nbconvert
-markupsafe==2.1.1
+markupsafe==2.0.1
     # via
     #   -c full_requirements.txt
     #   jinja2
@@ -109,6 +109,8 @@ matplotlib-inline==0.1.6
     #   ipython
 mistune==0.8.4
     # via nbconvert
+mock==4.0.3
+    # via -r test_requirements.in
 mypy==0.971
     # via pytest-mypy
 mypy-extensions==0.4.3
