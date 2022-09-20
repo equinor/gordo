@@ -102,7 +102,7 @@ class ValidMetadata(BaseDescriptor):
         if value is not None and not any(
             isinstance(value, Obj) for Obj in (dict, Metadata)
         ):
-            raise ValueError(f"Can either be None or an instance of dict or Metadata")
+            raise ValueError("Can either be None or an instance of dict or Metadata")
         instance.__dict__[self.name] = value
 
 
@@ -132,7 +132,7 @@ class ValidMachineRuntime(BaseDescriptor):
 
     def __set__(self, instance, value):
         if not isinstance(value, dict):
-            raise ValueError(f"Runtime must be an instance of dict")
+            raise ValueError("Runtime must be an instance of dict")
         value = self._verify_reporters(value)
         value = fix_runtime(value)
         instance.__dict__[self.name] = value
@@ -262,7 +262,7 @@ class ValidTagList(BaseDescriptor):
         if len(value) == 0 or not any(
             isinstance(value[0], inst) for inst in (str, dict, SensorTag)
         ):
-            raise ValueError(f"Requires setting a non-empty list of strings")
+            raise ValueError("Requires setting a non-empty list of strings")
         instance.__dict__[self.name] = value
 
 
