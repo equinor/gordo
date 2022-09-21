@@ -1,28 +1,20 @@
 -c full_requirements.txt
-# Force latest version for security patch until nbconvert is updated
-bleach>=3.3.1
-docker~=4.0
+docker>=4.0,<6.0
 pytest~=6.2
-pytest-xdist~=2.3.0  # Parallelises the test-runs
+pytest-xdist~=2.3
 pytest-mock~=3.6
 pytest-mypy~=0.9
 pytest-timeout~=1.4
 pytest-cov~=2.12
-responses~=0.13
-black~=22.3.0
-pytest-flakes~=4.0.3
-adal~=1.2
-notebook~=6.4.12
-nbconvert~=6.0
-urllib3~=1.26
 pytest-benchmark~=3.4
 mock~=4.0
-influxdb~=5.3.0
-packaging~=20.7
-py>=1.11.0
-Pygments>=2.7.4
-jinja2~=2.11
-cffi~=1.14.6
+responses~=0.13
+# Due to click~=7.0 restriction
+black==21.12b0
+pytest-flakes~=4.0
+notebook~=6.4
+# Due to jinja2>=3.0 from nbconvert==6.5.3
+nbconvert>=6.0,<6.5.0
 types-simplejson
 types-python-dateutil
 types-PyYAML
@@ -30,7 +22,3 @@ types-setuptools
 types-requests
 types-pytz
 types-mock
-# At the bottom are optional dependencies
-mypy>=0.780
-typed-ast~=1.4.3
-pyzmq~=23.2

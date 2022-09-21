@@ -1,24 +1,15 @@
-# Don't forget to add all machine learning related modules into ALLOWED_IMPORT_PATH (gordo/serializer/constants.py)
 dictdiffer~=0.8
 dataclasses-json~=0.3
 gunicorn~=20.0
-h5py~=3.1.0
+h5py~=3.1
 jinja2~=2.11
 python-dateutil~=2.8
 tensorflow~=2.7.1
 Flask~=1.0
-Werkzeug==0.16.1 # flask-restplus requires Werkzeug, but is incompatible with 1.0.0. When that is fixed this explicit dependency can be dropped
 simplejson~=3.17
-catboost~=0.26.1
-prometheus_client~=0.7.1
-jeepney>=0.6
+catboost~=0.26
+prometheus_client~=0.7
 packaging~=20.7
-gordo-client==6.0.0rc0
-# At the bottom are optional dependencies
-scipy~=1.5.4
-cffi~=1.14.6
-kiwisolver~=1.3.2
-grpcio~=1.34.1
-typing-extensions>=3.10
-pathspec>=0.9.0
-numpy>=1.22.0
+gordo-client~=6.0
+# Due to issue with removing soft_unicode method
+MarkupSafe<2.1.0

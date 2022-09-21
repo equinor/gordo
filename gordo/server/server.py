@@ -179,7 +179,7 @@ def build_app(
         if g.revision:
             if not validate_revision(g.revision):
                 return make_response(
-                    jsonify({"error": f"Revision should only contains numbers."}), 410
+                    jsonify({"error": "Revision should only contains numbers."}), 410
                 )
             g.collection_dir = os.path.join(g.collection_dir, "..", g.revision)
             try:

@@ -27,7 +27,7 @@ def test_healthcheck_endpoint(base_route, gordo_ml_server_client):
     Test expected behavior of /<gordo-name>/healthcheck
     """
     # Should also be at the very lowest level as well.
-    resp = gordo_ml_server_client.get(f"/healthcheck")
+    resp = gordo_ml_server_client.get("/healthcheck")
     assert resp.status_code == 200
 
     resp = gordo_ml_server_client.get(f"{base_route}/healthcheck")
@@ -183,7 +183,7 @@ def test_not_valid_revision(tmpdir):
         app = server.build_app({"ENABLE_PROMETHEUS": False})
         app.testing = True
         client = app.test_client()
-        resp = client.get(f"/gordo/v0/test-project/revisions?revision=not-valid")
+        resp = client.get("/gordo/v0/test-project/revisions?revision=not-valid")
     assert resp.status_code == 410
     resp_json = resp.json
     assert resp_json["error"] == "Revision should only contains numbers."
@@ -304,7 +304,7 @@ def test_models_by_revision_list_view(caplog, tmpdir, revision_to_models):
         else:
             # revision_to_models is empty, so there is nothing on the server.
             # Test that asking for some arbitrary revision will give a 404 and error message
-            resp = client.get(f"/gordo/v0/test-project/models?revision=77777")
+            resp = client.get("/gordo/v0/test-project/models?revision=77777")
             assert resp.status_code == 410
             assert resp.json == {
                 "error": "Revision '77777' not found.",
@@ -398,7 +398,7 @@ def test_delete_revision(trained_model_directory, tmpdir):
         app.testing = True
         client = app.test_client()
         # Check gordo_name validation
-        resp = client.delete(f"/gordo/v0/test-project/../revision/111")
+        resp = client.delete("/gordo/v0/test-project/../revision/111")
         assert resp.status_code == 422
         # Check revision validation
         resp = client.delete(f"/gordo/v0/test-project/{model_name}/revision/..")
