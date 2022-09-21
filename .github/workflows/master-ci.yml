@@ -29,7 +29,7 @@ jobs:
       - name: Prepare variables
         id: prep
         run: |
-          bash ci/github_docker.sh
+          bash scripts/github_docker.sh
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
@@ -61,7 +61,7 @@ jobs:
         env:
           IMAGE: ${{ steps.prep.outputs.base_image }}
         run: |
-          bash ci/trivy_scan.sh "$IMAGE"
+          bash scripts/trivy_scan.sh "$IMAGE"
 
       - name: Push gordo-base
         uses: docker/build-push-action@v2
