@@ -106,9 +106,8 @@ dataclasses-json==0.5.7
     # via -r requirements.in
 dictdiffer==0.9.0
     # via -r requirements.in
-docker==4.4.4
+docker==5.0.3
     # via
-    #   -r mlflow_requirements.in
     #   azureml-core
     #   mlflow
 entrypoints==0.4
@@ -213,7 +212,7 @@ matplotlib==3.6.0
     # via catboost
 mlflow==1.29.0
     # via -r mlflow_requirements.in
-msal==1.18.0
+msal==1.19.0
     # via
     #   azureml-core
     #   msal-extensions
@@ -400,7 +399,6 @@ six==1.16.0
     #   azure-core
     #   catboost
     #   databricks-cli
-    #   docker
     #   google-auth
     #   google-pasta
     #   grpcio

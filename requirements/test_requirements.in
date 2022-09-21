@@ -1,5 +1,5 @@
 -c full_requirements.txt
-docker~=4.0
+docker>=4.0,<6.0
 pytest~=6.2
 pytest-xdist~=2.3
 pytest-mock~=3.6
