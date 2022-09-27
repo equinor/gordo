@@ -43,8 +43,8 @@ RUN pip install gordo-packed.tar.gz[full]
 
 # Install GordoDeploy dependencies
 ARG HTTPS_PROXY
-ARG KUBECTL_VERSION="v1.16.9"
-ARG ARGO_VERSION="v2.12.11"
+ARG KUBECTL_VERSION="v1.22.4"
+ARG ARGO_VERSION="v3.3.9"
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
