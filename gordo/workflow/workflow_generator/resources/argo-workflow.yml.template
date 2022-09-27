@@ -26,7 +26,7 @@ metadata:
 spec:{% if argo_version.major == 2 %}
   ttlSecondsAfterFinished: 115200 # 32 hours{% else %}
   TTLStrategy:
-    SecondsAfterComplete: 115200 # 32 hours
+    secondsAfterCompletion: 115200 # 32 hours
 {% endif %}
   entrypoint: do-all
   onExit: workflow-cleanup{% if pod_security_context %}
