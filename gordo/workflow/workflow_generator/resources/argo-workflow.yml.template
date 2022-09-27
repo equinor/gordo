@@ -23,7 +23,7 @@ metadata:
   {% if owner_references is defined %}
   ownerReferences: {{owner_references}}
   {% endif %}
-spec:{% if argo_version.major == 3 %}
+spec:{% if argo_version.major == 2 %}
   ttlSecondsAfterFinished: 115200 # 32 hours{% else %}
   TTLStrategy:
     SecondsAfterComplete: 115200 # 32 hours
