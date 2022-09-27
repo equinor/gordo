@@ -49,7 +49,11 @@ def _generate_test_workflow_yaml(
 
 
 def _generate_test_workflow_str(
-    path_to_config_files, config_filename, project_name="test-proj-name", args=None
+    path_to_config_files,
+    config_filename,
+    project_name="test-proj-name",
+    args=None,
+    argo_version="2.12.11",
 ):
     """
     Reads a test-config file with workflow_generator, and returns the string
@@ -63,6 +67,8 @@ def _generate_test_workflow_str(
         config_file,
         "--project-name",
         project_name,
+        "--argo-version",
+        argo_version,
     ]
     if args:
         cli_args.extend(args)
@@ -158,7 +164,7 @@ def test_basic_generation(path_to_config_files):
     assert len(machines) == 2
 
 
-def test_generation_to_file(tmpdir, path_to_config_files):
+def test_generation_to_file(tmpdir, path_to_config_files, argo_version="2.12.11"):
     """
     Test that the workflow generator can output to a file, and it matches
     what would have been output to stdout.
@@ -181,6 +187,8 @@ def test_generation_to_file(tmpdir, path_to_config_files):
         project_name,
         "--output-file",
         outfile,
+        "--argo-version",
+        argo_version,
     ]
     runner = CliRunner()
     result = runner.invoke(cli.gordo, args)

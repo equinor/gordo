@@ -59,7 +59,7 @@ def parse_argo_version(argo_version: str) -> Optional[version.Version]:
         None if failed to parse.
     """
     parsed_version = version.parse(argo_version)
-    if isinstance(argo_version, version.Version):
+    if isinstance(parsed_version, version.Version):
         return parsed_version
     return None
 

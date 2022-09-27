@@ -142,7 +142,8 @@ def prepare_argo_version(raw_argo_version: Optional[str]) -> str:
     argo_version = parse_argo_version(raw_argo_version)
     if argo_version is None:
         raise ArgoVersionError(
-            "Enable to parse %s Argo CLI version" % exception_message
+            "Unable to parse %s Argo CLI version: '%s'"
+            % (exception_message, argo_version)
         )
     return cast(str, argo_version)
 
@@ -389,7 +390,7 @@ def workflow_cli(gordo_ctx):
 )
 @click.option(
     "--argo-version",
-    help="ModelBuilder class",
+    help="Argo version",
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
