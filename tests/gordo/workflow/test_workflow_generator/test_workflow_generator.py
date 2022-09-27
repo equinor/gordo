@@ -764,3 +764,12 @@ def test_default_data_provider(path_to_config_files: str):
         path_to_config_files, "config-empty-default-data-provider.yml", args=args
     )
     assert "gordo_core.data_providers.providers.RandomDataProvider" in workflow_str
+
+
+def test_for_argo_version_3(path_to_config_files: str):
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", argo_version="3.0.0"
+    )
+    with open('argo_version_3.yaml', 'w') as f:
+        f.write(workflow_str)
+    assert "SecondsAfterComplete" in workflow_str
