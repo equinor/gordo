@@ -23,8 +23,11 @@ metadata:
   {% if owner_references is defined %}
   ownerReferences: {{owner_references}}
   {% endif %}
-spec:
-  ttlSecondsAfterFinished: 115200 # 32 hours
+spec:{% if argo_version.major == 3 %}
+  ttlSecondsAfterFinished: 115200 # 32 hours{% else %}
+  TTLStrategy:
+    SecondsAfterComplete: 115200 # 32 hours
+{% endif %}
   entrypoint: do-all
   onExit: workflow-cleanup{% if pod_security_context %}
   securityContext:
