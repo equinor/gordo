@@ -134,7 +134,7 @@ def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
     return resources_labels
 
 
-def process_argo_version(raw_argo_version: Optional[str]) -> str:
+def prepare_argo_version(raw_argo_version: Optional[str]) -> str:
     exception_message = "provided"
     if raw_argo_version is None:
         raw_argo_version = determine_argo_version()
@@ -428,7 +428,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     validate_generate_context(context)
 
-    context["argo_version"] = process_argo_version(context.get("argo_version"))
+    context["argo_version"] = prepare_argo_version(context.get("argo_version"))
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 
