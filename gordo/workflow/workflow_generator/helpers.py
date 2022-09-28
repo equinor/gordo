@@ -76,7 +76,7 @@ def determine_argo_version() -> str:
     -------
         Version of installed argo version.
     """
-    command = ["argo", "version", "--show"]
+    command = ["argo", "version", "--short"]
     message_suffix = ". Command: '%s'" % " ".join(command)
     try:
         result = subprocess.run(command, timeout=30, capture_output=True, check=True)
