@@ -1039,8 +1039,8 @@ spec:{% if argo_version.major == 2 %}
                     {% endif %}
                   spec:
                     gordo-version: {{ gordo_version }}
-                    config: {% raw %}{{inputs.parameters.config}}{% endraw %}
-
+                    config: |
+                    {% raw %}{{inputs.parameters.config | indent(22, True)}}{% endraw %}
   - name: gordo-server-deployment
     inputs:
       parameters:
