@@ -100,8 +100,6 @@ spec:{% if argo_version.major == 2 %}
       - name: GORDO_LOG_LEVEL
         value: "{{log_level}}"
 
-
-{% if argo_version.major == 2 %}
   - name: apply-with-retries
     retryStrategy:
       limit: 4
@@ -181,12 +179,6 @@ spec:{% if argo_version.major == 2 %}
       env:
       - name: K_RESOURCE
         value: {{ '"{{inputs.parameters.resource}}" '}}
-{% else %}
-  - name: apply-with-retries
-      action: create
-      manifest: |
-        {{ '{{inputs.parameters.resource}}' }}
-{% endif %}
 
   - name: gordo-influx-service
     steps:
@@ -1535,11 +1527,7 @@ spec:{% if argo_version.major == 2 %}
                 value: "{{ machine.name }}"
               - name: config
                 value: |
-{% if argo_version.major == 2 %}
 {{ machine.to_json() | indent(18, True) }}
-{% else %}
-{{ machine.to_yaml() | indent(18, True) }}
-{% endif %}
           dependencies:
             - ensure-single-workflow
         {% endfor %}
@@ -1558,7 +1546,7 @@ spec:{% if argo_version.major == 2 %}
                 value: {{ machine.name }}
               - name: machine
                 value: |
-                  {{ machine.to_dict() | tojson }}
+{{ machine.to_json() | indent(18, True) }}
           dependencies:
             - gordo-server
             {% if enable_influx %}- gordo-postgres{% endif %}
