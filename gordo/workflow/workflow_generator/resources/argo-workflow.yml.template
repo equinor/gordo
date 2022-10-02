@@ -1040,7 +1040,7 @@ spec:{% if argo_version.major == 2 %}
                   spec:
                     gordo-version: {{ gordo_version }}
                     config: |
-{% raw %}{{inputs.parameters.config}}{% endraw %}
+                      {% raw %}{{inputs.parameters.config}}{% endraw %}
   - name: gordo-server-deployment
     inputs:
       parameters:
