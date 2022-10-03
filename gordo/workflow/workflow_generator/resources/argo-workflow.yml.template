@@ -23,8 +23,11 @@ metadata:
   {% if owner_references is defined %}
   ownerReferences: {{owner_references}}
   {% endif %}
-spec:
-  ttlSecondsAfterFinished: 115200 # 32 hours
+spec:{% if argo_version.major == 2 %}
+  ttlSecondsAfterFinished: 115200 # 32 hours{% else %}
+  TTLStrategy:
+    secondsAfterCompletion: 115200 # 32 hours
+{% endif %}
   entrypoint: do-all
   onExit: workflow-cleanup{% if pod_security_context %}
   securityContext:
@@ -1036,8 +1039,8 @@ spec:
                     {% endif %}
                   spec:
                     gordo-version: {{ gordo_version }}
-                    config: {% raw %}{{inputs.parameters.config}}{% endraw %}
-
+                    config: |
+                      {% raw %}{{inputs.parameters.config}}{% endraw %}
   - name: gordo-server-deployment
     inputs:
       parameters:
@@ -1524,7 +1527,7 @@ spec:
                 value: "{{ machine.name }}"
               - name: config
                 value: |
-{{ machine.to_yaml() | indent(18, True) }}
+{{ machine.to_json() | indent(18, True) }}
           dependencies:
             - ensure-single-workflow
         {% endfor %}
@@ -1543,7 +1546,7 @@ spec:
                 value: {{ machine.name }}
               - name: machine
                 value: |
-                  {{ machine.to_dict() | tojson }}
+{{ machine.to_json() | indent(18, True) }}
           dependencies:
             - gordo-server
             {% if enable_influx %}- gordo-postgres{% endif %}

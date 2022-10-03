@@ -20,6 +20,11 @@ from gordo.workflow.config_elements.schemas import (
 )
 from gordo.cli.exceptions_reporter import ReportLevel
 from gordo.util.version import parse_version
+from gordo.workflow.workflow_generator.helpers import (
+    parse_argo_version,
+    determine_argo_version,
+    ArgoVersionError,
+)
 from gordo_core.back_compatibles import DEFAULT_BACK_COMPATIBLES
 
 
@@ -127,6 +132,20 @@ def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
                 % (value, type_name)
             )
     return resources_labels
+
+
+def prepare_argo_version(raw_argo_version: Optional[str]) -> str:
+    exception_message = "provided"
+    if raw_argo_version is None:
+        raw_argo_version = determine_argo_version()
+        exception_message = "installed"
+    argo_version = parse_argo_version(raw_argo_version)
+    if argo_version is None:
+        raise ArgoVersionError(
+            "Unable to parse %s Argo CLI version: '%s'"
+            % (exception_message, argo_version)
+        )
+    return cast(str, argo_version)
 
 
 @click.group("workflow")
@@ -360,14 +379,18 @@ def workflow_cli(gordo_ctx):
     type=JSONParam(PodSecurityContext),
 )
 @click.option(
+    "--default-data-provider",
+    help="Default data_provider.type for dataset",
+    envvar=f"{PREFIX}_DEFAULT_DATA_PROVIDER",
+)
+@click.option(
     "--model-builder-class",
     help="ModelBuilder class",
     envvar="MODEL_BUILDER_CLASS",
 )
 @click.option(
-    "--default-data-provider",
-    help="Default data_provider.type for dataset",
-    envvar=f"{PREFIX}_DEFAULT_DATA_PROVIDER",
+    "--argo-version",
+    help="Argo version",
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
@@ -405,6 +428,8 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["log_level"] = log_level.upper()
 
     validate_generate_context(context)
+
+    context["argo_version"] = prepare_argo_version(context.get("argo_version"))
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 

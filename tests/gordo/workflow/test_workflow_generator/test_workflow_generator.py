@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import json
 import logging
 import os
 import re
@@ -7,7 +7,6 @@ import re
 import docker
 import pytest
 import yaml
-from unittest.mock import patch
 from packaging import version
 
 from click.testing import CliRunner
@@ -19,6 +18,7 @@ from gordo.workflow.workflow_generator.workflow_generator import (
     default_image_pull_policy,
 )
 from gordo.util.version import GordoRelease, GordoSpecial, GordoPR, GordoSHA, Special
+from gordo.machine.loader import load_model_config, load_machine_config
 from typing import List
 
 
@@ -49,7 +49,11 @@ def _generate_test_workflow_yaml(
 
 
 def _generate_test_workflow_str(
-    path_to_config_files, config_filename, project_name="test-proj-name", args=None
+    path_to_config_files,
+    config_filename,
+    project_name="test-proj-name",
+    args=None,
+    argo_version="2.12.11",
 ):
     """
     Reads a test-config file with workflow_generator, and returns the string
@@ -63,6 +67,8 @@ def _generate_test_workflow_str(
         config_file,
         "--project-name",
         project_name,
+        "--argo-version",
+        argo_version,
     ]
     if args:
         cli_args.extend(args)
@@ -87,6 +93,26 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
         e["name"]: e["value"] for e in model_builder_machine["arguments"]["parameters"]
     }
     return model_builder_machine_env
+
+
+def _get_do_all_tasks(config):
+    templates = config["spec"]["templates"]
+    do_all_template = [
+        template for template in templates if template["name"] == "do-all"
+    ][0]
+    return do_all_template["dag"]["tasks"]
+
+
+def _filter_gordo_model_config_parameter(tasks):
+    filtered_task_parameters = [
+        task["arguments"]["parameters"]
+        for task in tasks
+        if task["template"] == "gordo-model"
+    ]
+    for parameters in filtered_task_parameters:
+        for parameter in parameters:
+            if parameter["name"] == "config":
+                yield yaml.safe_load(parameter["value"])
 
 
 @pytest.mark.dockertest
@@ -145,9 +171,14 @@ def test_basic_generation(path_to_config_files):
         project_name in expanded_template
     ), f"Expected to find project name: {project_name} in output: {expanded_template}"
 
-    assert (
-        model_config in expanded_template
-    ), f"Expected to find model config: {model_config} in output: {expanded_template}"
+    do_all_templates = _get_do_all_tasks(yaml.safe_load(expanded_template))
+
+    for config in _filter_gordo_model_config_parameter(do_all_templates):
+        machine = load_machine_config(config)
+        model = json.dumps(machine["model"])
+        assert (
+            model_config in model
+        ), f"Expected to find model config: {model_config} in machine {machine['name']}"
 
     yaml_content = wg.get_dict_from_yaml(
         os.path.join(path_to_config_files, config_filename)
@@ -158,7 +189,7 @@ def test_basic_generation(path_to_config_files):
     assert len(machines) == 2
 
 
-def test_generation_to_file(tmpdir, path_to_config_files):
+def test_generation_to_file(tmpdir, path_to_config_files, argo_version="2.12.11"):
     """
     Test that the workflow generator can output to a file, and it matches
     what would have been output to stdout.
@@ -181,6 +212,8 @@ def test_generation_to_file(tmpdir, path_to_config_files):
         project_name,
         "--output-file",
         outfile,
+        "--argo-version",
+        argo_version,
     ]
     runner = CliRunner()
     result = runner.invoke(cli.gordo, args)
@@ -202,14 +235,14 @@ def test_quotes_work(path_to_config_files):
     )
 
     machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_metadata["metadata"]["user_defined"]["machine-metadata"] == {
+    machine_1_model = load_model_config(machine_1_metadata)
+    assert machine_1_model["metadata"]["user_defined"]["machine-metadata"] == {
         "withSingle": "a string with ' in it",
         "withDouble": 'a string with " in it',
         "single'in'key": "why not",
     }
 
-    machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_dataset["dataset"]["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
+    assert machine_1_model["dataset"]["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
 
 
 def test_overrides_builder_datasource(path_to_config_files):
@@ -228,31 +261,28 @@ def test_overrides_builder_datasource(path_to_config_files):
     )
 
     # ct_23_0002 uses the global overriden requests, but default limits
+    model = load_model_config(yaml.safe_load(model_builder_machine_1_env["machine"]))
     assert {
         "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
-    } == yaml.safe_load(model_builder_machine_1_env["machine"])["dataset"][
-        "data_provider"
-    ]
+    } == model["dataset"]["data_provider"]
 
     # This value must be changed if we change the default values
+    model = load_model_config(yaml.safe_load(model_builder_machine_2_env["machine"]))
     assert {
         "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
-    } == yaml.safe_load(model_builder_machine_2_env["machine"])["dataset"][
-        "data_provider"
-    ]
+    } == model["dataset"]["data_provider"]
 
     # ct_23_0003 uses locally overriden request memory
+    model = load_model_config(yaml.safe_load(model_builder_machine_3_env["machine"]))
     assert {
         "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
-    } == yaml.safe_load(model_builder_machine_3_env["machine"])["dataset"][
-        "data_provider"
-    ]
+    } == model["dataset"]["data_provider"]
 
 
 def test_builder_labels(path_to_config_files):
@@ -756,3 +786,10 @@ def test_default_data_provider(path_to_config_files: str):
         path_to_config_files, "config-empty-default-data-provider.yml", args=args
     )
     assert "gordo_core.data_providers.providers.RandomDataProvider" in workflow_str
+
+
+def test_for_argo_version_3(path_to_config_files: str):
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files, "config-test-simple.yml", argo_version="3.0.0"
+    )
+    assert "secondsAfterCompletion" in workflow_str
