@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import json
 import logging
 import os
 import re
@@ -7,7 +7,6 @@ import re
 import docker
 import pytest
 import yaml
-from unittest.mock import patch
 from packaging import version
 
 from click.testing import CliRunner
@@ -19,6 +18,7 @@ from gordo.workflow.workflow_generator.workflow_generator import (
     default_image_pull_policy,
 )
 from gordo.util.version import GordoRelease, GordoSpecial, GordoPR, GordoSHA, Special
+from gordo.machine.loader import load_model_config, load_machine_config
 from typing import List
 
 
@@ -95,6 +95,26 @@ def _get_env_for_machine_build_serve_task(machine, expanded_template):
     return model_builder_machine_env
 
 
+def _get_do_all_tasks(config):
+    templates = config["spec"]["templates"]
+    do_all_template = [
+        template for template in templates if template["name"] == "do-all"
+    ][0]
+    return do_all_template["dag"]["tasks"]
+
+
+def _filter_gordo_model_config_parameter(tasks):
+    filtered_task_parameters = [
+        task["arguments"]["parameters"]
+        for task in tasks
+        if task["template"] == "gordo-model"
+    ]
+    for parameters in filtered_task_parameters:
+        for parameter in parameters:
+            if parameter["name"] == "config":
+                yield yaml.safe_load(parameter["value"])
+
+
 @pytest.mark.dockertest
 def test_argo_lint(repo_dir, tmpdir, argo_version):
     """
@@ -151,9 +171,14 @@ def test_basic_generation(path_to_config_files):
         project_name in expanded_template
     ), f"Expected to find project name: {project_name} in output: {expanded_template}"
 
-    assert (
-        model_config in expanded_template
-    ), f"Expected to find model config: {model_config} in output: {expanded_template}"
+    do_all_templates = _get_do_all_tasks(yaml.safe_load(expanded_template))
+
+    for config in _filter_gordo_model_config_parameter(do_all_templates):
+        machine = load_machine_config(config)
+        model = json.dumps(machine["model"])
+        assert (
+            model_config in model
+        ), f"Expected to find model config: {model_config} in machine {machine['name']}"
 
     yaml_content = wg.get_dict_from_yaml(
         os.path.join(path_to_config_files, config_filename)
@@ -210,14 +235,14 @@ def test_quotes_work(path_to_config_files):
     )
 
     machine_1_metadata = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_metadata["metadata"]["user_defined"]["machine-metadata"] == {
+    machine_1_model = load_model_config(machine_1_metadata)
+    assert machine_1_model["metadata"]["user_defined"]["machine-metadata"] == {
         "withSingle": "a string with ' in it",
         "withDouble": 'a string with " in it',
         "single'in'key": "why not",
     }
 
-    machine_1_dataset = yaml.safe_load(model_builder_machine_1_env["machine"])
-    assert machine_1_dataset["dataset"]["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
+    assert machine_1_model["dataset"]["tag_list"] == ["CT/1", 'CT"2', "CT'3"]
 
 
 def test_overrides_builder_datasource(path_to_config_files):
@@ -236,31 +261,28 @@ def test_overrides_builder_datasource(path_to_config_files):
     )
 
     # ct_23_0002 uses the global overriden requests, but default limits
+    model = load_model_config(yaml.safe_load(model_builder_machine_1_env["machine"]))
     assert {
         "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
-    } == yaml.safe_load(model_builder_machine_1_env["machine"])["dataset"][
-        "data_provider"
-    ]
+    } == model["dataset"]["data_provider"]
 
     # This value must be changed if we change the default values
+    model = load_model_config(yaml.safe_load(model_builder_machine_2_env["machine"]))
     assert {
         "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
-    } == yaml.safe_load(model_builder_machine_2_env["machine"])["dataset"][
-        "data_provider"
-    ]
+    } == model["dataset"]["data_provider"]
 
     # ct_23_0003 uses locally overriden request memory
+    model = load_model_config(yaml.safe_load(model_builder_machine_3_env["machine"]))
     assert {
         "type": "gordo_core.data_providers.providers.RandomDataProvider",
         "max_size": 300,
         "min_size": 100,
-    } == yaml.safe_load(model_builder_machine_3_env["machine"])["dataset"][
-        "data_provider"
-    ]
+    } == model["dataset"]["data_provider"]
 
 
 def test_builder_labels(path_to_config_files):
