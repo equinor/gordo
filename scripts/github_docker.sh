@@ -7,7 +7,7 @@ function show_help {
     echo
     echo "Provides the variables such as docker images tags for GitHub workflow."
     echo
-    echo "-p    Provide pr-<number> label."
+    echo "-r    Provide pr-<number> label."
     echo
     exit $1
 }
@@ -17,25 +17,28 @@ while getopts "hp" opt; do
     h)
         show_help 0
         ;;
-    p)
+    r)
         with_pr="true"
         ;;
   esac
 done
 
-DOCKER_DEV_IMAGE=${DOCKER_DEV_REGISTRY}/gordo
-DOCKER_PROD_IMAGE=${DOCKER_PROD_REGISTRY}/gordo
+GORDO_REPOSITORY=${GORDO_REPOSITORY:-gordo}
+GORDO_IMAGE_NAME=${GORDO_IMAGE_NAME:-gordo-base}
+
+DOCKER_DEV_IMAGE=${DOCKER_DEV_REGISTRY}/${GORDO_REPOSITORY}
+DOCKER_PROD_IMAGE=${DOCKER_PROD_REGISTRY}/${GORDO_REPOSITORY}
 
 IMAGE_TYPE="dev"
 if [[ $GITHUB_REF == refs/tags/* ]]; then
     VERSION=${GITHUB_REF#refs/tags/}
 elif [[ $GITHUB_REF == refs/pull/* ]]; then
-    if [ -n "$with_pr" ]; then
-        number=`cat "$GITHUB_EVENT_PATH" | jq -rM .number`
-        if [ -n "$number" ]; then
+    number=`cat "$GITHUB_EVENT_PATH" | jq -rM .number`
+    if [ -n "$number" ]; then
+        if [ -n "$with_pr" ]; then
             VERSION=pr-$number
-            IMAGE_TYPE="pr"
         fi
+        IMAGE_TYPE="pr"
     fi
 fi
 
@@ -86,6 +89,16 @@ function set_output_tags {
     echo $tags
 }
 
+function get_push_to_cr {
+    if [ -n "$tags_gordo_base" ]; then
+        push_to_cr="true"
+    fi
+    if [ -z "$with_pr" ] && [ "$IMAGE_TYPE" == "pr" ]; then
+        push_to_cr=""
+    fi
+    echo $push_to_cr
+}
+
 BASE_IMAGE=$DOCKER_DEV_IMAGE/base
 if [ "$IMAGE_TYPE" == "prod" ]; then
     BASE_IMAGE=$DOCKER_PROD_IMAGE/base
@@ -96,11 +109,5 @@ echo ::set-output name=release_type::${RELEASE}
 echo ::set-output name=image_type::${IMAGE_TYPE}
 echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 echo ::set-output name=base_image::$BASE_IMAGE:$VERSION
-
-tags_gordo_base=$(set_output_tags "gordo-base")
-echo ::set-output name=tags_gordo_base::$tags_gordo_base
-
-if [ -n "$tags_gordo_base" ]; then
-    non_empty_tags="true"
-fi
-echo ::set-output name=non_empty_tags::$non_empty_tags
+echo ::set-output name=tags_gordo_base::$(set_output_tags "$GORDO_IMAGE_NAME")
+echo ::set-output name=push_to_cr::$(get_push_to_cr)
