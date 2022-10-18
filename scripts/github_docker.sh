@@ -7,7 +7,7 @@ function show_help {
     echo
     echo "Provides the variables such as docker images tags for GitHub workflow."
     echo
-    echo "-p                 Provide pr-<number> label."
+    echo "-p    Provide pr-<number> label."
     echo
     exit $1
 }
@@ -96,6 +96,11 @@ echo ::set-output name=release_type::${RELEASE}
 echo ::set-output name=image_type::${IMAGE_TYPE}
 echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 echo ::set-output name=base_image::$BASE_IMAGE:$VERSION
-gordo_base_tags=$(set_output_tags "gordo-base")
-gordo_deploy_tags=$(set_output_tags "gordo-deploy")
-echo ::set-output name=tags_gordo_base::$gordo_base_tags,$gordo_deploy_tags
+
+tags_gordo_base=$(set_output_tags "gordo-base")
+echo ::set-output name=tags_gordo_base::$tags_gordo_base
+
+if [ -n "$tags_gordo_base" ]; then
+    non_empty_tags="true"
+fi
+echo ::set-output name=non_empty_tags::$non_empty_tags
