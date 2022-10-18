@@ -2,6 +2,27 @@
 
 set -e
 
+function show_help {
+    echo "Usage: $0 [OPTION]..."
+    echo
+    echo "Provides the variables such as docker images tags for GitHub workflow."
+    echo
+    echo "-p                 Provide pr-<number> label."
+    echo
+    exit $1
+}
+
+while getopts "hp" opt; do
+  case "$opt" in
+    h)
+        show_help 0
+        ;;
+    p)
+        with_pr="true"
+        ;;
+  esac
+done
+
 DOCKER_DEV_IMAGE=${DOCKER_DEV_REGISTRY}/gordo
 DOCKER_PROD_IMAGE=${DOCKER_PROD_REGISTRY}/gordo
 
@@ -9,10 +30,12 @@ IMAGE_TYPE="dev"
 if [[ $GITHUB_REF == refs/tags/* ]]; then
     VERSION=${GITHUB_REF#refs/tags/}
 elif [[ $GITHUB_REF == refs/pull/* ]]; then
-    number=`cat "$GITHUB_EVENT_PATH" | jq -rM .number`
-    if [ -n "$number" ]; then
-        VERSION=pr-$number
-        IMAGE_TYPE="pr"
+    if [ -n "$with_pr" ]; then
+        number=`cat "$GITHUB_EVENT_PATH" | jq -rM .number`
+        if [ -n "$number" ]; then
+            VERSION=pr-$number
+            IMAGE_TYPE="pr"
+        fi
     fi
 fi
 
