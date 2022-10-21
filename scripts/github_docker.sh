@@ -2,6 +2,9 @@
 
 set -e
 
+DOCKER_REPOSITORY=${GORDO_REPOSITORY:-gordo}
+IMAGE_NAMES=${GORDO_IMAGE_NAME:-gordo-base,gordo-deploy}
+
 function show_help {
     echo "Usage: $0 [OPTION]..."
     echo
@@ -22,9 +25,6 @@ while getopts "hp" opt; do
         ;;
   esac
 done
-
-GORDO_REPOSITORY=${GORDO_REPOSITORY:-gordo}
-GORDO_IMAGE_NAME=${GORDO_IMAGE_NAME:-gordo-base}
 
 DOCKER_DEV_IMAGE=${DOCKER_DEV_REGISTRY}/${GORDO_REPOSITORY}
 DOCKER_PROD_IMAGE=${DOCKER_PROD_REGISTRY}/${GORDO_REPOSITORY}
