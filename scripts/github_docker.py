@@ -61,7 +61,7 @@ class Settings:
             base_image=base_image,
         )
 
-    def get_docker_images(self, labels: str, for_prod: bool = False) -> Iterables[str]:
+    def get_docker_images(self, labels: List[str], for_prod: bool = False) -> Iterables[str]:
         docker_image = self.docker_prod_image if for_prod else self.docker_image
         if not docker_image:
             return
