@@ -109,7 +109,7 @@ def docker_images(
 
 def version_labels(version: str) -> List[str]:
     labels = [version]
-    splited = version.split(",")
+    splited = version.split(".")
     if len(splited) == 3:
         labels.append(splited[0])
         labels.append(splited[0] + "." + splited[1])
@@ -171,7 +171,7 @@ def get_variables(
     variables.append(("image_type", context.image_type.value))
     dt = datetime.utcnow()
     variables.append(("created", dt.strftime("%Y-%m-%dT%H:%M:%SZ")))
-    variables.append(("base_image", context.base_image + ":" + context.version))
+    variables.append(("base_image", settings.base_image + ":" + context.version))
     variables.append(("tags_gordo_base", ",".join(tags)))
     variables.append(("push_image", bool_variable(push_image)))
     variables.append(("login_cr", bool_variable(login_cr)))
@@ -198,10 +198,10 @@ def main():
         "-i", "--image-name", required=True, action="append", help="Docker image name"
     )
     parser.add_argument(
-        "-p", "--with-pr", action="store_true", help="Run on PRs events"
+        "-p", "--with-pr", action="store_true", help="Run for PRs events"
     )
     parser.add_argument(
-        "-s", "--with-sha", action="store_true", help="Run on non-releases"
+        "-s", "--with-sha", action="store_true", help="Run for non-releases"
     )
 
     args = parser.parse_args()
