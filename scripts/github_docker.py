@@ -99,14 +99,6 @@ def prepare_context(environ=None):
     return Context(image_type, version, release)
 
 
-def docker_images(
-    docker_repository: str, image_names: List[str], labels: List[str]
-) -> Iterable[str]:
-    for image_name in image_names:
-        for label in labels:
-            yield docker_repository + "/" + image_name + ":" + label
-
-
 def version_labels(version: str) -> List[str]:
     labels = [version]
     splited = version.split(".")
