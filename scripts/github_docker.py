@@ -151,6 +151,8 @@ def get_variables(
         image_type is ImageType.sha and not with_sha
     ):
         push_image, login_cr, login_prod_cr = False, False, False
+    if image_type is not ImageType.prod:
+        login_prod_cr = False
     tags = []
     if push_image:
         tags = get_output_tags(settings, context)
@@ -168,6 +170,7 @@ def get_variables(
     variables.append(("push_image", bool_variable(push_image)))
     variables.append(("login_cr", bool_variable(login_cr)))
     variables.append(("login_prod_cr", bool_variable(login_prod_cr)))
+    return variables
 
 
 def render_variables(variables: List[Tuple[str, str]]):
