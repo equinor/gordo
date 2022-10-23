@@ -9,7 +9,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Iterable, Tuple
+from typing import List, Optional, Tuple
 
 if sys.version_info.major != 3 or sys.version_info.minor < 7:
     raise RuntimeError("Unsupported python version: %s" % sys.version)
@@ -61,11 +61,11 @@ class Settings:
             base_image=base_image,
         )
 
-    def get_docker_images(self, labels: List[str], for_prod: bool = False) -> Iterables[str]:
+    def get_docker_images(self, labels: List[str], for_prod: bool = False):
         docker_image = self.docker_prod_image if for_prod else self.docker_image
         if not docker_image:
             return
-        for image_name in image_names:
+        for image_name in self.image_names:
             for label in labels:
                 yield docker_image + "/" + image_name + ":" + label
 
