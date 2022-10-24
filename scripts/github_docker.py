@@ -15,8 +15,8 @@ if sys.version_info.major != 3 or sys.version_info.minor < 7:
     raise RuntimeError("Unsupported python version: %s" % sys.version)
 
 
-re_tags = re.compile(r"^refs\/tags\/([^\/]*)$")
-re_pull = re.compile(r"^refs\/pull\/(\d+)$")
+re_tags = re.compile(r"^refs\/tags\/([^\/]*).*?$")
+re_pull = re.compile(r"^refs\/pull\/(\d+).*?$")
 
 
 class ImageType(Enum):
