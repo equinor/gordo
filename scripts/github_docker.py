@@ -31,7 +31,7 @@ class Release(Enum):
     prerelease = "prerelease"
 
 
-def get_github_event(environ: Dict[str, str] = None):
+def get_github_event(environ: Dict[str, str]):
     with open(environ["GITHUB_EVENT_PATH"], "r") as f:
         return json.load(f)
 
