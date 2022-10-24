@@ -32,7 +32,7 @@ class Release(Enum):
 
 
 def get_github_event(environ: Dict[str, str]):
-    with open(environ["GITHUB_EVENT_PATH"], "r") as f:
+    with open(environ["GITHUB_EVENT_PATH"], "r") as f:  # type: ignore
         return json.load(f)
 
 
