@@ -92,7 +92,7 @@ def prepare_context(environ=None):
     if environ["GITHUB_EVENT_NAME"] == "release":
         release = Release.prerelease
         prerelease = get_github_event(environ)["release"]["prerelease"]
-        if not prerelease or prerelease == "false":
+        if not prerelease:
             release = Release.release
     if not version:
         image_type, version = ImageType.sha, environ["GITHUB_SHA"][:8]
