@@ -172,9 +172,24 @@ def get_variables(
     return variables
 
 
-def render_variables(variables: List[Tuple[str, str]]):
+def render_set_output(variables: List[Tuple[str, str]], environ=None):
     for name, value in variables:
         print("::set-output name=%s::%s" % (name, value))
+
+
+def render_github_output(variables: List[Tuple[str, str]], environ=None):
+    if environ is None:
+        environ = os.environ
+    with open(environ["GITHUB_OUTPUT"], "a") as f:
+        for name, value in variables:
+            f.write("%s=%s\n" % (name, value))
+
+
+_renders = {
+    "set-output": render_set_output,
+    "github-output": render_github_output,
+}
+_default_render = "github-output"
 
 
 def main():
@@ -197,15 +212,24 @@ def main():
     parser.add_argument(
         "-s", "--with-sha", action="store_true", help="Run for non-releases"
     )
+    parser.add_argument(
+        "-e",
+        "--render",
+        choices=list(_renders.keys()),
+        default=_default_render,
+        help="Variables render type. Default: '%s'" % _default_render,
+    )
 
     args = parser.parse_args()
+    render = _renders[args.render]
+
     variables = get_variables(
         repository=args.repository,
         image_names=args.image_name,
         with_pr=args.with_pr,
         with_sha=args.with_sha,
     )
-    render_variables(variables)
+    render(variables)
 
 
 if __name__ == "__main__":
