@@ -47,12 +47,12 @@ class Settings:
     def from_environ(cls, repository: str, image_names: List[str], environ=None):
         if environ is None:
             environ = os.environ
-        if "DOCKER_REPOSITORY" not in environ:
-            raise RuntimeError("DOCKER_REPOSITORY environment variable is empty")
-        docker_image = environ["DOCKER_REPOSITORY"] + "/" + repository
+        if "DOCKER_REGISTRY" not in environ:
+            raise RuntimeError("DOCKER_REGISTRY environment variable is empty")
+        docker_image = environ["DOCKER_REGISTRY"] + "/" + repository
         docker_prod_image = ""
-        if "DOCKER_PROD_IMAGE" in environ:
-            docker_prod_image = environ["DOCKER_PROD_REPOSITORY"] + "/" + repository
+        if "DOCKER_PROD_REGISTRY" in environ:
+            docker_prod_image = environ["DOCKER_PROD_REGISTRY"] + "/" + repository
         base_image = docker_image + "/base"
         return cls(
             image_names=image_names,
