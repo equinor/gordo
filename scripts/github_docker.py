@@ -9,7 +9,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 if sys.version_info.major != 3 or sys.version_info.minor < 7:
     raise RuntimeError("Unsupported python version: %s" % sys.version)
@@ -31,7 +31,7 @@ class Release(Enum):
     prerelease = "prerelease"
 
 
-def get_github_event(environ: str = None):
+def get_github_event(environ: Dict[str, str] = None):
     with open(environ["GITHUB_EVENT_PATH"], "r") as f:
         return json.load(f)
 
@@ -110,7 +110,6 @@ def version_labels(version: str) -> List[str]:
 
 def get_output_tags(settings: Settings, context: Context) -> List[str]:
     image_type = context.image_type
-    image_names = settings.image_names
     tags = []
     if image_type is ImageType.pr:
         tags.extend(settings.get_docker_images([context.version]))
