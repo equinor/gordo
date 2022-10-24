@@ -26,8 +26,6 @@ jobs:
       - name: Prepare variables
         id: prep
         run: |
-          echo $GITHUB_REF
-          cat $GITHUB_EVENT_PATH
           python3 scripts/github_docker.py -r gordo -i gordo-base -i gordo-deploy --with-pr --with-sha
 
       - name: Set up Docker Buildx
