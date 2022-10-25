@@ -86,6 +86,17 @@ def download_argo_versions(
         download_gz_binary(url, output_file, timeout=timeout)
 
 
+def usage(
+    parser: argparse.ArgumentParser, message: str = None, returncode: int = 1, file=None
+):
+    if file is None:
+        file = sys.stdout
+    if message:
+        print(message + "\n", file=file)
+    parser.print_help(file=file)
+    sys.exit(returncode)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Download argo CLIs binaries")
 
@@ -112,9 +123,7 @@ def main():
     args = parser.parse_args()
 
     if not args.argo_versions:
-        sys.stdout.write("--argo-versions is empty\n\n")
-        parser.print_help(file=sys.stdout)
-        sys.exit(1)
+        usage(parser, message="--argo-versions is empty")
 
     if not _arch_re.match(args.arch):
         raise ValueError("'%s' malformed arch" % args.arch)
