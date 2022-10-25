@@ -9,7 +9,7 @@ import json
 from subprocess import Popen, PIPE
 from packaging import version
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 if sys.version_info.major != 3 or sys.version_info.minor < 7:
     raise RuntimeError("Unsupported python version: %s" % sys.version)
@@ -18,7 +18,9 @@ DOWNLOAD_URL = (
     "https://github.com/argoproj/argo-workflows/releases/download/v{version}/{arch}.gz"
 )
 ARCH = "argo-linux-amd64"
-PROCESS_TIMEOUT = 60
+PROCESS_TIMEOUT = 60 * 5
+
+BINARY_NAME = "argo"
 
 _arch_re = re.compile(r"^[\w\-]+$")
 _version_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
@@ -26,31 +28,38 @@ _version_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
 
 @dataclass
 class ArgoVersion:
-    major: int
     version: str
+    number: Optional[int]
 
     @classmethod
     def load(cls, item: Dict[str, Any]):
         if "version" not in item:
-            raise ValueError("version is empty in %s" % item)
+            raise ValueError("'version' is empty in %s" % item)
         version = item["version"]
-        m = _version_re.match(version)
-        if not m:
-            raise ValueError("'%s' version is malformed" % version])
-        return cls(int(item.get("major", m[1])), version)
+        if not _version_re.match(version):
+            raise ValueError("'%s' version is malformed" % version)
+        number = int(item["number"]) if item.get("number") is not None else None
+        return cls(version, number)
 
+    @property
     def binary_name(self):
-        return "argo%d" % self.major
+        return BINARY_NAME + self.str_number
+
+    @property
+    def str_number(self):
+        return str(self.number) if self.number is not None else ""
 
 
 def load_argo_versions(items: List[Dict[str, Any]]):
-    majors = set()
+    numbers = set()
     argo_versions: List[ArgoVersion] = []
     for item in items:
         argo_version = ArgoVersion.load(item)
-        if argo_version.major in majors:
-            raise ValueError("Duplicates for major version %d", argo_version.major)
-        majors.add(argo_version.major)
+        if argo_version.number in numbers:
+            raise ValueError(
+                "Duplicates for version number '%s'", argo_version.str_number
+            )
+        numbers.add(argo_version.number)
         argo_versions.append(argo_version)
     return argo_versions
 
@@ -67,18 +76,28 @@ def download_gz_binary(url: str, output_file: str, timeout: int = None):
         p2.communicate(timeout=timeout)
 
 
-def download_argo_versions(argo_versions: List[ArgoVersion], output_directory: str, arch: str)
+def download_argo_versions(
+    argo_versions: List[ArgoVersion], output_directory: str, arch: str, timeout: int
+):
     for argo_version in argo_versions:
-        url = get_download_url(
+        url = get_download_url(argo_version.version, arch)
+        output_file = os.path.join(output_directory, argo_version.binary_name)
+        print("Downloading argo %s to '%s'" % (argo_version.version, output_file))
+        download_gz_binary(url, output_file, timeout=timeout)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Download argo CLIs binaries")
 
     parser.add_argument(
-            "-v", "--argo-versions", required=True, default=os.environ.get("ARGO_VERSIONS"), help='Argo versions to download. In JSON format. ARGO_VERSIONS env variable by default. Example: [{"version": "3.4.2"}]'
+        "-v",
+        "--argo-versions",
+        default=os.environ.get("ARGO_VERSIONS"),
+        help='Argo versions list in JSON format. Takes ARGO_VERSIONS environment variable as default value. Example: [{"version": "3.4.2"}]',
     )
-    parser.add_argument("-o", "--output-directory", required=True, help="Output directory")
+    parser.add_argument(
+        "-o", "--output-directory", required=True, help="Output directory"
+    )
     parser.add_argument(
         "--arch",
         default=ARCH,
@@ -88,16 +107,26 @@ def main():
         "-t",
         "--process-timeout",
         default=PROCESS_TIMEOUT,
-        help="Subprocesses timeout in seconds. Default: %d" % PROCESS_TIMEOUT
+        help="Subprocesses timeout in seconds. Default: %d" % PROCESS_TIMEOUT,
     )
     args = parser.parse_args()
+
+    if not args.argo_versions:
+        sys.stdout.write("--argo-versions is empty\n\n")
+        parser.print_help(file=sys.stdout)
+        sys.exit(1)
 
     if not _arch_re.match(args.arch):
         raise ValueError("'%s' malformed arch" % args.arch)
 
-    argo_versions = load_argo_versions(json.load(arg.argo_versions))
+    argo_versions = load_argo_versions(json.loads(args.argo_versions))
 
-    download_gz_binary(get_download_url(args.argo_version, args.arch), output_file=args.output_file)
+    download_argo_versions(
+        argo_versions,
+        output_directory=args.output_directory,
+        arch=args.arch,
+        timeout=args.process_timeout,
+    )
 
 
 if __name__ == "__main__":
