@@ -74,6 +74,8 @@ def download_gz_binary(url: str, output_file: str, timeout: int = None):
         p2 = Popen(["gzip", "-d"], stdin=p1.stdout, stdout=f)
         p1.stdout.close()
         p2.communicate(timeout=timeout)
+        if p2.returncode != 0:
+            raise RuntimeError("Failed to download %s" % url)
 
 
 def download_argo_versions(
