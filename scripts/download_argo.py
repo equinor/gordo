@@ -84,7 +84,7 @@ def download_argo_versions(
     for argo_version in argo_versions:
         url = get_download_url(argo_version.version, arch)
         output_file = os.path.join(output_directory, argo_version.binary_name)
-        print("Downloading argo %s to '%s'" % (argo_version.version, output_file))
+        print("Downloading argo %s to %s" % (argo_version.version, output_file))
         download_gz_binary(url, output_file, timeout=timeout)
 
 
