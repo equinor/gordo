@@ -64,7 +64,7 @@ def parse_argo_version(argo_version: str) -> Optional[version.Version]:
     return None
 
 
-def determine_argo_version() -> str:
+def determine_argo_version(argo_binary: str = "argo") -> str:
     """
     Check installed Argo CLI version.
 
@@ -76,7 +76,7 @@ def determine_argo_version() -> str:
     -------
         Version of installed argo version.
     """
-    command = ["argo", "version", "--short"]
+    command = [argo_binary, "version", "--short"]
     message_suffix = ". Command: '%s'" % " ".join(command)
     try:
         result = subprocess.run(command, timeout=30, capture_output=True, check=True)
