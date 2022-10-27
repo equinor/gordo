@@ -26,6 +26,8 @@ if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   cat "$config_path"
 fi
 
+argo_binary=$(get_argo_binary)
+
 gordo workflow generate --machine-config "$config_path" --output-file "$generated_config_path"
 
 if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
@@ -33,4 +35,4 @@ if [[ -n "${DEBUG_SHOW_WORKFLOW}" ]]; then
   cat "$generated_config_path"
 fi
 
-argo_submit "$generated_config_path"
+argo_submit "$generated_config_path" "$argo_binary"

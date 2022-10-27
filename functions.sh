@@ -16,7 +16,7 @@ function get_argo_binary {
     argo_binary="argo"
     if [ -n "$ARGO_VERSION_NUMBER" ]; then
         if [ -z "$ARGO_VERSIONS" ]; then
-            echo "ARGO_VERSION env var is empty" 2>&1
+            echo "ARGO_VERSIONS env var is empty" 2>&1
             exit 1
         fi
         for number in `echo $ARGO_VERSIONS | jq -rM .[].number` 
@@ -40,12 +40,16 @@ function get_argo_binary {
 
 function argo_submit { 
     generated_config_path="$1"
-    argo lint "$generated_config_path"
+    argo_binary="argo"
+    if [ -n "$2" ]; then
+      argo_binary="$2"
+    fi
+    $argo_binary lint "$generated_config_path"
     if [ "$ARGO_SUBMIT" = true ] ; then
         if [[ -n "$ARGO_SERVICE_ACCOUNT" ]]; then
-            argo submit --serviceaccount "$ARGO_SERVICE_ACCOUNT" "$generated_config_path"
+            $argo_binary submit --serviceaccount "$ARGO_SERVICE_ACCOUNT" "$generated_config_path"
         else
-            argo submit "$generated_config_path"
+            $argo_binary submit "$generated_config_path"
         fi
     fi
 }
