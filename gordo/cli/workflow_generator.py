@@ -403,7 +403,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     validate_generate_context(context)
 
-    context["argo_version"] = prepare_argo_version(context.get("argo_version"))
+    context["argo_version"] = prepare_argo_version(context.get("argo_binary"))
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 
