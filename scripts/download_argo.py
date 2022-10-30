@@ -30,16 +30,28 @@ _version_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
 class ArgoVersion:
     version: str
     number: Optional[int]
+    is_default: bool
+
+    _required_fields = ["version", "number"]
 
     @classmethod
-    def load(cls, item: Dict[str, Any]):
-        if "version" not in item:
-            raise ValueError("'version' is empty in %s" % item)
-        version = item["version"]
-        if not _version_re.match(version):
-            raise ValueError("'%s' version is malformed" % version)
-        number = int(item["number"]) if item.get("number") is not None else None
-        return cls(version, number)
+    def load_list(cls, items: List[Dict[str, Any]]):
+        is_default = True
+        versions: List[ArgoVersion] = []
+        numbers = set()
+        for item in items:
+            for field in cls._required_fields:
+                if field not in item:
+                    raise ValueError("'%s' is empty in %s" % (field, item))
+            version, number = item["version"], int(item["number"])
+            if not _version_re.match(version):
+                raise ValueError("'%s' version is malformed" % version)
+            if number in numbers:
+                raise ValueError("Duplicates for version number %d", number)
+            numbers.add(number)
+            versions.append(cls(version, number, is_default))
+            is_default = False
+        return versions
 
     @property
     def binary_name(self):
@@ -48,20 +60,6 @@ class ArgoVersion:
     @property
     def str_number(self):
         return str(self.number) if self.number is not None else ""
-
-
-def load_argo_versions(items: List[Dict[str, Any]]):
-    numbers = set()
-    argo_versions: List[ArgoVersion] = []
-    for item in items:
-        argo_version = ArgoVersion.load(item)
-        if argo_version.number in numbers:
-            raise ValueError(
-                "Duplicates for version number '%s'", argo_version.str_number
-            )
-        numbers.add(argo_version.number)
-        argo_versions.append(argo_version)
-    return argo_versions
 
 
 def get_download_url(version: str, arch: str):
@@ -130,7 +128,7 @@ def main():
     if not _arch_re.match(args.arch):
         raise ValueError("'%s' malformed arch" % args.arch)
 
-    argo_versions = load_argo_versions(json.loads(args.argo_versions))
+    argo_versions = ArgoVersion.load_list(json.loads(args.argo_versions))
 
     download_argo_versions(
         argo_versions,
