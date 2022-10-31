@@ -5,6 +5,7 @@ import argparse
 import re
 import os
 import json
+import stat
 
 from subprocess import Popen, PIPE
 from packaging import version
@@ -23,7 +24,9 @@ PROCESS_TIMEOUT = 60 * 5
 BINARY_NAME = "argo"
 
 _arch_re = re.compile(r"^[\w\-]+$")
-_version_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
+_version_re = re.compile(r"^v?((\d+)\.(\d+)\.(\d+))")
+
+_executable_mask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 
 
 @dataclass
@@ -44,26 +47,28 @@ class ArgoVersion:
                 if field not in item:
                     raise ValueError("'%s' is empty in %s" % (field, item))
             version, number = item["version"], int(item["number"])
-            if not _version_re.match(version):
+            m = _version_re.match(version)
+            if not m:
                 raise ValueError("'%s' version is malformed" % version)
             if number in numbers:
                 raise ValueError("Duplicates for version number %d", number)
             numbers.add(number)
-            versions.append(cls(version, number, is_default))
+            versions.append(cls(m[1], number, is_default))
             is_default = False
         return versions
 
     @property
     def binary_name(self):
-        return BINARY_NAME + self.str_number
-
-    @property
-    def str_number(self):
-        return str(self.number) if self.number is not None else ""
+        return BINARY_NAME + str(self.number)
 
 
 def get_download_url(version: str, arch: str):
     return DOWNLOAD_URL.format(version=version, arch=arch)
+
+
+def make_file_executable(file_path: str):
+    s = os.stat(file_path)
+    os.chmod(file_path, s.st_mode | _executable_mask)
 
 
 def download_gz_binary(url: str, output_file: str, timeout: int = None):
@@ -76,6 +81,14 @@ def download_gz_binary(url: str, output_file: str, timeout: int = None):
             raise RuntimeError("Failed to download %s" % url)
 
 
+def symlink(src: str, dst: str):
+    if os.path.exists(dst):
+        print("Removing %s" % dst)
+        os.unlink(dst)
+    print("Creating symlink %s -> %s" % (src, dst))
+    os.symlink(src, dst)
+
+
 def download_argo_versions(
     argo_versions: List[ArgoVersion], output_directory: str, arch: str, timeout: int
 ):
@@ -84,16 +97,21 @@ def download_argo_versions(
         output_file = os.path.join(output_directory, argo_version.binary_name)
         print("Downloading argo %s to %s" % (argo_version.version, output_file))
         download_gz_binary(url, output_file, timeout=timeout)
+        print("Making %s executable" % output_file)
+        make_file_executable(output_file)
+        if argo_version.is_default:
+            dst = os.path.join(output_directory, BINARY_NAME)
+            symlink(argo_version.binary_name, dst)
 
 
 def usage(
-    parser: argparse.ArgumentParser, message: str = None, returncode: int = 1, file=None
+    parser: argparse.ArgumentParser, message: str = None, returncode: int = 1, f=None
 ):
-    if file is None:
-        file = sys.stdout
+    if f is None:
+        f = sys.stdout
     if message:
-        print(message + "\n", file=file)
-    parser.print_help(file=file)
+        print(message + "\n", file=f)
+    parser.print_help(file=f)
     sys.exit(returncode)
 
 
