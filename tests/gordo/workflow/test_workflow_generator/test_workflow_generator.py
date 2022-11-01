@@ -50,12 +50,12 @@ def _generate_test_workflow_yaml(
     return expanded_template
 
 
-def _create_executables_with_output(file_path: str, output: str):
+def _create_executable_with_output(file_path: str, output: str):
     # Only Unix like
     # TODO Port to Windows
     with open(file_path, "w") as f:
         f.write("#!/usr/bin/env bash\n")
-        f.write("echo \"%s\"\n" % output)
+        f.write('echo "%s"\n' % output)
     s = os.stat(file_path)
     os.chmod(file_path, s.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
@@ -74,7 +74,7 @@ def _generate_test_workflow_str(
     """
     with tempfile.TemporaryDirectory() as tmp_directory:
         path = os.environ["PATH"]
-        cli_path = path+os.pathsep+tmp_directory
+        cli_path = path + os.pathsep + tmp_directory
         temp_bin = os.path.join(tmp_directory, argo_binary)
         _create_executable_with_output(temp_bin, "argo: v%s" % argo_version)
         config_file = os.path.join(path_to_config_files, config_filename)
@@ -89,7 +89,7 @@ def _generate_test_workflow_str(
 
         if args:
             cli_args.extend(args)
-        runner = CliRunner()
+        runner = CliRunner(env={"PATH": cli_path})
 
         result = runner.invoke(cli.gordo, cli_args)
 
@@ -206,7 +206,7 @@ def test_basic_generation(path_to_config_files):
     assert len(machines) == 2
 
 
-def test_generation_to_file(tmpdir, path_to_config_files, argo_version="2.12.11"):
+def test_generation_to_file(tmpdir, path_to_config_files):
     """
     Test that the workflow generator can output to a file, and it matches
     what would have been output to stdout.
@@ -229,8 +229,6 @@ def test_generation_to_file(tmpdir, path_to_config_files, argo_version="2.12.11"
         project_name,
         "--output-file",
         outfile,
-        "--argo-version",
-        argo_version,
     ]
     runner = CliRunner()
     result = runner.invoke(cli.gordo, args)
