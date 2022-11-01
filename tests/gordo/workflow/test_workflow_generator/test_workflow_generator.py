@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import re
+import tempfile
+import stat
 
 import docker
 import pytest
@@ -48,33 +50,48 @@ def _generate_test_workflow_yaml(
     return expanded_template
 
 
+def _create_executables_with_output(file_path: str, output: str):
+    # Only Unix like
+    # TODO Port to Windows
+    with open(file_path, "w") as f:
+        f.write("#!/usr/bin/env bash\n")
+        f.write("echo \"%s\"\n" % output)
+    s = os.stat(file_path)
+    os.chmod(file_path, s.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 def _generate_test_workflow_str(
     path_to_config_files,
     config_filename,
     project_name="test-proj-name",
     args=None,
-    argo_version="2.12.11",
+    argo_version="2.1.0",
+    argo_binary="argo",
 ):
     """
     Reads a test-config file with workflow_generator, and returns the string
     content of the generated workflow
     """
-    config_file = os.path.join(path_to_config_files, config_filename)
-    cli_args = [
-        "workflow",
-        "generate",
-        "--machine-config",
-        config_file,
-        "--project-name",
-        project_name,
-        "--argo-version",
-        argo_version,
-    ]
-    if args:
-        cli_args.extend(args)
-    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmp_directory:
+        path = os.environ["PATH"]
+        cli_path = path+os.pathsep+tmp_directory
+        temp_bin = os.path.join(tmp_directory, argo_binary)
+        _create_executable_with_output(temp_bin, "argo: v%s" % argo_version)
+        config_file = os.path.join(path_to_config_files, config_filename)
+        cli_args = [
+            "workflow",
+            "generate",
+            "--machine-config",
+            config_file,
+            "--project-name",
+            project_name,
+        ]
 
-    result = runner.invoke(cli.gordo, cli_args)
+        if args:
+            cli_args.extend(args)
+        runner = CliRunner()
+
+        result = runner.invoke(cli.gordo, cli_args)
 
     if result.exception is not None:
         raise result.exception
