@@ -230,7 +230,7 @@ def test_generation_to_file(tmpdir, path_to_config_files):
         "--output-file",
         outfile,
     ]
-    runner = CliRunner(echo_stdin=True)
+    runner = CliRunner(echo_stdin=True, mix_stderr=True)
     result = runner.invoke(cli.gordo, args)
     assert result.exit_code == 0
 
