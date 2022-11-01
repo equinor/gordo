@@ -114,8 +114,7 @@ def prepare_argo_version(argo_binary: Optional[str] = None) -> str:
     argo_version = parse_argo_version(raw_argo_version)
     if argo_version is None:
         raise ArgoVersionError(
-            "Unable to parse %s version: '%s'"
-            % (argo_binary, argo_version)
+            "Unable to parse %s version: '%s'" % (argo_binary, argo_version)
         )
     return cast(str, argo_version)
 
