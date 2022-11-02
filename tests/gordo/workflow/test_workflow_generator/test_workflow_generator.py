@@ -820,5 +820,8 @@ def test_for_argo_version_3(path_to_config_files: str):
 
 def test_argo3_binary(path_to_config_files: str):
     _generate_test_workflow_str(
-        path_to_config_files, "config-test-simple.yml", argo_binary="argo3", argo_version="3.1.0"
+        path_to_config_files,
+        "config-test-simple.yml",
+        argo_binary="argo3",
+        argo_version="3.1.0",
     )
