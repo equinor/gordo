@@ -110,7 +110,10 @@ def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
 
 
 def prepare_argo_version(argo_binary: Optional[str] = None) -> str:
-    raw_argo_version = determine_argo_version(argo_binary)
+    if argo_binary is not None:
+        raw_argo_version = determine_argo_version(argo_binary)
+    else:
+        raw_argo_version = determine_argo_version()
     argo_version = parse_argo_version(raw_argo_version)
     if argo_version is None:
         raise ArgoVersionError(
