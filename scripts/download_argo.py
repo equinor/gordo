@@ -10,7 +10,7 @@ import stat
 from subprocess import Popen, PIPE
 from packaging import version
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, IO, cast
 
 if sys.version_info.major != 3 or sys.version_info.minor < 7:
     raise RuntimeError("Unsupported python version: %s" % sys.version)
@@ -75,14 +75,10 @@ def download_gz_binary(url: str, output_file: str, timeout: int = None):
     with open(output_file, "wb") as f:
         p1 = Popen(["curl", "-sL", url], stdout=PIPE)
         p2 = Popen(["gzip", "-d"], stdin=p1.stdout, stdout=f)
-        if p1:
-            p1.stdout.close()
-        if p2:
-            p2.communicate(timeout=timeout)
-            if p2.returncode != 0:
-                raise RuntimeError("Failed to download %s" % url)
-        else:
-            raise RuntimeError("Something wrong happened")
+        cast(IO[bytes], p1.stdout).close()
+        p2.communicate(timeout=timeout)
+        if p2.returncode != 0:
+            raise RuntimeError("Failed to download %s" % url)
 
 
 def symlink(src: str, dst: str):
