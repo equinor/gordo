@@ -66,7 +66,6 @@ def _run_workflow_generate(args, argo_version="2.1.0", argo_binary="argo"):
         cli_path = tmp_directory + os.pathsep + path
         temp_bin = os.path.join(tmp_directory, argo_binary)
         _create_executable_with_output(temp_bin, "argo: v%s" % argo_version)
-        config_file = os.path.join(path_to_config_files, config_filename)
         cli_args = [
             "workflow",
             "generate",
@@ -90,6 +89,7 @@ def _generate_test_workflow_str(
     Reads a test-config file with workflow_generator, and returns the string
     content of the generated workflow
     """
+    config_file = os.path.join(path_to_config_files, config_filename)
     result = _run_workflow_generate(
         [
             "--machine-config",
