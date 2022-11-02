@@ -30,7 +30,7 @@ function get_argo_binary {
             fi
         done
         if [ -z "$found" ]; then
-            echo "Unable to find number ($ARGO_VERSION_NUMBER) in '$ARGO_VERSIONS'" 2>&1
+            echo "Unable to find number ($ARGO_VERSION_NUMBER) in '$ARGO_VERSIONS'" 1>&2
             exit 1
         fi
         argo_binary="argo$number"

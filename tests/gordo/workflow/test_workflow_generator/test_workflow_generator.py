@@ -63,7 +63,7 @@ def _create_executable_with_output(file_path: str, output: str):
 def _run_workflow_generate(args, argo_version="2.1.0", argo_binary="argo"):
     with tempfile.TemporaryDirectory() as tmp_directory:
         path = os.environ["PATH"]
-        cli_path = path + os.pathsep + tmp_directory
+        cli_path = tmp_directory + os.pathsep + path
         temp_bin = os.path.join(tmp_directory, argo_binary)
         _create_executable_with_output(temp_bin, "argo: v%s" % argo_version)
         config_file = os.path.join(path_to_config_files, config_filename)
