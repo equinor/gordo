@@ -60,6 +60,24 @@ def _create_executable_with_output(file_path: str, output: str):
     os.chmod(file_path, s.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
+def _run_workflow_generate(args, argo_version="2.1.0", argo_binary="argo"):
+    with tempfile.TemporaryDirectory() as tmp_directory:
+        path = os.environ["PATH"]
+        cli_path = path + os.pathsep + tmp_directory
+        temp_bin = os.path.join(tmp_directory, argo_binary)
+        _create_executable_with_output(temp_bin, "argo: v%s" % argo_version)
+        config_file = os.path.join(path_to_config_files, config_filename)
+        cli_args = [
+            "workflow",
+            "generate",
+        ]
+
+        cli_args.extend(args)
+        runner = CliRunner(env={"PATH": cli_path})
+
+        return runner.invoke(cli.gordo, cli_args)
+
+
 def _generate_test_workflow_str(
     path_to_config_files,
     config_filename,
@@ -72,26 +90,16 @@ def _generate_test_workflow_str(
     Reads a test-config file with workflow_generator, and returns the string
     content of the generated workflow
     """
-    with tempfile.TemporaryDirectory() as tmp_directory:
-        path = os.environ["PATH"]
-        cli_path = path + os.pathsep + tmp_directory
-        temp_bin = os.path.join(tmp_directory, argo_binary)
-        _create_executable_with_output(temp_bin, "argo: v%s" % argo_version)
-        config_file = os.path.join(path_to_config_files, config_filename)
-        cli_args = [
-            "workflow",
-            "generate",
+    result = _run_workflow_generate(
+        [
             "--machine-config",
             config_file,
             "--project-name",
             project_name,
-        ]
-
-        if args:
-            cli_args.extend(args)
-        runner = CliRunner(env={"PATH": cli_path})
-
-        result = runner.invoke(cli.gordo, cli_args)
+        ],
+        argo_version,
+        argo_binary,
+    )
 
     if result.exception is not None:
         raise result.exception
@@ -220,9 +228,8 @@ def test_generation_to_file(tmpdir, path_to_config_files):
     # Execute CLI by passing a file to write to.
     config_file = os.path.join(path_to_config_files, config_filename)
     outfile = os.path.join(tmpdir, "out.yml")
+
     args = [
-        "workflow",
-        "generate",
         "--machine-config",
         config_file,
         "--project-name",
@@ -230,8 +237,7 @@ def test_generation_to_file(tmpdir, path_to_config_files):
         "--output-file",
         outfile,
     ]
-    runner = CliRunner(echo_stdin=True, mix_stderr=True)
-    result = runner.invoke(cli.gordo, args)
+    result = _run_workflow_generate(args)
     assert result.exit_code == 0
 
     # Open the file and ensure they are the same
