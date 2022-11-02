@@ -70,7 +70,6 @@ def _run_workflow_generate(args, argo_version="2.1.0", argo_binary="argo"):
             "workflow",
             "generate",
         ]
-
         cli_args.extend(args)
         runner = CliRunner(env={"PATH": cli_path})
 
@@ -90,13 +89,16 @@ def _generate_test_workflow_str(
     content of the generated workflow
     """
     config_file = os.path.join(path_to_config_files, config_filename)
+    additional_args = [
+        "--machine-config",
+        config_file,
+        "--project-name",
+        project_name,
+    ]
+    if args is not None:
+        additional_args.extend(args)
     result = _run_workflow_generate(
-        [
-            "--machine-config",
-            config_file,
-            "--project-name",
-            project_name,
-        ],
+        additional_args,
         argo_version,
         argo_binary,
     )
