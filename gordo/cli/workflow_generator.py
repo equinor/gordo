@@ -3,13 +3,12 @@ import time
 import pkg_resources
 import os
 
-from typing import Dict, Any, TypeVar, Type, List, Tuple, Optional, Generic, cast
+from typing import Dict, Any, List, Tuple, Optional, cast
 
 import click
 import json
 from jinja2 import Environment, BaseLoader
 
-from pydantic import parse_obj_as, ValidationError
 from gordo import __version__
 from gordo.workflow.config_elements.normalized_config import NormalizedConfig
 from gordo.workflow.workflow_generator import workflow_generator as wg
@@ -26,6 +25,7 @@ from gordo.workflow.workflow_generator.helpers import (
     ArgoVersionError,
 )
 from gordo_core.back_compatibles import DEFAULT_BACK_COMPATIBLES
+from .custom_types import JSONParam, REParam
 
 
 logger = logging.getLogger(__name__)
@@ -60,31 +60,6 @@ def get_builder_exceptions_report_level(config: NormalizedConfig) -> ReportLevel
     else:
         report_level = DEFAULT_BUILDER_EXCEPTIONS_REPORT_LEVEL
     return report_level
-
-
-T = TypeVar("T")
-
-
-class JSONParam(click.ParamType, Generic[T]):
-    name = "JSON"
-
-    def __init__(self, schema: Type[T]):
-        self.schema = schema
-
-    def convert(
-        self, value: Any, param: Optional[click.Parameter], ctx: Optional[click.Context]
-    ) -> Optional[T]:
-        if value is None:
-            return None
-        try:
-            data = json.loads(value)
-        except json.JSONDecodeError as e:
-            raise self.fail("Malformed JSON string - %s" % str(e))
-        try:
-            obj = parse_obj_as(self.schema, data)
-        except ValidationError as e:
-            raise self.fail("Schema validation error - %s" % str(e))
-        return obj
 
 
 DEFAULT_CUSTOM_MODEL_BUILDER_ENVS = "[]"
@@ -134,16 +109,15 @@ def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
     return resources_labels
 
 
-def prepare_argo_version(raw_argo_version: Optional[str]) -> str:
-    exception_message = "provided"
-    if raw_argo_version is None:
+def prepare_argo_version(argo_binary: Optional[str] = None) -> str:
+    if argo_binary is not None:
+        raw_argo_version = determine_argo_version(argo_binary)
+    else:
         raw_argo_version = determine_argo_version()
-        exception_message = "installed"
     argo_version = parse_argo_version(raw_argo_version)
     if argo_version is None:
         raise ArgoVersionError(
-            "Unable to parse %s Argo CLI version: '%s'"
-            % (exception_message, argo_version)
+            "Unable to parse %s version: '%s'" % (argo_binary, argo_version)
         )
     return cast(str, argo_version)
 
@@ -389,8 +363,10 @@ def workflow_cli(gordo_ctx):
     envvar="MODEL_BUILDER_CLASS",
 )
 @click.option(
-    "--argo-version",
-    help="Argo version",
+    "--argo-binary",
+    default="argo",
+    type=REParam(r"^argo\d*$"),
+    help="Argo binary path",
 )
 @click.pass_context
 def workflow_generator_cli(gordo_ctx, **ctx):
@@ -429,7 +405,7 @@ def workflow_generator_cli(gordo_ctx, **ctx):
 
     validate_generate_context(context)
 
-    context["argo_version"] = prepare_argo_version(context.get("argo_version"))
+    context["argo_version"] = prepare_argo_version(context.get("argo_binary"))
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
 
