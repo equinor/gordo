@@ -17,7 +17,7 @@ function get_argo_binary {
     if [ -n "$ARGO_VERSION_NUMBER" ]; then
         if [ -z "$ARGO_VERSIONS" ]; then
             echo "ARGO_VERSIONS env var is empty" 2>&1
-            exit 1
+            exit 2
         fi
         for number in `echo $ARGO_VERSIONS | jq -rM .[].number` 
         do
@@ -31,7 +31,7 @@ function get_argo_binary {
         done
         if [ -z "$found" ]; then
             echo "Unable to find number ($ARGO_VERSION_NUMBER) in '$ARGO_VERSIONS'" 1>&2
-            exit 1
+            exit 3
         fi
         argo_binary="argo$number"
     fi
