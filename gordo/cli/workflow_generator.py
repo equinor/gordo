@@ -203,7 +203,7 @@ def workflow_cli(gordo_ctx):
 @click.option(
     "--docker-repository",
     type=str,
-    default="gordo",
+    default="equinor",
     help="The docker repo to use for pulling component images from",
     envvar=f"{PREFIX}_DOCKER_REPOSITORY",
 )
