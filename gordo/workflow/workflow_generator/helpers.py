@@ -64,7 +64,7 @@ def parse_argo_version(argo_version: str) -> Optional[version.Version]:
     return None
 
 
-def determine_argo_version(argo_binary: Optional[str] = "argo") -> str:
+def determine_argo_version(argo_binary: str = "argo") -> str:
     """
     Check installed Argo CLI version.
 
