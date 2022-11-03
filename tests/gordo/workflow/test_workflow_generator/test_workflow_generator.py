@@ -142,43 +142,6 @@ def _filter_gordo_model_config_parameter(tasks):
                 yield yaml.safe_load(parameter["value"])
 
 
-@pytest.mark.dockertest
-def test_argo_lint(repo_dir, tmpdir, argo_version):
-    """
-    Test the example config files, assumed to be valid, produces a valid workflow via `argo lint`
-    """
-    if version.parse(argo_version) >= version.parse("v2.5.0"):
-        # argocli does not support workflow linting without valid kubernetes configuration anymore
-        # https://github.com/argoproj/argo/blob/v2.5.0/cmd/argo/commands/lint.go#L24
-        pytest.skip("argo lint does not work in version %s" % argo_version)
-
-    docker_client = docker.from_env()
-
-    # Verify doing a workflow generation on the config will generate valid yaml
-    # if it's not, running argo lint will generate wildly unhelpful error msgs.
-    config = _generate_test_workflow_yaml(
-        path_to_config_files=os.path.join(repo_dir, "examples"),
-        config_filename="config.yaml",
-    )
-    assert isinstance(config, dict)
-
-    workflow_output_path = os.path.join(tmpdir, "out.yml")
-    with open(workflow_output_path, "w") as f:
-        yaml.dump(config, f)
-
-    logger.info("Running workflow generator and argo lint on examples/config.yaml...")
-    result = docker_client.containers.run(
-        f"argoproj/argocli:{argo_version}",
-        command="lint /tmp/out.yml",
-        auto_remove=True,
-        stderr=True,
-        stdout=True,
-        detach=False,
-        volumes={str(tmpdir): {"bind": "/tmp", "mode": "ro"}},
-    )
-    assert result.decode().strip().split("\n")[-1] == "Workflow manifests validated"
-
-
 def test_basic_generation(path_to_config_files):
     """
     Model must be included in the config file
