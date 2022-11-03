@@ -28,7 +28,8 @@ ENV PATH "${HOME}/.local/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y \
     curl \
-    jq
+    jq \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install requirements separately for improved docker caching
 COPY --from=builder /code/prereq.txt .
@@ -44,17 +45,12 @@ RUN pip install gordo-packed.tar.gz[full]
 # Install GordoDeploy dependencies
 ARG HTTPS_PROXY
 ARG KUBECTL_VERSION="v1.22.4"
-ARG ARGO_VERSION="v3.3.9"
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
   chmod +x /usr/local/bin/kubectl
 
-#download & install argo
-RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/$ARGO_VERSION/argo-linux-amd64.gz &&\
-    gzip -d < argo-linux-amd64.gz > /usr/local/bin/argo &&\
-    chmod +x /usr/local/bin/argo
-
+# Copy scripts
 COPY ./functions.sh ${HOME}/functions.sh
 COPY ./run_workflow_and_argo.sh ${HOME}/run_workflow_and_argo.sh
 
@@ -71,11 +67,19 @@ ADD build.sh ${HOME}/build.sh
 RUN cp ${HOME}/build.sh /usr/bin/build \
     && chmod a+x /usr/bin/build
 
+# Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
+WORKDIR ${HOME}
+
+#download & install argo
+ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.4.3\"},{\"number\":2,\"version\":\"2.12.13\"}]"
+COPY scripts/download_argo.py ./download_argo.py
+RUN python3 ./download_argo.py -o /usr/local/bin
+
+# Cleanup
+RUN dpkg -r curl && rm ./download_argo.py
 
 # Make gordo own all in its home
 RUN chown -R gordo:gordo ${HOME}
 
-# Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
-WORKDIR ${HOME}
 # Switch user
 USER 999 
