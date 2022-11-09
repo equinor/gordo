@@ -15,7 +15,7 @@ if sys.version_info.major != 3 or sys.version_info.minor < 7:
     raise RuntimeError("Unsupported python version: %s" % sys.version)
 
 
-re_tags = re.compile(r"^refs\/tags\/([^\/]*).*?$")
+re_tags = re.compile(r"^refs\/tags\/v?([^\/]*).*?$")
 re_pull = re.compile(r"^refs\/pull\/(\d+).*?$")
 
 
@@ -117,8 +117,9 @@ def get_output_tags(settings: Settings, context: Context) -> List[str]:
         tags.extend(settings.get_docker_images([context.version]))
         if context.release:
             tags.extend(settings.get_docker_images(["latest"]))
-            dev_labels = version_labels(context.version)
-            tags.extend(settings.get_docker_images(dev_labels))
+            if context.release is Release.release:
+                dev_labels = version_labels(context.version)
+                tags.extend(settings.get_docker_images(dev_labels))
         if image_type is ImageType.prod:
             tags.extend(settings.get_docker_images(["latest"], for_prod=True))
             prod_labels = version_labels(context.version)
