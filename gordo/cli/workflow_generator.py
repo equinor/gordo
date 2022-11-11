@@ -210,7 +210,7 @@ def workflow_cli(gordo_ctx):
 @click.option(
     "--docker-registry",
     type=str,
-    default="auroradevacr.azurecr.io",  # TODO: Change to docker.io after migrating
+    default="ghcr.io",
     help="The docker registry to use for pulling component images from",
     envvar=f"{PREFIX}_DOCKER_REGISTRY",
 )
