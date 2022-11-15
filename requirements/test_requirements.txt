@@ -131,7 +131,7 @@ matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-mistune==0.8.4
+mistune==2.0.3
     # via nbconvert
 mock==4.0.3
     # via -r test_requirements.in
@@ -372,3 +372,4 @@ websocket-client==1.4.1
     #   -c full_requirements.txt
     #   docker
     #   jupyter-server
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
