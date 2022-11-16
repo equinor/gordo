@@ -87,9 +87,9 @@ Note: you have to install `pip-tools` version higher then `6` for requirements t
 
 To update some package in `full_requirements.txt`:
 - Change its version in `requirements.in` file;
-- Compile requirements:
+- Compile and upgrade requirements:
 ```shell
-pip-compile --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
+pip-compile --upgrade --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
 ```
 
 ### How to run tests locally
