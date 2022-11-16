@@ -1,4 +1,6 @@
 import os
+
+from pathlib import Path
 from setuptools import setup, find_packages
 
 
@@ -31,6 +33,9 @@ install_requires = requirements("requirements.in")  # Allow flexible deps for in
 if on_rtd:
     install_requires = [req for req in install_requires if "tensorflow" not in req]
 
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
     author="Equinor ASA",
     author_email="fg_gpl@equinor.com",
@@ -38,11 +43,12 @@ setup(
         "Intended Audience :: Developers",
         "License :: OSI Approved :: GNU Affero General Public License v3",
         "Natural Language :: English",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     description="Train and build models for Argo / Kubernetes",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     entry_points={"console_scripts": ["gordo=gordo.cli:gordo"]},
     install_requires=install_requires,
     license="AGPLv3",

@@ -16,12 +16,6 @@
   <a href="https://github.com/equinor/gordo/actions?query=branch=master">
     <img src="https://github.com/equinor/gordo/workflows/CI/badge.svg?branch=master" alt="Build Status"/>
   </a>
-  <a href="https://codecov.io/gh/equinor/gordo">
-    <img src="https://codecov.io/gh/equinor/gordo/branch/master/graph/badge.svg" alt="Codecov"/>
-  </a>
-  <a href="https://gordo.readthedocs.io/en/latest/?badge=latest">
-    <img src="https://readthedocs.org/projects/gordo/badge/?version=latest" alt="Documentation"/>
-  </a> 
 </div>
 
 ---
@@ -57,6 +51,9 @@ See our [example](./examples) notebooks for how to develop with `gordo` locally.
 ## Install 
 `pip install --upgrade gordo`  
 
+With additional extras:
+`pip install gordo[postgres,mlflow]`  
+
 Bleeding edge:  
 `pip install git+https://github.com/equinor/gordo.git`
 
@@ -84,9 +81,9 @@ Note: you have to install `pip-tools` version higher then `6` for requirements t
 
 To update some package in `full_requirements.txt`:
 - Change its version in `requirements.in` file;
-- Compile requirements:
+- Compile and upgrade requirements:
 ```shell
-pip-compile --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
+pip-compile --upgrade --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
 ```
 
 ### How to run tests locally
