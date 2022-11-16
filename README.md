@@ -16,12 +16,6 @@
   <a href="https://github.com/equinor/gordo/actions?query=branch=master">
     <img src="https://github.com/equinor/gordo/workflows/CI/badge.svg?branch=master" alt="Build Status"/>
   </a>
-  <a href="https://codecov.io/gh/equinor/gordo">
-    <img src="https://codecov.io/gh/equinor/gordo/branch/master/graph/badge.svg" alt="Codecov"/>
-  </a>
-  <a href="https://gordo.readthedocs.io/en/latest/?badge=latest">
-    <img src="https://readthedocs.org/projects/gordo/badge/?version=latest" alt="Documentation"/>
-  </a> 
 </div>
 
 ---
