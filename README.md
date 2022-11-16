@@ -57,6 +57,9 @@ See our [example](./examples) notebooks for how to develop with `gordo` locally.
 ## Install 
 `pip install --upgrade gordo`  
 
+With additional extras:
+`pip install gordo[postgres,mlflow]`  
+
 Bleeding edge:  
 `pip install git+https://github.com/equinor/gordo.git`
 
