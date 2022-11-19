@@ -10,7 +10,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  generateName: {{project_name}}-{{project_revision}}-
+  generateName: "{{project_name}}-{{project_revision}}-"
   annotations:
     gordo-models: '{{ machines|map(attribute="name")|list|tojson|safe }}'
   labels:
@@ -713,7 +713,7 @@ spec:{% if argo_version.major == 2 %}
     metadata:
       labels:
         app: gordo-model-builder
-        applications.gordo.equinor.com/project-name: {{project_name}}
+        applications.gordo.equinor.com/project-name: "{{project_name}}"
         applications.gordo.equinor.com/project-revision: "{{project_revision}}"{% if project_workflow %}
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
         applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
