@@ -94,6 +94,7 @@ def prepare_context(environ=None):
         prerelease = get_github_event(environ)["release"]["prerelease"]
         if not prerelease:
             release = Release.release
+            image_type = ImageType.prod
     if not version:
         image_type, version = ImageType.sha, environ["GITHUB_SHA"][:8]
     return Context(image_type, version, release)
@@ -127,7 +128,7 @@ def get_output_tags(settings: Settings, context: Context) -> List[str]:
         if context.release is Release.release:
             tags.extend(settings.get_docker_images(["stable"]))
             if image_type is ImageType.prod:
-                tags.extend(settings.get_docker_images(["stable"]))
+                tags.extend(settings.get_docker_images(["stable"], for_prod=True))
     return tags
 
 
