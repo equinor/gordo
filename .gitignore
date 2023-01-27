@@ -108,3 +108,4 @@ venv.bak/
 .python-version
 *.DS_Store
 
+venv_gordo*/
