@@ -12,8 +12,8 @@ class AnomalyDetectorBase(BaseEstimator, GordoBase, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def anomaly(
         self,
-        X: Union[pd.DataFrame, xr.DataArray],
-        y: Union[pd.DataFrame, xr.DataArray],
+        X: Union[pd.DataFrame, xr.DataArray, xr.Dataset],
+        y: Union[pd.DataFrame, xr.DataArray, xr.Dataset],
         frequency: Optional[timedelta] = None,
     ) -> Union[pd.DataFrame, xr.Dataset]:
         """

@@ -5,6 +5,7 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 
 class GordoBase(abc.ABC):
@@ -21,7 +22,7 @@ class GordoBase(abc.ABC):
     @abc.abstractmethod
     def score(
         self,
-        X: Union[np.ndarray, pd.DataFrame],
+        X: Union[np.ndarray, pd.DataFrame, xr.Dataset],
         y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
     ):
