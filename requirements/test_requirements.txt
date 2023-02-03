@@ -24,7 +24,7 @@ backcall==0.2.0
     # via ipython
 beautifulsoup4==4.11.1
     # via nbconvert
-black==22.12.0
+black==21.12b0
     # via -r test_requirements.in
 bleach==5.0.1
     # via nbconvert
@@ -351,6 +351,7 @@ types-urllib3==1.26.25.1
 typing-extensions==4.4.0
     # via
     #   -c full_requirements.txt
+    #   black
     #   mypy
 urllib3==1.26.14
     # via
