@@ -131,7 +131,7 @@ matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-mistune==2.0.3
+mistune==0.8.4
     # via nbconvert
 mock==4.0.3
     # via -r test_requirements.in
