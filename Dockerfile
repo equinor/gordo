@@ -17,7 +17,7 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.9-slim
+FROM python:3.9-slim-bullseye
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
