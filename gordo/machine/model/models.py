@@ -223,7 +223,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     @staticmethod
     def get_n_features(
-        X: Union[np.ndarray, pd.DataFrame, xr.DataArray]
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray] # TODO should xr.Dataset be here?
     ) -> Union[int, tuple]:
         shape_len = len(X.shape)
         if shape_len == 1:
@@ -240,8 +240,8 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
     def fit(
         self,
-        X: Union[np.ndarray, pd.DataFrame, xr.DataArray],
-        y: Union[np.ndarray, pd.DataFrame, xr.DataArray],
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray, xr.Dataset],
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray, xr.Dataset],
         **kwargs,
     ):
         """
@@ -249,10 +249,10 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Parameters
         ----------
-        X: Union[np.ndarray, pd.DataFrame, xr.Dataset]
-            numpy array or pandas dataframe
-        y: Union[np.ndarray, pd.DataFrame, xr.Dataset]
-            numpy array or pandas dataframe
+        X: Union[np.ndarray, pd.DataFrame, xr.DataArray, xr.Dataset]
+            numpy array, pandas dataframe, xarray dataArray or xarray Dataset
+        y: Union[np.ndarray, pd.DataFrame, xr.DataArray, xr.Dataset]
+            numpy array, pandas dataframe, xarray dataArray or xarray Dataset
         sample_weight: np.ndarray
             array like - weight to assign to samples
         kwargs
@@ -280,6 +280,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             X = X.values
         if isinstance(y, (pd.DataFrame, xr.DataArray)):
             y = y.values
+        if isinstance(X, xr.Dataset):
+            # TODO: add masking and padding here
+            X = X.to_dataframe().values
         kwargs.setdefault("verbose", 0)
         history = super().fit(X, y, sample_weight=None, **kwargs)
         if isinstance(history, History):
