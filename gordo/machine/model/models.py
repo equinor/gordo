@@ -559,6 +559,12 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             )
         return X
 
+    def _fill_missed_timestamps_in_X_y(self, X, y):
+        train_end_date = self.kwargs["train_end_date"]
+        train_start_date =  self.kwargs["train_start_date"]
+
+        pass
+
     def fit(  # type: ignore
         self, X: np.ndarray, y: np.ndarray, **kwargs
     ) -> "KerasLSTMForecast":
@@ -586,6 +592,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         y = y.values if isinstance(y, pd.DataFrame) else y
 
         X = self._validate_and_fix_size_of_X(X)
+
+        X = self._fill_missed_timestamps_in_X(X, y)
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
@@ -799,3 +807,96 @@ def create_keras_timeseriesgenerator(
         raise ValueError(f"Value of `lookahead` can not be negative, is {lookahead}")
 
     return TimeseriesGenerator(**kwargs)
+
+class BaseDataFilterStrategy(metaclass=ABCMeta):
+
+    @abc.abstractmethod
+    def handle_missed_timestamps(self, 
+        start_data_timestamp: str, 
+        end_data_timestamp: str, 
+        X: np.ndarray, 
+        y: Optional(np.ndarray),
+        time_frequency: Optional[str]
+    ) -> Tuple(np.ndarray, Optional(np.ndarray)):
+        """
+        Base class for handling NaNs or missed datapoints in the input X and y sample arrays.
+
+        Parameters
+        ----------
+        X: np.ndarray
+            2d array of values, each row being one sample.
+        y: Optional[np.ndarray]
+            array representing the target.
+        start_data_timestamp: Optional[str]
+            start timestamp for the data in the input X and y (if present) samples
+        end_data_timestamp: Optional[str]
+            end timestamp for the data in the input X and y (if present) samples
+        time_frequency: Optional[str]
+            the data sampling frequency      
+
+        Returns
+        -------
+        Tuple(np.ndarray, Optional(np.ndarray))
+            X and y data after processing. 
+        """
+        ...
+
+class RemoveRowsWithoutDataStrategy(BaseDataFilterStrategy):
+
+    def handle_missed_timestamps(self, 
+        start_data_timestamp: str, 
+        end_data_timestamp: str, 
+        X: np.ndarray, 
+        y: Optional(np.ndarray),
+        time_frequency: Optional[str]
+    ) -> Tuple(np.ndarray, Optional(np.ndarray)):
+        """
+        Deletes all rows with NaN in X and corresponding records in y and visse-versa 
+        """    
+        mask_X = np.isnan(X).any(axis=1)
+        if not y:
+            return X[~mask]
+        
+        mask_y = np.isnan(y)
+        mask = np.logical_and(mask_X, mask_y)
+        return (X[~mask], y[~mask])
+
+    def handle_missed_timestamps(self, 
+        start_data_timestamp: str, 
+        end_data_timestamp: str, 
+        X: pd.DataFrame, 
+        y: Optional(pd.DataFrame),
+        time_frequency: Optional[str]
+    ) -> Tuple(pd.DataFrame, Optional(pd.DataFrame)):
+        """
+        Deletes all rows with NaN in X and corresponding records in y and visse-versa 
+        """    
+        mask_X = X.isna().any(axis=1)
+        if not y:
+            return X[~mask]
+        
+        mask_y = y.isna()
+        mask = np.logical_and(mask_X, mask_y)
+        return (X[~mask], y[~mask])
+
+class FillMissingTimestampsWithNanStrategy(BaseDataFilterStrategy):
+
+    def handle_missed_timestamps(self, 
+        start_data_timestamp: str, 
+        end_data_timestamp: str, 
+        X: pd.DataFrame, 
+        y: Optional(pd.DataFrame),
+        time_frequency: Optional[str]
+    ) -> Tuple(pd.DataFrame, Optional(pd.DataFrame)):
+        """
+        Figure out missing timestamps in X and y and fill them with NaN values.
+        """
+        start_training_data_timestamp = np.datetime64(start_data_timestamp)
+        end_training_data_timestamp = np.datetime64(end_data_timestamp)
+        expected_timestamps = pd.date_range(start=start_training_data_timestamp, 
+                                            end=end_training_data_timestamp, 
+                                            freq=time_frequency)
+        if y:
+            return X.reindex(expected_timestamps), y.reindex(expected_timestamps)
+        else:
+            return X.reindex(expected_timestamps)
