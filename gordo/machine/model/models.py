@@ -559,11 +559,31 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             )
         return X
 
-    def _fill_missed_timestamps_in_X_y(self, X, y):
-        train_end_date = self.kwargs["train_end_date"]
-        train_start_date =  self.kwargs["train_start_date"]
+    def _handle_missed_timestamps_or_NaN_in_X_y(self, X, y):
 
-        pass
+        if not isinstance(X, pd.DataFrame) or not isinstance(y, pd.DataFrame):
+            return (X, y)
+        
+        train_start_date =  self.kwargs["train_start_date"]
+        train_end_date = self.kwargs["train_end_date"]
+        strategy_name = self.kwargs["time_series_data_filter_strategy"]
+        time_frequency = self.kwargs["time_frequency"]
+
+        module_name, class_name = strategy_name.rsplit(".", 1)
+        module = importlib.import_module(module_name)
+        if not hasattr(module, class_name):
+            raise ValueError(
+                "Unable to find class %s in module '%s' for handling NaN, skipping"
+                % (self.kind, class_name, module_name)
+            )
+        strategy = getattr(module, class_name)()
+
+        return strategy.handle_missed_timestamps( 
+            start_data_timestamp = train_start_date, 
+            end_data_timestamp = train_end_date, 
+            X = X, 
+            y = y,
+            time_frequency = time_frequency)
 
     def fit(  # type: ignore
         self, X: np.ndarray, y: np.ndarray, **kwargs
@@ -587,13 +607,12 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             KerasLSTMForecast
 
         """
+        X, y = self._handle_missed_timestamps_or_NaN_in_X_y(X,y)
 
         X = X.values if isinstance(X, pd.DataFrame) else X
         y = y.values if isinstance(y, pd.DataFrame) else y
 
         X = self._validate_and_fix_size_of_X(X)
-
-        X = self._fill_missed_timestamps_in_X(X, y)
 
         # We call super.fit on a single sample (notice the batch_size=1) to initiate the
         # model using the scikit-learn wrapper.
@@ -841,7 +860,7 @@ class BaseDataFilterStrategy(metaclass=ABCMeta):
         """
         ...
 
-class RemoveRowsWithoutDataStrategy(BaseDataFilterStrategy):
+class RemoveRowsWithNaNDataStrategy(BaseDataFilterStrategy):
 
     def handle_missed_timestamps(self, 
         start_data_timestamp: str, 
