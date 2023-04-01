@@ -285,11 +285,19 @@ def extract_X_y(method):
         if request.method == "POST":
 
             # Always require an X, be it in JSON or file/parquet format.
-            if ("X" not in (request.json or {})) and ("X" not in request.files):
-                message = dict(message='Cannot predict without "X"')
-                return make_response((jsonify(message), 400))
+            with open("requests.txt", "a") as f:
+                f.write(repr(vars(request)))
+                f.write("\n\n")
+            if request.is_json:
+                if "X" not in (request.json or {}):
+                    message = dict(message='Cannot predict without "X"')
+                    return make_response((jsonify(message), 400))
+            else:
+                if "X" not in request.files:
+                    message = dict(message='Cannot predict without "X"')
+                    return make_response((jsonify(message), 400))
 
-            if request.json is not None:
+            if request.is_json:
                 X = dataframe_from_dict(request.json["X"])
                 y = request.json.get("y")
                 if y is not None:
