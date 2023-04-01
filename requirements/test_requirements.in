@@ -9,8 +9,8 @@ pytest-cov~=2.12
 pytest-benchmark~=3.4
 mock~=4.0
 responses~=0.13
-# Due to click~=7.0 restriction
-black==21.12b0
+# Due to packaging>22.0 in black 23.0, azureml-core~=1.49 requires packaging<22.0
+black>=22.0,<23.0
 pytest-flakes~=4.0
 notebook~=6.4
 # Due to jinja2>=3.0 from nbconvert==6.5.3

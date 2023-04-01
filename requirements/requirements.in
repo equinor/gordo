@@ -9,7 +9,7 @@ Flask>=2.2.3,<3.0.0
 simplejson~=3.17
 catboost~=1.1.1
 prometheus_client~=0.7
-packaging>=20.7,<24.0
+packaging>=22.0,<24.0
 gordo-client~=6.0,!=6.0.1
 gordo-core==0.3.0rc0
 MarkupSafe>=2.1.2,<3.0.0
