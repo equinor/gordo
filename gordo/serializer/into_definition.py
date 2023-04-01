@@ -9,7 +9,9 @@ from sklearn.pipeline import Pipeline
 logger = logging.getLogger(__name__)
 
 
-def into_definition(pipeline: Pipeline, prune_default_params: bool = False, tuples_to_list: bool = True) -> dict:
+def into_definition(
+    pipeline: Pipeline, prune_default_params: bool = False, tuples_to_list: bool = True
+) -> dict:
     """
     Convert an instance of ``sklearn.pipeline.Pipeline`` into a dict definition
     capable of being reconstructed with
@@ -61,7 +63,9 @@ def into_definition(pipeline: Pipeline, prune_default_params: bool = False, tupl
     return steps
 
 
-def _decompose_node(step: object, prune_default_params: bool = False, tuples_to_list: bool = True):
+def _decompose_node(
+    step: object, prune_default_params: bool = False, tuples_to_list: bool = True
+):
     """
     Decompose a specific instance of a scikit-learn transformer,
     including Pipelines or FeatureUnions
@@ -156,7 +160,9 @@ def load_definition_from_params(params: dict, tuples_to_list: bool = True) -> di
     for param, param_val in params.items():
 
         if hasattr(param_val, "get_params") or hasattr(param_val, "into_definition"):
-            definition[param] = _decompose_node(param_val, tuples_to_list=tuples_to_list)
+            definition[param] = _decompose_node(
+                param_val, tuples_to_list=tuples_to_list
+            )
 
         # Handle parameter value that is a list
         elif isinstance(param_val, list):
@@ -166,7 +172,9 @@ def load_definition_from_params(params: dict, tuples_to_list: bool = True) -> di
             # TODO: Make this more robust, probably via another function to parse the iterable recursively
             # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
             definition[param] = [
-                _decompose_node(leaf[1], tuples_to_list=tuples_to_list) if isinstance(leaf, tuple) else leaf
+                _decompose_node(leaf[1], tuples_to_list=tuples_to_list)
+                if isinstance(leaf, tuple)
+                else leaf
                 for leaf in param_val
             ]
 
