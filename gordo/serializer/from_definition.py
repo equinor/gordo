@@ -225,7 +225,7 @@ def _build_step(
                     f"Got {StepClass} but the supplied parameters"
                     f"seem invalid: {params}"
                 )
-        return StepClass(**params)
+        return create_instance(StepClass, **params)
 
     # If step is just a string, can initialize it without any params
     # ie. "sklearn.preprocessing.PCA"
@@ -347,7 +347,7 @@ def _load_param_classes(params: dict):
                 else:
                     # Call this func again, incase there is nested occurances of this problem in these kwargs
                     kwargs = _load_param_classes(sub_params)
-                    params[key] = Model(**kwargs)  # type: ignore
+                    params[key] = create_instance(Model, **kwargs)  # type: ignore
         elif key == "callbacks" and isinstance(value, list):
             params[key] = _build_callbacks(value)
     return params
