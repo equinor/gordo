@@ -78,6 +78,12 @@ def create_instance(fn, **kwargs):
     """
     Create a class instance.
 
+    Examples
+    --------
+    >>> from sklearn.preprocessing import MinMaxScaler
+    >>> create_instance(MinMaxScaler, feature_range=[-1, 1])
+    MinMaxScaler(feature_range=(-1, 1))
+
     Parameters
     ----------
     fn

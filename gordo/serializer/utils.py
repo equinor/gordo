@@ -17,6 +17,18 @@ def is_tuple_type(tp) -> bool:
     """
     Check if this type is a tuple.
 
+    Examples
+    --------
+    >>> from typing import Optional, Tuple
+    >>> is_tuple_type(tuple)
+    True
+    >>> is_tuple_type(Optional[tuple[int, int]])
+    True
+    >>> is_tuple_type(Tuple[str, str])
+    True
+    >>> is_tuple_type(list[str])
+    False
+
     Parameters
     ----------
     tp
