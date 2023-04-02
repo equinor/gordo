@@ -1,7 +1,7 @@
 from typing import get_origin, get_args, Union
 
 try:
-    from types import UnionType
+    from types import UnionType  # type: ignore
 except ImportError:
     UnionType = None
 
