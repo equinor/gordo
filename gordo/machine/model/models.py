@@ -372,7 +372,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         X: Union[np.ndarray, pd.DataFrame],
         y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
-        **kwargs
+        **kwargs,
     ) -> float:
         """
         Returns the explained variance score between auto encoder's input vs output
@@ -677,7 +677,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         X: Union[np.ndarray, pd.DataFrame],
         y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
-        **kwargs
+        **kwargs,
     ) -> float:
         """
         Returns the explained variance score between 1 step forecasted input and true
