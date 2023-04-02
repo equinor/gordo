@@ -99,7 +99,10 @@ def create_instance(fn, **kwargs):
     for param in s.parameters.values():
         if param.name not in kwargs:
             continue
-        if param.kind == Parameter.KEYWORD_ONLY or param.kind == Parameter.POSITIONAL_OR_KEYWORD:
+        if (
+            param.kind == Parameter.KEYWORD_ONLY
+            or param.kind == Parameter.POSITIONAL_OR_KEYWORD
+        ):
             if _is_tuple_param(param):
                 v = kwargs[param.name]
                 kwargs[param.name] = tuple(v)
