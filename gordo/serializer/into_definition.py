@@ -50,6 +50,8 @@ def into_definition(
           copy: true
           iterated_power: auto
           n_components: 4
+          n_oversamples: 10
+          power_iteration_normalizer: auto
           random_state: null
           svd_solver: auto
           tol: 0.0
