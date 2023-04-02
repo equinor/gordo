@@ -285,9 +285,6 @@ def extract_X_y(method):
         if request.method == "POST":
 
             # Always require an X, be it in JSON or file/parquet format.
-            with open("requests.txt", "a") as f:
-                f.write(repr(vars(request)))
-                f.write("\n\n")
             if request.is_json:
                 if "X" not in (request.json or {}):
                     message = dict(message='Cannot predict without "X"')
