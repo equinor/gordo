@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.9-bullseye as builder
+FROM python:3.10-bullseye as builder
 
 # Copy source code
 COPY . /code
