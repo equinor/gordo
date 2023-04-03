@@ -253,7 +253,7 @@ def test_client_cli_download_model(
     )
     assert (
         out.exit_code == 0
-    ), f"Expected output code 0 got '{out.exit_code}', {out.output} {repr(out)}"
+    ), f"Expected output code 0 got '{out.exit_code}', {out.output}"
 
     # Output directory should not be empty any longer
     assert len(os.listdir(tmpdir)) > 0
