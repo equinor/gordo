@@ -374,7 +374,7 @@ def ml_server(
                         content_type=request.headers["Content-Type"],
                         method=request.method,
                     )
-                    if flask_request.json:
+                    if flask_request.is_json:
                         kwargs["json"] = flask_request.json
                     else:
                         kwargs["data"] = {

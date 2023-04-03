@@ -178,7 +178,7 @@ def get_download_model():
     """
     serialized_model = serializer.dumps(g.model)
     buff = io.BytesIO(serialized_model)
-    return send_file(buff, attachment_filename="model.tar.gz")
+    return send_file(buff, download_name="model.pickle")
 
 
 @base_blueprint.route("/gordo/v0/<gordo_project>/models", methods=["GET"])

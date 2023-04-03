@@ -7,9 +7,12 @@ import typing  # noqa
 from typing import Union, Dict, Any, Iterable
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
-from tensorflow.keras.models import Sequential
+from tensorflow.keras import Sequential
+from inspect import signature, Parameter
 
 from gordo_core.import_utils import import_location
+
+from .utils import is_tuple_type
 
 
 logger = logging.getLogger(__name__)
@@ -60,6 +63,50 @@ def from_definition(
     # Avoid some mutation
     definition = copy.deepcopy(pipe_definition)
     return _build_step(definition)
+
+
+def _is_tuple_param(param: Parameter) -> bool:
+    if param.default is not param.empty:
+        if isinstance(param.default, tuple):
+            return True
+    if param.annotation and is_tuple_type(param.annotation):
+        return True
+    return False
+
+
+def create_instance(fn, **kwargs):
+    """
+    Create a class instance.
+
+    Examples
+    --------
+    >>> from sklearn.preprocessing import MinMaxScaler
+    >>> create_instance(MinMaxScaler, feature_range=[-1, 1])
+    MinMaxScaler(feature_range=(-1, 1))
+
+    Parameters
+    ----------
+    fn
+        Class factory function.
+    kwargs
+        fn parameters.
+
+    Returns
+    -------
+    """
+    s = signature(fn)
+    kwargs = copy.copy(kwargs)
+    for param in s.parameters.values():
+        if param.name not in kwargs:
+            continue
+        if (
+            param.kind == Parameter.KEYWORD_ONLY
+            or param.kind == Parameter.POSITIONAL_OR_KEYWORD
+        ):
+            if _is_tuple_param(param):
+                v = kwargs[param.name]
+                kwargs[param.name] = tuple(v)
+    return fn(**kwargs)
 
 
 def _build_branch(
@@ -181,7 +228,7 @@ def _build_step(
                     f"Got {StepClass} but the supplied parameters"
                     f"seem invalid: {params}"
                 )
-        return StepClass(**params)
+        return create_instance(StepClass, **params)
 
     # If step is just a string, can initialize it without any params
     # ie. "sklearn.preprocessing.PCA"
@@ -303,7 +350,7 @@ def _load_param_classes(params: dict):
                 else:
                     # Call this func again, incase there is nested occurances of this problem in these kwargs
                     kwargs = _load_param_classes(sub_params)
-                    params[key] = Model(**kwargs)  # type: ignore
+                    params[key] = create_instance(Model, **kwargs)  # type: ignore
         elif key == "callbacks" and isinstance(value, list):
             params[key] = _build_callbacks(value)
     return params

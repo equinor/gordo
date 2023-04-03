@@ -175,8 +175,12 @@ def build_app(
         g.current_revision = os.path.basename(g.collection_dir)
 
         # If a specific revision was requested, update collection_dir
-        g.revision = request.args.get("revision") or request.headers.get("revision")
-        if g.revision:
+        has_revision = "revision" in request.args or "revision" in request.headers
+        if has_revision:
+            if "revision" in request.args:
+                g.revision = request.args["revision"]
+            else:
+                g.revision = request.headers["revision"]
             if not validate_revision(g.revision):
                 return make_response(
                     jsonify({"error": "Revision should only contains numbers."}), 410

@@ -132,6 +132,8 @@ sklearn.pipeline.Pipeline:
       copy: true
       iterated_power: auto
       n_components: 2
+      n_oversamples: 10
+      power_iteration_normalizer: auto
       random_state: null
       svd_solver: auto
       tol: 0.0
@@ -143,6 +145,8 @@ sklearn.pipeline.Pipeline:
           copy: true
           iterated_power: auto
           n_components: 3
+          n_oversamples: 10
+          power_iteration_normalizer: auto
           random_state: null
           svd_solver: auto
           tol: 0.0
@@ -160,6 +164,8 @@ sklearn.pipeline.Pipeline:
               algorithm: randomized
               n_components: 2
               n_iter: 5
+              n_oversamples: 10
+              power_iteration_normalizer: auto
               random_state: null
               tol: 0.0
           verbose: false

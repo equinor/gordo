@@ -302,6 +302,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         results:
             np.ndarray
         """
+        kwargs.setdefault("verbose", 0)
         return self.model.predict(X, **kwargs)
 
     def get_params(self, **params):
@@ -371,6 +372,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         X: Union[np.ndarray, pd.DataFrame],
         y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
+        **kwargs,
     ) -> float:
         """
         Returns the explained variance score between auto encoder's input vs output
@@ -383,6 +385,8 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
             Target
         sample_weight: Optional[np.ndarray]
             sample weights
+        kwargs
+            Additional kwargs for model.predict()
 
         Returns
         -------
@@ -394,7 +398,8 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
 
-        out = self.model.predict(X)
+        kwargs.setdefault("verbose", 0)
+        out = self.model.predict(X, **kwargs)
 
         return explained_variance_score(y, out)
 
@@ -664,13 +669,15 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             lookback_window=self.lookback_window,
             lookahead=self.lookahead,
         )
-        return self.model.predict(tsg)
+        kwargs.setdefault("verbose", 0)
+        return self.model.predict(tsg, **kwargs)
 
     def score(
         self,
         X: Union[np.ndarray, pd.DataFrame],
         y: Union[np.ndarray, pd.DataFrame],
         sample_weight: Optional[np.ndarray] = None,
+        **kwargs,
     ) -> float:
         """
         Returns the explained variance score between 1 step forecasted input and true
@@ -684,6 +691,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             Target
         sample_weight: Optional[np.ndarray]
             Sample weights
+        kwargs
+            Additional kwargs for predict
 
         Returns
         -------
@@ -695,7 +704,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
 
-        out = self.predict(X)
+        kwargs.setdefault("verbose", 0)
+        out = self.predict(X, **kwargs)
 
         # Limit X samples to match the offset causes by LSTM lookback window
         # ie, if look back window is 5, 'out' will be 5 rows less than X by now

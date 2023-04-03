@@ -9,7 +9,9 @@ from sklearn.pipeline import Pipeline
 logger = logging.getLogger(__name__)
 
 
-def into_definition(pipeline: Pipeline, prune_default_params: bool = False) -> dict:
+def into_definition(
+    pipeline: Pipeline, prune_default_params: bool = False, tuples_to_list: bool = True
+) -> dict:
     """
     Convert an instance of ``sklearn.pipeline.Pipeline`` into a dict definition
     capable of being reconstructed with
@@ -22,6 +24,8 @@ def into_definition(pipeline: Pipeline, prune_default_params: bool = False) -> d
     prune_default_params: bool
         Whether to prune the default parameters found in current instance of the transformers
         vs what their default params are.
+    tuples_to_list: bool
+        Convert all tuples in output to lists
 
     Returns
     -------
@@ -46,6 +50,8 @@ def into_definition(pipeline: Pipeline, prune_default_params: bool = False) -> d
           copy: true
           iterated_power: auto
           n_components: 4
+          n_oversamples: 10
+          power_iteration_normalizer: auto
           random_state: null
           svd_solver: auto
           tol: 0.0
@@ -55,11 +61,13 @@ def into_definition(pipeline: Pipeline, prune_default_params: bool = False) -> d
       verbose: false
     <BLANKLINE>
     """
-    steps = _decompose_node(pipeline, prune_default_params)
+    steps = _decompose_node(pipeline, prune_default_params, tuples_to_list)
     return steps
 
 
-def _decompose_node(step: object, prune_default_params: bool = False):
+def _decompose_node(
+    step: object, prune_default_params: bool = False, tuples_to_list: bool = True
+):
     """
     Decompose a specific instance of a scikit-learn transformer,
     including Pipelines or FeatureUnions
@@ -71,6 +79,8 @@ def _decompose_node(step: object, prune_default_params: bool = False):
     prune_default_params
         Whether to output the default parameter values into the definition. If True,
         only those parameters differing from the default params will be output.
+    tuples_to_list
+        Convert all tuples in output to lists
 
     Returns
     -------
@@ -93,6 +103,14 @@ def _decompose_node(step: object, prune_default_params: bool = False):
             if prune_default_params
             else definition
         )
+
+    if prune_default_params:
+        new_definition = {}
+        for k, v in definition:
+            if isinstance(v, tuple):
+                v = list(v)
+            new_definition[k] = v
+        definition = new_definition
     return {import_str: definition}
 
 
@@ -126,13 +144,14 @@ def _prune_default_parameters(obj: object, current_params) -> dict:
     }
 
 
-def load_definition_from_params(params: dict) -> dict:
+def load_definition_from_params(params: dict, tuples_to_list: bool = True) -> dict:
     """
     Recursively decomposing each of values from params into the definition
 
     Parameters
     ----------
         params: dict
+        tuples_to_list: bool
 
     Returns
     -------
@@ -143,7 +162,9 @@ def load_definition_from_params(params: dict) -> dict:
     for param, param_val in params.items():
 
         if hasattr(param_val, "get_params") or hasattr(param_val, "into_definition"):
-            definition[param] = _decompose_node(param_val)
+            definition[param] = _decompose_node(
+                param_val, tuples_to_list=tuples_to_list
+            )
 
         # Handle parameter value that is a list
         elif isinstance(param_val, list):
@@ -153,7 +174,9 @@ def load_definition_from_params(params: dict) -> dict:
             # TODO: Make this more robust, probably via another function to parse the iterable recursively
             # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
             definition[param] = [
-                _decompose_node(leaf[1]) if isinstance(leaf, tuple) else leaf
+                _decompose_node(leaf[1], tuples_to_list=tuples_to_list)
+                if isinstance(leaf, tuple)
+                else leaf
                 for leaf in param_val
             ]
 

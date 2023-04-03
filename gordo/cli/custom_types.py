@@ -71,7 +71,7 @@ class HostIP(click.ParamType):
             ipaddress.ip_address(value)
             return value
         except ValueError as e:
-            self.fail(e)
+            self.fail(str(e))
 
 
 def key_value_par(val) -> Tuple[str, str]:
