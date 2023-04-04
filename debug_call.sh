@@ -4,7 +4,7 @@ echo "Start"
 "$@" &
 child_pid=$!
 while ps | grep $child_pid ; do
-  ps -u
+  ps aux | grep $child_pid
   sleep 30
 done
 echo "End"
