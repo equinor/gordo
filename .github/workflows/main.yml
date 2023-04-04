@@ -33,4 +33,4 @@ jobs:
           pip install -r requirements/test_requirements.txt
 
       - name: Test ${{ matrix.component }}
-        run: python setup.py test${{ matrix.component }}
+        run: bash debug_call.sh python setup.py test${{ matrix.component }}
