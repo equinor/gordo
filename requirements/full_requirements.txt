@@ -136,7 +136,7 @@ google-auth-oauthlib==1.0.0
     # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==6.1.3
+gordo-client==6.2.0rc0
     # via -r requirements.in
 gordo-core==0.3.0rc0
     # via
