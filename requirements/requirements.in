@@ -11,6 +11,6 @@ catboost~=1.1.1
 prometheus_client~=0.7
 # Due to azureml-core 1.49.0 depends on packaging<22.0 
 packaging>=21.0,<22.0
-gordo-client~=6.0,!=6.0.1
+gordo-client==6.2.0rc0
 gordo-core==0.3.0rc0
 MarkupSafe>=2.1.2,<3.0.0
