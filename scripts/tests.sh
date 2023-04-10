@@ -2,7 +2,7 @@
 
 set -e
 
-NON_DOCKER_ARGS="-n auto -m 'not dockertest'"
+NON_DOCKER_ARGS="-m 'not dockertest'"
 DOCKER_ARGS="-m 'dockertest'"
 
 function show_help() {
@@ -34,7 +34,7 @@ fi
 
 case "$action" in
     all)
-        pytest $NON_DOCKER_ARGS --ignore benchmarks
+        pytest -n auto $NON_DOCKER_ARGS --ignore benchmarks
         ;;
     builder)
         pytest $NON_DOCKER_ARGS tests/gordo/builder
