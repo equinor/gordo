@@ -2,8 +2,8 @@
 
 set -e
 
-NON_DOCKER_ARGS="-m 'not dockertest'"
-DOCKER_ARGS="-m 'dockertest'"
+NON_DOCKER_ARGS="-m \"not dockertest\""
+DOCKER_ARGS="-m \"dockertest\""
 
 function show_help() {
     echo "Usage: $0 [-h] ACTION"
