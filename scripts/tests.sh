@@ -80,7 +80,8 @@ case "$action" in
             --ignore tests/gordo/watchman \
             --ignore tests/gordo/workflow \
             --ignore tests/test_formatting.py \
-            --ignore benchmarks
+            --ignore benchmarks \
+            .
         ;;
     benchmarks) 
         pytest --benchmark-only benchmarks/
