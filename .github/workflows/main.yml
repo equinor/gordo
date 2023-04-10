@@ -34,4 +34,4 @@ jobs:
           python setup.py install
 
       - name: Test ${{ matrix.component }}
-        run: bash debug_call.sh pytest tests/gordo/${{ matrix.component }}
+        run: bash scripts/tests.sh ${{ matrix.component }}
