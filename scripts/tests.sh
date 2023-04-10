@@ -2,7 +2,8 @@
 
 set -e
 
-TESTS_DIR=tests/gordo
+TESTS_DIR=tests
+GORDO_TESTS_DIR=$TESTS_DIR/gordo
 PYTEST_ARGS="-n auto"
 
 function show_help() {
@@ -37,46 +38,49 @@ case "$action" in
         pytest -n auto -m 'not dockertest' --ignore benchmarks
         ;;
     builder)
-        pytest $PYTEST_ARGS $TESTS_DIR/builder
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/builder
         ;;
     cli)
-        pytest $PYTEST_ARGS $TESTS_DIR/cli
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/cli
         ;;
     client)
-        pytest $PYTEST_ARGS $TESTS_DIR/client
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/client
         ;;
     machine)
-        pytest $PYTEST_ARGS $TESTS_DIR/machine
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/machine
         ;;
     reporters)
-        pytest $PYTEST_ARGS $TESTS_DIR/reporters
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/reporters
         ;;
     serializer)
-        pytest $PYTEST_ARGS $TESTS_DIR/serializer
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/serializer
         ;;
     server)
-        pytest $PYTEST_ARGS $TESTS_DIR/server
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/server
         ;;
     util)
-        pytest $PYTEST_ARGS $TESTS_DIR/util
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/util
         ;;
     workflow)
-        pytest $PYTEST_ARGS $TESTS_DIR/workflow
+        pytest $PYTEST_ARGS $GORDO_TESTS_DIR/workflow
+        ;;
+    formatting)
+        pytest $PYTEST_ARGS $TESTS_DIR/test_formatting.py
         ;;
     docker)
         pytest -m 'dockertest'
         ;;
     allelse)
-        pytest $PYTEST_ARGS --ignore $TESTS_DIR/builder \
-            --ignore $TESTS_DIR/cli \
-            --ignore $TESTS_DIR/client \
-            --ignore $TESTS_DIR/machine \
-            --ignore $TESTS_DIR/reporters \
-            --ignore $TESTS_DIR/serializer \
-            --ignore $TESTS_DIR/server \
-            --ignore $TESTS_DIR/util \
-            --ignore $TESTS_DIR/watchman \
-            --ignore $TESTS_DIR/workflow \
+        pytest $PYTEST_ARGS --ignore $GORDO_TESTS_DIR/builder \
+            --ignore $GORDO_TESTS_DIR/cli \
+            --ignore $GORDO_TESTS_DIR/client \
+            --ignore $GORDO_TESTS_DIR/machine \
+            --ignore $GORDO_TESTS_DIR/reporters \
+            --ignore $GORDO_TESTS_DIR/serializer \
+            --ignore $GORDO_TESTS_DIR/server \
+            --ignore $GORDO_TESTS_DIR/util \
+            --ignore $GORDO_TESTS_DIR/watchman \
+            --ignore $GORDO_TESTS_DIR/workflow \
             --ignore tests/test_formatting.py \
             --ignore benchmarks
         ;;
