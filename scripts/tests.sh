@@ -2,7 +2,7 @@
 
 set -e
 
-PYTEST_ARGS="-m \"not dockertest\""
+PYTEST_ARG="-m 'not dockertest'"
 
 function show_help() {
     echo "Usage: $0 [-h] ACTION"
@@ -35,43 +35,43 @@ export PYTHONPATH=.
 
 case "$action" in
     all)
-        pytest -n auto "$PYTEST_ARGS" --ignore benchmarks
+        pytest -n auto "$PYTEST_ARG" --ignore benchmarks
         ;;
     builder)
-        pytest "$PYTEST_ARGS" tests/gordo/builder
+        pytest "$PYTEST_ARG" tests/gordo/builder
         ;;
     cli)
-        pytest "$PYTEST_ARGS" tests/gordo/cli
+        pytest "$PYTEST_ARG" tests/gordo/cli
         ;;
     client)
-        pytest "$PYTEST_ARGS" tests/gordo/client
+        pytest "$PYTEST_ARG" tests/gordo/client
         ;;
     machine)
-        pytest "$PYTEST_ARGS" tests/gordo/machine
+        pytest "$PYTEST_ARG" tests/gordo/machine
         ;;
     reporters)
-        pytest "$PYTEST_ARGS" tests/gordo/reporters
+        pytest "$PYTEST_ARG" tests/gordo/reporters
         ;;
     serializer)
-        pytest "$PYTEST_ARGS" tests/gordo/serializer
+        pytest "$PYTEST_ARG" tests/gordo/serializer
         ;;
     server)
-        pytest "$PYTEST_ARGS" tests/gordo/server
+        pytest "$PYTEST_ARG" tests/gordo/server
         ;;
     util)
-        pytest "$PYTEST_ARGS" tests/gordo/util
+        pytest "$PYTEST_ARG" tests/gordo/util
         ;;
     workflow)
-        pytest "$PYTEST_ARGS" tests/gordo/workflow
+        pytest "$PYTEST_ARG" tests/gordo/workflow
         ;;
     formatting)
-        pytest "$PYTEST_ARGS" tests/test_formatting.py
+        pytest "$PYTEST_ARG" tests/test_formatting.py
         ;;
     docker)
-        pytest "$PYTEST_ARGS" -m dockertest
+        pytest "$PYTEST_ARG" -m dockertest
         ;;
     allelse)
-        pytest "$PYTEST_ARGS" --ignore tests/gordo/builder \
+        pytest "$PYTEST_ARG" --ignore tests/gordo/builder \
             --ignore tests/gordo/cli \
             --ignore tests/gordo/client \
             --ignore tests/gordo/machine \
