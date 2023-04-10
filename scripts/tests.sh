@@ -2,7 +2,7 @@
 
 set -e
 
-PYTEST_ARGS=""
+PYTEST_ARGS="-m \"not dockertest\""
 
 function show_help() {
     echo "Usage: $0 [-h] ACTION"
