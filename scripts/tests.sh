@@ -31,6 +31,8 @@ if [[ ! "$action" =~ ^[a-z-]*$ ]]; then
     show_help 1
 fi
 
+export PYTHONPATH=.
+
 case "$action" in
     all)
         pytest -n auto $PYTEST_ARGS --ignore benchmarks
