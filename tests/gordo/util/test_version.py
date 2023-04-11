@@ -30,6 +30,7 @@ def test_release():
     [
         ("1.2.3", GordoRelease(1, 2, 3)),
         ("3.4.5dev2", GordoRelease(3, 4, 5, "dev2")),
+        ("0.1.dev0", GordoRelease(0, 1, None, ".dev0")),
         ("5.7", GordoRelease(5, 7)),
         ("latest", GordoSpecial(Special.LATEST)),
         ("pr-43", GordoPR(43)),

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import collections
 import copy
 import re
 import datetime
@@ -7,6 +6,8 @@ import datetime
 import pandas as pd
 import dateutil.parser
 import logging
+
+from collections.abc import Mapping
 
 from gordo.serializer import from_definition
 from gordo_core.sensor_tag import SensorTag
@@ -162,7 +163,7 @@ def fix_runtime(runtime_dict):
     # We must also limit/request errors
 
     for key, val in runtime_dict.items():
-        if isinstance(val, collections.Mapping):
+        if isinstance(val, Mapping):
             resource = val.get("resources")
             if resource:
                 runtime_dict[key]["resources"] = fix_resource_limits(resource)

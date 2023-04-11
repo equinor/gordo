@@ -1,5 +1,5 @@
 # Gordo base image
-FROM python:3.9-bullseye as builder
+FROM python:3.10-bullseye as builder
 
 # Copy source code
 COPY . /code
@@ -17,7 +17,7 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.9-slim-bullseye
+FROM python:3.10-slim-bullseye
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \

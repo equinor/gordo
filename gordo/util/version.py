@@ -32,7 +32,7 @@ class GordoSpecial(Version):
         return self.special.value
 
 
-release_re = re.compile(r"^(\d{1,5})(\.(\d+)(\.(\d+)(.*?)?)?)?$")
+release_re = re.compile(r"^(\d{1,5})(\.(\d+)((\.(\d+))?(.*?)?)?)?$")
 
 
 @dataclass(frozen=True)
@@ -119,7 +119,7 @@ def parse_version(
         return GordoPR(number)
     m = release_re.match(gordo_version)
     if m:
-        (major, _, minor, _, patch, suffix) = m.groups()
+        (major, _, minor, _, _, patch, suffix) = m.groups()
         return GordoRelease(
             int(major),
             int(minor) if minor else None,

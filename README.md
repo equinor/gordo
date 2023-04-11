@@ -19,19 +19,6 @@
 </div>
 
 ---
-
-## Table of content
-* [About](#About)
-* [Examples](#Examples)
-* [Install](#Install)
-* [Uninstall](#Uninstall)
-* [Developer manual](#Developer-manual)
-    * [How to prepare working environment](#How-to-prepare-working-environment)
-        * [How to update packages](#How-to-update-packages)
-    * [How to run tests locally](#How-to-run-tests-locally)
-        * [Tests system requirements](#Tests-system-requirements)
-        * [Run tests](#Run-tests)
-
 ## About
 
 Gordo fulfills the role of inhaling config files and supplying components to the pipeline of:
@@ -40,15 +27,19 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 2. Training model
 3. Serving model
 
+## Components
+
+* [gordo-controller](https://github.com/equinor/gordo-controller/) - Kubernetes controller for the Gordo CRD.
+* [gordo-core](https://github.com/equinor/gordo-core/) - Gordo core library.
+* [gordo-client](https://github.com/equinor/gordo-client/) - Gordo server's client. It is able to make predictions from deployed models.
+
 ---
+## Install
 
-## Examples
+[gordo-helm](https://github.com/equinor/gordo-helm) - you can use [gordo](https://github.com/equinor/gordo-helm/tree/main/charts/gordo) helm chart from this repository to deploy gordo infrastructure to your Kubernetes cluster. 
 
-See our [example](./examples) notebooks for how to develop with `gordo` locally.
+### Python package 
 
----
-
-## Install 
 `pip install --upgrade gordo`  
 
 With additional extras:
@@ -57,26 +48,34 @@ With additional extras:
 Bleeding edge:  
 `pip install git+https://github.com/equinor/gordo.git`
 
-## Uninstall
-`pip uninstall gordo`
 
 ## Developer manual
+
 This section will explain how to start development of Gordo.
 
-### How to prepare working environment
-- Install pip-tools
+### Setup
+
+Create and activate a virtual environment first. As a default option, it can be [venv](https://docs.python.org/3/library/venv.html) module.
+
+Install pip-tools
 ```
 pip install --upgrade pip
 pip install --upgrade pip-tools
 ```
 
-- Install requirements
+Install requirements
 ```
 pip install -r requirements/full_requirements.txt
 pip install -r requirements/test_requirements.txt
 ```
 
+Install package:
+```
+python3 setup.py install
+```
+
 #### How to update packages
+
 Note: you have to install `pip-tools` version higher then `6` for requirements to have same multi-line output format.
 
 To update some package in `full_requirements.txt`:
@@ -86,22 +85,26 @@ To update some package in `full_requirements.txt`:
 pip-compile --upgrade --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
 ```
 
+### Examples
+
+See our [example](./examples) notebooks for how to develop with `gordo` locally.
+
 ### How to run tests locally
 
-#### Tests system requirements
-To run tests it's required for your system to has (note: commands might differ from your OS):
-- Running docker process;
-- Available 5432 port for postgres container 
-(`postgresql` container is used, so better to stop your local instance for tests running). 
-
-#### Run tests
 List of commands to run tests can be found [here](/setup.cfg).
 Running of tests takes some time, so it's faster to run tests in parallel:
 ```
-python3 setup.py test
+pytest -n auto -m 'not dockertest' --ignore benchmarks
 ```
+Run docker-related tests:
+```
+pytest -m 'dockertest'
+```
+
+> **_NOTE:_**  To run tests it's required for your system to has (note: commands might differ from your OS):
+> - Running docker daemon.
+> - Available 5432 port for `postgres` container.
 
 > **_NOTE:_** this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
 > On the configuration setup for test running add to `Additional arguments:` in `pytest` 
 > section following string: `--ignore benchmarks --cov-report= --no-cov ` 
-> or TEMPORARY remove `--cov-report=xml` and `--cov=gordo` from `pytest.ini` file.
