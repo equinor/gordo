@@ -27,25 +27,21 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 2. Training model
 3. Serving model
 
+## Components
+
+* [gordo-controller](https://github.com/equinor/gordo-controller/) - Kubernetes controller for the Gordo CRD.
+* [gordo-core](https://github.com/equinor/gordo-core/) - Gordo core library.
+* [gordo-client](https://github.com/equinor/gordo-client/) - Gordo server's client. It is able to make predictions from deployed models.
+
 ---
 
-## Examples
-
-See our [example](./examples) notebooks for how to develop with `gordo` locally.
-
 ---
-## Install
+## Install infrastucture
 
-Use this helm chart to install
+[gordo-helm](https://github.com/equinor/gordo-helm) - you can use [gordo](https://github.com/equinor/gordo-helm/tree/main/charts/gordo) helm chart from this repository to deploy gordo infrastructure to your Kubernetes cluster. 
 
+## Install package
 
-## Developer manual
-This section will explain how to start development of Gordo.
-
-### Setup
-- Create and activate a virtual environment first. As a default option, it can be [venv](https://docs.python.org/3/library/venv.html) module.
-
-- Install package:
 `pip install --upgrade gordo`  
 
 With additional extras:
@@ -54,19 +50,34 @@ With additional extras:
 Bleeding edge:  
 `pip install git+https://github.com/equinor/gordo.git`
 
-- Install pip-tools
+
+## Developer manual
+
+This section will explain how to start development of Gordo.
+
+### Setup
+
+Create and activate a virtual environment first. As a default option, it can be [venv](https://docs.python.org/3/library/venv.html) module.
+
+Install pip-tools
 ```
 pip install --upgrade pip
 pip install --upgrade pip-tools
 ```
 
-- Install requirements
+Install requirements
 ```
 pip install -r requirements/full_requirements.txt
 pip install -r requirements/test_requirements.txt
 ```
 
+Install package:
+```
+python3 setup.py install
+```
+
 #### How to update packages
+
 Note: you have to install `pip-tools` version higher then `6` for requirements to have same multi-line output format.
 
 To update some package in `full_requirements.txt`:
@@ -76,15 +87,17 @@ To update some package in `full_requirements.txt`:
 pip-compile --upgrade --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
 ```
 
+#### Examples
+
+See our [example](./examples) notebooks for how to develop with `gordo` locally.
+
 ### How to run tests locally
 
-#### Tests system requirements
-To run tests it's required for your system to has (note: commands might differ from your OS):
-- Running docker process;
-- Available 5432 port for postgres container 
-(`postgresql` container is used, so better to stop your local instance for tests running). 
+> **_NOTE:_**  To run tests it's required for your system to has (note: commands might differ from your OS):
+> - Running docker process;
+> - Available 5432 port for postgres container 
+> (`postgresql` container is used, so better to stop your local instance for tests running). 
 
-#### Run tests
 List of commands to run tests can be found [here](/setup.cfg).
 Running of tests takes some time, so it's faster to run tests in parallel:
 ```
