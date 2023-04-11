@@ -7,40 +7,56 @@ function show_help() {
     echo
     echo "Runs CI pytest action."
     echo
+    echo "-n     uses xdist to speedup slow-running tests"
+    echo "-p     export PYTHONPATH variable. Helpful when gordo is not being installed in the system"
     echo "-h     display this help and exit"
     exit $1
 }
 
 
-while getopts "h" opt; do
-  case "$opt" in
-    h)
-        show_help 0
-        ;;
-  esac
+while getopts "nph" opt; do
+    case "$opt" in
+        n)
+            use_xdist="true"
+            ;;
+        p)
+            export_pythonpath="true"
+            ;;
+        h)
+            show_help 0
+            ;;
+    esac
 done
 
 shift $((OPTIND-1))
 
 action=$1
 
-export PYTHONPATH=.
+if [ -n "$export_pythonpath" ]; then
+    export PYTHONPATH=.
+fi
+
+if [ -n "$use_xdist" ]; then
+    slow_args="-n auto"
+else
+    slow_args="-n 0"
+fi
 
 case "$action" in
     all)
-        pytest -n auto -m "not dockertest" --ignore benchmarks
+        pytest $slow_args -m "not dockertest" --ignore benchmarks
         ;;
     builder)
-        pytest -n auto -m "not dockertest" tests/gordo/builder
+        pytest $slow_args -m "not dockertest" tests/gordo/builder
         ;;
     cli)
-        pytest -n auto -m "not dockertest" tests/gordo/cli
+        pytest $slow_args -m "not dockertest" tests/gordo/cli
         ;;
     machine)
-        pytest -n auto -m "not dockertest" tests/gordo/machine
+        pytest $slow_args -m "not dockertest" tests/gordo/machine
         ;;
     server)
-        pytest -n auto -m "not dockertest" tests/gordo/server
+        pytest $slow_args -m "not dockertest" tests/gordo/server
         ;;
     reporters)
         pytest -m "not dockertest" tests/gordo/reporters

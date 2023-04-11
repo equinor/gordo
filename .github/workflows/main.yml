@@ -40,4 +40,4 @@ jobs:
           pip install -r requirements/test_requirements.txt
 
       - name: Test ${{ matrix.component }}
-        run: bash scripts/tests.sh ${{ matrix.component }}
+        run: bash scripts/tests.sh -n -p ${{ matrix.component }}
