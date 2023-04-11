@@ -38,7 +38,7 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 
 [gordo-helm](https://github.com/equinor/gordo-helm) - you can use [gordo](https://github.com/equinor/gordo-helm/tree/main/charts/gordo) helm chart from this repository to deploy gordo infrastructure to your Kubernetes cluster. 
 
-### Package
+### Python package 
 
 `pip install --upgrade gordo`  
 
