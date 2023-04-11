@@ -19,19 +19,6 @@
 </div>
 
 ---
-
-## Table of content
-* [About](#About)
-* [Examples](#Examples)
-* [Install](#Install)
-* [Uninstall](#Uninstall)
-* [Developer manual](#Developer-manual)
-    * [How to prepare working environment](#How-to-prepare-working-environment)
-        * [How to update packages](#How-to-update-packages)
-    * [How to run tests locally](#How-to-run-tests-locally)
-        * [Tests system requirements](#Tests-system-requirements)
-        * [Run tests](#Run-tests)
-
 ## About
 
 Gordo fulfills the role of inhaling config files and supplying components to the pipeline of:
@@ -47,8 +34,18 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 See our [example](./examples) notebooks for how to develop with `gordo` locally.
 
 ---
+## Install
 
-## Install 
+Use this helm chart to install
+
+
+## Developer manual
+This section will explain how to start development of Gordo.
+
+### Setup
+- Create and activate a virtual environment first. As a default option, it can be [venv](https://docs.python.org/3/library/venv.html) module.
+
+- Install package:
 `pip install --upgrade gordo`  
 
 With additional extras:
@@ -57,13 +54,6 @@ With additional extras:
 Bleeding edge:  
 `pip install git+https://github.com/equinor/gordo.git`
 
-## Uninstall
-`pip uninstall gordo`
-
-## Developer manual
-This section will explain how to start development of Gordo.
-
-### How to prepare working environment
 - Install pip-tools
 ```
 pip install --upgrade pip
@@ -98,10 +88,12 @@ To run tests it's required for your system to has (note: commands might differ f
 List of commands to run tests can be found [here](/setup.cfg).
 Running of tests takes some time, so it's faster to run tests in parallel:
 ```
-python3 setup.py test
+pytest -n auto -m 'not dockertest' --ignore benchmarks
 ```
-
+Run docker-related tests:
+```
+pytest -m 'dockertest'
+```
 > **_NOTE:_** this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
 > On the configuration setup for test running add to `Additional arguments:` in `pytest` 
 > section following string: `--ignore benchmarks --cov-report= --no-cov ` 
-> or TEMPORARY remove `--cov-report=xml` and `--cov=gordo` from `pytest.ini` file.
