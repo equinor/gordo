@@ -102,9 +102,8 @@ pytest -m 'dockertest'
 ```
 
 > **_NOTE:_**  To run tests it's required for your system to has (note: commands might differ from your OS):
-> - Running docker process;
-> - Available 5432 port for postgres container 
-> (`postgresql` container is used, so better to stop your local instance for tests running). 
+> - Running docker daemon.
+> - Available 5432 port for postgres container.
 
 > **_NOTE:_** this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
 > On the configuration setup for test running add to `Additional arguments:` in `pytest` 
