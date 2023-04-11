@@ -34,13 +34,11 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 * [gordo-client](https://github.com/equinor/gordo-client/) - Gordo server's client. It is able to make predictions from deployed models.
 
 ---
-
----
-## Install infrastucture
+## Install
 
 [gordo-helm](https://github.com/equinor/gordo-helm) - you can use [gordo](https://github.com/equinor/gordo-helm/tree/main/charts/gordo) helm chart from this repository to deploy gordo infrastructure to your Kubernetes cluster. 
 
-## Install package
+### Package
 
 `pip install --upgrade gordo`  
 
@@ -87,16 +85,11 @@ To update some package in `full_requirements.txt`:
 pip-compile --upgrade --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in  
 ```
 
-#### Examples
+### Examples
 
 See our [example](./examples) notebooks for how to develop with `gordo` locally.
 
 ### How to run tests locally
-
-> **_NOTE:_**  To run tests it's required for your system to has (note: commands might differ from your OS):
-> - Running docker process;
-> - Available 5432 port for postgres container 
-> (`postgresql` container is used, so better to stop your local instance for tests running). 
 
 List of commands to run tests can be found [here](/setup.cfg).
 Running of tests takes some time, so it's faster to run tests in parallel:
@@ -107,6 +100,12 @@ Run docker-related tests:
 ```
 pytest -m 'dockertest'
 ```
+
+> **_NOTE:_**  To run tests it's required for your system to has (note: commands might differ from your OS):
+> - Running docker process;
+> - Available 5432 port for postgres container 
+> (`postgresql` container is used, so better to stop your local instance for tests running). 
+
 > **_NOTE:_** this example is for Pycharm IDE to use `breakpoints` in the code of the tests.  
 > On the configuration setup for test running add to `Additional arguments:` in `pytest` 
 > section following string: `--ignore benchmarks --cov-report= --no-cov ` 
