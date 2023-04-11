@@ -31,16 +31,16 @@ case "$action" in
         pytest -n auto -m "not dockertest" --ignore benchmarks
         ;;
     builder)
-        pytest -m "not dockertest" tests/gordo/builder
+        pytest -n auto -m "not dockertest" tests/gordo/builder
         ;;
     cli)
-        pytest -m "not dockertest" tests/gordo/cli
-        ;;
-    client)
-        pytest -m "not dockertest" tests/gordo/client
+        pytest -n auto -m "not dockertest" tests/gordo/cli
         ;;
     machine)
-        pytest -m "not dockertest" tests/gordo/machine
+        pytest -n auto -m "not dockertest" tests/gordo/machine
+        ;;
+    server)
+        pytest -n auto -m "not dockertest" tests/gordo/server
         ;;
     reporters)
         pytest -m "not dockertest" tests/gordo/reporters
@@ -48,8 +48,8 @@ case "$action" in
     serializer)
         pytest -m "not dockertest" tests/gordo/serializer
         ;;
-    server)
-        pytest -m "not dockertest" tests/gordo/server
+    client)
+        pytest -m "not dockertest" tests/gordo/client
         ;;
     util)
         pytest -m "not dockertest" tests/gordo/util
