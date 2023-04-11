@@ -2,8 +2,6 @@
 
 set -e
 
-PYTEST_ARG="-m 'not dockertest'"
-
 function show_help() {
     echo "Usage: $0 [-h] ACTION"
     echo
@@ -26,52 +24,44 @@ shift $((OPTIND-1))
 
 action=$1
 
-if [[ ! "$action" =~ ^[a-z-]*$ ]]; then
-    echo "Wrong action '$action' format." 1>&2
-    show_help 1
-fi
-
 export PYTHONPATH=.
 
 case "$action" in
     all)
-        pytest -n auto "$PYTEST_ARG" --ignore benchmarks
+        pytest -n auto -m "not dockertest" --ignore benchmarks
         ;;
     builder)
-        pytest "$PYTEST_ARG" tests/gordo/builder
+        pytest -m "not dockertest" tests/gordo/builder
         ;;
     cli)
-        pytest "$PYTEST_ARG" tests/gordo/cli
+        pytest -m "not dockertest" tests/gordo/cli
         ;;
     client)
-        pytest "$PYTEST_ARG" tests/gordo/client
+        pytest -m "not dockertest" tests/gordo/client
         ;;
     machine)
-        pytest "$PYTEST_ARG" tests/gordo/machine
+        pytest -m "not dockertest" tests/gordo/machine
         ;;
     reporters)
-        pytest "$PYTEST_ARG" tests/gordo/reporters
+        pytest -m "not dockertest" tests/gordo/reporters
         ;;
     serializer)
-        pytest "$PYTEST_ARG" tests/gordo/serializer
+        pytest -m "not dockertest" tests/gordo/serializer
         ;;
     server)
-        pytest "$PYTEST_ARG" tests/gordo/server
+        pytest -m "not dockertest" tests/gordo/server
         ;;
     util)
-        pytest "$PYTEST_ARG" tests/gordo/util
+        pytest -m "not dockertest" tests/gordo/util
         ;;
     workflow)
-        pytest "$PYTEST_ARG" tests/gordo/workflow
+        pytest -m "not dockertest" tests/gordo/workflow
         ;;
     formatting)
-        pytest "$PYTEST_ARG" tests/test_formatting.py
-        ;;
-    docker)
-        pytest "$PYTEST_ARG" -m dockertest
+        pytest -m "not dockertest" tests/test_formatting.py
         ;;
     allelse)
-        pytest "$PYTEST_ARG" --ignore tests/gordo/builder \
+        pytest -m "not dockertest" --ignore tests/gordo/builder \
             --ignore tests/gordo/cli \
             --ignore tests/gordo/client \
             --ignore tests/gordo/machine \
@@ -84,6 +74,9 @@ case "$action" in
             --ignore tests/test_formatting.py \
             --ignore benchmarks \
             .
+        ;;
+    docker)
+        pytest -m "dockertest" -m dockertest
         ;;
     benchmarks) 
         pytest --benchmark-only benchmarks/
