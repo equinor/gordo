@@ -8,7 +8,7 @@ function show_help() {
     echo "Runs CI pytest action."
     echo
     echo "-n     uses xdist to speedup slow-running tests"
-    echo "-p     export PYTHONPATH variable. Helpful when gordo is not being installed in the system"
+    echo "-p     export PYTHONPATH=. environment variable. Helpful when gordo is not being installed in the system"
     echo "-h     display this help and exit"
     exit $1
 }
