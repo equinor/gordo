@@ -244,7 +244,7 @@ def test_list_revisions_listdir_fail(caplog):
                 client = app.test_client()
                 resp = client.get("/gordo/v0/test-project/revisions")
 
-    assert mocked_listdir.called_once()
+    mocked_listdir.assert_called_once()
     assert set(resp.json.keys()) == {"latest", "available-revisions", "revision"}
     assert resp.json["latest"] == expected_revision
     assert isinstance(resp.json["available-revisions"], list)

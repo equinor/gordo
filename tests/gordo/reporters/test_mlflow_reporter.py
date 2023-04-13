@@ -79,7 +79,7 @@ def test_get_mlflow_client(
         assert MockInteractiveAuth.call_count == n_interactive
         assert MockSPAuth.call_count == n_spauth
         assert MockWorkspace.call_count == n_get_uri
-        assert MockClient.called_once()
+        MockClient.assert_called_once()
 
 
 @mock.patch("gordo.reporters.mlflow.InteractiveLoginAuthentication")

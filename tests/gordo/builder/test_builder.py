@@ -756,4 +756,4 @@ def test_builder_calls_machine_report(mocked_report_method, metadata):
     """
     machine = Machine.from_dict(metadata)
     ModelBuilder(machine).build()
-    assert mocked_report_method.called_once()
+    mocked_report_method.assert_called_once()

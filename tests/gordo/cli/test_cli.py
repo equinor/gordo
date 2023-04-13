@@ -438,7 +438,7 @@ def test_gunicorn_execution_hosts(runner, arg, value, exception_expected):
         assert (
             (result.exit_code != 0) if exception_expected else (result.exit_code == 0)
         )
-        assert m.called_once_with(value)
+        m.assert_called_once_with(value)
 
 
 def test_log_level_cli():
