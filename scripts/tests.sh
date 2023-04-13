@@ -8,7 +8,7 @@ function show_help() {
     echo "Runs CI pytest action."
     echo
     echo "-n     uses xdist to speedup slow-running tests"
-    echo "-p     export PYTHONPATH=. environment variable. Helpful when gordo is not being installed in the system"
+    echo "-p     export PYTHONPATH=. environment variable. Helpful when gordo is not installed in the system"
     echo "-h     display this help and exit"
     exit $1
 }
@@ -98,7 +98,7 @@ case "$action" in
         pytest --benchmark-only benchmarks/
         ;;
     *)
-        echo "Wrong action '$action'." 1>&2
+        echo "Wrong action \"$action\"." 1>&2
         show_help 2
         ;;
 esac

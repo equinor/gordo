@@ -29,9 +29,9 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 
 ## Components
 
-* [gordo-controller](https://github.com/equinor/gordo-controller/) - Kubernetes controller for the Gordo CRD.
+* [gordo-controller](https://github.com/equinor/gordo-controller/) - Kubernetes controller for the Gordo CRDs.
 * [gordo-core](https://github.com/equinor/gordo-core/) - Gordo core library.
-* [gordo-client](https://github.com/equinor/gordo-client/) - Gordo server's client. It is able to make predictions from deployed models.
+* [gordo-client](https://github.com/equinor/gordo-client/) - Gordo server's client. It can make predictions from deployed models.
 
 ---
 ## Install

@@ -3,18 +3,17 @@ docker>=4.0,<7.0
 pytest~=7.2
 pytest-xdist~=3.2
 pytest-mock~=3.6
-pytest-mypy~=0.9
+pytest-mypy~=0.10
 pytest-timeout~=2.1
 pytest-cov~=4.0
 pytest-benchmark~=4.0
-mock~=4.0
-responses~=0.13
+pytest-flakes~=4.0
+mock~=5.0
+responses~=0.23
 # Due to packaging>22.0 in black 23.0, azureml-core~=1.49 requires packaging<22.0
 black>=22.0,<23.0
-pytest-flakes~=4.0
 notebook~=6.4
-# Due to jinja2>=3.0 from nbconvert==6.5.3
-nbconvert>=6.0,<6.5.0
+nbconvert~=6.5
 types-simplejson
 types-python-dateutil
 types-PyYAML
