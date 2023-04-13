@@ -403,20 +403,28 @@ def test_mlflow_reporter_set_cli_build(
         assert not mock_get_workspace_kwargs.called
         assert not mock_get_spauth_kwargs.called
 
-DEFAULT_EXPECTED_KWARGS={"config_module": None, "worker_connections": 50, "threads": 8, "worker_class": 'gthread', "server_app": 'gordo.server.server:build_app()'}
+
+DEFAULT_EXPECTED_KWARGS = {
+    "config_module": None,
+    "worker_connections": 50,
+    "threads": 8,
+    "worker_class": "gthread",
+    "server_app": "gordo.server.server:build_app()",
+}
+
 
 @pytest.mark.parametrize(
     "arg,expected_args,expected_kwargs,exception_expected",
     [
         # Valid values
-        (["--host", "0.0.0.0"], ['0.0.0.0', 5555, 2, 'debug'], {}, False),
-        (["--host", "127.0.0.0"], ['127.0.0.0', 5555, 2, 'debug'], {}, False),
-        (["--port", 5555], ['0.0.0.0', 5555, 2, 'debug'], {}, False),
-        (["--workers", 1], ['0.0.0.0', 5555, 1, 'debug'], {}, False),
-        (["--log-level", "info"], ['0.0.0.0', 5555, 2, 'info'], {}, False),
-        (["--log-level", "debug"], ['0.0.0.0', 5555, 2, 'debug'], {}, False),
-        (["--threads", 4], ['0.0.0.0', 5555, 2, 'debug'], {"threads": 4}, False),
-        (["--worker-class", "gthread"], ['0.0.0.0', 5555, 2, 'debug'], {}, False),
+        (["--host", "0.0.0.0"], ["0.0.0.0", 5555, 2, "debug"], {}, False),
+        (["--host", "127.0.0.0"], ["127.0.0.0", 5555, 2, "debug"], {}, False),
+        (["--port", 5555], ["0.0.0.0", 5555, 2, "debug"], {}, False),
+        (["--workers", 1], ["0.0.0.0", 5555, 1, "debug"], {}, False),
+        (["--log-level", "info"], ["0.0.0.0", 5555, 2, "info"], {}, False),
+        (["--log-level", "debug"], ["0.0.0.0", 5555, 2, "debug"], {}, False),
+        (["--threads", 4], ["0.0.0.0", 5555, 2, "debug"], {"threads": 4}, False),
+        (["--worker-class", "gthread"], ["0.0.0.0", 5555, 2, "debug"], {}, False),
         # Invalid values
         (["--host", "0.0.0"], None, None, True),
         (["--port", 0], None, None, True),
@@ -426,7 +434,9 @@ DEFAULT_EXPECTED_KWARGS={"config_module": None, "worker_connections": 50, "threa
         (["--log-level", "badlevel"], None, None, True),
     ],
 )
-def test_gunicorn_execution_hosts(runner, arg, expected_args, expected_kwargs, exception_expected):
+def test_gunicorn_execution_hosts(
+    runner, arg, expected_args, expected_kwargs, exception_expected
+):
     """
     Test the validation of input parameters to the `run_server` function via the gordo cli
     """
@@ -439,7 +449,7 @@ def test_gunicorn_execution_hosts(runner, arg, expected_args, expected_kwargs, e
 
         if result.exit_code != 0:
             if not exception_expected:
-                raise AssertionError("Process exit code equal to %d" % result.exit_code )
+                raise AssertionError("Process exit code equal to %d" % result.exit_code)
         else:
             if exception_expected:
                 raise AssertionError("Process succeeded")
