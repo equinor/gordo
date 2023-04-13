@@ -120,6 +120,8 @@ jupyter-server==1.21.0
     #   notebook-shim
 jupyterlab-pygments==0.2.2
     # via nbconvert
+lxml==4.9.2
+    # via nbconvert
 markupsafe==2.1.2
     # via
     #   -c full_requirements.txt
@@ -131,7 +133,7 @@ matplotlib-inline==0.1.6
     #   ipython
 mistune==0.8.4
     # via nbconvert
-mock==4.0.3
+mock==5.0.1
     # via -r test_requirements.in
 mypy==0.982
     # via pytest-mypy
@@ -144,7 +146,7 @@ nbclassic==0.4.8
     # via notebook
 nbclient==0.5.13
     # via nbconvert
-nbconvert==6.4.5
+nbconvert==6.5.4
     # via
     #   -r test_requirements.in
     #   jupyter-server
@@ -174,6 +176,7 @@ packaging==21.3
     #   docker
     #   ipykernel
     #   jupyter-server
+    #   nbconvert
     #   pytest
 pandocfilters==1.5.0
     # via nbconvert
@@ -215,7 +218,7 @@ pycparser==2.21
     #   cffi
 pyflakes==2.5.0
     # via pytest-flakes
-pygments==2.14.0
+pygments==2.15.0
     # via
     #   -c full_requirements.txt
     #   ipython
@@ -258,6 +261,10 @@ python-dateutil==2.8.2
     # via
     #   -c full_requirements.txt
     #   jupyter-client
+pyyaml==5.4.1
+    # via
+    #   -c full_requirements.txt
+    #   responses
 pyzmq==24.0.1
     # via
     #   ipykernel
@@ -270,7 +277,7 @@ requests[socks]==2.28.2
     #   -c full_requirements.txt
     #   docker
     #   responses
-responses==0.22.0
+responses==0.23.1
     # via -r test_requirements.in
 send2trash==1.8.0
     # via
@@ -293,10 +300,8 @@ terminado==0.17.0
     #   jupyter-server
     #   nbclassic
     #   notebook
-testpath==0.6.0
+tinycss2==1.2.1
     # via nbconvert
-toml==0.10.2
-    # via responses
 tomli==1.2.3
     # via
     #   black
@@ -331,15 +336,15 @@ types-python-dateutil==2.8.19.2
 types-pytz==2022.6.0.1
     # via -r test_requirements.in
 types-pyyaml==6.0.12.1
-    # via -r test_requirements.in
+    # via
+    #   -r test_requirements.in
+    #   responses
 types-requests==2.28.11.2
     # via -r test_requirements.in
 types-setuptools==65.5.0.2
     # via -r test_requirements.in
 types-simplejson==3.17.7.1
     # via -r test_requirements.in
-types-toml==0.10.8
-    # via responses
 types-urllib3==1.26.25.1
     # via types-requests
 typing-extensions==4.5.0
@@ -356,7 +361,9 @@ urllib3==1.26.15
 wcwidth==0.2.5
     # via prompt-toolkit
 webencodings==0.5.1
-    # via bleach
+    # via
+    #   bleach
+    #   tinycss2
 websocket-client==1.5.1
     # via
     #   -c full_requirements.txt
