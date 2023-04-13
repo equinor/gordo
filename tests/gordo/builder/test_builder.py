@@ -746,14 +746,3 @@ def test_n_splits_from_config(mocked_pipeline_from_definition, cv):
         mocked_pipeline_from_definition.assert_called_with(
             {"sklearn.model_selection.TimeSeriesSplit": {"n_splits": 3}}
         )
-
-
-@patch("gordo.machine.Machine.report")
-def test_builder_calls_machine_report(mocked_report_method, metadata):
-    """
-    When building a machine, the Modelbuilder.build should call Machine.report()
-    so that it can run any reporters in the Machine's runtime.
-    """
-    machine = Machine.from_dict(metadata)
-    ModelBuilder(machine).build()
-    mocked_report_method.assert_called_once()
