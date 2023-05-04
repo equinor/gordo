@@ -114,7 +114,7 @@ docker==6.0.1
     #   mlflow
 entrypoints==0.4
     # via mlflow
-flask==2.2.3
+flask==2.2.5
     # via
     #   -r requirements.in
     #   mlflow
