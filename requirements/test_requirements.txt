@@ -60,7 +60,6 @@ entrypoints==0.4
     # via
     #   -c full_requirements.txt
     #   jupyter-client
-    #   nbconvert
 exceptiongroup==1.1.1
     # via pytest
 execnet==1.9.0
@@ -120,8 +119,6 @@ jupyter-server==1.21.0
     #   notebook-shim
 jupyterlab-pygments==0.2.2
     # via nbconvert
-lxml==4.9.2
-    # via nbconvert
 markupsafe==2.1.2
     # via
     #   -c full_requirements.txt
@@ -131,7 +128,7 @@ matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
-mistune==0.8.4
+mistune==2.0.5
     # via nbconvert
 mock==5.0.1
     # via -r test_requirements.in
@@ -146,7 +143,7 @@ nbclassic==0.4.8
     # via notebook
 nbclient==0.5.13
     # via nbconvert
-nbconvert==6.5.4
+nbconvert==7.4.0
     # via
     #   -r test_requirements.in
     #   jupyter-server
@@ -350,7 +347,6 @@ types-urllib3==1.26.25.1
 typing-extensions==4.5.0
     # via
     #   -c full_requirements.txt
-    #   black
     #   mypy
 urllib3==1.26.15
     # via
