@@ -26,9 +26,12 @@ RUN groupadd -g 999 gordo && \
 ENV HOME "/home/gordo"
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
+RUN echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list \
+    && echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
+
 RUN apt-get update && apt-get install -y \
-    curl \
     jq \
+    && apt-get install -y curl -t bullseye-backports \
     && rm -rf /var/lib/apt/lists/*
 
 # Install requirements separately for improved docker caching
