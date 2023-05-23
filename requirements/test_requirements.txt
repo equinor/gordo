@@ -365,3 +365,4 @@ websocket-client==1.5.1
     #   -c full_requirements.txt
     #   docker
     #   jupyter-server
+requests>=2.31.0 # not directly required, pinned by Snyk to avoid a vulnerability
