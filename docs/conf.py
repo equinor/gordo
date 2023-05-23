@@ -1,58 +1,126 @@
-# -*- coding: utf-8 -*-
-#
 # Configuration file for the Sphinx documentation builder.
 #
-# This file does only contain a selection of the most common options. For a
-# full list see the documentation:
-# http://www.sphinx-doc.org/en/master/config
+# For the full list of built-in configuration values, see the documentation:
+# https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 import os
 import sys
+import datetime
+import importlib
+import inspect
 
 sys.path.insert(0, os.path.abspath(".."))
 
 import gordo
 
+from gordo.util.version import parse_version, GordoRelease
 
-# -- Project information -----------------------------------------------------
-
-project = "Gordo"
-copyright = "2019, Equinor"
-author = "Erik Parmann, Kristian Flikka, Miles Granger, Natalie Caruana"
-
-# The short X.Y version
+project = "gordo"
+copyright = f"2019-{datetime.date.today().year}, Equinor"
+author = "Equinor ASA"
 version = gordo.__version__
-# The full version, including alpha/beta/rc tags
-release = ""
-
+_parsed_version = parse_version(version)
+commit = f"v{version}" if type(_parsed_version) is GordoRelease and not _parsed_version.suffix else "HEAD"
 
 # -- General configuration ---------------------------------------------------
-
-# If your documentation needs a minimal Sphinx version, state it here.
-#
-# needs_sphinx = '1.0'
-
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.todo",
-    "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
-    "sphinx.ext.ifconfig",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.githubpages",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
-    "sphinx_click.ext",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.linkcode",
+    "sphinx.ext.autosectionlabel",
+    "IPython.sphinxext.ipython_directive",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "sphinx_copybutton",
+    "sphinx_click",
 ]
+
+root_doc = "index"
+
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+code_url = f"https://github.com/equinor/{project}/blob/{commit}"
+
+_ignore_linkcode_infos = [
+    # caused "OSError: could not find class definition"
+    {"module": "gordo_core.utils", "fullname": "PredictionResult"}
+]
+
+
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
+
+    for ignore_info in _ignore_linkcode_infos:
+        if (
+            info["module"] == ignore_info["module"]
+            and info["fullname"] == ignore_info["fullname"]
+        ):
+            return None
+
+    mod = importlib.import_module(info["module"])
+    if "." in info["fullname"]:
+        objname, attr = info["fullname"].split(".")
+        obj = getattr(mod, objname)
+        try:
+            obj = getattr(obj, attr)
+        except AttributeError:
+            return None
+    else:
+        obj = getattr(mod, info["fullname"])
+
+    try:
+        file = inspect.getsourcefile(obj)
+        lines = inspect.getsourcelines(obj)
+    except TypeError:
+        return None
+
+    rel_path = os.path.relpath(file, os.path.abspath(".."))
+    if not rel_path.startswith("gordo"):
+        return None
+    start, end = lines[1], lines[1] + len(lines[0]) - 1
+    return f"{code_url}/{rel_path}#L{start}-L{end}"
+
+
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True
+
+extlinks = {
+    "issue": ("https://github.com/equinor/gordo/issues/%s", "Issue #"),
+    "pr": ("https://github.com/equinor/gordo/pull/%s", "PR #"),
+    "user": ("https://github.com/%s", "@"),
+}
+
+intersphinx_mapping = {
+    "gordo-core": ("https://gordo-core.readthedocs.io/en/latest/", None),
+    "gordo-client": ("https://gordo-client.readthedocs.io/en/latest/", None),
+    "python": ("https://docs.python.org/3", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
+    "numexpr": ("https://numexpr.readthedocs.io/en/latest/", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "scikit-learn": ("https://scikit-learn.org/stable/", None),
+    # "pyarrow": ("https://arrow.apache.org/docs/python/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
+    "influxdb": ("https://influxdb-python.readthedocs.io/en/latest/", None),
+    "flask": ("https://flask.palletsprojects.com/", None),
+}
+
+autosectionlabel_prefix_document = True
+
+autodoc_typehints = "signature"
+
+autodoc_typehints_description_target = "documented"
+
+autodoc_mock_imports = ["tensorflow"]
 
 # Document both class doc (default) and documentation in __init__
 autoclass_content = "both"
@@ -60,147 +128,51 @@ autoclass_content = "both"
 # Use docstrings from parent classes if not exists in children
 autodoc_inherit_docstrings = True
 
-autodoc_mock_imports = ["tensorflow"]
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
-
-# The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:
-source_suffix = [".rst"]
-
-# The master toctree document.
-master_doc = "index"
-
-# The language for content autogenerated by Sphinx. Refer to documentation
-# for a list of supported languages.
-#
-# This is also used if you do content translation via gettext catalogs.
-# Usually you set "language" from the command line for these cases.
-language = None
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
-
-
 # -- Options for HTML output -------------------------------------------------
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = "sphinx_rtd_theme"
-
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
-html_theme_options = {"body_min_width": "80%"}
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
+html_theme = "furo"
 html_static_path = ["_static"]
 
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# The default sidebars (for documents that don't match any pattern) are
-# defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
-# 'searchbox.html']``.
-#
-# html_sidebars = {}
-
-
-# -- Options for HTMLHelp output ---------------------------------------------
-
-# Output file base name for HTML help builder.
-htmlhelp_basename = "GordoComponentsdoc"
-
-
-# -- Options for LaTeX output ------------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    "pointsize": "12pt",
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
+html_theme_options = {
+    "footer_icons": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/equinor/gordo",
+            "html": """
+                <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                </svg>
+            """,
+            "class": "",
+        },
+    ],
+    "source_repository": "https://github.com/equinor/gordo",
+    "source_branch": "main",
+    "source_directory": "docs/",
 }
 
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
-#  author, documentclass [howto, manual, or own class]).
+html_copy_source = False
+
+html_show_sphinx = False
+
+# Configs for different output formats
+# ------------------------------------
+
+latex_elements = {
+    "pointsize": "12pt",
+}
+
 latex_documents = [
     (
-        master_doc,
+        root_doc,
         "Gordo.tex",
         "Gordo Documentation",
-        "Erik Parmann, Kristian Flikka, Miles Granger, Natalie Caruana",
+        "Equinor ASA",
         "manual",
     )
 ]
 
+man_pages = [(root_doc, "gordo", "Gordo Documentation", [author], 1)]
 
-# -- Options for manual page output ------------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "gordo", "Gordo Documentation", [author], 1)]
-
-
-# -- Options for Texinfo output ----------------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-    (
-        master_doc,
-        "Gordo",
-        "Gordo Documentation",
-        author,
-        "Gordo",
-        "One line description of project.",
-        "Miscellaneous",
-    )
-]
-
-
-# -- Options for Epub output -------------------------------------------------
-
-# Bibliographic Dublin Core info.
 epub_title = project
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
-# A list of files that should not be packed into the epub file.
 epub_exclude_files = ["search.html"]
-
-
-# -- Extension configuration -------------------------------------------------
-
-# -- Options for todo extension ----------------------------------------------
-
-# If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True

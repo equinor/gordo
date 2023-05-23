@@ -11,11 +11,11 @@ Server
     :undoc-members:
     :show-inheritance:
 
-Views
-=====
+Blueprints
+==========
 A collection of implemented views into the Model being served.
 
-.. automodule:: gordo.server.views
+.. automodule:: gordo.server.blueprints
     :members:
     :undoc-members:
     :show-inheritance:
