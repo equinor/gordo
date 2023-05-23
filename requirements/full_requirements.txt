@@ -488,3 +488,4 @@ zipp==3.15.0
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
+requests>=2.31.0 # not directly required, pinned by Snyk to avoid a vulnerability
