@@ -4,7 +4,7 @@
 apiVersion: equinor.com/v1
 kind: Gordo
 metadata:
-  name: test-project
+  name: example
 spec:
   deploy-version: 0.32.0
   config:

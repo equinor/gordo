@@ -1,8 +1,8 @@
 Quick start
 -----------
 
-The concept of Gordo is to (as of now) process, only, *timeseries*
-datasets which are comprised of sensors/tag identifies. The workflow
+The concept of Gordo is to (as of now) process, only, timeseries
+datasets which are comprised of `sensors tag <https://gordo-core.readthedocs.io/en/latest/api/sensor_tag.html#gordo_core.sensor_tag.SensorTag>`_ identifies. The workflow
 launches the collection of these tags, building of a defined model and
 subsequent deployment of a ML Server which acts as a REST interface
 in front of the model.

@@ -10,12 +10,6 @@ project level index, with returns a collection of the metadata surrounding the m
 Each ``endpoint`` key has an associated ``endpoint-metadata`` key which is the direct transferal of metadata returned from
 the ML servers at their :ref:`ml-server-metadata-route` route.
 
-This returns *a lot* of metadata data, so we'll show a small screen-shot of some of the data you might expect to get:
-
-.. image:: ../_static/endpoint-metadata.png
-
-----
-
 ==============================
 Machine Learning Server Routes
 ==============================
@@ -23,7 +17,7 @@ Machine Learning Server Routes
 When a model is deployed from a config file, it results in a ML
 server capable of the following paths:
 
-Under normal Equinor deployments, paths listed below should be prefixed with ``/gordo/v0/<project-name>/<model-name>``.
+Under normal deployments, paths listed below should be prefixed with ``/gordo/v0/<project-name>/<model-name>``.
 Otherwise, the paths listed below are the raw exposed endpoints from the server's perspective.
 
 ----

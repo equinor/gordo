@@ -1,0 +1,37 @@
+apiVersion: equinor.com/v1
+kind: Gordo
+metadata:
+  name: test-project
+spec:
+  deploy-version: latest
+  config:
+    globals:
+      model: |
+        gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+          base_estimator:
+            sklearn.pipeline.Pipeline:
+              steps:
+                - sklearn.preprocessing.MinMaxScaler
+                - gordo.machine.model.models.KerasAutoEncoder:
+                    kind: feedforward_hourglass
+    machines:
+      - name: test-model1
+        dataset: |
+          data_provider:
+            type: RandomDataProvider
+          tags: #list of tags
+            - TAG 1
+            - TAG 2
+            - TAG 3
+          train_start_date: 2023-06-07T09:11:30+01:00
+          train_end_date: 2023-09-15T03:01:00+01:00
+      - name: test-model2
+        dataset: |
+          data_provider:
+            type: RandomDataProvider
+          tags:
+            - TAG 4
+            - TAG 5
+            - TAG 6
+          train_start_date: 2023-06-07T09:11:30+01:00
+          train_end_date: 2023-09-15T03:01:00+01:00

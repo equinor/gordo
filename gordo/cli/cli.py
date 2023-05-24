@@ -126,28 +126,6 @@ def build(
     """
     Build a model and deposit it into 'output_dir' given the appropriate config
     settings.
-
-    \b
-    Parameters
-    ----------
-    machine_config: dict
-        A dict loadable by :class:`gordo.machine.Machine.from_config`
-    output_dir: str
-        Directory to save model & metadata to.
-    model_register_dir: path
-        Path to a directory which will index existing models and their locations, used
-        for re-using old models instead of rebuilding them. If omitted then always
-        rebuild
-    model_builder_class: str
-    print_cv_scores: bool
-        Print cross validation scores to stdout
-    model_parameter: List[Tuple[str, Any]
-        List of model key-values, wheres the values will be injected into the model
-        config wherever there is a jinja variable with the key.
-    exceptions_reporter_file: str
-        JSON output file for exception information
-    exceptions_report_level: str
-        Details level for exception reporting
     """
 
     try:

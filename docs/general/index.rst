@@ -4,6 +4,7 @@ General
 .. toctree::
     :maxdepth: 2
 
-    ./architecture.rst
+    ./overview.rst
     ./endpoints.rst
     ./quickstart.rst
+    ./model_configuration.rst
