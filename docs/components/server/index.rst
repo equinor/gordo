@@ -4,6 +4,7 @@ Server
 .. toctree::
     :maxdepth: 2
 
-    ./anomaly.rst
-    ./base.rst
     ./server.rst
+    ./base.rst
+    ./anomaly.rst
+    ./utils.rst

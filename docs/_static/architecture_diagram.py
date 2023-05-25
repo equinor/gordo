@@ -1,13 +1,17 @@
+import os
+
 from diagrams import Diagram, Cluster
 from diagrams.onprem.compute import Server
-from diagrams.oci.compute import Container, Functions
+from diagrams.oci.compute import Functions
 from diagrams.k8s.controlplane import API
 from diagrams.k8s.others import CRD
 from diagrams.k8s.compute import Job, Pod
 from diagrams.k8s.storage import PV
 from diagrams.custom import Custom
 
-with Diagram("Gordo flow", filename="_static/architecture_diagram", outformat="png", show=False) as diag:
+directory=os.path.dirname(__file__)
+
+with Diagram("Gordo flow", filename=os.path.join(directory, "architecture_diagram"), outformat="png", show=False) as diag:
     with Cluster("K8s"):
         gordo = CRD("Gordo")
         model = CRD("Model")
@@ -18,8 +22,8 @@ with Diagram("Gordo flow", filename="_static/architecture_diagram", outformat="p
         with Cluster("gordo-server"):
             server_api = Server("API")
         dpl_job = Job("dpl")
-        workflow = Custom("Workflow", "./argo_logo.png")
-        gordo_volume = PV("")
+        workflow = Custom("Workflow", os.path.join(directory, "./argo_logo.png"))
+        gordo_volume = PV("storage")
         model_builder1 = Pod("model_builder1")
         model_builder2 = Pod("model_builder2")
     gordo >> api

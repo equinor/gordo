@@ -14,7 +14,7 @@ help:
 .PHONY: help Makefile
 
 _static/architecture_diagram.png:
-	python3 ./architecture_diagram.py
+	python3 ./_static/architecture_diagram.py
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

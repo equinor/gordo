@@ -5,7 +5,6 @@ Components
     :maxdepth: 2
 
     ./builder.rst
-    ./cli.rst
     ./serializer.rst
     ./util.rst
     ./workflow.rst
