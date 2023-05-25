@@ -4,8 +4,8 @@ General
 .. toctree::
     :maxdepth: 2
 
-    ./overview.rst
+    ./quickstart.rst
     ./endpoints.rst
     ./cli.rst
-    ./quickstart.rst
+    ./cluster_deployment.rst
     ./model_configuration.rst

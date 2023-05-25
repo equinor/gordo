@@ -1,16 +1,13 @@
 Machine
 -------
 
-A Machine is the central unity of
+A ``Machine`` is the central unity of
 a model, dataset, metadata and everything
 needed to create and build a ML model to
 be served by a deployment.
 
 An example of a ``Machine`` in the context of a YAML config, could be
 the following:
-
-.. code-block:: yaml
-
     - name: ct-23-0001
       dataset:
         tags:
@@ -44,21 +41,3 @@ And to construct this into a python object:
     :members:
     :undoc-members:
     :show-inheritance:
-
-.. toctree::
-    :maxdepth: 4
-    :caption: Validators
-
-    ./validators.rst
-
-.. toctree::
-    :maxdepth: 4
-    :caption: Model
-
-    ./model/model.rst
-
-.. toctree::
-    :maxdepth: 4
-    :caption: Metadata
-
-    ./metadata.rst

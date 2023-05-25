@@ -11,5 +11,6 @@ and deployed as a REST API on Kubernetes.
 .. toctree::
     :maxdepth: 2
 
+    ./overview.rst
     ./general/index.rst
     ./components/index.rst
