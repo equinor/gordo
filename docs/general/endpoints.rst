@@ -12,6 +12,8 @@ server capable of the following paths:
 Under normal deployments, paths listed below should be prefixed with ``/gordo/v0/<project-name>/<model-name>``.
 Otherwise, the paths listed below are the raw exposed endpoints from the server's perspective.
 
+A detailed example of this API usage could be found :ref:`here <general/cluster_deployment:working with api>`.
+
 .. _post-prediction:
 
 POST /prediction

@@ -6,7 +6,7 @@ that is converted into an `Argo <https://argoproj.github.io/argo-workflows/>`_ w
 deployed with `ArgoCD <https://argo-cd.readthedocs.io/en/stable/>`_ onto a Kubernetes cluster.
 The main interface after building the models is a set of ``REST`` APIs
 
-.. image:: ../_static/architecture_diagram.png
+.. image:: _static/architecture_diagram.png
 
 `Gordo <https://github.com/equinor/gordo-helm/blob/main/charts/gordo/templates/crds/gordos.equinor.com.yaml>`_ is a `CustomResourceDefinition <https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/>`_
 represents the project and could contains multiple Machine Learning models.

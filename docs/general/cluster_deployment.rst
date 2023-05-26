@@ -10,6 +10,9 @@ Simplest possible project with 2 models we could find in ``examples/test-project
 
 .. literalinclude:: ../../examples/test-project.yaml
 
+Build
+^^^^^
+
 To deploy this project to the cluster:
 
 .. code-block:: console
@@ -55,7 +58,34 @@ For example we could check stored ML models on the disk:
 As you see all models have stored by default in directory: ``/gordo/models/<project_name>/models/<revision>``.
 ``model.pk`` is serialized in :mod:`pickle` format ML model; ``info.json``, ``metadata.json`` is a metadata.
 
-`port-forward <https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/#forward-a-local-port-to-a-port-on-the-pod>`_ ML server port first:
+Working with API
+^^^^^^^^^^^^^^^^
+
+We can also get model statuses though `gordo-controller <https://github.com/equinor/gordo-controller>`_ API.
+
+`port-forward <https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/#forward-a-local-port-to-a-port-on-the-pod>`_ ``gordo-controller`` port first:
+
+.. code-block:: console
+
+    > kubectl port-forward service/gordo-controller 7777:80
+    Forwarding from 127.0.0.1:7777 -> 8888
+    Forwarding from [::1]:7777 -> 8888
+
+Get models statuses and parse the response with `jq <https://stedolan.github.io/jq/download/>`_:
+
+.. code-block:: console
+
+    > curl -s localhost:7777/models | jq '.[] | [.metadata.name, .status.phase]'
+    [
+      "test-project-model1",
+      "Succeeded"
+    ]
+    [
+      "test-project-model2",
+      "Succeeded"
+    ]
+
+And ``port-forward`` ML Server port for get project-wide information:
 
 .. code-block:: console
 
@@ -70,7 +100,18 @@ Check deployed models revisions:
     > curl localhost:8888/gordo/v0/test-project/expected-models
     {"expected-models": ["model1", "model2"], "revision": "1685012943886"}
 
-Also we can interact with deployed ML server with help of `gordo-client <https://github.com/equinor/gordo-client>`_:
+Client usage
+^^^^^^^^^^^^
+
+Also, we can interact ML server with help of `gordo-client <https://github.com/equinor/gordo-client>`_.
+
+Load metadata to ``metadata.json`` file with :ref:`cli:gordo-client` CLI:
+
+.. code-block:: console
+
+    > gordo-client --project test-project --host localhost --port 8888 --scheme http metadata --output-file metadata.json
+
+Using python API:
 
 .. code-block:: python
 
