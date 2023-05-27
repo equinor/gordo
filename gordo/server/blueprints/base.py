@@ -214,4 +214,7 @@ def get_revision_list(gordo_project: str):
 
 @base_blueprint.route("/gordo/v0/<gordo_project>/expected-models", methods=["GET"])
 def get(gordo_project: str):
+    """
+    Returns list of models for this project. Those models are expected to be built.
+    """
     return jsonify({"expected-models": current_app.config["EXPECTED_MODELS"]})

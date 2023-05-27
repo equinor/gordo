@@ -222,7 +222,36 @@ Sample response:
 Model requests are exactly the same as :ref:`post-prediction`, but will require a ``y`` to compare the anomaly
 against.
 
-----
+.. _get-metadata:
+
+GET /metadata
+^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get_metadata`
+
+Various metadata surrounding the current model and environment.
+
+GET /expected-models
+^^^^^^^^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get`
+
+Returns list of models for this project. Those models are expected to be built.
+
+GET /models
+^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get_model_list`
+
+List of the current built models.
+
+GET /revisions
+^^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get_revision_list`
+
+List of available model revisions (versions).
+
 
 GET /download-model
 ^^^^^^^^^^^^^^^^^^^
@@ -231,11 +260,9 @@ GET /download-model
 
 Returns the current model being served. Loadable via :func:`gordo.serializer.loads`.
 
-----
+DELETE /revision
+^^^^^^^^^^^^^^^^
 
-.. _get-metadata:
+:func:`gordo.server.blueprints.base.delete_model_revision`
 
-GET /metadata
-^^^^^^^^^^^^^
-
-Various metadata surrounding the current model and environment.
+Delete one particular revision from the storage.

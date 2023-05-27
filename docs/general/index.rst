@@ -9,3 +9,4 @@ General
     ./cli.rst
     ./cluster_deployment.rst
     ./model_configuration.rst
+    ./metrics.rst

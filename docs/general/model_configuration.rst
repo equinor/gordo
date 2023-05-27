@@ -5,6 +5,8 @@ Example of the Gordo model configuration:
 
 .. literalinclude:: ../../examples/model-configuration.yaml
 
+We can deserialize this configuration into a model object with using :mod:`gordo.serializer.serializer` module:
+
 A Gordo model is typically wrapped by the class :class:`gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector`.
 This class holds generic methods for model cross-validation, training and fitting.
 
