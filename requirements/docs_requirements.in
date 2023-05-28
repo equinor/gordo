@@ -3,3 +3,4 @@ sphinx-autobuild~=2021.3
 sphinx-copybutton~=0.5
 furo~=2023.5
 sphinx-click~=4.4
+ipython~=8.13

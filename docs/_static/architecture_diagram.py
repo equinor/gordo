@@ -14,7 +14,6 @@ directory=os.path.dirname(__file__)
 with Diagram("Gordo flow", filename=os.path.join(directory, "architecture_diagram"), outformat="png", show=False) as diag:
     with Cluster("K8s"):
         gordo = CRD("Gordo")
-        model = CRD("Model")
         api = API("")
         with Cluster("gordo-controller"):
             Server("API")
@@ -23,11 +22,12 @@ with Diagram("Gordo flow", filename=os.path.join(directory, "architecture_diagra
             server_api = Server("API")
         dpl_job = Job("dpl")
         workflow = Custom("Workflow", os.path.join(directory, "./argo_logo.png"))
+        model = CRD("Model")
         gordo_volume = PV("storage")
         model_builder1 = Pod("model_builder1")
         model_builder2 = Pod("model_builder2")
     gordo >> api
-    model >> api
+    workflow >> model
     api >> controller
     controller >> dpl_job
     dpl_job >> workflow

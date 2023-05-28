@@ -12,7 +12,8 @@ import datetime
 import importlib
 import inspect
 
-sys.path.insert(0, os.path.abspath(".."))
+_module_path = os.path.join(os.path.dirname(__file__), "..")
+sys.path.insert(0, _module_path)
 
 import gordo
 
