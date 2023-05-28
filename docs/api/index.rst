@@ -1,5 +1,5 @@
-Components
-----------
+API
+---
 
 .. toctree::
     :maxdepth: 2

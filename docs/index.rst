@@ -13,4 +13,4 @@ and deployed as a REST API service on Kubernetes.
 
     ./overview.rst
     ./general/index.rst
-    ./components/index.rst
+    ./api/index.rst
