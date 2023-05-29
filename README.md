@@ -113,6 +113,8 @@ pytest -m 'dockertest'
 
 ### Build the documentation
 
+This command will run the local documentation server:
+
 ```console
 > cd docs/
 > make watch

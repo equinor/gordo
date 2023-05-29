@@ -51,9 +51,9 @@ class ExceptionsReporter:
         exceptions
             Exceptions list with preferred exit codes for each of them
         default_exit_code
-            Default exit code. It might be used as `sys.exit()` code
+            Default exit code. It might be used as :func:`sys.exit` code
         traceback_limit
-            Limit for `traceback.format_exception()`
+            Limit for :func:`traceback.format_exception`
         """
         self.exceptions_items = self.sort_exceptions(exceptions)
         self.default_exit_code = default_exit_code
@@ -108,16 +108,13 @@ class ExceptionsReporter:
 
     def exception_exit_code(self, exc_type: Optional[Type[BaseException]]) -> int:
         """
-        Possible `sys.exit()` code for given exception type
+        Possible :func:`sys.exit` code for given exception type
 
         Parameters
         ----------
         exc_type
             The exception type
 
-        Returns
-        -------
-        int
         """
         if exc_type is None:
             return 0
@@ -135,11 +132,11 @@ class ExceptionsReporter:
     ):
         """
         Report exception to the file.
-        `exc_type`, `exc_value`, `exc_traceback` might be values returned by `sys.exc_info()`
+        ``exc_type``, ``exc_value``, ``exc_traceback`` might be values returned by :func:`sys.exc_info`
 
         Parameters
         ----------
-        level: ReportLevel
+        level
             Level of the report verbosity
         exc_type
             The exception type
@@ -194,7 +191,7 @@ class ExceptionsReporter:
         max_message_len: Optional[int] = None,
     ):
         """
-        Basically this is a wrapper for `ExceptionsReporter.report()` function
+        Basically this is a wrapper for :func:`~ExceptionsReporter.report` function
         with additional internal exceptions handling
 
         Parameters

@@ -2,7 +2,7 @@ Builder
 -------
 
 Model builder
-=============
+^^^^^^^^^^^^^
 .. automodule:: gordo.builder.build_model
     :members:
     :undoc-members:
@@ -10,7 +10,7 @@ Model builder
 
 
 Local Model builder
-===================
+^^^^^^^^^^^^^^^^^^^
 
 This is meant to provide a good way to validate a configuration file
 as well as to enable creating and testing models locally with little overhead.
@@ -20,3 +20,10 @@ as well as to enable creating and testing models locally with little overhead.
     :undoc-members:
     :show-inheritance:
 
+Model builder utils
+^^^^^^^^^^^^^^^^^^^
+
+.. automodule:: gordo.builder.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:

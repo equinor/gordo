@@ -7,6 +7,7 @@ API
     ./builder.rst
     ./serializer.rst
     ./util.rst
+    ./cli.rst
     ./workflow.rst
     ./server/index.rst
     ./machine/index.rst
