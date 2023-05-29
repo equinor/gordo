@@ -33,40 +33,39 @@ def lstm_model(
 
     Parameters
     ----------
-    n_features: int
+    n_features
         Number of features the dataset X will contain.
-    n_features_out: Optional[int]
+    n_features_out
         Number of features the model will output, default to ``n_features``.
-    lookback_window: int
+    lookback_window
         Number of timesteps used to train the model.
         One timestep = current observation in the sample.
         Two timesteps = current observation + previous observation in the sample.
         ...
-    encoding_dim: tuple
+    encoding_dim
         Tuple of numbers with the number of neurons in the encoding part.
-    decoding_dim: tuple
+    decoding_dim
         Tuple of numbers with the number of neurons in the decoding part.
-    encoding_func: tuple
+    encoding_func
         Activation functions for the encoder part.
-    decoding_func: tuple
+    decoding_func
         Activation functions for the decoder part.
-    out_func: str
+    out_func
         Activation function for the output Dense layer.
-    optimizer: Union[str, Optimizer]
+    optimizer
         If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimize_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
-    optimizer_kwargs: Dict[str, Any]
+    optimizer_kwargs
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
-    compile_kwargs: Dict[str, Any]
+    compile_kwargs
         Parameters to pass to ``keras.Model.compile``.
 
     Returns
     -------
-    keras.models.Sequential
         Returns Keras sequential model.
 
     """
@@ -122,37 +121,36 @@ def lstm_symmetric(
 
     Parameters
     ----------
-    n_features: int
+    n_features
          Number of input and output neurons.
-    n_features_out: Optional[int]
+    n_features_out
         Number of features the model will output, default to ``n_features``.
-    lookback_window: int
+    lookback_window
         Number of timesteps used to train the model.
         One timestep = sample contains current observation.
         Two timesteps = sample contains current and previous observation.
         ...
-    dims: Tuple[int,...]
+    dims
          Number of neurons per layers for the encoder, reversed for the decoder.
          Must have len > 0
-    funcs: List[str]
+    funcs
         Activation functions for the internal layers.
-    out_func: str
+    out_func
         Activation function for the output Dense layer.
-    optimizer: Union[str, Optimizer]
+    optimizer
         If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
-    optimizer_kwargs: Dict[str, Any]
+    optimizer_kwargs
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
-    compile_kwargs: Dict[str, Any]
+    compile_kwargs
         Parameters to pass to ``keras.Model.compile``.
 
     Returns
     -------
-    keras.models.Sequential
         Returns Keras sequential model.
     """
 
@@ -200,11 +198,11 @@ def lstm_hourglass(
 
     Parameters
     ----------
-    n_features: int
+    n_features
         Number of input and output neurons.
-    n_features_out: Optional[int]
+    n_features_out
         Number of features the model will output, default to ``n_features``.
-    encoding_layers: int
+    encoding_layers
         Number of layers from the input layer (exclusive) to the
         narrowest layer (inclusive). Must be > 0. The total nr of layers
         including input and output layer will be 2*encoding_layers + 1.
@@ -212,26 +210,25 @@ def lstm_hourglass(
         How small the smallest layer is as a ratio of n_features
         (smallest layer is rounded up to nearest integer). Must satisfy
         0 <= compression_factor <= 1.
-    func: str
+    func
         Activation function for the internal layers.
-    out_func: str
+    out_func
         Activation function for the output Dense layer.
-    optimizer: Union[str, Optimizer]
+    optimizer
         If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
         class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
-    optimizer_kwargs: Dict[str, Any]
+    optimizer_kwargs
         The arguments for the chosen optimizer. If not provided Keras'
         default values will be used.
-    compile_kwargs: Dict[str, Any]
+    compile_kwargs
         Parameters to pass to ``keras.Model.compile``.
 
 
     Returns
     -------
-    keras.models.Sequential
 
     Examples
     --------

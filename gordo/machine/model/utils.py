@@ -26,10 +26,10 @@ def metric_wrapper(metric, scaler: Optional[TransformerMixin] = None):
     ----------
     metric
         Metric which must accept y_true and y_pred of the same length
-    scaler :  Optional[TransformerMixin]
+    scaler
         Transformer which will be applied on y and y_pred before the metrics is
-        calculated. Must have method `transform`, so for most scalers it must already
-        be fitted on `y`.
+        calculated. Must have method ``transform``, so for most scalers it must already
+        be fitted on ``y``.
     """
 
     @functools.wraps(metric)
@@ -61,25 +61,24 @@ def make_base_dataframe(
 
     Parameters
     ----------
-    tags: List[Union[str, SensorTag]]
+    tags
         Tags which will be assigned to ``model-input`` and/or ``model-output`` if
         the shapes match.
-    model_input: np.ndarray
+    model_input
         Original input given to the model
-    model_output: np.ndarray
+    model_output
         Raw model output
-    target_tag_list: Optional[Union[List[SensorTag], List[str]]]
+    target_tag_list
         Tags to be assigned to ``model-output`` if not assigned but model output matches
         model input, ``tags`` will be used.
-    index: Optional[np.ndarray]
+    index
         The index which should be assigned to the resulting dataframe, will be clipped
         to the length of ``model_output``, should the model output less than its input.
-    frequency: Optional[datetime.timedelta]
+    frequency
         The spacing of the time between points.
 
     Returns
     -------
-    pd.DataFrame
     """
 
     # Set target_tag_list to default to tags if not specified.

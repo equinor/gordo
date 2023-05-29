@@ -41,27 +41,27 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         Parameters
         ----------
-        base_estimator: sklearn.base.BaseEstimator
+        base_estimator
             The model to which normal ``.fit``, ``.predict`` methods will be used.
             defaults to py:class:`gordo.machine.model.models.KerasAutoEncoder` with
             ``kind='feedforward_hourglass``
-        scaler: sklearn.base.TransformerMixin
+        scaler
             Defaults to ``sklearn.preprocessing.RobustScaler``
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
-        require_thresholds: bool
+        require_thresholds
             Requires calculating ``thresholds_`` via a call to
             :func:`~DiffBasedAnomalyDetector.cross_validate`. If this is set
             (default True), but :func:`~DiffBasedAnomalyDetector.cross_validate` was not
             called before calling :func:`~DiffBasedAnomalyDetector.anomaly`
             an ``AttributeError`` will be raised.
-        shuffle: bool
+        shuffle
             Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
             will be trained on a sample of data accross the time range and not just
             the last elements according to model arg ``validation_split``.
-        window: int
+        window
             Window size for smoothed thresholds
-        smoothing_method: str
+        smoothing_method
             Method to be used together with ``window`` to smooth metrics.
             Must be one of: 'smm': simple moving median, 'sma': simple moving average or
             'ewma': exponential weighted moving average.
@@ -88,10 +88,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     def get_metadata(self):
         """
         Generates model metadata.
-
-        Returns
-        -------
-        dict
         """
         metadata = dict()
         if hasattr(self, "feature_thresholds_"):
@@ -156,10 +152,6 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
     def get_params(self, deep=True):
         """
         Get parameters for this estimator.
-
-        Returns
-        -------
-        dict
         """
         params = {
             "base_estimator": self.base_estimator,
@@ -195,17 +187,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         Parameters
         ----------
-        X: Union[pd.DataFrame, np.ndarray]
+        X
             Input data to the model
-        y: Union[pd.DataFrame, np.ndarray]
+        y
             Target data
-        kwargs: dict
+        kwargs
             Any additional kwargs to be passed to
             :func:`sklearn.model_selection.cross_validate`
-
-        Returns
-        -------
-        dict
         """
         # Depend on having the trained fold models
         kwargs.update(dict(return_estimator=True, cv=cv))
@@ -287,13 +275,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         Calculate the scaled MSE per timestep/sample
         Parameters
         ----------
-        model: BaseEstimator
+        model
             Instance of a fitted :class:`~DiffBasedAnomalyDetector`
-        y_true: Union[numpy.ndarray, pd.DataFrame]
-        y_pred: Union[numpy.ndarray, pd.DataFrame]
+        y_true
+        y_pred
+
         Returns
         -------
-        panadas.Series
             The MSE calculated from the scaled y and y predicted.
         """
         try:
@@ -330,14 +318,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
 
         Parameters
         ----------
-        X: pd.DataFrame
+        X
             Dataframe representing the data to go into the model.
-        y: pd.DataFrame
+        y
             Dataframe representing the target output of the model.
 
         Returns
         -------
-        pd.DataFrame
             A superset of the original base dataframe with added anomaly specific
             features
         """
@@ -495,32 +482,32 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
 
         Parameters
         ----------
-        base_estimator: sklearn.base.BaseEstimator
+        base_estimator
             The model to which normal ``.fit``, ``.predict`` methods will be used.
             defaults to py:class:`gordo.machine.model.models.KerasAutoEncoder` with
             ``kind='feedforward_hourglass``
-        scaler: sklearn.base.TransformerMixin
+        scaler
             Defaults to ``sklearn.preprocessing.RobustScaler``
             Used for transforming model output and the original ``y`` to calculate
             the difference/error in model output vs expected.
-        require_thresholds: bool
+        require_thresholds
             Requires calculating ``thresholds_`` via a call to
             :func:`~DiffBasedAnomalyDetector.cross_validate`.
             If this is set (default True), but
             :func:`~DiffBasedAnomalyDetector.cross_validate` was not called before
             calling :func:`~DiffBasedAnomalyDetector.anomaly` an ``AttributeError``
             will be raised.
-        shuffle: bool
+        shuffle
             Flag to shuffle or not data in ``.fit`` so that the model, if relevant,
             will be trained on a sample of data accross the time range and not just
             the last elements according to model arg ``validation_split``.
-        window: int
+        window
             Window size for smooth metrics and threshold calculation.
-        smoothing_method: str
+        smoothing_method
             Method to be used together with ``window`` to smooth metrics.
             Must be one of: 'smm': simple moving median, 'sma': simple moving average or
             'ewma': exponential weighted moving average.
-        threshold_percentile: float
+        threshold_percentile
             Percentile of the validation data to be used to calculate the threshold.
         """
         self.base_estimator = base_estimator
@@ -537,7 +524,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
 
         Returns
         -------
-        dict
         """
         params = {
             "base_estimator": self.base_estimator,
@@ -555,7 +541,6 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
 
         Returns
         -------
-        dict
         """
         metadata = dict()
 
@@ -592,17 +577,13 @@ class DiffBasedKFCVAnomalyDetector(DiffBasedAnomalyDetector):
 
         Parameters
         ----------
-        X: Union[pd.DataFrame, np.ndarray]
+        X
             Input data to the model
-        y: Union[pd.DataFrame, np.ndarray]
+        y
             Target data
-        kwargs: dict
+        kwargs
             Any additional kwargs to be passed to
             :func:`sklearn.model_selection.cross_validate`
-
-        Returns
-        -------
-        dict
         """
 
         # Depend on having the trained fold models

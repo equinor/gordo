@@ -58,9 +58,9 @@ def load_globals_config(config: dict, json_path: str = None) -> GlobalsConfig:
 
     Parameters
     ----------
-    config: str
+    config
         Config to load.
-    json_path: str
+    json_path
         JSON path position of the config.
 
     Returns
@@ -76,9 +76,9 @@ def load_machine_config(config: dict, json_path: str = None) -> MachineConfig:
 
     Parameters
     ----------
-    config: str
+    config
         Config to load.
-    json_path: str
+    json_path
         JSON path position of the config.
 
     Returns
@@ -99,9 +99,9 @@ def load_model_config(config: dict, json_path: str = None) -> ModelConfig:
 
     Parameters
     ----------
-    config: str
+    config
         Config to load.
-    json_path: str
+    json_path
         JSON path position of the config.
 
     Returns

@@ -61,15 +61,14 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
     ) -> None:
         """
         Initialized a Scikit-Learn API compatitble Keras model with a pre-registered
-        function or a builder function
-        directly.
+        function or a builder function directly.
 
         Parameters
         ----------
-        kind: Union[callable, str]
+        kind
             The structure of the model to build. As designated by any registered builder
             functions, registered with
-            `gordo_compontents.model.register.register_model_builder`.
+            :func:`gordo.machine.model.register.register_model_builder`.
             Alternatively, one may pass a builder function directly to this argument.
             Such a function should accept `n_features` as it's first argument, and pass
             any additional parameters to `**kwargs`
@@ -126,10 +125,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Parameters
         ----------
-        kwargs: dict
-
-        Returns
-        -------
+        kwargs
 
         """
         fit_args = {}
@@ -141,14 +137,12 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
     @classmethod
     def from_definition(cls, definition: dict):
         """
-        Handler for ``gordo.serializer.from_definition``
+        Handler for :func:`gordo.serializer.from_definition`
 
         Parameters
         ----------
-        definition: dict
-
-        Returns
-        -------
+        definition
+            Model definition
 
         """
         kind = definition.pop("kind")
@@ -161,7 +155,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Returns
         -------
-        dict
 
         """
         definition = copy(self.kwargs)
@@ -249,19 +242,14 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Parameters
         ----------
-        X: Union[np.ndarray, pd.DataFrame, xr.Dataset]
+        X
             numpy array or pandas dataframe
-        y: Union[np.ndarray, pd.DataFrame, xr.Dataset]
+        y
             numpy array or pandas dataframe
-        sample_weight: np.ndarray
+        sample_weight
             array like - weight to assign to samples
         kwargs
             Any additional kwargs to supply to keras fit method.
-
-        Returns
-        -------
-        self
-            'KerasAutoEncoder'
         """
 
         # Reshape y if needed, and set n features of target
@@ -291,16 +279,10 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Parameters
         ----------
-        X: np.ndarray
+        X
             Input data
-        kwargs: dict
+        kwargs
             kwargs which are passed to Kera's ``predict`` method
-
-
-        Returns
-        -------
-        results:
-            np.ndarray
         """
         kwargs.setdefault("verbose", 0)
         return self.model.predict(X, **kwargs)
@@ -316,7 +298,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Returns
         -------
-        Dict[str, Any]
             Parameters used in this estimator
         """
         params = super().get_params(**params)
@@ -351,7 +332,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         Returns
         -------
-        Dict
             Metadata dictionary, including a history object if present
         """
         if hasattr(self, "model") and hasattr(self, "history"):
@@ -379,18 +359,17 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X: Union[np.ndarray, pd.DataFrame]
+        X
             Input data to the model
-        y: Union[np.ndarray, pd.DataFrame]
+        y
             Target
-        sample_weight: Optional[np.ndarray]
+        sample_weight
             sample weights
         kwargs
             Additional kwargs for model.predict()
 
         Returns
         -------
-        score: float
             Returns the explained variance score
         """
         if not hasattr(self, "model"):
@@ -406,8 +385,9 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
 
 class KerasRawModelRegressor(KerasAutoEncoder):
     """
-    Create a scikit-learn like model with an underlying tensorflow.keras model
+    Create a scikit-learn like model with an underlying ``tensorflow.keras`` model
     from a raw config.
+
     Examples
     --------
     >>> import yaml
@@ -465,8 +445,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
 
 class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):
     """
-    Abstract Base Class to allow to train a many-one LSTM autoencoder and an LSTM
-    1 step forecast
+    Abstract Base Class to allow to train a many-one LSTM autoencoder and an LSTM 1 step forecast
     """
 
     def __init__(
@@ -479,24 +458,23 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         """
         Parameters
         ----------
-        kind: Union[Callable, str]
+        kind
             The structure of the model to build. As designated by any registered builder
-            functions, registered with
-            `gordo.machine.model.register.register_model_builder`.
+            functions, registered with :func:`gordo.machine.model.register.register_model_builder`.
             Alternatively, one may pass a builder function directly to this argument.
-            Such a function should accept `n_features` as it's first argument, and pass
-            any additional parameters to `**kwargs`.
-        lookback_window: int
+            Such a function should accept ``n_features`` as it's first argument, and pass
+            any additional parameters to ``**kwargs``.
+        lookback_window
             Number of timestamps (lags) used to train the model.
-        batch_size: int
+        batch_size
             Number of training examples used in one epoch.
-        epochs: int
+        epochs
             Number of epochs to train the model. An epoch is an iteration over the
             entire data provided.
-        verbose: int
+        verbose
             Verbosity mode. Possible values are 0, 1, or 2 where 0 = silent,
             1 = progress bar, 2 = one line per epoch.
-        kwargs: dict
+        kwargs
             Any arguments which are passed to the factory building function and/or any
             additional args to be passed to the intermediate fit method.
         """
@@ -541,7 +519,6 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         Returns
         -------
-        metadata: dict
             Metadata dictionary, including forecast steps.
         """
         metadata = super().get_metadata()
@@ -570,16 +547,15 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         Parameters
         ----------
-        X: np.ndarray
+        X
            2D numpy array of dimension n_samples x n_features. Input data to train.
-        y: np.ndarray
+        y
            2D numpy array representing the target
-        kwargs: dict
-            Any additional args to be passed to Keras `fit_generator` method.
+        kwargs
+            Any additional args to be passed to Keras ``fit_generator`` method.
 
         Returns
         -------
-        class:
             KerasLSTMForecast
 
         """
@@ -628,18 +604,17 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         """
         Parameters
         ----------
-         X: np.ndarray
-            Data to predict/transform. 2D numpy array of dimension `n_samples x
-            n_features` where `n_samples` must be > lookback_window.
+        X
+            Data to predict/transform. 2D numpy array of dimension ``n_samples x
+            n_features`` where ``n_samples`` must be > lookback_window.
 
         Returns
         -------
-        results: np.ndarray
-                 2D numpy array of dimension `(n_samples - lookback_window) x
-                 2*n_features`.  The first half of the array `(results[:,
-                 :n_features])` corresponds to X offset by `lookback_window+1` (i.e.,
-                 `X[lookback_window:,:]`) whereas the second half corresponds to the
-                 predicted values of `X[lookback_window:,:]`.
+                 2D numpy array of dimension ``(n_samples - lookback_window) x
+                 2*n_features``.  The first half of the array ``(results[:,
+                 :n_features])`` corresponds to X offset by ``lookback_window+1`` (i.e.,
+                 ``X[lookback_window:,:]``) whereas the second half corresponds to the
+                 predicted values of ``X[lookback_window:,:]``.
 
 
         Example
@@ -681,22 +656,21 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
     ) -> float:
         """
         Returns the explained variance score between 1 step forecasted input and true
-        input at next time step (note: for LSTM X is offset by `lookback_window`).
+        input at next time step (note: for LSTM X is offset by ``lookback_window``).
 
         Parameters
         ----------
-        X: Union[np.ndarray, pd.DataFrame]
+        X
             Input data to the model.
-        y: Union[np.ndarray, pd.DataFrame]
+        y
             Target
-        sample_weight: Optional[np.ndarray]
+        sample_weight
             Sample weights
         kwargs
             Additional kwargs for predict
 
         Returns
         -------
-        score: float
             Returns the explained variance score.
         """
         if not hasattr(self, "model"):
@@ -732,7 +706,7 @@ def create_keras_timeseriesgenerator(
     lookahead: int,
 ) -> tensorflow.keras.preprocessing.sequence.TimeseriesGenerator:
     """
-    Provides a `keras.preprocessing.sequence.TimeseriesGenerator` for use with
+    Provides a :class:`keras.preprocessing.sequence.TimeseriesGenerator` for use with
     LSTM's, but with the added ability to specify the lookahead of the target in y.
 
     If lookahead==0 then the generated samples in X will have as their last element
@@ -743,25 +717,24 @@ def create_keras_timeseriesgenerator(
 
     Parameters
     ----------
-    X: np.ndarray
+    X
         2d array of values, each row being one sample.
-    y: Optional[np.ndarray]
+    y
         array representing the target.
-    batch_size: int
+    batch_size
         How big should the generated batches be?
-    lookback_window: int
+    lookback_window
         How far back should each sample see. 1 means that it contains a single
         measurement
-    lookahead: int
+    lookahead
         How much is Y shifted relative to X
 
     Returns
     -------
-    TimeseriesGenerator
         3d matrix with a list of batchX-batchY pairs, where batchX is a batch of
-        X-values, and correspondingly for batchY. A batch consist of `batch_size` nr
+        X-values, and correspondingly for batchY. A batch consist of ``batch_size`` nr
         of pairs of samples (or y-values), and each sample is a list of length
-        `lookback_window`.
+        ``lookback_window``.
 
     Examples
     -------

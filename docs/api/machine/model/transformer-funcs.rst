@@ -2,7 +2,7 @@ Transformer Functions
 ---------------------
 
 A collection of functions which can be referenced within the
-``sklearn.preprocessing.FunctionTransformer`` transformer.
+:class:``sklearn.preprocessing.FunctionTransformer`` transformer.
 
 General
 =======

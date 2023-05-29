@@ -12,20 +12,19 @@ def hourglass_calc_dims(
 
     Parameters
     ----------
-    compression_factor: float
+    compression_factor
         How small the smallest layer is as a ratio of n_features
         (smallest layer is rounded up to nearest integer). Must satisfy
         0 <= compression_factor <= 1.
-    encoding_layers: int
+    encoding_layers
         Number of layers from the input layer (exclusive) to the
         narrowest layer (inclusive). Must be > 0. The total nr of layers
         including input and output layer will be 2*encoding_layers + 1.
-    n_features_out: Optional[int]
+    n_features_out
         Number of features the model will output, default to ``n_features``.
 
     Returns
     -------
-    dims: Tuple[int,...]
          Number of neurons per layers for the encoder, reversed for the decoder.
          Must have len > 0
     """
@@ -48,11 +47,11 @@ def check_dim_func_len(prefix: str, dim: Tuple[int, ...], func: Tuple[str, ...])
 
     Parameters
     ----------
-    prefix: str
+    prefix
         Parameter name prefix for error message generation (Options: "encoding" or "decoding").
-    dim: tuple of int
+    dim
         Tuple of numbers with the number of neurons in the encoding or decoding part.
-    func: Tuple[str,...]
+    func
         Tuple of numbers with the number of neurons in the decoding part.
     """
     if len(dim) != len(func):

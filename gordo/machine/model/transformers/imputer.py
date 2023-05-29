@@ -24,18 +24,18 @@ class InfImputer(TransformerMixin):
 
         Parameters
         ----------
-        inf_fill_value: numeric
+        inf_fill_value
             Value to fill 'inf' values
-        neg_inf_fill_value: numeric
+        neg_inf_fill_value
             Value to fill '-inf' values
-        strategy: str
+        strategy
             How to fill values, irrelevant if fill value is provided.
             choices: 'extremes', 'minmax'
             -'extremes' will use the min and max values for the current datatype.
             such that 'inf' in a float32 dataset will have float32's largest value inserted.
             - 'minmax' will look at the min and max values in the feature where the -inf / inf
             appears and fill with the max/min found in that feature.
-        delta: float
+        delta
             Only applicable if ``strategy='minmax'``
             Will add/subtract the max/min value, by feature, by this delta. If the max value
             in a feature was 10 and ``delta=2`` any inf value will be filled with 12.
