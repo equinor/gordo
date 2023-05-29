@@ -7,5 +7,3 @@ General
     ./endpoints.rst
     ./cli.rst
     ./cluster_deployment.rst
-    ./model_configuration.rst
-    ./model_output.rst

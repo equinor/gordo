@@ -1,5 +1,5 @@
-Model output
-------------
+Model output and evaluation
+---------------------------
 
 A Gordo model is typically of the class :class:`gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector`.
 This is the class that is initiated to both train/fit a model and later is used to gain predictions.

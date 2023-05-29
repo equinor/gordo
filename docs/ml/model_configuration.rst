@@ -1,5 +1,5 @@
-Model configuration
--------------------
+Configuration
+-------------
 
 Example of the Gordo model configuration:
 
