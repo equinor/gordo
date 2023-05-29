@@ -1,5 +1,6 @@
-sphinx-rtd-theme~=0.4
-sphinxcontrib-websupport~=1.1
-sphinx~=2.1
-sphinx-click~=2.0
-pandas==1.1.4
+sphinx~=6.2
+sphinx-autobuild~=2021.3
+sphinx-copybutton~=0.5
+furo~=2023.5
+sphinx-click~=4.4
+ipython~=8.13

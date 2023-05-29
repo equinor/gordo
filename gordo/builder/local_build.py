@@ -24,7 +24,7 @@ def local_build(
 
     Parameters
     ----------
-    config_str: str
+    config_str
         The raw yaml config file in string format.
 
     Examples
@@ -61,7 +61,6 @@ def local_build(
 
     Returns
     -------
-    Iterable[Tuple[Union[BaseEstimator, None], Machine]]
         A generator yielding tuples of models and their metadata.
     """
 

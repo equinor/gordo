@@ -57,7 +57,7 @@ class ModelBuilder:
 
         Parameters
         ----------
-        machine: Machine
+        machine
 
         Example
         -------
@@ -118,19 +118,18 @@ class ModelBuilder:
 
         Parameters
         ----------
-        output_dir: Optional[Union[os.PathLike, str]]
+        output_dir
             A path to where the model will be deposited.
-        model_register_dir: Optional[Union[os.PathLike, str]]
+        model_register_dir
             A path to a register, see `:func:gordo.util.disk_registry`.
             If this is None then always build the model, otherwise try to resolve
             the model from the registry.
-        replace_cache: bool
+        replace_cache
             Forces a rebuild of the model, and replaces the entry in the cache
             with the new model.
 
         Returns
         -------
-        Tuple[sklearn.base.BaseEstimator, Machine]
             Built model and an updated ``Machine``
         """
         if not model_register_dir:
@@ -352,14 +351,13 @@ class ModelBuilder:
 
         Parameters
         ----------
-        X: pd.DataFrame
+        X
             The training dataset that will be split during cross-validation.
-        split_obj: Type[sklearn.model_selection.BaseCrossValidator]
+        split_obj
             The cross-validation object that returns train, test indices for splitting.
 
         Returns
         -------
-        split_metadata: Dict[str,Any]
             Dictionary of cross-validation train/test split metadata
         """
         split_metadata: Dict[str, Any] = dict()
@@ -392,11 +390,11 @@ class ModelBuilder:
 
         Parameters
         ----------
-        metrics_list: list
+        metrics_list
             List of sklearn score functions
-        y: pd.DataFrame
+        y
             Target data
-        scaler : Optional[Union[TransformerMixin, str]]
+        scaler
             Scaler which will be fitted on y, and used to transform the data before
             scoring. Useful when the metrics are sensitive to the amplitude of the data, and
             you have multiple targets.
@@ -457,15 +455,14 @@ class ModelBuilder:
 
         Parameters
         ----------
-        model: sklearn.base.BaseEstimator
+        model
             Trained model with either ``predict`` or ``transform`` method, preference
             given to ``predict``.
-        X: Union[np.ndarray, pd.DataFrame]
+        X
             Data to pass to the model's ``predict`` or ``transform`` method.
 
         Returns
         -------
-        int
             The difference between X and the model's output lengths.
         """
         if isinstance(X, pd.DataFrame) or isinstance(X, xr.DataArray):
@@ -491,17 +488,16 @@ class ModelBuilder:
         Save the model according to the expected Argo workflow procedure.
         Parameters
         ----------
-        model: BaseEstimator
+        model
             The model to save to the directory with gordo serializer.
-        machine: Union[Machine, dict]
+        machine
             Machine instance used to build this model.
-        output_dir: Union[os.PathLike, str]
+        output_dir
             The directory where to save the model, will create directories if needed.
-        checksum: Optional[str]
+        checksum
             Model revision sha512 checksum. Might be taken from `self.check key`
         Returns
         -------
-        Union[os.PathLike, str]
             Path to the saved model
         """
         os.makedirs(output_dir, exist_ok=True)  # Ok if some dirs exist
@@ -528,8 +524,8 @@ class ModelBuilder:
 
         Parameters
         ----------
-        model: BaseEstimator
-        metadata: dict
+        model
+        metadata
             Any initial starting metadata, but is mainly meant to be used during
             the recursive calls to accumulate any multiple
             :class:`gordo.machine.model.base.GordoBase` models found in this model
@@ -541,7 +537,6 @@ class ModelBuilder:
 
         Returns
         -------
-        dict
             Dictionary representing accumulated calls to
             :meth:`gordo.machine.model.base.GordoBase.get_metadata`
         """
@@ -579,7 +574,6 @@ class ModelBuilder:
 
         Returns
         -------
-        str:
             A 512 byte hex value as a string based on the content of the parameters.
 
         Examples
@@ -639,14 +633,13 @@ class ModelBuilder:
 
         Parameters
         ----------
-        model_register_dir: [os.PathLike, None]
+        model_register_dir
             The register dir where the model lies.
-        cache_key: str
+        cache_key
             A 512 byte hex value as a string based on the content of the parameters.
 
-         Returns
+        Returns
         -------
-        Union[os.PathLike, None]:
             The path to the cached model, or None if it does not exist.
         """
         existing_model_location = disk_registry.get_value(model_register_dir, cache_key)
@@ -679,7 +672,7 @@ class ModelBuilder:
 
         Parameters
         ----------
-        metrics: Optional[List[str]]
+        metrics
             List of function paths to use as metrics for the model Defaults to
             those specified in :class:`gordo.workflow.config_components.NormalizedConfig`
             sklearn.metrics.explained_variance_score,
@@ -689,7 +682,6 @@ class ModelBuilder:
 
         Returns
         -------
-        List[Callable]
             A list of the functions loaded
 
         Raises

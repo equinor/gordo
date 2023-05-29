@@ -1,44 +1,25 @@
 Endpoints
 ---------
 
-==================
-Project index page
-==================
-
 Going to the base path of the project, ie. ``/gordo/v0/my-project/`` will return the
 project level index, with returns a collection of the metadata surrounding the models currently deployed and their status.
 Each ``endpoint`` key has an associated ``endpoint-metadata`` key which is the direct transferal of metadata returned from
-the ML servers at their :ref:`ml-server-metadata-route` route.
-
-This returns *a lot* of metadata data, so we'll show a small screen-shot of some of the data you might expect to get:
-
-.. image:: ../_static/endpoint-metadata.png
-
-----
-
-==============================
-Machine Learning Server Routes
-==============================
+the ML servers at their :ref:`get-metadata` route.
 
 When a model is deployed from a config file, it results in a ML
 server capable of the following paths:
 
-Under normal Equinor deployments, paths listed below should be prefixed with ``/gordo/v0/<project-name>/<model-name>``.
+Under normal deployments, paths listed below should be prefixed with ``/gordo/v0/<project-name>/<model-name>``.
 Otherwise, the paths listed below are the raw exposed endpoints from the server's perspective.
 
-----
+A detailed example of this API usage could be found :ref:`here <general/cluster_deployment:working with api>`.
 
-/
-=
+.. _post-prediction:
 
-This is the Swagger UI for the given model. Allows for manual testing of endpoints via a GUI interface.
+POST /prediction
+^^^^^^^^^^^^^^^^
 
-----
-
-.. _prediction-endpoint:
-
-/prediction/
-============
+:func:`gordo.server.blueprints.base.post_prediction`
 
 The ``/prediction`` endpoint will return the basic values a model
 is capable of returning. Namely, this will be:
@@ -74,7 +55,7 @@ Sample response:
 
 The endpoint only accepts POST requests.
 
-``POST`` requests take raw data:
+Requests takes raw data:
 
 .. code-block:: python
 
@@ -86,8 +67,9 @@ The endpoint only accepts POST requests.
     >>> # Multiple samples:
     >>> requests.post("https://my-server.io/prediction", json={"X": [[1, 2, 3, 4], [5, 6, 7, 8]]})  # doctest: +SKIP
 
-**NOTE:** The client must provide the correct number of input features, ie. if the model was trained on 4 features,
-the client should provide 4 feature sample(s).
+.. note::
+    The client must provide the correct number of input features, ie. if the model was trained on 4 features,
+    the client should provide 4 feature sample(s).
 
 You may also supply a dataframe using :func:`gordo.server.utils.dataframe_to_dict`:
 
@@ -160,15 +142,17 @@ Furthermore, you can increase efficiency by instead converting your data to parq
 
 ----
 
-/anomaly/prediction/
-====================
+POST /anomaly/prediction
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``/anomaly/prediction`` endpoint will return the data supplied by the ``/prediction`` endpoint
-but reserved for models which inherit from :class:`gordo.model.anomaly.base.AnomalyDetectorBase`
+:func:`gordo.server.blueprints.anomaly.post_anomaly_prediction`
 
-By this restriction, additional _features_ are calculated and returned (depending on the `AnomalyDetector` model being served.
+The ``/anomaly/prediction`` endpoint will return the data supplied by the :ref:`post-prediction` endpoint
+but reserved for models which inherit from :class:`gordo.machine.model.anomaly.base.AnomalyDetectorBase`
 
-For example, the :class:`gordo.model.anomaly.diff.DiffBasedAnomalyDetector` will return the following:
+By this restriction, additional features are calculated and returned.
+
+For example, the :class:`gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector` will return the following:
 
 - ``tag-anomaly-scaled`` & ``tag-anomaly-unscaled``:
     - Anomaly per feature/tag calculated from the expected tag input (y) and the model's output for those tags (yhat),
@@ -235,23 +219,50 @@ Sample response:
     'time-seconds': '0.1623'}
 
 
-
-This endpoint accepts only ``POST`` requests.
-Model requests are exactly the same as :ref:`prediction-endpoint`, but will require a ``y`` to compare the anomaly
+Model requests are exactly the same as :ref:`post-prediction`, but will require a ``y`` to compare the anomaly
 against.
 
-----
+.. _get-metadata:
 
-/download-model/
-================
+GET /metadata
+^^^^^^^^^^^^^
 
-Returns the current model being served. Loadable via ``gordo.serializer.loads(downloaded_bytes)``
-
-----
-
-.. _ml-server-metadata-route:
-
-/metadata/
-==========
+:func:`gordo.server.blueprints.base.get_metadata`
 
 Various metadata surrounding the current model and environment.
+
+GET /expected-models
+^^^^^^^^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get`
+
+Returns list of models for this project. Those models are expected to be built.
+
+GET /models
+^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get_model_list`
+
+List of the current built models.
+
+GET /revisions
+^^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get_revision_list`
+
+List of available model revisions (versions).
+
+
+GET /download-model
+^^^^^^^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.get_download_model`
+
+Returns the current model being served. Loadable via :func:`gordo.serializer.loads`.
+
+DELETE /revision
+^^^^^^^^^^^^^^^^
+
+:func:`gordo.server.blueprints.base.delete_model_revision`
+
+Delete one particular revision from the storage.

@@ -1,0 +1,24 @@
+evaluation:
+  cv:
+    sklearn.model_selection.TimeSeriesSplit:
+      n_splits: 5
+model:
+  gordo.machine.model.anomaly.diff.DiffBasedAnomalyDetector:
+    base_estimator:
+      sklearn.pipeline.Pipeline:
+        steps:
+          - sklearn.preprocessing.MinMaxScaler
+          - gordo.machine.model.models.KerasAutoEncoder:
+              batch_size: 128
+              compression_factor: 0.6
+              encoding_layers: 1
+              epochs: 100
+              func: tanh
+              kind: feedforward_hourglass
+              loss: mse
+              optimizer: Adam
+              out_func: linear
+              validation_split: 0.1
+    scaler: sklearn.preprocessing.MinMaxScaler
+    shuffle: true
+    smoothing_method: smm
