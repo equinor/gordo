@@ -8,4 +8,5 @@ Machine
     ./metadata.rst
     ./validators.rst
     ./loader.rst
+    ./reporters.rst
     ./model/index.rst

@@ -7,14 +7,15 @@ and serve the ML models.
 
 
 Normalized Config
-=================
+^^^^^^^^^^^^^^^^^
+
 .. automodule:: gordo.workflow.config_elements.normalized_config
     :members:
     :undoc-members:
     :show-inheritance:
 
 Workflow Generator
-==================
+^^^^^^^^^^^^^^^^^^
 
 Workflow loading/processing functionality to help the CLI 'workflow' sub-command.
 
@@ -23,10 +24,18 @@ Workflow loading/processing functionality to help the CLI 'workflow' sub-command
     :undoc-members:
     :show-inheritance:
 
-Helpers
-=======
-.. automodule:: gordo.workflow.workflow_generator.helpers
+Schemas
+^^^^^^^
+
+.. automodule:: gordo.workflow.config_elements.schemas
     :members:
     :undoc-members:
     :show-inheritance:
 
+Helpers
+^^^^^^^
+
+.. automodule:: gordo.workflow.workflow_generator.helpers
+    :members:
+    :undoc-members:
+    :show-inheritance:

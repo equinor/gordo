@@ -605,17 +605,14 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         Parameters
         ----------
         X
-            Data to predict/transform. 2D numpy array of dimension ``n_samples x
-            n_features`` where ``n_samples`` must be > lookback_window.
+            Data to predict/transform. 2D numpy array of dimension ``n_samples x n_features`` where ``n_samples`` must be > lookback_window.
 
         Returns
         -------
-                 2D numpy array of dimension ``(n_samples - lookback_window) x
-                 2*n_features``.  The first half of the array ``(results[:,
-                 :n_features])`` corresponds to X offset by ``lookback_window+1`` (i.e.,
-                 ``X[lookback_window:,:]``) whereas the second half corresponds to the
-                 predicted values of ``X[lookback_window:,:]``.
-
+            2D numpy array of dimension ``(n_samples - lookback_window) x 2*n_features``.
+            The first half of the array ``(results[:, :n_features])`` corresponds to X offset
+            by ``lookback_window+1`` (i.e., ``X[lookback_window:,:]``) whereas the second half corresponds to
+            the predicted values of ``X[lookback_window:,:]``.
 
         Example
         -------
