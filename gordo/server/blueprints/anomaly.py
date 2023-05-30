@@ -29,13 +29,12 @@ def _create_anomaly_response(start_time: float = None):
 
     Parameters
     ----------
-    start_time: Optional[float]
+    start_time
         Start time to use when timing the processing time of the request, will construct a new
         one if not provided.
 
     Returns
     -------
-    flask.Response
         The formatted anomaly representation response object.
     """
     if start_time is None:

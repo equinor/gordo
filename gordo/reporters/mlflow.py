@@ -40,9 +40,9 @@ def _validate_dict(d: dict, required_keys: List[str]):
 
     Parameters
     ----------
-    d: dict
+    d
         Dictionary to validate.
-    required_keys: List[str]
+    required_keys
         Keys that must be present in provided dictionary.
     """
     if any([key not in d for key in required_keys]):
@@ -59,7 +59,7 @@ def get_mlflow_client(
 
     Parameters
     ----------
-    workspace_kwargs: dict
+    workspace_kwargs
         AzureML Workspace configuration to use for remote MLFlow tracking. An
         empty dict will result in local logging by the MlflowClient.
         Example::
@@ -82,7 +82,6 @@ def get_mlflow_client(
 
     Returns
     -------
-    client: mlflow.tracking.MlflowClient
         Client with tracking uri set to AzureML if configured.
     """
     logger.info("Creating MLflow tracking client.")
@@ -128,16 +127,15 @@ def get_run_id(client: MlflowClient, experiment_name: str, model_key: str) -> st
 
     Parameters
     ----------
-    client: mlflow.tracking.MlflowClient
+    client
         Client with tracking uri set to AzureML if configured.
-    experiment_name: str
+    experiment_name
         Name of experiment to log to.
-    model_key: str
+    model_key
         Unique ID of model configuration.
 
     Returns
     -------
-    run_id: str
         Unique ID of MLflow run to log to.
     """
     experiment = client.get_experiment_by_name(experiment_name)
@@ -156,12 +154,11 @@ def _datetime_to_ms_since_epoch(dt: datetime) -> int:
 
     Parameters
     ----------
-    dt: datetime.datetime
+    dt
         Timestamp to convert (can be timezone aware or naive).
 
     Returns
     -------
-    dt: int
         Timestamp as milliseconds since Unix epoch
 
     Example
@@ -181,7 +178,6 @@ def epoch_now() -> int:
 
     Returns
     -------
-    now: int
         Milliseconds since Unix epoch.
     """
     return _datetime_to_ms_since_epoch(datetime.now(tz=UTC))
@@ -191,18 +187,16 @@ def get_machine_log_items(machine: Machine) -> Tuple[List[Metric], List[Param]]:
     """
     Create flat lists of MLflow logging entities from multilevel dictionary
 
-    For more information, see the mlflow docs:
-    https://www.mlflow.org/docs/latest/python_api/mlflow.tracking.html#mlflow.tracking.MlflowClient.log_batch
+    For more information, see the `mlflow docs <https://www.mlflow.org/docs/latest/python_api/mlflow.tracking.html#mlflow.tracking.MlflowClient.log_batch>`_.
 
     Parameters
     ----------
-    machine: Machine
+    machine
+        Machine to log.
 
     Returns
     -------
-    metrics: List[Metric]
         List of MLFlow Metric objects to log.
-    params: List[Param]
         List of MLFlow Param objects to log.
     """
 
@@ -296,18 +290,17 @@ def batch_log_items(
 
     Parameters
     ----------
-    metrics: List[Metric]
+    metrics
         List of MLFlow Metric objects to log.
-    params: List[Param]
+    params
         List of MLFlow Param objects to log.
-    n_max_metrics:int
+    n_max_metrics
         Limit to number of metrics AzureML allows per batch log request payload.
-    n_max_params:int
+    n_max_params
         Limit to number of params MLFlow allows per batch log request payload.
 
     Returns
     -------
-    log_batches: List[Dict[str, Union[Metric, Param]]]
         List of MlflowClinet.log_batch keyworkd arguments, split to quatnitites
         that respect limits present for MLFlow and AzureML.
     """
@@ -345,13 +338,12 @@ def get_kwargs_from_secret(name: str, keys: List[str]) -> dict:
 
     Parameters
     ----------
-    name: str
+    name
         Name of the environment variable whose content is a colon separated
         list of secrets.
 
     Returns
     -------
-    kwargs: dict
         Dictionary of keyword arguments parsed from environment variable.
     """
     secret_str = os.getenv(name)
@@ -381,7 +373,6 @@ def get_workspace_kwargs() -> dict:
 
     Returns
     -------
-    workspace_kwargs: dict
         AzureML Workspace configuration to use for remote MLFlow tracking. See
         :func:`gordo.builder.mlflow_utils.get_mlflow_client`.
     """
@@ -399,7 +390,6 @@ def get_spauth_kwargs() -> dict:
 
     Returns
     -------
-    service_principal_kwargs: dict
         AzureML ServicePrincipalAuthentication keyword arguments. See
         :func:`gordo.builder.mlflow_utils.get_mlflow_client`
     """
@@ -421,14 +411,14 @@ def mlflow_context(
 
     Parameters
     ----------
-    name: str
+    name
         The name of the log group to log to (e.g. a model name).
-    model_key: str
+    model_key
         Unique ID of logging run.
-    workspace_kwargs: dict
+    workspace_kwargs
         AzureML Workspace configuration to use for remote MLFlow tracking. See
         :func:`gordo.builder.mlflow_utils.get_mlflow_client`.
-    service_principal_kwargs: dict
+    service_principal_kwargs
         AzureML ServicePrincipalAuthentication keyword arguments. See
         :func:`gordo.builder.mlflow_utils.get_mlflow_client`
 
@@ -457,11 +447,11 @@ def log_machine(mlflow_client: MlflowClient, run_id: str, machine: Machine):
 
     Parameters
     ----------
-    mlflow_client: MlflowClient
+    mlflow_client
         Client instance to call logging methods from.
-    run_id: str
+    run_id
         Unique ID off MLflow Run to log to.
-    machine: Machine
+    machine
         Machine to log with MlflowClient.
     """
     # Log machine metrics and params

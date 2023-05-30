@@ -50,7 +50,7 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
 
     Parameters
     ----------
-    wsgi_app: typing.Callable
+    wsgi_app
         The underlying WSGI application of a flask app, for example
 
     Notes
@@ -79,7 +79,6 @@ def adapt_proxy_deployment(wsgi_app: typing.Callable) -> typing.Callable:
 
     Returns
     -------
-    Callable
 
     Example
     -------
@@ -254,24 +253,24 @@ def run_server(
 
     Parameters
     ----------
-    host: str
+    host
         The host to run the server on.
-    port: int
+    port
         The port to run the server on.
-    workers: int
+    workers
         The number of worker processes for handling requests.
-    log_level: str
+    log_level
         The log level for the `gunicorn` webserver. Valid log level names can be found
         in the [gunicorn documentation](http://docs.gunicorn.org/en/stable/settings.html#loglevel).
-    config_module: str
+    config_module
         The config module. Will be passed with `python:` [prefix](https://docs.gunicorn.org/en/stable/settings.html#config).
-    worker_connections: int
+    worker_connections
         The maximum number of simultaneous clients per worker process.
-    threads: str
+    threads
         The number of worker threads for handling requests.
-    worker_class: str
+    worker_class
         The type of workers to use.
-    server_app: str
+    server_app
         The application to run
     """
 

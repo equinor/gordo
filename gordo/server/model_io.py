@@ -21,12 +21,11 @@ def get_model_output(model: Pipeline, X: np.ndarray) -> np.ndarray:
 
     Parameters
     ----------
-    X: np.ndarray
+    X
         2d array of sample(s)
 
     Returns
     -------
-    np.ndarray
         The raw output of the model in numpy array form.
     """
     try:

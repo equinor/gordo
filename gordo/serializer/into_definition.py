@@ -19,17 +19,16 @@ def into_definition(
 
     Parameters
     ----------
-    pipeline: sklearn.pipeline.Pipeline
+    pipeline
         Instance of pipeline to decompose
-    prune_default_params: bool
+    prune_default_params
         Whether to prune the default parameters found in current instance of the transformers
         vs what their default params are.
-    tuples_to_list: bool
+    tuples_to_list
         Convert all tuples in output to lists
 
     Returns
     -------
-    dict
         definitions for the pipeline, compatible to be reconstructed with
         :func:`gordo.serializer.from_definition`
 
@@ -84,7 +83,6 @@ def _decompose_node(
 
     Returns
     -------
-    dict
         decomposed node - Where key is the import string for the class and associated value
         is a dict of parameters for that class.
     """

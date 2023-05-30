@@ -66,11 +66,10 @@ class PostgresReporter(BaseReporter):
 
         Parameters
         ----------
-        machine: gordo.machine.Machine
+        machine
 
         Returns
         -------
-        None
         """
         try:
             with self.db.atomic():

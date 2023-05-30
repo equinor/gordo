@@ -57,7 +57,6 @@ def from_definition(
 
     Returns
     -------
-    sklearn.pipeline.Pipeline
         pipeline
     """
     # Avoid some mutation
@@ -142,21 +141,22 @@ def _build_step(
 
     Parameters
     ----------
-    step: dict/str - A dict, with a single key and associated dict
-                     where the associated dict are parameters for the
-                     given step.
+    step
+        A dict, with a single key and associated dict
+        where the associated dict are parameters for the
+        given step.
 
-                     Example: {'sklearn.preprocessing.PCA':
-                                    {'n_components': 4}
-                              }
-                        Gives:  PCA(n_components=4)
+        Example: {'sklearn.preprocessing.PCA':
+                    {'n_components': 4}
+              }
+        Gives:  PCA(n_components=4)
 
-                    Alternatively, 'step' can be a single string, in
-                    which case the step will be initiated w/ default
-                    params.
+        Alternatively, 'step' can be a single string, in
+        which case the step will be initiated w/ default
+        params.
 
-                    Example: 'sklearn.preprocessing.PCA'
-                        Gives: PCA()
+        Example: 'sklearn.preprocessing.PCA'
+            Gives: PCA()
     Returns
     -------
         Scikit-Learn Transformer or BaseEstimator
@@ -252,7 +252,7 @@ def _build_callbacks(definitions: list):
     """
     Parameters
     ----------
-    definitions: List
+    definitions
         List of callbacks definitions
 
     Examples
@@ -263,7 +263,6 @@ def _build_callbacks(definitions: list):
 
     Returns
     -------
-    dict
     """
     callbacks = []
     for callback in definitions:
@@ -282,7 +281,7 @@ def _load_param_classes(params: dict):
 
     Parameters
     ----------
-    params: dict
+    params
         key value pairs of kwargs, which can have full class paths defined.
 
     Examples
@@ -304,7 +303,6 @@ def _load_param_classes(params: dict):
 
     Returns
     -------
-    dict
         Updated params which has any possible class paths loaded up as instantiated
         objects
     """
@@ -362,7 +360,7 @@ def load_params_from_definition(definition: dict) -> dict:
 
     Parameters
     ----------
-    definition: dict
+    definition
     """
     if not isinstance(definition, dict):
         raise ValueError(

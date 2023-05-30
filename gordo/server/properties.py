@@ -21,8 +21,8 @@ def find_path_in_dict(path: list[str], data: dict) -> Any:
 
     Parameters
     ----------
-    path: List[str]
-    data: dict
+    path
+    data
 
     Returns
     -------
@@ -73,7 +73,6 @@ def get_tags() -> list[SensorTag]:
 
     Returns
     -------
-    list[SensorTag]
     """
     dataset = g.metadata["dataset"]
     tag_list = dataset["tag_list"]
@@ -88,7 +87,6 @@ def get_target_tags() -> list[SensorTag]:
 
     Returns
     -------
-    list[SensorTag]
     """
     # TODO refactor this part to have the same tag preparation logic as in TimeSeriesDataset
     orig_target_tag_list = []
