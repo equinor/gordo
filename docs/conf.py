@@ -24,7 +24,7 @@ copyright = f"2019-{datetime.date.today().year}, Equinor"
 author = "Equinor ASA"
 version = gordo.__version__
 _parsed_version = parse_version(version)
-commit = f"v{version}" if type(_parsed_version) is GordoRelease and not _parsed_version.suffix else "HEAD"
+commit = f"{version}" if type(_parsed_version) is GordoRelease and not _parsed_version.suffix else "HEAD"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
