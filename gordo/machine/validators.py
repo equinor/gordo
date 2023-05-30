@@ -268,23 +268,23 @@ class ValidTagList(BaseDescriptor):
 
 class ValidUrlString(BaseDescriptor):
     """
-    Descriptor for use in objects which require valid URL values.
-    Where 'valid URL values' is Gordo's version: alphanumeric with dashes.
+        Descriptor for use in objects which require valid URL values.
+        Where 'valid URL values' is Gordo's version: alphanumeric with dashes.
 
-    Use:
+        Use:
 
-.. code-block:: python
+    .. code-block:: python
 
-    class MySpecialClass:
+        class MySpecialClass:
 
-        url_attribute = ValidUrlString()
+            url_attribute = ValidUrlString()
 
-        ...
+            ...
 
-    myspecialclass = MySpecialClass()
+        myspecialclass = MySpecialClass()
 
-    myspecialclass.url_attribute = 'this-is-ok'
-    myspecialclass.url_attribute = 'this will r@ise a ValueError'
+        myspecialclass.url_attribute = 'this-is-ok'
+        myspecialclass.url_attribute = 'this will r@ise a ValueError'
     """
 
     def __set__(self, instance, value):

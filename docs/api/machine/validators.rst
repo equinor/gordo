@@ -1,5 +1,5 @@
-Descriptors
------------
+Validators
+----------
 
 Collection of descriptors to verify types and conditions of the Machine
 attributes when loading.
