@@ -11,7 +11,6 @@ import sys
 import datetime
 import importlib
 import inspect
-import traceback
 
 _module_path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, _module_path)
@@ -63,41 +62,35 @@ def linkcode_resolve(domain, info):
     if domain != "py":
         return None
 
-    try:
-        for ignore_info in _ignore_linkcode_infos:
-            if (
-                info["module"] == ignore_info["module"]
-                and info["fullname"] == ignore_info["fullname"]
-            ):
-                return None
+    for ignore_info in _ignore_linkcode_infos:
+        if (
+            info["module"] == ignore_info["module"]
+            and info["fullname"] == ignore_info["fullname"]
+        ):
+            return None
 
-        mod = importlib.import_module(info["module"])
-        if "." in info["fullname"]:
-            objname, attr = info["fullname"].split(".")
-            obj = getattr(mod, objname)
-            try:
-                obj = getattr(obj, attr)
-            except AttributeError:
-                return None
-        else:
-            obj = getattr(mod, info["fullname"])
-
+    mod = importlib.import_module(info["module"])
+    if "." in info["fullname"]:
+        objname, attr = info["fullname"].split(".")
+        obj = getattr(mod, objname)
         try:
-            file = inspect.getsourcefile(obj)
-            lines = inspect.getsourcelines(obj)
-        except TypeError:
+            obj = getattr(obj, attr)
+        except AttributeError:
             return None
+    else:
+        obj = getattr(mod, info["fullname"])
 
-        rel_path = os.path.relpath(file, os.path.abspath(".."))
-        if not rel_path.startswith("gordo"):
-            return None
-        start, end = lines[1], lines[1] + len(lines[0]) - 1
-        return f"{code_url}/{rel_path}#L{start}-L{end}"
-    except:
-        with open("linkcode_resolve", "a") as f:
-            f.write("%s\n" % info)
-            traceback.print_exc(file=f)
-            f.write("\n")
+    try:
+        file = inspect.getsourcefile(obj)
+        lines = inspect.getsourcelines(obj)
+    except TypeError:
+        return None
+
+    rel_path = os.path.relpath(file, os.path.abspath(".."))
+    if not rel_path.startswith("gordo"):
+        return None
+    start, end = lines[1], lines[1] + len(lines[0]) - 1
+    return f"{code_url}/{rel_path}#L{start}-L{end}"
 
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
