@@ -20,7 +20,7 @@ class BaseDescriptor:
     """
     Base descriptor class
 
-    New object should override __set__(self, instance, value) method to check
+    New object should override ``__set__(self, instance, value)`` method to check
     if 'value' meets required needs.
     """
 
@@ -36,7 +36,7 @@ class BaseDescriptor:
 
 class ValidDataset(BaseDescriptor):
     """
-    Descriptor for attributes requiring type :class:`gordo.workflow.config_elements.Dataset`
+    Descriptor for attributes requiring type :class:`gordo_core.time_series.TimeSeriesDataset`
     """
 
     def __set__(self, instance, value):
@@ -53,7 +53,7 @@ class ValidDataset(BaseDescriptor):
 
 class ValidDatasetKwargs(BaseDescriptor):
     """
-    Descriptor for attributes requiring type :class:`gordo.workflow.config_elements.Dataset`
+    Descriptor for attributes requiring type :class:`gordo_core.time_series.TimeSeriesDataset`
     """
 
     def _verify_resolution(self, resolution: str):
@@ -178,7 +178,7 @@ def fix_resource_limits(resources: dict) -> dict:
 
     Parameters
     ----------
-    resources: dict
+    resources
         Dictionary with possible requests/limits
 
     Examples
@@ -191,8 +191,7 @@ def fix_resource_limits(resources: dict) -> dict:
 
     Returns
     -------
-    dict:
-        A copy of `resource_dict` with the any limits bumped to the corresponding request if
+        A copy of ``resource_dict`` with the any limits bumped to the corresponding request if
         they are both set.
     """
     resources = copy.deepcopy(resources)
@@ -269,10 +268,10 @@ class ValidTagList(BaseDescriptor):
 
 class ValidUrlString(BaseDescriptor):
     """
-    Descriptor for use in objects which require valid URL values.
-    Where 'valid URL values' is Gordo's version: alphanumeric with dashes.
+        Descriptor for use in objects which require valid URL values.
+        Where 'valid URL values' is Gordo's version: alphanumeric with dashes.
 
-    Use:
+        Use:
 
     .. code-block:: python
 
@@ -307,11 +306,9 @@ class ValidUrlString(BaseDescriptor):
 
         Parameters
         ----------
-            string: str - String to check
+        string
+            String to check
 
-        Returns
-        -------
-            bool
         """
         return bool(
             re.match(

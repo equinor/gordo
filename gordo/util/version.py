@@ -94,7 +94,7 @@ def parse_version(
 
     Parameters
     ----------
-    gordo_version: str
+    gordo_version
 
     Example
     -------
@@ -105,7 +105,6 @@ def parse_version(
 
     Returns
     -------
-    Union[GordoRelease, GordoSpecial, GordoPR, GordoSHA]
 
     """
     special_version = Special.find(gordo_version)

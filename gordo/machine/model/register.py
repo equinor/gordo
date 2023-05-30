@@ -9,28 +9,29 @@ logger = logging.getLogger(__name__)
 
 class register_model_builder:
     """
-    Decorator to register a function as an available 'type' in supporting
-    factory classes such as gordo_compontents.models._models.KerasAutoEncoder.
+        Decorator to register a function as an available 'type' in supporting
+        factory classes such as :class:`gordo.machine.model.models.KerasAutoEncoder`.
 
-    When submitting the config file, it's important that the 'kind' is compatible
-    with 'type'.
+        When submitting the config file, it's important that the 'kind' is compatible
+        with 'type'.
 
-    ie. 'type': 'KerasAutoEncoder' should support the object returned by a given
-    decorated function.
+        ie. 'type': 'KerasAutoEncoder' should support the object returned by a given
+        decorated function.
 
 
-    Example for KerasAutoEncoder:
+    .. code:: python
 
-    from gordo_compontents.models.register import register_model_builder
+        from gordo_compontents.models.register import register_model_builder
 
-    @register_model_builder(type='KerasAutoEncoder')
-    def special_keras_model_builder(n_features, ...):
-        ...
+        @register_model_builder(type='KerasAutoEncoder')
+        def special_keras_model_builder(n_features, ...):
+            ...
 
-    A valid yaml config would be:
-    model:
-        gordo.machine.models.KerasAutoEncoder:
-            kind: special_keras_model_builder
+        A valid yaml config would be:
+        model:
+            gordo.machine.models.KerasAutoEncoder:
+                kind: special_keras_model_builder
+
     """
 
     """

@@ -18,12 +18,13 @@ def requirements(fp: str):
 
 
 extras_require = {
-    "docs": requirements("docs_requirements.in"),
     "mlflow": requirements("mlflow_requirements.in"),
     "postgres": requirements("postgres_requirements.in"),
     "tests": requirements("test_requirements.txt"),
 }
-extras_require["full"] = extras_require["mlflow"] + extras_require["postgres"]
+full_extras = extras_require["mlflow"] + extras_require["postgres"]
+extras_require["full"] = full_extras
+extras_require["docs"] = requirements("docs_requirements.in") + full_extras
 
 install_requires = requirements("requirements.in")  # Allow flexible deps for install
 

@@ -21,7 +21,6 @@ class BaseReporter(abc.ABC):
 
         Returns
         -------
-        dict
         """
         return serializer.into_definition(self)
 

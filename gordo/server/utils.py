@@ -52,14 +52,13 @@ def dataframe_into_parquet_bytes(
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df
         DataFrame to be compressed
-    compression: str
+    compression
         Compression to use, passed to  :func:`pyarrow.parquet.write_table`
 
     Returns
     -------
-    bytes
     """
     table = pa.Table.from_pandas(df)
     buf = pa.BufferOutputStream()
@@ -73,13 +72,12 @@ def dataframe_from_parquet_bytes(buf: bytes) -> pd.DataFrame:
 
     Parameters
     ----------
-    buf: bytes
+    buf
         Bytes representing a parquet table. Can be the direct result from
         `func`::gordo.server.utils.dataframe_into_parquet_bytes
 
     Returns
     -------
-    pandas.DataFrame
     """
     table = pq.read_table(io.BytesIO(buf))
     return table.to_pandas()
@@ -98,12 +96,11 @@ def dataframe_to_dict(df: pd.DataFrame) -> dict:
 
     Parameters
     ----------
-    df: pandas.DataFrame
+    df
         Dataframe expected to have columns of type :class:`pandas.MultiIndex` 2 levels deep.
 
     Returns
     -------
-    List[dict]
         List of records representing the dataframe in a 'flattened' form.
 
 
@@ -153,12 +150,11 @@ def dataframe_from_dict(data: dict) -> pd.DataFrame:
 
     Parameters
     ----------
-    data: dict
+    data
         Data to be loaded into a MultiIndex column dataframe
 
     Returns
     -------
-    pandas.core.DataFrame
         MultiIndex column dataframe.
 
     Examples
@@ -218,15 +214,14 @@ def _verify_dataframe(
 
     Parameters
     ----------
-    df: pandas.core.DataFrame
+    df
         DataFrame to verify.
-    expected_columns: List[str]
+    expected_columns
         List of expected column names to give if the dataframe does not consist of them
         but the number of columns matches ``len(expected_columns)``
 
     Returns
     -------
-    Union[flask.wrappers.Response, pandas.core.DataFrame]
     """
     if not isinstance(df.columns, pd.MultiIndex):
         if not all(col in df.columns for col in expected_columns):
@@ -266,13 +261,12 @@ def extract_X_y(method):
 
     Parameters
     ----------
-    method: Callable
+    method
         The flask route to decorate, and will return it's own response object
         and will want to use ``flask.g.X`` and/or ``flask.g.y``
 
     Returns
     -------
-    flask.Response
         Will either run a :class:`flask.Response` with status code 400 if it fails
         to extract the X and optionally the y. Otherwise will run the decorated ``method``
         which is also expected to return some sort of :class:`flask.Response` object.
@@ -342,15 +336,14 @@ def load_model(directory: str, name: str) -> BaseEstimator:
 
     Parameters
     ----------
-    directory: str
+    directory
         Directory to look for the model
-    name: str
+    name
         Name of the model to load, this would be the sub directory within the
         directory parameter.
 
     Returns
     -------
-    BaseEstimator
     """
     start_time = timeit.default_timer()
     model = serializer.load(os.path.join(directory, name))
@@ -374,15 +367,14 @@ def load_metadata(directory: str, name: str) -> dict:
 
     Parameters
     ----------
-    directory: str
+    directory
         Directory to look for the model's metadata
-    name: str
+    name
         Name of the model to load metadata for, this would be the sub directory
         within the directory parameter.
 
     Returns
     -------
-    dict
     """
     compressed_metadata = _load_compressed_metadata(directory, name)
     return pickle.loads(zlib.decompress(compressed_metadata))

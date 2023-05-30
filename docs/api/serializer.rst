@@ -16,7 +16,7 @@ objects which will be (de)serialized by the serializer to complete this goal.
 
 
 From Definition
-===============
+^^^^^^^^^^^^^^^
 
 The ability to take a 'raw' representation of an object in ``dict`` form
 and load it into a Python object.
@@ -28,13 +28,21 @@ and load it into a Python object.
 
 
 Into Definitiion
-================
+^^^^^^^^^^^^^^^^
 
 The ability to take a Python object, such as a scikit-learn
 pipeline and convert it into a primitive ``dict``, which can then be inserted
 into a YAML config file.
 
 .. automodule:: gordo.serializer.into_definition
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Utils
+^^^^^
+
+.. automodule:: gordo.serializer.utils
     :members:
     :undoc-members:
     :show-inheritance:

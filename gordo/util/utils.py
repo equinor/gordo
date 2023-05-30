@@ -11,12 +11,11 @@ def capture_args(method: Callable):
 
     Parameters
     ----------
-    method: Callable
+    method
         Some method of an object, with 'self' as the first parameter.
 
     Returns
     -------
-    Any
         Returns whatever the original method would return
     """
 

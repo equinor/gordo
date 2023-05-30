@@ -173,7 +173,6 @@ def get_download_model():
 
     Returns
     -------
-    bytes
         Results from ``gordo.serializer.dumps()``
     """
     serialized_model = serializer.dumps(g.model)

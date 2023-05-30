@@ -196,10 +196,9 @@ def expand_model(model_config: str, model_parameters: dict):
 
     Parameters
     ----------
-    model_config: str
+    model_config
         Jinja template which when expanded becomes a valid model config json.
-    model_parameters:
-        Parameters for the model config.
+    model_parameters        Parameters for the model config.
 
     Raises
     ------
@@ -208,7 +207,6 @@ def expand_model(model_config: str, model_parameters: dict):
 
     Returns
     -------
-    str
         The model config with variables expanded
 
     """
@@ -226,13 +224,13 @@ def expand_model(model_config: str, model_parameters: dict):
 def get_all_score_strings(machine):
     """Given metadata from the model builder this function returns a list of
     strings of the following format:
-    {metric_name}-{tag_name}_{fold-fold-number} = {score_val}.  This computes the score for the given tag and
+    ``{metric_name}-{tag_name}_{fold-fold-number} = {score_val}``.  This computes the score for the given tag and
     cross validation split.
-    {metric_name}-{tag_name}_{fold-aggregation} = {score_val}. This computes the score for the given tag and aggregates
+    ``{metric_name}-{tag_name}_{fold-aggregation} = {score_val}``. This computes the score for the given tag and aggregates
     the score over all cross validation splits (aggregations currently used are mean, std, min and max)
-    {metric_name}_{fold-fold-number} = {score_val}.  This computes the score aggregate across all tags (uses sklearn's default
+    ``{metric_name}_{fold-fold-number} = {score_val}``.  This computes the score aggregate across all tags (uses sklearn's default
     aggregation method) for a given cross validation split.
-    {metric_name}_{fold-aggregation} = {score_val}.  This computes the score aggregate across all tags (uses sklearn's default
+    ``{metric_name}_{fold-aggregation} = {score_val}``.  This computes the score aggregate across all tags (uses sklearn's default
     aggregation method) and cross validation splits (aggregations currently used are mean, std, min and max).
 
     for katib to pick up.
@@ -244,7 +242,8 @@ def get_all_score_strings(machine):
 
     Parameters
     ----------
-    machine : Machine
+    machine
+        Machine to score
     """
     all_scores = []
     for (

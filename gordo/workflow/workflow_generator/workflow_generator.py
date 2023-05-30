@@ -31,13 +31,12 @@ def _valid_owner_ref(owner_reference_str: str):
 
     Parameters
     ----------
-    owner_reference_str: str
+    owner_reference_str
         String representation of the list of owner-references, should be parsable as
         yaml/json
 
     Returns
     -------
-    list[dict]
         The list of owner-references
 
     """
@@ -107,12 +106,11 @@ def load_workflow_template(workflow_template: str) -> jinja2.Template:
 
     Parameters
     ----------
-    workflow_template: str
+    workflow_template
         Path to a workflow template
 
     Returns
     -------
-    jinja2.Template
         Loaded but non-rendered jinja2 template for the workflow
     """
     path_to_workflow_template = os.path.abspath(workflow_template)

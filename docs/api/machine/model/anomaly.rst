@@ -1,12 +1,12 @@
 Anomaly Models
 --------------
 
-Models which implment a ``.anomaly(X, y)`` and can be served under the
-model server ``/anomaly/prediction`` endpoint.
+Models which implment a :func:`gordo.machine.model.anomaly.base.AnomalyDetectorBase.anomaly` and can be served under the
+model server :ref:`post-prediction` endpoint.
 
 
 AnomalyDetectorBase
-===================
+^^^^^^^^^^^^^^^^^^^
 
 The base class for all other anomaly detector models
 
@@ -17,10 +17,10 @@ The base class for all other anomaly detector models
 
 
 DiffBasedAnomalyDetector
-========================
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Calculates the absolute value prediction differences between y and yhat as well
-as the absolute difference error between both matrices via ``numpy.linalg.norm(..., axis=1)``
+as the absolute difference error between both matrices via :func:`numpy.linalg.norm`
 
 .. automodule:: gordo.machine.model.anomaly.diff
     :members:

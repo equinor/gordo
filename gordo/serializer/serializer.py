@@ -26,12 +26,11 @@ def dumps(model: Union[Pipeline, GordoBase]) -> bytes:
 
     Parameters
     ----------
-    model: Union[Pipeline, GordoBase]
+    model
         A gordo model/pipeline
 
     Returns
     -------
-    bytes
         Serialized model which supports loading via ``serializer.loads()``
 
     Example
@@ -55,12 +54,11 @@ def loads(bytes_object: bytes) -> GordoBase:
 
     Parameters
     ----------
-    bytes_object: bytes
+    bytes_object
         Bytes to be loaded, should be the result of `serializer.dumps(model)`
 
     Returns
     -------
-    Union[GordoBase, Pipeline, BaseEstimator]
         Custom gordo model, scikit learn pipeline or other scikit learn like object.
     """
     return pickle.loads(bytes_object)
@@ -103,13 +101,12 @@ def load_metadata(source_dir: Union[os.PathLike, str]) -> dict:
 
     Parameters
     ----------
-    source_dir: Union[os.PathLike, str]
+    source_dir
         Directory of the saved model, As with serializer.load(source_dir) this
         source_dir can be the top level, or the first dir into the serialized model.
 
     Returns
     -------
-    dict
 
     Raises
     ------
@@ -137,12 +134,11 @@ def load(source_dir: Union[os.PathLike, str]) -> Any:
 
     Parameters
     ----------
-    source_dir: Union[os.PathLike, str]
+    source_dir
         Location of the top level dir the pipeline was saved
 
     Returns
     -------
-    Union[GordoBase, Pipeline, BaseEstimator]
     """
     # This source dir should have a single pipeline entry directory.
     # may have been passed a top level dir, containing such an entry:
@@ -163,18 +159,17 @@ def dump(
     ----------
     obj
         The object to dump. Must be pickle-able.
-    dest_dir: Union[os.PathLike, str]
+    dest_dir
         The directory to which to save the model metadata: dict - any additional
         metadata to be saved alongside this model if it exists, will be returned
         from the corresponding "load" function
-    metadata: Optional dict of metadata which will be serialized to a file together
+    metadata
         with the model, and loaded again by :func:`load_metadata`.
-    info: Optional[str]
+    info
         Current revision info. For now, only used for storing "checksum"
 
     Returns
     -------
-    None
 
     Example
     -------

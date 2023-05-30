@@ -53,7 +53,9 @@ code_url = f"https://github.com/equinor/{project}/blob/{commit}"
 
 _ignore_linkcode_infos = [
     # caused "OSError: could not find class definition"
-    {"module": "gordo_core.utils", "fullname": "PredictionResult"}
+    {"module": "gordo_core.utils", "fullname": "PredictionResult"},
+    {'module': 'gordo.workflow.config_elements.schemas', 'fullname': 'Model.Config.extra'},
+    {'module': 'gordo.reporters.postgres', 'fullname': 'Machine.DoesNotExist'}
 ]
 
 

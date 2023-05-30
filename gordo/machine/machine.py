@@ -89,19 +89,17 @@ class Machine:
 
         Parameters
         ----------
-        config: dict[str, Any]
+        config
             The loaded block of config which represents a 'Machine' in YAML
-        project_name: str
+        project_name
             Name of the project this Machine belongs to.
-        config_globals:
-            The block of config within the YAML file within `globals`
-        back_compatibles: Optional[BackCompatibleLocations]
+        config_globals            The block of config within the YAML file within `globals`
+        back_compatibles
             See `gordo_core.import_utils.prepare_back_compatible_locations()` function for reference.
-        default_data_provider: Optional[str]
+        default_data_provider
 
         Returns
         -------
-        :class:`~Machine`
         """
         if config_globals is None:
             config_globals = dict()
@@ -156,11 +154,10 @@ class Machine:
 
         Parameters
         ----------
-        tag_list: TagsList
+        tag_list
 
         Returns
         -------
-        List[SensorTag]
 
         """
         metadata = self.metadata

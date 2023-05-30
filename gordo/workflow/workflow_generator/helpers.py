@@ -20,9 +20,9 @@ def patch_dict(original_dict: dict, patch_dictionary: dict) -> dict:
 
     Parameters
     ----------
-    original_dict : dict
+    original_dict
         Base dictionary which will get paths added/changed
-    patch_dictionary: dict
+    patch_dictionary
         Dictionary which will be overlaid on top of original_dict
 
     Examples
@@ -36,7 +36,6 @@ def patch_dict(original_dict: dict, patch_dictionary: dict) -> dict:
 
     Returns
     -------
-    dict
         A new dictionary which is the result of overlaying `patch_dictionary` on top of
         `original_dict`
 
@@ -52,7 +51,7 @@ def parse_argo_version(argo_version: str) -> Optional[version.Version]:
 
     Parameters
     ----------
-    argo_version: str
+    argo_version
 
     Returns
     -------

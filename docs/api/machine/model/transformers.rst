@@ -3,7 +3,7 @@ Transformers
 
 Specialized transformers to address Gordo specific problems.
 This function just like Scikit-Learn's transformers and thus can be
-inserted into ``Pipeline`` objects.
+inserted into :class:`sklearn.pipeline.Pipeline` objects.
 
 Imputers
 ========

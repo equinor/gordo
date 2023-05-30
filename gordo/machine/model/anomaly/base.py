@@ -17,7 +17,7 @@ class AnomalyDetectorBase(BaseEstimator, GordoBase, metaclass=abc.ABCMeta):
         frequency: Optional[timedelta] = None,
     ) -> Union[pd.DataFrame, xr.Dataset]:
         """
-        Take X, y and optionally frequency; returning a dataframe containing
+        Take ``X``, ``y`` and optionally frequency; returning a dataframe containing
         anomaly score(s)
         """
         ...
