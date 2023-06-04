@@ -88,23 +88,24 @@ def prepare_keda_prometheus_query(context):
         return template.render(**kwargs)
 
 
-def prepare_resources_labels(value: str) -> List[Tuple[str, Any]]:
+def prepare_resources_labels(
+    value: str, argument: str = "--resources-labels"
+) -> List[Tuple[str, Any]]:
     resources_labels: List[Tuple[str, Any]] = []
     if value:
         try:
             json_value = json.loads(value)
         except json.JSONDecodeError as e:
             raise click.ClickException(
-                '"--resources-labels=%s" contains invalid JSON value: %s'
-                % (value, str(e))
+                '"%s=%s" contains invalid JSON value: %s' % (argument, value, str(e))
             )
         if isinstance(json_value, dict):
             resources_labels = cast(List[Tuple[str, Any]], list(json_value.items()))
         else:
             type_name = type(json_value).__name__
             raise click.ClickException(
-                '"--resources-labels=%s" contains value with type "%s" instead "dict"'
-                % (value, type_name)
+                '"%s=%s" contains value with type %s instead of dict'
+                % (argument, value, type_name)
             )
     return resources_labels
 
@@ -313,6 +314,18 @@ def workflow_cli(gordo_ctx):
     default="",
 )
 @click.option(
+    "--model-builder-labels",
+    help="Additional labels for model-builder workflow step. Have to be empty string or a dictionary in JSON format",
+    envvar=f"{PREFIX}_MODEL_BUILDER_LABELS",
+    default="",
+)
+@click.option(
+    "--server-labels",
+    help="Additional labels for gordo-server. Have to be empty string or a dictionary in JSON format",
+    envvar=f"{PREFIX}_SERVER_LABELS",
+    default="",
+)
+@click.option(
     "--server-termination-grace-period",
     help="terminationGracePeriodSeconds for the gordo server",
     envvar=f"{PREFIX}_SERVER_TERMINATION_GRACE_PERIOD",
@@ -408,6 +421,13 @@ def workflow_generator_cli(gordo_ctx, **ctx):
     context["argo_version"] = prepare_argo_version(context.get("argo_binary"))
 
     context["resources_labels"] = prepare_resources_labels(context["resources_labels"])
+
+    context["model_builder_labels"] = prepare_resources_labels(
+        context["model_builder_labels"], "--model-builder-labels"
+    )
+    context["server_labels"] = prepare_resources_labels(
+        context["server_labels"], "--server-labels"
+    )
 
     if context["pod_security_context"]:
         pod_security_context = cast(PodSecurityContext, context["pod_security_context"])

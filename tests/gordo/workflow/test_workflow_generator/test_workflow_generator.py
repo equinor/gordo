@@ -789,3 +789,18 @@ def test_argo3_binary(path_to_config_files: str):
         argo_binary="argo3",
         argo_version="3.1.0",
     )
+
+
+def test_model_builder_labels(path_to_config_files: str):
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files,
+        "config-test-simple.yml",
+        args=[
+            "--model-builder-labels",
+            '{"model-builder-label1": "value1", "model-builder-label2": "value2"}',
+        ],
+        argo_binary="argo3",
+        argo_version="3.1.0",
+    )
+    with open("workflow.yaml", "w") as f:
+        f.write(workflow_str)
