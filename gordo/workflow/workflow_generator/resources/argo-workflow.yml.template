@@ -721,9 +721,8 @@ spec:{% if argo_version.major == 2 %}
         applications.gordo.equinor.com/project-workflow: "{{project_workflow}}"{% endif %}
         applications.gordo.equinor.com/model-name: "{{'{{inputs.parameters.machine-name}}'}}"{% if "metadata" in builder_runtime and "labels" in builder_runtime["metadata"] %}
 {{ builder_runtime["metadata"]["labels"] | yaml | indent(8, True) }}{% endif %}
-        {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
-        {% endfor %}{% endif %}
 {{ print_labels(model_builder_labels) | indent(8, True) }}
+{{ print_labels(resources_labels) | indent(8, True) }}
     tolerations:
       - effect: NoSchedule
         key: kubernetes.azure.com/scalesetpriority
@@ -1069,8 +1068,7 @@ spec:{% if argo_version.major == 2 %}
                       app.kubernetes.io/managed-by: gordo
                       applications.gordo.equinor.com/project-name: "{{project_name}}"
                       applications.gordo.equinor.com/project-revision: "{{project_revision}}"
-                      {% if resources_labels is defined %}{% for label, value in resources_labels %}"{{label}}": "{{value}}"
-                      {% endfor %}{% endif %}
+{{ print_labels(resources_labels) | indent(22, True) }}
 {{ print_labels(server_labels) | indent(22, True) }}
                     {% if owner_references is defined %}
                     ownerReferences: {{owner_references}}
