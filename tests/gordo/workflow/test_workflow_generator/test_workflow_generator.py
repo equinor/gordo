@@ -789,3 +789,44 @@ def test_argo3_binary(path_to_config_files: str):
         argo_binary="argo3",
         argo_version="3.1.0",
     )
+
+
+def test_model_builder_labels(path_to_config_files: str):
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files,
+        "config-test-simple.yml",
+        args=[
+            "--model-builder-labels",
+            '{"model-builder-label1": "value1", "model-builder-label2": "value2"}',
+        ],
+    )
+    workflow = yaml.safe_load(workflow_str)
+    templates = workflow["spec"]["templates"]
+    model_builder_step = [
+        step for step in templates if step["name"] == "model-builder"
+    ][0]
+    labels = model_builder_step["metadata"]["labels"]
+    assert labels["model-builder-label1"] == "value1"
+    assert labels["model-builder-label2"] == "value2"
+
+
+def test_model_server_(path_to_config_files: str):
+    workflow_str = _generate_test_workflow_str(
+        path_to_config_files,
+        "config-test-simple.yml",
+        args=[
+            "--server-labels",
+            '{"server-label1": "value1", "server-label2": "value2"}',
+        ],
+    )
+    workflow = yaml.safe_load(workflow_str)
+    templates = workflow["spec"]["templates"]
+    gordo_server_step = [
+        step for step in templates if step["name"] == "gordo-server-deployment"
+    ][0]
+    parameters = gordo_server_step["steps"][0][0]["arguments"]["parameters"]
+    resource_step = [v for v in parameters if v["name"] == "resource"][0]
+    resource = yaml.safe_load(resource_step["value"])
+    labels = resource["metadata"]["labels"]
+    assert labels["server-label1"] == "value1"
+    assert labels["server-label2"] == "value2"
