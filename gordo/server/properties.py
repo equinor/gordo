@@ -22,7 +22,9 @@ def find_path_in_dict(path: list[str], data: dict) -> Any:
     Parameters
     ----------
     path
+        List of nested keys
     data
+        Dict to find
 
     Returns
     -------

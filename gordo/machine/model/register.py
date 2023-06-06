@@ -15,7 +15,7 @@ class register_model_builder:
         When submitting the config file, it's important that the 'kind' is compatible
         with 'type'.
 
-        ie. 'type': 'KerasAutoEncoder' should support the object returned by a given
+        ie. ``type='KerasAutoEncoder'`` should support the object returned by a given
         decorated function.
 
 
