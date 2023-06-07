@@ -66,7 +66,7 @@ Alternatively, the ``cv_mode`` can be set to ``cross_val_only`` which will not f
 Cross-validation methods
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Setting ``cv`` to :class:``sklearn.model_selection.TimeSeriesSplit`` , the dataset is split as depicted below.
+Setting ``cv`` to :class:`sklearn.model_selection.TimeSeriesSplit` , the dataset is split as depicted below.
 Independent of the number of splits, the test set always is of the same size.
 
 An alternative is to use `k-fold <https://scikit-learn.org/stable/modules/cross_validation.html>`_ cross-validation.

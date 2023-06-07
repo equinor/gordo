@@ -33,6 +33,8 @@ Gordo fulfills the role of inhaling config files and supplying components to the
 * [gordo-core](https://github.com/equinor/gordo-core/) - Gordo core library.
 * [gordo-client](https://github.com/equinor/gordo-client/) - Gordo server's client. It can make predictions from deployed models.
 
+---
+
 [Documentation is available on Read the Docs](https://gordo1.readthedocs.io/)
 
 ---
