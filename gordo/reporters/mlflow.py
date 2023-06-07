@@ -62,23 +62,25 @@ def get_mlflow_client(
     workspace_kwargs
         AzureML Workspace configuration to use for remote MLFlow tracking. An
         empty dict will result in local logging by the MlflowClient.
-        Example::
 
-            `{
+        .. code-block::
+
+            {
                  "subscription_id":<value>,
                  "resource_group":<value>,
                  "workspace_name":<value>
-             }`
+            }
     service_principal_kwargs: dict
         AzureML ServicePrincipalAuthentication keyword arguments. An empty dict
         will result in interactive authentication.
-        Example::
 
-            `{
+        .. code-block::
+
+            {
                  "tenant_id":<value>,
                  "service_principal_id":<value>,
                  "service_principal_password":<value>
-             }`
+            }
 
     Returns
     -------

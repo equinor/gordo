@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-
-"""
-CLI interfaces
-"""
-
 import logging
 import sys
 import traceback

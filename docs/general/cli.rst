@@ -1,4 +1,4 @@
-Command Line
+Command-line
 ------------
 
 gordo CLI

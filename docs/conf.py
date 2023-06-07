@@ -14,6 +14,8 @@ import inspect
 
 _module_path = os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, _module_path)
+_examples_path = os.path.join(os.path.dirname(__file__), "..", "examples")
+# sys.path.insert(0, _examples_path)
 
 import gordo
 
@@ -42,12 +44,15 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_copybutton",
     "sphinx_click",
+    "nbsphinx"
 ]
 
 root_doc = "index"
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+source_suffix = [".rst", ".md"]
 
 code_url = f"https://github.com/equinor/{project}/blob/{commit}"
 
