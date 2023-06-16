@@ -14,4 +14,5 @@ and deployed as a REST API service on Kubernetes.
     ./overview.rst
     ./general/index.rst
     ./ml/index.rst
+    ./notebooks/index.rst
     ./api/index.rst

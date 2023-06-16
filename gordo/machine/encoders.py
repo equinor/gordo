@@ -1,11 +1,12 @@
 import json
 import yaml
+import pandas as pd
 
-from typing import Any
+from typing import Any, Final
 from datetime import datetime
 from gordo_core.sensor_tag import SensorTag
 
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f+%z"
+DATETIME_FORMAT: Final[str] = "%Y-%m-%d %H:%M:%S.%f+%z"
 
 
 class MachineJSONEncoder(json.JSONEncoder):
@@ -17,6 +18,8 @@ class MachineJSONEncoder(json.JSONEncoder):
 
     def default(self, obj: Any) -> Any:
         if isinstance(obj, datetime):
+            return obj.strftime(DATETIME_FORMAT)
+        elif isinstance(obj, pd.Timestamp):
             return obj.strftime(DATETIME_FORMAT)
         elif isinstance(obj, SensorTag):
             return obj.to_json()
@@ -39,10 +42,15 @@ def _datetime_representer(dumper: yaml.SafeDumper, data: Any):
     return dumper.represent_str(data.strftime(DATETIME_FORMAT))
 
 
+def _timestamp_representer(dumper: yaml.SafeDumper, data: Any):
+    return dumper.represent_str(data.strftime(DATETIME_FORMAT))
+
+
 def _sensor_tag_representer(dumper: yaml.SafeDumper, data: Any):
     return dumper.represent_dict(data.to_json())
 
 
 MachineSafeDumper.add_representer(multiline_str, _multiline_str_representer)
 MachineSafeDumper.add_representer(datetime, _datetime_representer)
+MachineSafeDumper.add_representer(pd.Timestamp, _timestamp_representer)
 MachineSafeDumper.add_representer(SensorTag, _sensor_tag_representer)

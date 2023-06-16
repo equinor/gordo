@@ -115,6 +115,8 @@ pytest -m 'dockertest'
 
 ### Build the documentation
 
+Install [pandoc](https://pandoc.org/installing.html)
+
 This command will run the local documentation server:
 
 ```console
