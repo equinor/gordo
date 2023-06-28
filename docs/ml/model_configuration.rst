@@ -41,3 +41,48 @@ which is used when using the model for predictions.
 :class:`gordo.machine.machine.Machine` class holds basically all information that is contained in the one Gordo config.
 The :class:`gordo.builder.build_model.ModelBuilder` class takes a :class:`gordo.machine.machine.Machine` and does the heavy lifting
 when it comes to data fetching, cross-validation and model training.
+
+Evaluation specification
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Alongside the ML-model itself, all aspects of the cross-validation evaluation is parameterized in the config:
+
+.. code-block:: yaml
+
+   - evaluation:
+        cv: 
+          sklearn.model_selection.TimeSeriesSplit:
+            n_splits: 3
+        cv_mode: full_build
+        scoring_scaler: sklearn.preprocessing.MinMaxScaler
+        metrics:
+        - explained_variance_score
+        - r2_score
+        - mean_squared_error
+        - mean_absolute_error
+
+Alternatively, the ``cv_mode`` can be set to ``cross_val_only`` which will not fit the final model.
+
+Cross-validation methods
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Setting ``cv`` to :class:`sklearn.model_selection.TimeSeriesSplit` , the dataset is split as depicted below.
+Independent of the number of splits, the test set always is of the same size.
+
+An alternative is to use `k-fold <https://scikit-learn.org/stable/modules/cross_validation.html>`_ cross-validation.
+Here, one can decide to shuffle the data before it is split into folds.
+In contradiction to the time-series-split above, which augments the considered data in each fold with time-consecutive observations, this method is uncoupled from the time dimension.
+This must be considered when comparing results from different folds.
+
+The following parameters can then be set as such:
+
+.. code-block:: yaml
+
+   - evaluation:
+        cv: 
+          sklearn.model_selection.KFold:
+            n_splits: 3
+            shuffle: True
+            random_state: 0
+
+Borrowed from `scikit-learn <https://scikit-learn.org/stable/auto_examples/model_selection/plot_cv_indices.html#sphx-glr-auto-examples-model-selection-plot-cv-indices-py>`_ , which performs the actual split/train for us.

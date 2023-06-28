@@ -19,6 +19,8 @@ A detailed example of this API usage could be found :ref:`here <general/cluster_
 POST /prediction
 ^^^^^^^^^^^^^^^^
 
+``/gordo/v0/<gordo_project>/<gordo_name>/prediction``
+
 :func:`gordo.server.blueprints.base.post_prediction`
 
 The ``/prediction`` endpoint will return the basic values a model
@@ -145,6 +147,8 @@ Furthermore, you can increase efficiency by instead converting your data to parq
 POST /anomaly/prediction
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+``/gordo/v0/<gordo_project>/<gordo_name>/anomaly/prediction``
+
 :func:`gordo.server.blueprints.anomaly.post_anomaly_prediction`
 
 The ``/anomaly/prediction`` endpoint will return the data supplied by the :ref:`post-prediction` endpoint
@@ -227,12 +231,16 @@ against.
 GET /metadata
 ^^^^^^^^^^^^^
 
+``/gordo/v0/<gordo_project>/expected-models``
+
 :func:`gordo.server.blueprints.base.get_metadata`
 
 Various metadata surrounding the current model and environment.
 
 GET /expected-models
 ^^^^^^^^^^^^^^^^^^^^
+
+``/gordo/v0/<gordo_project>/expected-models``
 
 :func:`gordo.server.blueprints.base.get`
 
@@ -241,12 +249,16 @@ Returns list of models for this project. Those models are expected to be built.
 GET /models
 ^^^^^^^^^^^
 
+``/gordo/v0/<gordo_project>/models``
+
 :func:`gordo.server.blueprints.base.get_model_list`
 
 List of the current built models.
 
 GET /revisions
 ^^^^^^^^^^^^^^
+
+``/gordo/v0/<gordo_project>/revisions``
 
 :func:`gordo.server.blueprints.base.get_revision_list`
 
@@ -256,12 +268,16 @@ List of available model revisions (versions).
 GET /download-model
 ^^^^^^^^^^^^^^^^^^^
 
+``/gordo/v0/<gordo_project>/<gordo_name>/download-model``
+
 :func:`gordo.server.blueprints.base.get_download_model`
 
 Returns the current model being served. Loadable via :func:`gordo.serializer.loads`.
 
 DELETE /revision
 ^^^^^^^^^^^^^^^^
+
+``/gordo/v0/<gordo_project>/<gordo_name>/revision/<revision>``
 
 :func:`gordo.server.blueprints.base.delete_model_revision`
 

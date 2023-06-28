@@ -109,3 +109,13 @@ Based on these thresholds, the following metrics are reported:
 
 * ``anomaly-confidence`` = ``tag-anomaly-scaled`` / ``feature-thresholds-per-fold(last fold)``
 * ``total-anomaly-confidence`` = ``total-anomaly-scaled`` / ``aggregate-thresholds-per-fold(last-fold)``
+
+Scaling of data during cross-validation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before the cross-validation is executed, the ``scoring_scaler`` is extracted.
+This is used to transform the data before the wanted metrics are calculated.
+
+An internal method, :func:`gordo.builder.build_model.ModelBuilder.build_metrics_dict`, is called prior to the cross-validation, which specified list ``metrics`` and the ``scoring_scaler``.
+This method builds a callable dictionary by using the nested function :func:`gordo.machine.model.utils.metric_wrapper`.
+This generated dictionary now contains information about the ``scoring_scaler`` which will be used later.
