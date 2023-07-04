@@ -1,10 +1,14 @@
 # Gordo base image
-FROM python:3.10-bullseye as builder
+FROM python:3.10-slim-bookworm as builder
 
 # Copy source code
 COPY . /code
 # Copy .git to deduce version number
 COPY .git /code/
+
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /code
 RUN rm -rf /code/dist \
@@ -17,7 +21,7 @@ RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/pre
     && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
 
-FROM python:3.10-slim-bullseye
+FROM python:3.10-slim-bookworm
 
 # Nonroot user for running CMD
 RUN groupadd -g 999 gordo && \
@@ -26,13 +30,9 @@ RUN groupadd -g 999 gordo && \
 ENV HOME "/home/gordo"
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
-# Using backports, remove this when moving to bookworm or if future bullseye security updates include the libcurl fix
-RUN echo "deb http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list \
-    && echo "deb-src http://deb.debian.org/debian bullseye-backports main contrib non-free" >> /etc/apt/sources.list
-
 RUN apt-get update && apt-get install -y \
+    curl \
     jq \
-    && apt-get install -y curl -t bullseye-backports \
     && rm -rf /var/lib/apt/lists/*
 
 # Install requirements separately for improved docker caching
