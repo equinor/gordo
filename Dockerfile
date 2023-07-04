@@ -1,6 +1,6 @@
 # Gordo base image
 FROM python:3.10-slim-bookworm as builder
-# 3.10-bullseye -> 3.10-slim-bookworm
+
 # Copy source code
 COPY . /code
 # Copy .git to deduce version number
