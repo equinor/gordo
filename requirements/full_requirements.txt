@@ -144,7 +144,7 @@ graphviz==0.20.1
     # via catboost
 greenlet==2.0.2
     # via sqlalchemy
-grpcio==1.56.0
+grpcio==1.56.2
     # via
     #   tensorboard
     #   tensorflow
