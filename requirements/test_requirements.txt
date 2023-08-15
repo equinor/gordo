@@ -305,7 +305,7 @@ tomli==1.2.3
     #   coverage
     #   mypy
     #   pytest
-tornado==6.3.2
+tornado==6.3.3
     # via
     #   ipykernel
     #   jupyter-client
