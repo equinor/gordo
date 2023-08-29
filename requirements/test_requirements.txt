@@ -113,7 +113,7 @@ jupyter-core==4.11.2
     #   nbconvert
     #   nbformat
     #   notebook
-jupyter-server==1.21.0
+jupyter-server==2.7.2
     # via
     #   nbclassic
     #   notebook-shim
