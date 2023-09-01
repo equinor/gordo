@@ -4,6 +4,8 @@
 #
 #    pip-compile --output-file=full_requirements.txt mlflow_requirements.in postgres_requirements.in requirements.in
 #
+--extra-index-url https://PAT:vuzyazpdg55taxek2onorig2uolxz5sipzrtdg4o2aviimhnd4sq@pkgs.dev.azure.com/EquinorASA/OMNIA.prevent/_packaging/gordo/pypi/simple/
+
 absl-py==1.4.0
     # via
     #   tensorboard
