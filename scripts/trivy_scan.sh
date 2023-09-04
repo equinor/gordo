@@ -28,4 +28,4 @@ trivy_version=$(trivy -v 2>/dev/null | head -1 | cut -d ' ' -f 2);
 echo "Trivy version is ${trivy_version} and platform is ${uname}"
 echo "Scanning image - '$image'"
 
-trivy image --clear-cache --exit-code 10 -severity HIGH,CRITICAL --light --no-progress --ignore-unfixed --timeout "5m" "$image"
+trivy image --clear-cache --exit-code 10 --severity HIGH,CRITICAL --no-progress --ignore-unfixed --timeout "5m" "$image"
