@@ -84,7 +84,7 @@ scan:
 	echo "Trivy version is $${TRIVY_VERSION} and platform is $${uname_S}"; \
 	for i in $$images; do \
 		echo "Scanning image - '$$i'"; \
-		$$trivy --clear-cache && $$trivy --exit-code 1 -severity HIGH,CRITICAL --light --no-progress --ignore-unfixed "$$i"; \
+		$$trivy --clear-cache && $$trivy --exit-code 1 --severity HIGH,CRITICAL --no-progress --ignore-unfixed "$$i"; \
 	done; \
 
 # Make the python source distribution
