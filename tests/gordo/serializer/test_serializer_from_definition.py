@@ -74,7 +74,7 @@ def test_from_definition_test_model():
     tests.gordo.serializer.definition_test_model.DefinitionTestModel:
         depth: "300"
     """
-    definition = yaml.load(config)
+    definition = yaml.load(config, Loader=yaml.FullLoader)
     model = serializer.from_definition(definition)
     assert type(model) == DefinitionTestModel
     assert model.depth == 300
@@ -222,7 +222,7 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         for raw_yaml, model, model_kind in self.setup_gen():
             self.assertTrue(model)
             logger.info(raw_yaml)
-            config = yaml.load(raw_yaml)
+            config = yaml.load(raw_yaml, Loader=yaml.FullLoader)
             logger.debug("{}".format(config))
 
             config_clone = copy.deepcopy(config)  # To ensure no mutation occurs

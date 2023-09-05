@@ -363,7 +363,7 @@ def test_runtime_image_override(path_to_config_files):
     server_task_deployment = server_task["steps"][0][0]["arguments"]["parameters"][0][
         "value"
     ]
-    server_task_yaml = yaml.load(server_task_deployment)
+    server_task_yaml = yaml.load(server_task_deployment, Loader=yaml.FullLoader)
     actual_server_task_image = (
         server_task_yaml["spec"]["template"]["spec"]["containers"][0]["image"]
         .split("/")[-1]

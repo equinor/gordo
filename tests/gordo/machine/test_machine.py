@@ -53,7 +53,7 @@ def test_to_json():
 def test_to_yaml():
     machine = create_machine()
     yaml_result = machine.to_yaml()
-    result = yaml.load(yaml_result)
+    result = yaml.load(yaml_result, Loader=yaml.FullLoader)
     for field in MACHINE_YAML_FIELDS:
         if field in result:
-            yaml.load(result[field])
+            yaml.load(result[field], Loader=yaml.FullLoader)
