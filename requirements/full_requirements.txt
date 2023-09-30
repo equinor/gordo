@@ -328,7 +328,7 @@ pyasn1-modules==0.3.0
     # via google-auth
 pycparser==2.21
     # via cffi
-pydantic==1.10.12
+pydantic==2.4.0
     # via gordo-client
 pygments==2.16.1
     # via knack
