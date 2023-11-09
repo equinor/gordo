@@ -315,7 +315,7 @@ protobuf==4.24.2
     #   tensorflow
 psycopg2-binary==2.9.7
     # via -r postgres_requirements.in
-pyarrow==10.0.1
+pyarrow==14.0.1
     # via
     #   gordo-core
     #   mlflow
