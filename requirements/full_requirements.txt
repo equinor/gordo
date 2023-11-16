@@ -469,7 +469,7 @@ urllib3==1.26.18
     #   requests
 websocket-client==1.6.2
     # via docker
-werkzeug==2.3.7
+werkzeug==2.3.8
     # via
     #   flask
     #   tensorboard
