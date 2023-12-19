@@ -292,7 +292,7 @@ pandas==1.5.3
     #   gordo-core
     #   mlflow
     #   xarray
-paramiko==3.3.1
+paramiko==3.4.0
     # via azureml-core
 pathspec==0.11.2
     # via azureml-core
