@@ -95,7 +95,7 @@ contextlib2==21.6.0
     # via azureml-core
 contourpy==1.1.0
     # via matplotlib
-cryptography==41.0.5
+cryptography==41.0.6
     # via
     #   adal
     #   azureml-core
