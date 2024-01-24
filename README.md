@@ -1,5 +1,3 @@
-
-
 <h1 align="center">Gordo</h1>
 <div align="center">
  <!-- Uncomment line below once we decided on 'logo.png' -->
@@ -19,6 +17,22 @@
 </div>
 
 ---
+
+# Table of Contents
+* [About](#About)
+* [Components](#Components)
+* [Install](#Install)
+	* [Python package ](#Python-package)
+* [Developer manual](#Developer-manual)
+	* [Setup](#Setup)
+		* [How to update packages](#How-to-update-packages)
+	* [Examples](#Examples)
+	* [How to run tests locally](#How-to-run-tests-locally)
+	* [Build the documentation](#Build-the-documentation)
+* [Contributing](#Contributing)
+
+---
+
 ## About
 
 Gordo fulfills the role of inhaling config files and supplying components to the pipeline of:
@@ -121,3 +135,34 @@ This command will run the local documentation server:
 > cd docs/
 > make watch
 ```
+
+## Contributing
+We welcome contributions to this project! To get started, please follow these steps:
+
+1. Fork this repository to your own GitHub account and then clone it to your local device.
+
+```
+git clone https://github.com/your-account/your-project.git
+```
+
+2. Create a new branch for your feature or bug fix.
+
+```
+git checkout -b your-feature-or-bugfix-branch
+```
+
+3. Make your changes and commit them with a descriptive message.
+
+```
+git commit -m "Add a new feature" -a
+```
+
+4. Push your changes to your forked repository.
+
+```
+git push origin your-feature-or-bugfix-branch
+```
+
+5. Open a pull request in this repository and describe the changes you made.
+
+We'll review your changes and work with you to get them merged into the main branch of the project.
