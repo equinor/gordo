@@ -11,6 +11,9 @@
 <br />
 
 <div align="center">
+  <a href="https://scm-compliance-api.radix.equinor.com/repos/equinor/527971a2-15b2-4466-8c4d-0e718804f93d/badge">
+    <img src="https://scm-compliance-api.radix.equinor.com/repos/equinor/527971a2-15b2-4466-8c4d-0e718804f93d/badge" alt="SCM Compliance"/>
+  </a>
   <a href="https://github.com/equinor/gordo/actions?query=branch=master">
     <img src="https://github.com/equinor/gordo/workflows/CI/badge.svg?branch=master" alt="Build Status"/>
   </a>
