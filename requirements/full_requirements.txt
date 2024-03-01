@@ -296,7 +296,7 @@ paramiko==3.4.0
     # via azureml-core
 pathspec==0.12.1
     # via azureml-core
-peewee==3.17.0
+peewee==3.17.1
     # via -r postgres_requirements.in
 pillow==10.2.0
     # via matplotlib
