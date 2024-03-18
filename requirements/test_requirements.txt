@@ -24,7 +24,7 @@ attrs==23.2.0
     #   referencing
 beautifulsoup4==4.12.3
     # via nbconvert
-black==22.12.0
+black==24.3.0
     # via -r test_requirements.in
 bleach==6.1.0
     # via nbconvert
