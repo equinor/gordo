@@ -371,7 +371,7 @@ pyyaml==6.0.1
     #   mlflow
 querystring-parser==1.2.4
     # via mlflow
-requests[socks]==2.31.0
+requests==2.32.0
     # via
     #   adal
     #   azure-core
