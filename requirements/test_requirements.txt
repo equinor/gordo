@@ -290,7 +290,7 @@ referencing==0.32.1
     #   jsonschema
     #   jsonschema-specifications
     #   jupyter-events
-requests==2.31.0
+requests==2.32.0
     # via
     #   -c full_requirements.txt
     #   docker
