@@ -77,8 +77,8 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             building function and/or any additional args to be passed
             to Keras' fit() method
         """
-        super().__init__(**kwargs)
-        self.build_fn = None
+        model = self._prepare_model()
+        super().__init__(**kwargs, model=model)
         self.history = None
 
         self.kind = self.load_kind(kind)
@@ -301,16 +301,16 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             Parameters used in this estimator
         """
         params = super().get_params(**params)
-        params.pop("build_fn", None)
+        params.pop("model", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
         return params
 
-    def __call__(self):
+    def _prepare_model(self):
         module_name, class_name = self.parse_module_path(self.kind)
         if module_name is None:
             factories = register_model_builder.factories[self.__class__.__name__]
-            build_fn = factories[self.kind]
+            model = factories[self.kind]
         else:
             module = importlib.import_module(module_name)
             if not hasattr(module, class_name):
@@ -318,8 +318,8 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
                     "kind: %s, unable to find class %s in module '%s'"
                     % (self.kind, class_name, module_name)
                 )
-            build_fn = getattr(module, class_name)
-        return build_fn(**self.sk_params)
+            model = getattr(module, class_name)
+        return model(**self.sk_params)
 
     def get_metadata(self):
         """
@@ -426,7 +426,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     def __repr__(self):
         return f"{self.__class__.__name__}(kind: {pformat(self.kind)})"
 
-    def __call__(self):
+    def _prepare_model(self):
         """Build Keras model from specification"""
         if not all(k in self.kind for k in self._expected_keys):
             raise ValueError(
