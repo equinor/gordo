@@ -15,7 +15,6 @@ import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
 from scikeras.wrappers import KerasRegressor as BaseWrapper
-from tensorflow.keras.callbacks import History
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -78,7 +77,6 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             building function and/or any additional args to be passed
             to Keras' fit() method
         """
-        super().__init__(**kwargs)
         self.build_fn = None
         self.history = None
 
@@ -271,8 +269,8 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             y = y.values
         kwargs.setdefault("verbose", 0)
         history = super().fit(X, y, sample_weight=None, **kwargs)
-        if isinstance(history, History):
-            self.history = history
+        if isinstance(history, BaseWrapper):
+            self.history = history.history_
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
