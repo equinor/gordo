@@ -90,7 +90,9 @@ def lstm_model(
 
     # output layer
     if isinstance(optimizer, str):
-        optimizer = keras.optimizers.get({"class_name": optimizer, "config": optimizer_kwargs})
+        optimizer = keras.optimizers.get(
+            {"class_name": optimizer, "config": optimizer_kwargs}
+        )
 
     model.add(Dense(units=n_features_out, activation=out_func))
 
