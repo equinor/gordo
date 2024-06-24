@@ -77,12 +77,12 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             building function and/or any additional args to be passed
             to Keras' fit() method
         """
-        model = self._prepare_model()
-        super().__init__(**kwargs, model=model)
-        self.history = None
-
         self.kind = self.load_kind(kind)
         self.kwargs: Dict[str, Any] = kwargs
+        self.history = None
+
+        model = self._prepare_model()
+        super().__init__(**kwargs, model=model)
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:
