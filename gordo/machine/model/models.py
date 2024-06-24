@@ -79,7 +79,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         """
         self.kind = self.load_kind(kind)
         self.kwargs: Dict[str, Any] = kwargs
-        self.history = None
+        self._history = None
 
         super().__init__(**kwargs)
 
@@ -186,9 +186,9 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
                 from tensorflow.python.keras.callbacks import History
 
                 history = History()
-                history.history = self.history.history
-                history.params = self.history.params
-                history.epoch = self.history.epoch
+                history.history = self._history.history
+                history.params = self._history.params
+                history.epoch = self._history.epoch
                 state["history"] = history
         return state
 
@@ -269,10 +269,11 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             y = y.values
         kwargs.setdefault("verbose", 0)
 
-        self._prepare_model()
+        if self.model is None:
+            self._prepare_model()
         history = super().fit(X, y, sample_weight=None, **kwargs)
         if isinstance(history, KerasRegressor):
-            self.history = history.history_
+            self._history = history.history_
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -579,7 +580,6 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         primer_x, primer_y = tsg[0]
 
-        self._prepare_model()
         super().fit(X=primer_x, y=primer_y, epochs=1, verbose=0)
 
         tsg = create_keras_timeseriesgenerator(
