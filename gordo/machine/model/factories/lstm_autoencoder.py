@@ -6,7 +6,7 @@ import tensorflow
 from tensorflow.keras.optimizers import Optimizer
 from tensorflow.keras.layers import Dense, LSTM
 from tensorflow.keras.models import Sequential as KerasSequential
-from tensorflow.python import keras
+from tensorflow import keras
 
 from gordo.machine.model.register import register_model_builder
 from gordo.machine.model.factories.utils import hourglass_calc_dims, check_dim_func_len
@@ -90,8 +90,7 @@ def lstm_model(
 
     # output layer
     if isinstance(optimizer, str):
-        Optim = getattr(keras.optimizer_v1, optimizer)
-        optimizer = Optim(**optimizer_kwargs)
+        optimizer = keras.optimizers.get({"class_name": optimizer, "config": optimizer_kwargs})
 
     model.add(Dense(units=n_features_out, activation=out_func))
 
