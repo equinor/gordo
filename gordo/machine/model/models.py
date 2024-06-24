@@ -77,6 +77,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             building function and/or any additional args to be passed
             to Keras' fit() method
         """
+        super().__init__(**kwargs)
         self.build_fn = None
         self.history = None
 
