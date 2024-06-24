@@ -11,8 +11,7 @@ import xarray as xr
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
-
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from scikeras.wrappers import KerasRegressor as BaseWrapper
 from tensorflow.keras.callbacks import EarlyStopping
 
 from tests.utils import get_model

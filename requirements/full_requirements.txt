@@ -191,7 +191,9 @@ joblib==1.4.2
 jsonpickle==3.2.2
     # via azureml-core
 keras==3.3.3
-    # via tensorflow
+    # via
+    #   scikeras
+    #   tensorflow
 kiwisolver==1.4.5
     # via matplotlib
 knack==0.11.0
@@ -382,10 +384,13 @@ requests-oauthlib==2.0.0
     # via msrest
 rich==13.7.1
     # via keras
+scikeras==0.13.0
+    # via -r requirements.in
 scikit-learn==1.5.0
     # via
     #   gordo-core
     #   mlflow
+    #   scikeras
 scipy==1.13.1
     # via
     #   catboost

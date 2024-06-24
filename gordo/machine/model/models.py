@@ -14,7 +14,7 @@ import h5py
 import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from scikeras.wrappers import KerasRegressor as BaseWrapper
 from tensorflow.keras.callbacks import History
 import numpy as np
 import pandas as pd
