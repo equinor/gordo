@@ -111,9 +111,11 @@ def make_base_dataframe(
 
     # Calculate the end times if possible, or also all 'None's
     end_series = start_series.map(
-        lambda start: (start + frequency).isoformat()
-        if isinstance(start, datetime) and frequency is not None
-        else None
+        lambda start: (
+            (start + frequency).isoformat()
+            if isinstance(start, datetime) and frequency is not None
+            else None
+        )
     )
 
     # Convert to isoformatted string for JSON serialization.
@@ -134,7 +136,7 @@ def make_base_dataframe(
     # the multiindex column dataframe, and naming their second level labels as needed.
     name: str
     values: np.ndarray
-    for (name, values) in filter(lambda nv: nv[1] is not None, names_n_values):
+    for name, values in filter(lambda nv: nv[1] is not None, names_n_values):
 
         _tags = tags if name == "model-input" else target_tag_list
 

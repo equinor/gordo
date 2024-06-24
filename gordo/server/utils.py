@@ -131,9 +131,11 @@ def dataframe_to_dict(df: pd.DataFrame) -> dict:
         data.index = data.index.astype(str)
     if isinstance(df.columns, pd.MultiIndex):
         return {
-            col: data[col].to_dict()
-            if isinstance(data[col], pd.DataFrame)
-            else pd.DataFrame(data[col]).to_dict()
+            col: (
+                data[col].to_dict()
+                if isinstance(data[col], pd.DataFrame)
+                else pd.DataFrame(data[col]).to_dict()
+            )
             for col in data.columns.get_level_values(0)
         }
     else:

@@ -188,7 +188,6 @@ def lstm_hourglass(
     compile_kwargs: Dict[str, Any] = dict(),
     **kwargs,
 ) -> tensorflow.keras.models.Sequential:
-
     """
 
     Builds an hourglass shaped neural network, with decreasing number of neurons
