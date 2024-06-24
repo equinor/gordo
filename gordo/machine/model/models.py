@@ -301,7 +301,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             Parameters used in this estimator
         """
         params = super().get_params(**params)
-        params.pop("model", None)
+        params.pop("build_fn", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
         return params
