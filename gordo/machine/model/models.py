@@ -77,8 +77,8 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             building function and/or any additional args to be passed
             to Keras' fit() method
         """
-        self.kind = self.load_kind(kind)
-        self.kwargs: Dict[str, Any] = kwargs
+        self._kind = self.load_kind(kind)
+        self._kwargs: Dict[str, Any] = kwargs
         self._history = None
 
         super().__init__(**kwargs)
@@ -156,21 +156,21 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         -------
 
         """
-        definition = copy(self.kwargs)
-        definition["kind"] = self.kind
+        definition = copy(self._kwargs)
+        definition["kind"] = self._kind
         return definition
 
     @property
     def sk_params(self):
         """
         Parameters used for scikit learn kwargs"""
-        fit_args = self.extract_supported_fit_args(self.kwargs)
+        fit_args = self.extract_supported_fit_args(self._kwargs)
         if fit_args:
-            kwargs = deepcopy(self.kwargs)
+            kwargs = deepcopy(self._kwargs)
             kwargs.update(serializer.load_params_from_definition(fit_args))
             return kwargs
         else:
-            return self.kwargs
+            return self._kwargs
 
     def __getstate__(self):
 
@@ -256,7 +256,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             y = y.reshape(-1, 1)
 
         logger.debug(f"Fitting to data of length: {len(X)}")
-        self.kwargs.update(
+        self._kwargs.update(
             {
                 "n_features": self.get_n_features(X),
                 "n_features_out": self.get_n_features_out(y),
@@ -304,21 +304,21 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         """
         params = super().get_params(**params)
         params.pop("model", None)
-        params.update({"kind": self.kind})
-        params.update(self.kwargs)
+        params.update({"kind": self._kind})
+        params.update(self._kwargs)
         return params
 
     def _prepare_model(self):
-        module_name, class_name = self.parse_module_path(self.kind)
+        module_name, class_name = self.parse_module_path(self._kind)
         if module_name is None:
             factories = register_model_builder.factories[self.__class__.__name__]
-            model = factories[self.kind]
+            model = factories[self._kind]
         else:
             module = importlib.import_module(module_name)
             if not hasattr(module, class_name):
                 raise ValueError(
                     "kind: %s, unable to find class %s in module '%s'"
-                    % (self.kind, class_name, module_name)
+                    % (self._kind, class_name, module_name)
                 )
             model = getattr(module, class_name)
         self.model = model(**self.sk_params)
@@ -426,20 +426,20 @@ class KerasRawModelRegressor(KerasAutoEncoder):
         return kind
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(kind: {pformat(self.kind)})"
+        return f"{self.__class__.__name__}(kind: {pformat(self._kind)})"
 
     def _prepare_model(self):
         """Build Keras model from specification"""
-        if not all(k in self.kind for k in self._expected_keys):
+        if not all(k in self._kind for k in self._expected_keys):
             raise ValueError(
-                f"Expected spec to have keys: {self._expected_keys}, but found {self.kind.keys()}"
+                f"Expected spec to have keys: {self._expected_keys}, but found {self._kind.keys()}"
             )
-        logger.debug(f"Building model from spec: {self.kind}")
+        logger.debug(f"Building model from spec: {self._kind}")
 
-        model = serializer.from_definition(self.kind["spec"])
+        model = serializer.from_definition(self._kind["spec"])
 
         # Load any compile kwargs as well, such as compile.optimizer which may map to class obj
-        kwargs = serializer.from_definition(self.kind["compile"])
+        kwargs = serializer.from_definition(self._kind["compile"])
 
         model.compile(**kwargs)
         return model
@@ -592,7 +592,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         gen_kwargs = {
             k: v
-            for k, v in {**self.kwargs, **kwargs}.items()
+            for k, v in {**self._kwargs, **kwargs}.items()
             if k in self.fit_generator_params
         }
 
