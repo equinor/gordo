@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.base import TransformerMixin
 from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
 
@@ -34,7 +34,7 @@ from gordo.machine.model.register import register_model_builder
 logger = logging.getLogger(__name__)
 
 
-class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
+class KerasBaseEstimator(BaseWrapper, GordoBase):
     supported_fit_args = [
         "batch_size",
         "epochs",
