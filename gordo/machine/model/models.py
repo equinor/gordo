@@ -179,7 +179,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         if hasattr(self, "model") and self.model is not None:
             buf = io.BytesIO()
             with h5py.File(buf, compression="lzf", mode="w") as h5:
-                save_model(self.model, h5, overwrite=True, save_format="h5")
+                save_model(self.model, h5, overwrite=True)
                 buf.seek(0)
                 state["model"] = buf
             if hasattr(self, "history"):
