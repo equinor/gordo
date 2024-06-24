@@ -81,8 +81,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         self.kwargs: Dict[str, Any] = kwargs
         self.history = None
 
-        model = self._prepare_model()
-        super().__init__(**kwargs, model=model)
+        super().__init__(**kwargs)
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:
@@ -269,6 +268,8 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         if isinstance(y, (pd.DataFrame, xr.DataArray)):
             y = y.values
         kwargs.setdefault("verbose", 0)
+
+        self._prepare_model()
         history = super().fit(X, y, sample_weight=None, **kwargs)
         if isinstance(history, KerasRegressor):
             self.history = history.history_
@@ -319,7 +320,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
                     % (self.kind, class_name, module_name)
                 )
             model = getattr(module, class_name)
-        return model(**self.sk_params)
+        self.model = model(**self.sk_params)
 
     def get_metadata(self):
         """
@@ -578,6 +579,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
 
         primer_x, primer_y = tsg[0]
 
+        self._prepare_model()
         super().fit(X=primer_x, y=primer_y, epochs=1, verbose=0)
 
         tsg = create_keras_timeseriesgenerator(
