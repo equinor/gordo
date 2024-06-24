@@ -178,11 +178,10 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         state = self.__dict__.copy()
 
         if hasattr(self, "model") and self.model is not None:
-            with tempfile.NamedTemporaryFile(suffix=".h5") as tf:
-                with h5py.File(tf.name, compression="lzf", mode="w") as h5:
-                    save_model(self.model, h5, overwrite=True)
-                    tf.seek(0)
-                    state["model"] = tf
+            with tempfile.NamedTemporaryFile("w", suffix=".keras") as tf:
+                save_model(self.model, tf, overwrite=True)
+                tf.seek(0)
+                state["model"] = tf
             if hasattr(self, "history"):
                 from tensorflow.python.keras.callbacks import History
 
