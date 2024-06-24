@@ -83,6 +83,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         self.kind = self.load_kind(kind)
         self.kwargs: Dict[str, Any] = kwargs
+        super().__init__(**kwargs)
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:
