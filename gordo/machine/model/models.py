@@ -14,7 +14,7 @@ import h5py
 import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
-from scikeras.wrappers import KerasRegressor as BaseWrapper
+from scikeras.wrappers import KerasRegressor
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -34,7 +34,7 @@ from gordo.machine.model.register import register_model_builder
 logger = logging.getLogger(__name__)
 
 
-class KerasBaseEstimator(BaseWrapper, GordoBase):
+class KerasBaseEstimator(KerasRegressor, GordoBase):
     supported_fit_args = [
         "batch_size",
         "epochs",
@@ -269,7 +269,7 @@ class KerasBaseEstimator(BaseWrapper, GordoBase):
             y = y.values
         kwargs.setdefault("verbose", 0)
         history = super().fit(X, y, sample_weight=None, **kwargs)
-        if isinstance(history, BaseWrapper):
+        if isinstance(history, KerasRegressor):
             self.history = history.history_
         return self
 
