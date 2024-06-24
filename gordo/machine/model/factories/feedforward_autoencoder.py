@@ -5,7 +5,7 @@ from typing import Tuple, Dict, Any, Union
 from tensorflow.keras.optimizers import Optimizer
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Dense
-from tensorflow import keras
+from tensorflow.python import keras
 
 from tensorflow.keras.models import Sequential as KerasSequential
 from gordo.machine.model.register import register_model_builder
@@ -88,7 +88,7 @@ def feedforward_model(
 
     # Instantiate optimizer with kwargs
     if isinstance(optimizer, str):
-        Optim = keras.optimizers.get(optimizer)
+        Optim = getattr(keras.optimizer_v1, optimizer)
         optimizer = Optim(**optimizer_kwargs)
 
     # Final output layer
