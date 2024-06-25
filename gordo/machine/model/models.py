@@ -179,7 +179,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
 
         if hasattr(self, "model") and self.model is not None:
             with tempfile.NamedTemporaryFile("w", suffix=".keras") as tf:
-                save_model(self.model, tf, overwrite=True)
+                save_model(self.model, tf.name, overwrite=True)
                 tf.seek(0)
                 state["model"] = tf
             if hasattr(self, "history"):
