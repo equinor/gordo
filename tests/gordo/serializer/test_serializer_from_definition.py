@@ -278,4 +278,4 @@ class ConfigToScikitLearnPipeTestCase(unittest.TestCase):
         # STEP 4 TEST:  Finally, the last step should be a KerasModel
         step4 = pipe.steps[3][1]
         self.assertIsInstance(step4, model)
-        self.assertTrue(step4._kind, model_kind)
+        self.assertTrue(step4.kind, model_kind)
