@@ -181,8 +181,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             with tempfile.NamedTemporaryFile("w", suffix=".keras") as tf:
                 save_model(self.model, tf.name, overwrite=True)
                 with open(tf.name, "rb") as inf:
-                    buf = io.BytesIO(inf.read())
-                    state["model"] = buf
+                    state["model"] = inf.read()
             if hasattr(self, "history"):
                 from tensorflow.python.keras.callbacks import History
 
