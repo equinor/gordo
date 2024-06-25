@@ -195,7 +195,9 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
 
     def __setstate__(self, state):
         if "model" in state:
-            state["model"] = load_model(state["model"], compile=False)
+            with tempfile.NamedTemporaryFile("w", suffix=".keras") as tf:
+                tf.write(state["model"])
+                state["model"] = load_model(tf.name, compile=False)
         self.__dict__ = state
         return self
 
