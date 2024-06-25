@@ -481,9 +481,9 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         """
         self._lookback_window = lookback_window
         self._batch_size = batch_size
-        kwargs["_lookback_window"] = lookback_window
-        kwargs["_kind"] = kind
-        kwargs["_batch_size"] = batch_size
+        kwargs["lookback_window"] = lookback_window
+        kwargs["kind"] = kind
+        kwargs["batch_size"] = batch_size
 
         # fit_generator_params is a set of strings with the keyword arguments of
         # Keras fit_generator method (excluding "shuffle" as this will be hardcoded).
