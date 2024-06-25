@@ -195,8 +195,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
 
     def __setstate__(self, state):
         if "model" in state:
-            with h5py.File(state["model"], compression="lzf", mode="r") as h5:
-                state["model"] = load_model(h5, compile=False)
+            state["model"] = load_model(state["model"], compile=False)
         self.__dict__ = state
         return self
 
