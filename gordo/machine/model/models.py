@@ -533,7 +533,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             )
             X = X.reshape(len(X), 1)
 
-        if self._lookback_window >= X.shape[0]:
+        if self.lookback_window >= X.shape[0]:
             raise ValueError(
                 "For KerasLSTMForecast lookback_window must be < size of X"
             )
@@ -569,11 +569,11 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         # model using the scikit-learn wrapper.
         tsg = create_keras_timeseriesgenerator(
             X=X[
-                : self.lookahead + self._lookback_window
+                : self.lookahead + self.lookback_window
             ],  # We only need a bit of the data
-            y=y[: self.lookahead + self._lookback_window],
+            y=y[: self.lookahead + self.lookback_window],
             batch_size=1,
-            lookback_window=self._lookback_window,
+            lookback_window=self.lookback_window,
             lookahead=self.lookahead,
         )
 
@@ -585,7 +585,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             X=X,
             y=y,
             batch_size=self.batch_size,
-            lookback_window=self._lookback_window,
+            lookback_window=self.lookback_window,
             lookahead=self.lookahead,
         )
 
@@ -638,7 +638,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             X=X,
             y=X,
             batch_size=10000,
-            lookback_window=self._lookback_window,
+            lookback_window=self.lookback_window,
             lookahead=self.lookahead,
         )
         kwargs.setdefault("verbose", 0)
