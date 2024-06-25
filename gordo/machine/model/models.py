@@ -193,7 +193,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         return state
 
     def __setstate__(self, state):
-        if "model" in state:
+        if "model" in state and state["model"] is not None:
             with tempfile.NamedTemporaryFile("wb", suffix=".keras") as tf:
                 tf.write(state["model"])
                 state["model"] = load_model(tf.name, compile=False)
