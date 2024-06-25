@@ -555,13 +555,14 @@ class ModelBuilder:
         # Continue to look at object values in case, we decided to have a GordoBase
         # which also had a GordoBase as a parameter/attribute, but will satisfy BaseEstimators
         # which can take a GordoBase model as a parameter, which will then have metadata to get
-        for val in model.__dict__.values():
-            if isinstance(val, Pipeline):
-                metadata.update(
-                    ModelBuilder._extract_metadata_from_model(val.steps[-1][1])
-                )
-            elif isinstance(val, GordoBase) or isinstance(val, BaseEstimator):
-                metadata.update(ModelBuilder._extract_metadata_from_model(val))
+        for key, val in model.__dict__.items():
+            if key.endswith('_'):  # keras3 clones the regressor into regressor_ and never updates original regressor
+                if isinstance(val, Pipeline):
+                    metadata.update(
+                        ModelBuilder._extract_metadata_from_model(val.steps[-1][1])
+                    )
+                elif isinstance(val, GordoBase) or isinstance(val, BaseEstimator):
+                    metadata.update(ModelBuilder._extract_metadata_from_model(val))
         return metadata
 
     @property

@@ -180,7 +180,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
                 save_model(self.model, tf.name, overwrite=True)
                 with open(tf.name, "rb") as inf:
                     state["model"] = inf.read()
-            if hasattr(self, "history"):
+            if hasattr(self, "_history"):
                 from tensorflow.python.keras.callbacks import History
 
                 history = History()
@@ -270,9 +270,9 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
 
         if self.model is None:
             self._prepare_model()
-        history = super().fit(X, y, sample_weight=None, **kwargs)
-        if isinstance(history, KerasRegressor):
-            self._history = history.history_
+        model = super().fit(X, y, sample_weight=None, **kwargs)
+        if isinstance(model, KerasRegressor):
+            self._history = model.model.history
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -335,9 +335,9 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         -------
             Metadata dictionary, including a history object if present
         """
-        if hasattr(self, "model") and hasattr(self, "history"):
-            history = self.history.history
-            history["params"] = self.history.params
+        if hasattr(self, "model") and hasattr(self, "_history"):
+            history = self._history.history
+            history["params"] = self._history.params
             return {"history": history}
         else:
             return {}
