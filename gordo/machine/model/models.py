@@ -80,7 +80,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         self.kwargs: Dict[str, Any] = kwargs
         self._history = None
 
-        super().__init__()
+        KerasRegressor.__init__(self)
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:
@@ -479,8 +479,8 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             Any arguments which are passed to the factory building function and/or any
             additional args to be passed to the intermediate fit method.
         """
-        self._lookback_window = lookback_window
-        self._batch_size = batch_size
+        self.lookback_window = lookback_window
+        self.batch_size = batch_size
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
