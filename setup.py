@@ -49,7 +49,7 @@ setup(
     ],
     description="Train and build models for Argo / Kubernetes",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     entry_points={"console_scripts": ["gordo=gordo.cli:gordo"]},
     install_requires=install_requires,
     license="AGPLv3",

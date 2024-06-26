@@ -88,8 +88,9 @@ def feedforward_model(
 
     # Instantiate optimizer with kwargs
     if isinstance(optimizer, str):
-        Optim = getattr(keras.optimizers, optimizer)
-        optimizer = Optim(**optimizer_kwargs)
+        optimizer = keras.optimizers.get(
+            {"class_name": optimizer, "config": optimizer_kwargs}
+        )
 
     # Final output layer
     model.add(Dense(n_features_out, activation=out_func))

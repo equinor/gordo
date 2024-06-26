@@ -9,9 +9,14 @@ from diagrams.k8s.compute import Job, Pod
 from diagrams.k8s.storage import PV
 from diagrams.custom import Custom
 
-directory=os.path.dirname(__file__)
+directory = os.path.dirname(__file__)
 
-with Diagram("Gordo flow", filename=os.path.join(directory, "architecture_diagram"), outformat="png", show=False) as diag:
+with Diagram(
+    "Gordo flow",
+    filename=os.path.join(directory, "architecture_diagram"),
+    outformat="png",
+    show=False,
+) as diag:
     with Cluster("K8s"):
         gordo = CRD("Gordo")
         api = API("")

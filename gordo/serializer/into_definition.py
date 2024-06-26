@@ -172,9 +172,11 @@ def load_definition_from_params(params: dict, tuples_to_list: bool = True) -> di
             # TODO: Make this more robust, probably via another function to parse the iterable recursively
             # TODO: b/c it _could_, in theory, be a dict of {str: BaseEstimator} or similar.
             definition[param] = [
-                _decompose_node(leaf[1], tuples_to_list=tuples_to_list)
-                if isinstance(leaf, tuple)
-                else leaf
+                (
+                    _decompose_node(leaf[1], tuples_to_list=tuples_to_list)
+                    if isinstance(leaf, tuple)
+                    else leaf
+                )
                 for leaf in param_val
             ]
 

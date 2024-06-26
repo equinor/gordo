@@ -11,8 +11,7 @@ import xarray as xr
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
-
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
+from scikeras.wrappers import KerasRegressor as BaseWrapper
 from tensorflow.keras.callbacks import EarlyStopping
 
 from tests.utils import get_model
@@ -146,15 +145,15 @@ def test_save_load(model, kind):
     # Assert that epochs list, history dict and params dict in
     # the History object are the same
     assert (
-        model_out.history.epoch == model_out_clone.history.epoch
+        model_out._history.epoch == model_out_clone._history.epoch
     ), "Epoch lists differ between original and loaded model history"
 
     assert (
-        model_out.history.history == model_out_clone.history.history
+        model_out._history.history == model_out_clone._history.history
     ), "History dictionary with losses and accuracies differ between original and loaded model history"
 
     assert (
-        model_out.history.params == model_out_clone.history.params
+        model_out._history.params == model_out_clone._history.params
     ), "Params dictionaries differ between original and loaded model history"
 
 

@@ -26,7 +26,11 @@ copyright = f"2019-{datetime.date.today().year}, Equinor"
 author = "Equinor ASA"
 version = gordo.__version__
 _parsed_version = parse_version(version)
-commit = f"{version}" if type(_parsed_version) is GordoRelease and not _parsed_version.suffix else "HEAD"
+commit = (
+    f"{version}"
+    if type(_parsed_version) is GordoRelease and not _parsed_version.suffix
+    else "HEAD"
+)
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -44,7 +48,7 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_copybutton",
     "sphinx_click",
-    "nbsphinx"
+    "nbsphinx",
 ]
 
 root_doc = "index"
@@ -59,8 +63,11 @@ code_url = f"https://github.com/equinor/{project}/blob/{commit}"
 _ignore_linkcode_infos = [
     # caused "OSError: could not find class definition"
     {"module": "gordo_core.utils", "fullname": "PredictionResult"},
-    {'module': 'gordo.workflow.config_elements.schemas', 'fullname': 'Model.Config.extra'},
-    {'module': 'gordo.reporters.postgres', 'fullname': 'Machine.DoesNotExist'}
+    {
+        "module": "gordo.workflow.config_elements.schemas",
+        "fullname": "Model.Config.extra",
+    },
+    {"module": "gordo.reporters.postgres", "fullname": "Machine.DoesNotExist"},
 ]
 
 

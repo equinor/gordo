@@ -18,7 +18,7 @@ def test_version():
     "version,expected",
     [
         ("1.1.1", (1, 1, False)),
-        ("1.1.1.dev-a1", (1, 1, True)),
+        ("1.1.1.dev-1", (1, 1, True)),
         ("0.55.0-rc1", (0, 55, True)),
         ("0.0.0", (0, 0, True)),
     ],

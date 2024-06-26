@@ -48,22 +48,22 @@ class register_model_builder:
     def __init__(self, type: str):
         self.type = type
 
-    def __call__(self, build_fn: Callable[..., keras.models.Model]):
-        self._register(self.type, build_fn)
-        return build_fn
+    def __call__(self, model: Callable[..., keras.models.Model]):
+        self._register(self.type, model)
+        return model
 
     @classmethod
-    def _register(cls, type: str, build_fn: Callable[[int, Any], GordoBase]):
+    def _register(cls, type: str, model: Callable[[int, Any], GordoBase]):
         """
         Registers a given function as an available factory under
         this type.
         """
-        cls._validate_func(build_fn)
+        cls._validate_func(model)
 
         # Add function to available factories under this type
         if type not in cls.factories:
             cls.factories[type] = dict()
-        cls.factories[type][build_fn.__name__] = build_fn
+        cls.factories[type][model.__name__] = model
 
     @staticmethod
     def _validate_func(func):

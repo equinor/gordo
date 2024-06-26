@@ -15,16 +15,16 @@ class RegisterTestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
 
             @register_model_builder(type="KerasAutoEncoder")
-            def build_fn():
+            def model():
                 pass
 
         # Pass with required param(s)
         @register_model_builder(type="KerasAutoEncoder")  # pragma: no flakes
-        def build_fn(n_features):
+        def model(n_features):
             pass
 
         # Call to ensure that register didn't 'eat' the function
-        build_fn(1)
+        model(1)
 
     def test_hold_multiple_funcs(self):
         """

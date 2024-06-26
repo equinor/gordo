@@ -71,14 +71,18 @@ class InfImputer(TransformerMixin):
 
             # Calculate a 1d arrays of fill values for each feature
             self._posinf_fill_values = _posinf_fill_values.apply(
-                lambda val: val + self.delta
-                if max_allowable_value - self.delta > val
-                else max_allowable_value
+                lambda val: (
+                    val + self.delta
+                    if max_allowable_value - self.delta > val
+                    else max_allowable_value
+                )
             )
             self._neginf_fill_values = _neginf_fill_values.apply(
-                lambda val: val - self.delta
-                if min_allowable_value + self.delta < val
-                else min_allowable_value
+                lambda val: (
+                    val - self.delta
+                    if min_allowable_value + self.delta < val
+                    else min_allowable_value
+                )
             )
 
         return self
