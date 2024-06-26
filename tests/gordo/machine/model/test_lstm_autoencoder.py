@@ -54,24 +54,24 @@ class LSTMAutoEncoderTestCase(unittest.TestCase):
             func="tanh",
             out_func="relu",
             optimizer="SGD",
-            optimizer_kwargs={"lr": 0.02, "momentum": 0.001},
+            optimizer_kwargs={"learning_rate": 0.02, "momentum": 0.001},
             compile_kwargs={"loss": "mae"},
         )
 
         # Ensure that the input dimension to Keras model matches the number of features.
-        self.assertEqual(model.layers[0].input_shape[2], 3)
+        self.assertEqual(model.layers[0].input.shape[2], 3)
 
         # Ensure that the dimension of each encoding layer matches the expected dimension.
         self.assertEqual(
-            [model.layers[i].input_shape[2] for i in range(1, 4)], [3, 2, 2]
+            [model.layers[i].input.shape[2] for i in range(1, 4)], [3, 2, 2]
         )
 
         # Ensure that the dimension of each decoding layer (excluding last decoding layer)
         # matches the expected dimension.
-        self.assertEqual([model.layers[i].input_shape[2] for i in range(4, 6)], [2, 2])
+        self.assertEqual([model.layers[i].input.shape[2] for i in range(4, 6)], [2, 2])
 
         # Ensure that the dimension of last decoding layer matches the expected dimension.
-        self.assertEqual(model.layers[6].input_shape[1], 3)
+        self.assertEqual(model.layers[6].input.shape[1], 3)
 
         # Ensure activation functions in the encoding part (layers 0-2)
         # match expected activation functions
