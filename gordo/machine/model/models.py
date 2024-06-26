@@ -418,7 +418,6 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     ...             input_shape: [4]
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 1
-    ...             input_shape: [1]
     ... '''
     >>> config = yaml.safe_load(config_str)
     >>> model = KerasRawModelRegressor(kind=config)
