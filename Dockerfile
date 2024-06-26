@@ -18,8 +18,7 @@ RUN rm -rf /code/dist \
 # Extract a few big dependencies which docker will cache even when other dependencies change
 RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep pyarrow== >> /code/prereq.txt \
-    && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
-    && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
+    && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt
 
 FROM python:3.10-slim-bookworm
 
@@ -71,7 +70,7 @@ ADD build.sh ${HOME}/build.sh
 RUN cp ${HOME}/build.sh /usr/bin/build \
     && chmod a+x /usr/bin/build
 
-# Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
+# Run things from gordo's home to have write access when needed
 WORKDIR ${HOME}
 
 #download & install argo

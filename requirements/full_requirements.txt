@@ -70,8 +70,6 @@ blinker==1.7.0
     # via flask
 cachetools==5.3.2
     # via gordo-core
-catboost==1.2.2
-    # via -r requirements.in
 certifi==2023.11.17
     # via
     #   msrest
@@ -136,8 +134,8 @@ gordo-client==6.2.8
     # via -r requirements.in
 gordo-core==0.3.5
     # via gordo-client
-graphviz==0.20.1
-    # via catboost
+greenlet==3.0.3
+    # via sqlalchemy
 grpcio==1.60.0
     # via
     #   tensorboard
@@ -211,9 +209,7 @@ markupsafe==2.1.4
 marshmallow==3.20.2
     # via dataclasses-json
 matplotlib==3.8.2
-    # via
-    #   catboost
-    #   mlflow
+    # via mlflow
 mdurl==0.1.2
     # via markdown-it-py
 ml-dtypes==0.3.2
@@ -249,7 +245,6 @@ numexpr==2.8.8
     # via gordo-core
 numpy==1.24.3
     # via
-    #   catboost
     #   contourpy
     #   gordo-core
     #   h5py
@@ -283,12 +278,10 @@ packaging==21.3
     #   marshmallow
     #   matplotlib
     #   mlflow
-    #   plotly
     #   tensorflow
     #   xarray
 pandas==1.5.3
     # via
-    #   catboost
     #   gordo-core
     #   mlflow
     #   xarray
@@ -302,8 +295,6 @@ pillow==10.2.0
     # via matplotlib
 pkginfo==1.9.6
     # via azureml-core
-plotly==5.18.0
-    # via catboost
 portalocker==2.8.2
     # via msal-extensions
 prometheus-client==0.19.0
@@ -395,7 +386,6 @@ scikit-learn==1.5.0
     #   scikeras
 scipy==1.12.0
     # via
-    #   catboost
     #   gordo-core
     #   mlflow
     #   scikit-learn
@@ -409,7 +399,6 @@ six==1.16.0
     # via
     #   astunparse
     #   azure-core
-    #   catboost
     #   databricks-cli
     #   google-pasta
     #   influxdb
@@ -431,8 +420,6 @@ tabulate==0.9.0
     # via
     #   databricks-cli
     #   knack
-tenacity==8.2.3
-    # via plotly
 tensorboard==2.16.2
     # via tensorflow
 tensorboard-data-server==0.7.2
