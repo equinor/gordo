@@ -175,19 +175,19 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
 
         state = self.__dict__.copy()
 
-        if hasattr(self, "model") and self.model is not None:
+        if self.model is not None:
             with tempfile.NamedTemporaryFile("w", suffix=".keras") as tf:
                 save_model(self.model, tf.name, overwrite=True)
                 with open(tf.name, "rb") as inf:
                     state["model"] = inf.read()
-            if hasattr(self, "_history"):
-                from tensorflow.python.keras.callbacks import History
 
-                history = History()
-                history.history = self._history.history
-                history.params = self._history.params
-                history.epoch = self._history.epoch
-                state["history"] = history
+            from tensorflow.python.keras.callbacks import History
+
+            history = History()
+            history.history = self._history.history
+            history.params = self._history.params
+            history.epoch = self._history.epoch
+            state["history"] = history
         return state
 
     def __setstate__(self, state):
@@ -335,7 +335,7 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         -------
             Metadata dictionary, including a history object if present
         """
-        if hasattr(self, "model") and hasattr(self, "_history"):
+        if self._history is not None:
             history = self._history.history
             history["params"] = self._history.params
             return {"history": history}
@@ -373,7 +373,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         -------
             Returns the explained variance score
         """
-        if not hasattr(self, "model"):
+        if self.model is None:
             raise NotFittedError(
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
@@ -675,7 +675,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         -------
             Returns the explained variance score.
         """
-        if not hasattr(self, "model"):
+        if self.model is None:
             raise NotFittedError(
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
