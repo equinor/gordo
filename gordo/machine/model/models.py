@@ -2,25 +2,23 @@
 
 import abc
 import logging
-import io
 import importlib
+import tempfile
 from pprint import pformat
 from typing import Union, Callable, Dict, Any, Optional, Tuple
 from abc import ABCMeta
 from copy import copy, deepcopy
 from importlib.util import find_spec
 
-import h5py
 import tensorflow.keras.models
 from tensorflow.keras.models import load_model, save_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences, TimeseriesGenerator
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor as BaseWrapper
-from tensorflow.keras.callbacks import History
+from scikeras.wrappers import KerasRegressor
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from sklearn.base import TransformerMixin, BaseEstimator
+from sklearn.base import TransformerMixin
 from sklearn.metrics import explained_variance_score
 from sklearn.exceptions import NotFittedError
 
@@ -35,7 +33,7 @@ from gordo.machine.model.register import register_model_builder
 logger = logging.getLogger(__name__)
 
 
-class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
+class KerasBaseEstimator(KerasRegressor, GordoBase):
     supported_fit_args = [
         "batch_size",
         "epochs",
@@ -78,11 +76,22 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             building function and/or any additional args to be passed
             to Keras' fit() method
         """
-        self.build_fn = None
-        self.history = None
-
         self.kind = self.load_kind(kind)
         self.kwargs: Dict[str, Any] = kwargs
+        self._history = None
+
+        # This new keras wrapper expects most of these kwargs to be set to the model attributes and uses them for
+        # defaults in some places, but always gives precedence to kwargs passed to respective fit, predict and compile
+        # methods, so this is just to make it happy again
+        _expected_kwargs = {
+            *KerasRegressor._fit_kwargs,
+            *KerasRegressor._predict_kwargs,
+            *KerasRegressor._compile_kwargs,
+        }
+        KerasRegressor.__init__(
+            self,
+            **{key: value for key, value in kwargs.items() if key in _expected_kwargs},
+        )
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:
@@ -177,26 +186,26 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
 
         state = self.__dict__.copy()
 
-        if hasattr(self, "model") and self.model is not None:
-            buf = io.BytesIO()
-            with h5py.File(buf, compression="lzf", mode="w") as h5:
-                save_model(self.model, h5, overwrite=True, save_format="h5")
-                buf.seek(0)
-                state["model"] = buf
-            if hasattr(self, "history"):
-                from tensorflow.python.keras.callbacks import History
+        if self.model is not None:
+            with tempfile.NamedTemporaryFile("w", suffix=".keras") as tf:
+                save_model(self.model, tf.name, overwrite=True)
+                with open(tf.name, "rb") as inf:
+                    state["model"] = inf.read()
 
-                history = History()
-                history.history = self.history.history
-                history.params = self.history.params
-                history.epoch = self.history.epoch
-                state["history"] = history
+            from tensorflow.python.keras.callbacks import History
+
+            history = History()
+            history.history = self._history.history
+            history.params = self._history.params
+            history.epoch = self._history.epoch
+            state["history"] = history
         return state
 
     def __setstate__(self, state):
-        if "model" in state:
-            with h5py.File(state["model"], compression="lzf", mode="r") as h5:
-                state["model"] = load_model(h5, compile=False)
+        if "model" in state and state["model"] is not None:
+            with tempfile.NamedTemporaryFile("wb", suffix=".keras") as tf:
+                tf.write(state["model"])
+                state["model"] = load_model(tf.name, compile=False)
         self.__dict__ = state
         return self
 
@@ -269,9 +278,12 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         if isinstance(y, (pd.DataFrame, xr.DataArray)):
             y = y.values
         kwargs.setdefault("verbose", 0)
-        history = super().fit(X, y, sample_weight=None, **kwargs)
-        if isinstance(history, History):
-            self.history = history
+
+        if self.model is None:
+            self._prepare_model()
+        model = super().fit(X, y, sample_weight=None, **kwargs)
+        if isinstance(model, KerasRegressor):
+            self._history = model.model.history
         return self
 
     def predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
@@ -301,16 +313,15 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
             Parameters used in this estimator
         """
         params = super().get_params(**params)
-        params.pop("build_fn", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
         return params
 
-    def __call__(self):
+    def _prepare_model(self):
         module_name, class_name = self.parse_module_path(self.kind)
         if module_name is None:
             factories = register_model_builder.factories[self.__class__.__name__]
-            build_fn = factories[self.kind]
+            model = factories[self.kind]
         else:
             module = importlib.import_module(module_name)
             if not hasattr(module, class_name):
@@ -318,8 +329,8 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
                     "kind: %s, unable to find class %s in module '%s'"
                     % (self.kind, class_name, module_name)
                 )
-            build_fn = getattr(module, class_name)
-        return build_fn(**self.sk_params)
+            model = getattr(module, class_name)
+        self.model = model(**self.sk_params)
 
     def get_metadata(self):
         """
@@ -334,9 +345,9 @@ class KerasBaseEstimator(BaseWrapper, GordoBase, BaseEstimator):
         -------
             Metadata dictionary, including a history object if present
         """
-        if hasattr(self, "model") and hasattr(self, "history"):
-            history = self.history.history
-            history["params"] = self.history.params
+        if self._history is not None:
+            history = self._history.history
+            history["params"] = self._history.params
             return {"history": history}
         else:
             return {}
@@ -372,7 +383,7 @@ class KerasAutoEncoder(KerasBaseEstimator, TransformerMixin):
         -------
             Returns the explained variance score
         """
-        if not hasattr(self, "model"):
+        if self.model is None:
             raise NotFittedError(
                 f"This {self.__class__.__name__} has not been fitted yet."
             )
@@ -404,6 +415,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     ...       layers:
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 4
+    ...             input_shape: [4]
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 1
     ... '''
@@ -413,7 +425,8 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     >>> X, y = np.random.random((10, 4)), np.random.random((10, 1))
     >>> model.fit(X, y, verbose=0)
     KerasRawModelRegressor(kind: {'compile': {'loss': 'mse', 'optimizer': 'adam'},
-     'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'units': 4}},
+     'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'input_shape': [4],
+                                                                                                   'units': 4}},
                                                                 {'tensorflow.keras.layers.Dense': {'units': 1}}]}}})
     >>> out = model.predict(X)
     """
@@ -426,7 +439,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     def __repr__(self):
         return f"{self.__class__.__name__}(kind: {pformat(self.kind)})"
 
-    def __call__(self):
+    def _prepare_model(self):
         """Build Keras model from specification"""
         if not all(k in self.kind for k in self._expected_keys):
             raise ValueError(
@@ -438,9 +451,9 @@ class KerasRawModelRegressor(KerasAutoEncoder):
 
         # Load any compile kwargs as well, such as compile.optimizer which may map to class obj
         kwargs = serializer.from_definition(self.kind["compile"])
-
         model.compile(**kwargs)
-        return model
+
+        self.model = model
 
 
 class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABCMeta):
@@ -479,7 +492,6 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
             additional args to be passed to the intermediate fit method.
         """
         self.lookback_window = lookback_window
-        self.batch_size = batch_size
         kwargs["lookback_window"] = lookback_window
         kwargs["kind"] = kind
         kwargs["batch_size"] = batch_size
@@ -541,7 +553,6 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
     def fit(  # type: ignore
         self, X: np.ndarray, y: np.ndarray, **kwargs
     ) -> "KerasLSTMForecast":
-
         """
         This fits a one step forecast LSTM architecture.
 
@@ -670,7 +681,7 @@ class KerasLSTMBaseEstimator(KerasBaseEstimator, TransformerMixin, metaclass=ABC
         -------
             Returns the explained variance score.
         """
-        if not hasattr(self, "model"):
+        if self.model is None:
             raise NotFittedError(
                 f"This {self.__class__.__name__} has not been fitted yet."
             )

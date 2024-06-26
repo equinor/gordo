@@ -49,7 +49,7 @@ def feedforward_model(
         If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimize_kwargs.
         If a Keras optimizer call the instance of the respective
-        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        class (e.x. Adam(learning_rate=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
     optimizer_kwargs
         The arguments for the chosen optimizer. If not provided Keras'
@@ -88,8 +88,9 @@ def feedforward_model(
 
     # Instantiate optimizer with kwargs
     if isinstance(optimizer, str):
-        Optim = getattr(keras.optimizers, optimizer)
-        optimizer = Optim(**optimizer_kwargs)
+        optimizer = keras.optimizers.get(
+            {"class_name": optimizer, "config": optimizer_kwargs}
+        )
 
     # Final output layer
     model.add(Dense(n_features_out, activation=out_func))
@@ -132,7 +133,7 @@ def feedforward_symmetric(
         If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
-        class (e.x. ``Adam(lr=0.01,beta_1=0.9, beta_2=0.999)``).  If no arguments are
+        class (e.x. ``Adam(learning_rate=0.01,beta_1=0.9, beta_2=0.999)``).  If no arguments are
         provided Keras default values will be set.
     optimizer_kwargs
         The arguments for the chosen optimizer. If not provided Keras'
@@ -193,7 +194,7 @@ def feedforward_hourglass(
         If str then the name of the optimizer must be provided (e.x. "Adam").
         The arguments of the optimizer can be supplied in optimization_kwargs.
         If a Keras optimizer call the instance of the respective
-        class (e.x. Adam(lr=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
+        class (e.x. Adam(learning_rate=0.01,beta_1=0.9, beta_2=0.999)).  If no arguments are
         provided Keras default values will be set.
     optimizer_kwargs
         The arguments for the chosen optimizer. If not provided Keras'

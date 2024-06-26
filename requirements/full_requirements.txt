@@ -6,6 +6,7 @@
 #
 absl-py==2.1.0
     # via
+    #   keras
     #   tensorboard
     #   tensorflow
 adal==1.2.7
@@ -68,9 +69,7 @@ bcrypt==4.1.2
 blinker==1.7.0
     # via flask
 cachetools==5.3.2
-    # via
-    #   google-auth
-    #   gordo-core
+    # via gordo-core
 catboost==1.2.2
     # via -r requirements.in
 certifi==2023.11.17
@@ -131,12 +130,6 @@ gitdb==4.0.11
     # via gitpython
 gitpython==3.1.41
     # via mlflow
-google-auth==2.26.2
-    # via
-    #   google-auth-oauthlib
-    #   tensorboard
-google-auth-oauthlib==1.0.0
-    # via tensorboard
 google-pasta==0.2.0
     # via tensorflow
 gordo-client==6.2.8
@@ -145,8 +138,6 @@ gordo-core==0.3.5
     # via gordo-client
 graphviz==0.20.1
     # via catboost
-greenlet==3.0.3
-    # via sqlalchemy
 grpcio==1.60.0
     # via
     #   tensorboard
@@ -157,7 +148,7 @@ gunicorn==20.1.0
     #   mlflow
 h5py==3.10.0
     # via
-    #   -r requirements.in
+    #   keras
     #   tensorflow
 humanfriendly==10.0
     # via azureml-core
@@ -178,8 +169,6 @@ isodate==0.6.1
     #   msrest
 itsdangerous==2.1.2
     # via flask
-jax==0.4.23
-    # via tensorflow
 jeepney==0.8.0
     # via secretstorage
 jinja2==3.1.3
@@ -195,8 +184,10 @@ joblib==1.3.2
     # via scikit-learn
 jsonpickle==3.0.2
     # via azureml-core
-keras==2.12.0
-    # via tensorflow
+keras==3.4.0
+    # via
+    #   scikeras
+    #   tensorflow
 kiwisolver==1.4.5
     # via matplotlib
 knack==0.11.0
@@ -209,6 +200,8 @@ markdown==3.5.2
     # via
     #   mlflow
     #   tensorboard
+markdown-it-py==3.0.0
+    # via rich
 markupsafe==2.1.4
     # via
     #   jinja2
@@ -220,8 +213,12 @@ matplotlib==3.8.2
     # via
     #   catboost
     #   mlflow
+mdurl==0.1.2
+    # via markdown-it-py
 ml-dtypes==0.3.2
-    # via jax
+    # via
+    #   keras
+    #   tensorflow
 mlflow==2.9.2
     # via -r mlflow_requirements.in
 msal==1.26.0
@@ -243,6 +240,8 @@ msrestazure==0.6.4
     #   azureml-core
 mypy-extensions==1.0.0
     # via typing-inspect
+namex==0.0.8
+    # via keras
 ndg-httpsclient==0.5.1
     # via azureml-core
 numexpr==2.8.8
@@ -253,7 +252,7 @@ numpy==1.24.3
     #   contourpy
     #   gordo-core
     #   h5py
-    #   jax
+    #   keras
     #   matplotlib
     #   ml-dtypes
     #   mlflow
@@ -271,14 +270,15 @@ oauthlib==3.2.2
     #   databricks-cli
     #   requests-oauthlib
 opt-einsum==3.3.0
-    # via
-    #   jax
-    #   tensorflow
+    # via tensorflow
+optree==0.11.0
+    # via keras
 packaging==21.3
     # via
     #   -r requirements.in
     #   azureml-core
     #   docker
+    #   keras
     #   knack
     #   marshmallow
     #   matplotlib
@@ -320,18 +320,15 @@ pyarrow==14.0.2
     #   gordo-core
     #   mlflow
 pyasn1==0.5.1
-    # via
-    #   ndg-httpsclient
-    #   pyasn1-modules
-    #   rsa
-pyasn1-modules==0.3.0
-    # via google-auth
+    # via ndg-httpsclient
 pycparser==2.21
     # via cffi
 pydantic==1.10.14
     # via gordo-client
 pygments==2.17.2
-    # via knack
+    # via
+    #   knack
+    #   rich
 pyjwt[crypto]==2.8.0
     # via
     #   adal
@@ -384,22 +381,22 @@ requests[socks]==2.31.0
     #   msal
     #   msrest
     #   requests-oauthlib
-    #   tensorboard
+    #   tensorflow
 requests-oauthlib==1.3.1
-    # via
-    #   google-auth-oauthlib
-    #   msrest
-rsa==4.9
-    # via google-auth
-scikit-learn==1.4.0
+    # via msrest
+rich==13.7.1
+    # via keras
+scikeras==0.13.0
+    # via -r requirements.in
+scikit-learn==1.5.0
     # via
     #   gordo-core
     #   mlflow
+    #   scikeras
 scipy==1.12.0
     # via
     #   catboost
     #   gordo-core
-    #   jax
     #   mlflow
     #   scikit-learn
 secretstorage==3.3.3
@@ -420,6 +417,7 @@ six==1.16.0
     #   msrestazure
     #   python-dateutil
     #   querystring-parser
+    #   tensorboard
     #   tensorflow
 smmap==5.0.1
     # via gitdb
@@ -435,15 +433,13 @@ tabulate==0.9.0
     #   knack
 tenacity==8.2.3
     # via plotly
-tensorboard==2.12.3
+tensorboard==2.16.2
     # via tensorflow
 tensorboard-data-server==0.7.2
     # via tensorboard
-tensorflow==2.12.1
+tensorflow==2.16.1
     # via -r requirements.in
-tensorflow-estimator==2.12.0
-    # via tensorflow
-tensorflow-io-gcs-filesystem==0.35.0
+tensorflow-io-gcs-filesystem==0.37.0
     # via tensorflow
 termcolor==2.4.0
     # via tensorflow
@@ -453,6 +449,7 @@ typing-extensions==4.5.0
     # via
     #   alembic
     #   azure-core
+    #   optree
     #   pydantic
     #   sqlalchemy
     #   tensorflow
@@ -472,9 +469,7 @@ werkzeug==3.0.1
     #   flask
     #   tensorboard
 wheel==0.42.0
-    # via
-    #   astunparse
-    #   tensorboard
+    # via astunparse
 wrapt==1.14.1
     # via
     #   gordo-client

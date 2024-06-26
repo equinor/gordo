@@ -171,6 +171,7 @@ sklearn.pipeline.Pipeline:
           verbose: false
       transformer_weights: null
       verbose: false
+      verbose_feature_names_out: true
   - gordo.machine.model.models.KerasAutoEncoder:
       kind: feedforward_hourglass
   verbose: false
