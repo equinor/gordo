@@ -184,8 +184,9 @@ joblib==1.3.2
     # via scikit-learn
 jsonpickle==3.0.2
     # via azureml-core
-keras==3.4.0
+keras==3.3.3
     # via
+    #   -r requirements.in
     #   scikeras
     #   tensorflow
 kiwisolver==1.4.5
@@ -278,7 +279,6 @@ packaging==21.3
     #   -r requirements.in
     #   azureml-core
     #   docker
-    #   keras
     #   knack
     #   marshmallow
     #   matplotlib
