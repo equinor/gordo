@@ -84,9 +84,9 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         # defaults in some places, but always gives precedence to kwargs passed to respective fit, predict and compile
         # methods, so this is just to make it happy again
         _expected_kwargs = {
-            *self._fit_kwargs,
-            *self._predict_kwargs,
-            *self._compile_kwargs,
+            *KerasRegressor._fit_kwargs,
+            *KerasRegressor._predict_kwargs,
+            *KerasRegressor._compile_kwargs,
         }
         KerasRegressor.__init__(
             self,
@@ -313,7 +313,6 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             Parameters used in this estimator
         """
         params = super().get_params(**params)
-        params.pop("model", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
         return params
@@ -416,12 +415,10 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     ...       layers:
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 4
-    ...             input_shape:
-    ...               - 4
+    ...             input_shape: [4]
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 1
-    ...             input_shape:
-    ...               - 1
+    ...             input_shape: [1]
     ... '''
     >>> config = yaml.safe_load(config_str)
     >>> model = KerasRawModelRegressor(kind=config)
