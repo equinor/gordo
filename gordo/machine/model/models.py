@@ -83,8 +83,15 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         # This new keras wrapper expects most of these kwargs to be set to the model attributes and uses them for
         # defaults in some places, but always gives precedence to kwargs passed to respective fit, predict and compile
         # methods, so this is just to make it happy again
-        _expected_kwargs = {*self._fit_kwargs, *self._predict_kwargs, *self._compile_kwargs}
-        KerasRegressor.__init__(self, **{key: value for key, value in kwargs.items() if key in _expected_kwargs})
+        _expected_kwargs = {
+            *self._fit_kwargs,
+            *self._predict_kwargs,
+            *self._compile_kwargs,
+        }
+        KerasRegressor.__init__(
+            self,
+            **{key: value for key, value in kwargs.items() if key in _expected_kwargs},
+        )
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:

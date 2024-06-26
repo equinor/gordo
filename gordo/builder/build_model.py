@@ -557,7 +557,7 @@ class ModelBuilder:
         # which can take a GordoBase model as a parameter, which will then have metadata to get
         for key, val in model.__dict__.items():
             if key.endswith(
-                    "_"
+                "_"
             ):  # keras3 clones the regressor into regressor_ and never updates original regressor
                 if isinstance(val, Pipeline):
                     metadata.update(
