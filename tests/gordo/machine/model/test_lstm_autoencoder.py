@@ -54,24 +54,24 @@ class LSTMAutoEncoderTestCase(unittest.TestCase):
             func="tanh",
             out_func="relu",
             optimizer="SGD",
-            optimizer_kwargs={"lr": 0.02, "momentum": 0.001},
+            optimizer_kwargs={"learning_rate": 0.02, "momentum": 0.001},
             compile_kwargs={"loss": "mae"},
         )
 
         # Ensure that the input dimension to Keras model matches the number of features.
-        self.assertEqual(model.layers[0].input_shape[2], 3)
+        self.assertEqual(model.layers[0].input.shape[2], 3)
 
         # Ensure that the dimension of each encoding layer matches the expected dimension.
         self.assertEqual(
-            [model.layers[i].input_shape[2] for i in range(1, 4)], [3, 2, 2]
+            [model.layers[i].input.shape[2] for i in range(1, 4)], [3, 2, 2]
         )
 
         # Ensure that the dimension of each decoding layer (excluding last decoding layer)
         # matches the expected dimension.
-        self.assertEqual([model.layers[i].input_shape[2] for i in range(4, 6)], [2, 2])
+        self.assertEqual([model.layers[i].input.shape[2] for i in range(4, 6)], [2, 2])
 
         # Ensure that the dimension of last decoding layer matches the expected dimension.
-        self.assertEqual(model.layers[6].input_shape[1], 3)
+        self.assertEqual(model.layers[6].input.shape[1], 3)
 
         # Ensure activation functions in the encoding part (layers 0-2)
         # match expected activation functions
@@ -127,22 +127,22 @@ def test_lstm_symmetric_basic(n_features, n_features_out):
         funcs=("relu", "relu", "tanh", "tanh"),
         out_func="linear",
         optimizer="SGD",
-        optimizer_kwargs={"lr": 0.01},
+        optimizer_kwargs={"learning_rate": 0.01},
         loss="mse",
     )
 
     # Ensure that the input dimension to Keras model matches the number of features.
-    assert model.layers[0].input_shape[2] == n_features
+    assert model.layers[0].input.shape[2] == n_features
 
     # Ensure that the dimension of each encoding layer matches the expected dimension.
-    assert [model.layers[i].input_shape[2] for i in range(1, 5)] == [4, 3, 2, 1]
+    assert [model.layers[i].input.shape[2] for i in range(1, 5)] == [4, 3, 2, 1]
 
     # Ensure that the dimension of each decoding layer (excluding last decoding layer)
     # matches the expected dimension.
-    assert [model.layers[i].input_shape[2] for i in range(5, 8)] == [1, 2, 3]
+    assert [model.layers[i].input.shape[2] for i in range(5, 8)] == [1, 2, 3]
 
     # Ensure that the dimension of last decoding layer matches the expected dimension.
-    assert model.layers[8].input_shape[1] == 4
+    assert model.layers[8].input.shape[1] == 4
 
     # Ensure activation functions in the encoding part (layers 0-3)
     # match expected activation functions.
