@@ -315,8 +315,10 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         params = super().get_params(**params)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
-        if 'callbacks' in self.kwargs and any(isinstance(callback, dict) for callback in self.kwargs['callbacks']):
-            params['callbacks'] = serializer.build_callbacks(self.kwargs['callbacks'])
+        if "callbacks" in self.kwargs and any(
+            isinstance(callback, dict) for callback in self.kwargs["callbacks"]
+        ):
+            params["callbacks"] = serializer.build_callbacks(self.kwargs["callbacks"])
         return params
 
     def _prepare_model(self):
