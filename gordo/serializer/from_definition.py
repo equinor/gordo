@@ -248,28 +248,6 @@ def _build_step(
         )
 
 
-def _build_callbacks(definitions: list):
-    """
-    Parameters
-    ----------
-    definitions
-        List of callbacks definitions
-
-    Examples
-    --------
-    >>> callbacks=_build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
-    >>> type(callbacks[0])
-    <class 'keras.src.callbacks.early_stopping.EarlyStopping'>
-
-    Returns
-    -------
-    """
-    callbacks = []
-    for callback in definitions:
-        callbacks.append(_build_step(callback))
-    return callbacks
-
-
 def _load_param_classes(params: dict):
     """
     Inspect the params' values and determine if any can be loaded as a class.
@@ -350,7 +328,7 @@ def _load_param_classes(params: dict):
                     kwargs = _load_param_classes(sub_params)
                     params[key] = create_instance(Model, **kwargs)  # type: ignore
         elif key == "callbacks" and isinstance(value, list):
-            params[key] = _build_callbacks(value)
+            params[key] = build_callbacks(value)
     return params
 
 
@@ -367,3 +345,25 @@ def load_params_from_definition(definition: dict) -> dict:
             "Expected definition to be a dict," f"found: {type(definition)}"
         )
     return _load_param_classes(definition)
+
+
+def build_callbacks(definitions: list):
+    """
+    Parameters
+    ----------
+    definitions
+        List of callbacks definitions
+
+    Examples
+    --------
+    >>> callbacks=_build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
+    >>> type(callbacks[0])
+    <class 'keras.src.callbacks.early_stopping.EarlyStopping'>
+
+    Returns
+    -------
+    """
+    callbacks = []
+    for callback in definitions:
+        callbacks.append(_build_step(callback))
+    return callbacks
