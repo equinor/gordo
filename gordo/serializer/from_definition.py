@@ -356,7 +356,7 @@ def build_callbacks(definitions: list):
 
     Examples
     --------
-    >>> callbacks=_build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
+    >>> callbacks=build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
     >>> type(callbacks[0])
     <class 'keras.src.callbacks.early_stopping.EarlyStopping'>
 
