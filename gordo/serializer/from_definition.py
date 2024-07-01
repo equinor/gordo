@@ -5,6 +5,8 @@ import copy
 import typing  # noqa
 
 from typing import Union, Dict, Any, Iterable
+
+from keras.src.callbacks import Callback
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras import Sequential
@@ -365,5 +367,5 @@ def build_callbacks(definitions: list):
     """
     callbacks = []
     for callback in definitions:
-        callbacks.append(_build_step(callback))
+        callbacks.append(callback if isinstance(callback, Callback) else _build_step(callback))
     return callbacks
