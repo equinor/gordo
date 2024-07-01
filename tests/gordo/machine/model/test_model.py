@@ -27,7 +27,6 @@ from gordo.machine.model.models import (
 from gordo.machine.model.factories import lstm_autoencoder
 from gordo.machine.model.base import GordoBase
 from gordo.machine.model.register import register_model_builder
-from gordo.serializer import from_definition
 
 
 logger = logging.getLogger(__name__)
@@ -340,21 +339,18 @@ def test_lstmae_predict_output():
 
 
 def test_keras_autoencoder_fits_callbacks():
-    definition = {
-        "gordo.machine.model.models.KerasAutoEncoder": {
-            "kind": "feedforward_hourglass",
-            "batch_size": 128,
-            "callbacks": [
-                {
-                    "tensorflow.keras.callbacks.EarlyStopping": {
-                        "monitor": "val_loss",
-                        "patience": 10,
-                    }
+    model = KerasAutoEncoder(
+        kind="feedforward_hourglass",
+        batch_size=128,
+        callbacks=[
+            {
+                "tensorflow.keras.callbacks.EarlyStopping": {
+                    "monitor": "val_loss",
+                    "patience": 10,
                 }
-            ],
-        }
-    }
-    model = from_definition(definition)
+            }
+        ],
+    )
     sk_params = model.sk_params
     assert len(sk_params["callbacks"]) == 1
     first_callback = sk_params["callbacks"][0]
