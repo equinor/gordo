@@ -367,5 +367,7 @@ def build_callbacks(definitions: list):
     """
     callbacks = []
     for callback in definitions:
-        callbacks.append(callback if isinstance(callback, Callback) else _build_step(callback))
+        callbacks.append(
+            callback if isinstance(callback, Callback) else _build_step(callback)
+        )
     return callbacks
