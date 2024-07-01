@@ -357,6 +357,8 @@ def test_keras_autoencoder_fits_callbacks():
     assert isinstance(first_callback, EarlyStopping)
     assert first_callback.monitor == "val_loss"
     assert first_callback.patience == 10
+    X, y = np.random.rand(10, 10), np.random.rand(10, 10)
+    model.fit(X, y)
 
 
 def test_parse_module_path():
