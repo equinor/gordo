@@ -47,10 +47,15 @@ jobs:
           load: true
 
       - name: Run Trivy vulnerability scanner
-        env:
-          IMAGE: ${{ steps.prep.outputs.base_image }}
-        run: |
-          bash scripts/trivy_scan.sh "$IMAGE"
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: ${{ steps.prep.outputs.base_image }}
+          format: 'table'
+          exit-code: '10'
+          ignore-unfixed: true
+          hide-progress: true
+          severity: 'HIGH,CRITICAL'
+          timeout: 5m
 
       - name: Push gordo-base
         uses: docker/build-push-action@v2
