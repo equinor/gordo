@@ -13,6 +13,8 @@ on:
 jobs:
   push-images:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     env:
       IMAGE_DESCRIPTION: Building thousands of models with timeseries data to monitor systems
       IMAGE_LICENSE: AGPL-3.0
