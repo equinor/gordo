@@ -1,6 +1,6 @@
 dictdiffer~=0.8
 dataclasses-json~=0.3
-gunicorn~=20.0
+gunicorn~=22.0
 jinja2~=3.1
 python-dateutil~=2.8
 tensorflow~=2.16.0

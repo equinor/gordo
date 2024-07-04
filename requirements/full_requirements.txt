@@ -13,9 +13,11 @@ adal==1.2.7
     # via
     #   azureml-core
     #   msrestazure
-alembic==1.13.1
+alembic==1.13.2
     # via mlflow
-argcomplete==3.2.1
+aniso8601==9.0.1
+    # via graphene
+argcomplete==3.4.0
     # via
     #   azureml-core
     #   knack
@@ -31,7 +33,7 @@ azure-common==1.1.28
     #   azure-mgmt-resource
     #   azure-mgmt-storage
     #   azureml-core
-azure-core==1.29.1
+azure-core==1.30.2
     # via
     #   azure-mgmt-core
     #   azureml-core
@@ -52,25 +54,27 @@ azure-mgmt-core==1.4.0
     #   azure-mgmt-storage
 azure-mgmt-keyvault==10.3.0
     # via azureml-core
-azure-mgmt-network==25.1.0
+azure-mgmt-network==25.4.0
     # via azureml-core
-azure-mgmt-resource==23.0.1
+azure-mgmt-resource==23.1.1
     # via azureml-core
-azure-mgmt-storage==21.1.0
+azure-mgmt-storage==21.2.1
     # via azureml-core
-azureml-core==1.54.0.post1
+azureml-core==1.56.0
     # via -r mlflow_requirements.in
 backports-tempfile==1.0
     # via azureml-core
 backports-weakref==1.0.post1
     # via backports-tempfile
-bcrypt==4.1.2
+bcrypt==4.1.3
     # via paramiko
-blinker==1.7.0
+blinker==1.8.2
     # via flask
-cachetools==5.3.2
-    # via gordo-core
-certifi==2023.11.17
+cachetools==5.3.3
+    # via
+    #   gordo-core
+    #   mlflow
+certifi==2024.7.4
     # via
     #   msrest
     #   requests
@@ -82,7 +86,6 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via
-    #   databricks-cli
     #   flask
     #   gordo-client
     #   mlflow
@@ -90,9 +93,9 @@ cloudpickle==3.0.0
     # via mlflow
 contextlib2==21.6.0
     # via azureml-core
-contourpy==1.2.0
+contourpy==1.2.1
     # via matplotlib
-cryptography==41.0.7
+cryptography==42.0.8
     # via
     #   adal
     #   msal
@@ -102,13 +105,13 @@ cryptography==41.0.7
     #   secretstorage
 cycler==0.12.1
     # via matplotlib
-databricks-cli==0.18.0
-    # via mlflow
-dataclasses-json==0.6.3
+dataclasses-json==0.6.7
     # via -r requirements.in
+deprecated==1.2.14
+    # via opentelemetry-api
 dictdiffer==0.9.0
     # via -r requirements.in
-docker==6.1.3
+docker==7.1.0
     # via
     #   azureml-core
     #   mlflow
@@ -118,43 +121,53 @@ flask==2.3.3
     # via
     #   -r requirements.in
     #   mlflow
-flatbuffers==23.5.26
+flatbuffers==24.3.25
     # via tensorflow
-fonttools==4.47.2
+fonttools==4.53.0
     # via matplotlib
-gast==0.4.0
+gast==0.6.0
     # via tensorflow
 gitdb==4.0.11
     # via gitpython
-gitpython==3.1.41
+gitpython==3.1.43
     # via mlflow
 google-pasta==0.2.0
     # via tensorflow
-gordo-client==6.2.8
+gordo-client==6.3.0
     # via -r requirements.in
-gordo-core==0.3.5
+gordo-core==0.3.6
     # via gordo-client
+graphene==3.3
+    # via mlflow
+graphql-core==3.2.3
+    # via
+    #   graphene
+    #   graphql-relay
+graphql-relay==3.2.0
+    # via graphene
 greenlet==3.0.3
     # via sqlalchemy
-grpcio==1.60.0
+grpcio==1.64.1
     # via
     #   tensorboard
     #   tensorflow
-gunicorn==20.1.0
+gunicorn==22.0.0
     # via
     #   -r requirements.in
     #   mlflow
-h5py==3.10.0
+h5py==3.11.0
     # via
     #   keras
     #   tensorflow
 humanfriendly==10.0
     # via azureml-core
-idna==3.6
+idna==3.7
     # via requests
-importlib-metadata==7.0.1
-    # via mlflow
-influxdb==5.3.1
+importlib-metadata==7.1.0
+    # via
+    #   mlflow
+    #   opentelemetry-api
+influxdb==5.3.2
     # via gordo-core
 isodate==0.6.1
     # via
@@ -165,11 +178,11 @@ isodate==0.6.1
     #   azure-mgmt-resource
     #   azure-mgmt-storage
     #   msrest
-itsdangerous==2.1.2
+itsdangerous==2.2.0
     # via flask
 jeepney==0.8.0
     # via secretstorage
-jinja2==3.1.3
+jinja2==3.1.4
     # via
     #   -r requirements.in
     #   flask
@@ -178,9 +191,9 @@ jmespath==1.0.1
     # via
     #   azureml-core
     #   knack
-joblib==1.3.2
+joblib==1.4.2
     # via scikit-learn
-jsonpickle==3.0.2
+jsonpickle==3.2.2
     # via azureml-core
 keras==3.3.3
     # via
@@ -191,24 +204,24 @@ kiwisolver==1.4.5
     # via matplotlib
 knack==0.11.0
     # via azureml-core
-libclang==16.0.6
+libclang==18.1.1
     # via tensorflow
-mako==1.3.1
+mako==1.3.5
     # via alembic
-markdown==3.5.2
+markdown==3.6
     # via
     #   mlflow
     #   tensorboard
 markdown-it-py==3.0.0
     # via rich
-markupsafe==2.1.4
+markupsafe==2.1.5
     # via
     #   jinja2
     #   mako
     #   werkzeug
-marshmallow==3.20.2
+marshmallow==3.21.3
     # via dataclasses-json
-matplotlib==3.8.2
+matplotlib==3.9.1
     # via mlflow
 mdurl==0.1.2
     # via markdown-it-py
@@ -216,15 +229,15 @@ ml-dtypes==0.3.2
     # via
     #   keras
     #   tensorflow
-mlflow==2.9.2
+mlflow==2.14.2
     # via -r mlflow_requirements.in
-msal==1.26.0
+msal==1.29.0
     # via
     #   azureml-core
     #   msal-extensions
-msal-extensions==1.0.0
+msal-extensions==1.2.0
     # via azureml-core
-msgpack==1.0.7
+msgpack==1.0.8
     # via influxdb
 msrest==0.7.1
     # via
@@ -241,9 +254,9 @@ namex==0.0.8
     # via keras
 ndg-httpsclient==0.5.1
     # via azureml-core
-numexpr==2.8.8
+numexpr==2.10.1
     # via gordo-core
-numpy==1.24.3
+numpy==1.26.4
     # via
     #   contourpy
     #   gordo-core
@@ -262,9 +275,16 @@ numpy==1.24.3
     #   tensorflow
     #   xarray
 oauthlib==3.2.2
+    # via requests-oauthlib
+opentelemetry-api==1.25.0
     # via
-    #   databricks-cli
-    #   requests-oauthlib
+    #   mlflow
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-sdk==1.25.0
+    # via mlflow
+opentelemetry-semantic-conventions==0.46b0
+    # via opentelemetry-sdk
 opt-einsum==3.3.0
     # via tensorflow
 optree==0.11.0
@@ -273,7 +293,7 @@ packaging==21.3
     # via
     #   -r requirements.in
     #   azureml-core
-    #   docker
+    #   gunicorn
     #   knack
     #   marshmallow
     #   matplotlib
@@ -289,17 +309,17 @@ paramiko==3.4.0
     # via azureml-core
 pathspec==0.12.1
     # via azureml-core
-peewee==3.17.0
+peewee==3.17.5
     # via -r postgres_requirements.in
-pillow==10.2.0
+pillow==10.4.0
     # via matplotlib
-pkginfo==1.9.6
+pkginfo==1.11.1
     # via azureml-core
-portalocker==2.8.2
+portalocker==2.10.0
     # via msal-extensions
-prometheus-client==0.19.0
+prometheus-client==0.20.0
     # via -r requirements.in
-protobuf==4.25.2
+protobuf==4.25.3
     # via
     #   mlflow
     #   tensorboard
@@ -310,13 +330,13 @@ pyarrow==14.0.2
     # via
     #   gordo-core
     #   mlflow
-pyasn1==0.5.1
+pyasn1==0.6.0
     # via ndg-httpsclient
-pycparser==2.21
+pycparser==2.22
     # via cffi
-pydantic==1.10.14
+pydantic==1.10.17
     # via gordo-client
-pygments==2.17.2
+pygments==2.18.0
     # via
     #   knack
     #   rich
@@ -324,21 +344,20 @@ pyjwt[crypto]==2.8.0
     # via
     #   adal
     #   azureml-core
-    #   databricks-cli
     #   msal
 pynacl==1.5.0
     # via paramiko
-pyopenssl==23.3.0
+pyopenssl==24.1.0
     # via
     #   azureml-core
     #   ndg-httpsclient
-pyparsing==3.1.1
+pyparsing==3.1.2
     # via
     #   matplotlib
     #   packaging
 pysocks==1.7.1
     # via requests
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   -r requirements.in
     #   adal
@@ -346,7 +365,7 @@ python-dateutil==2.8.2
     #   influxdb
     #   matplotlib
     #   pandas
-pytz==2023.3.post1
+pytz==2024.1
     # via
     #   azureml-core
     #   influxdb
@@ -359,12 +378,11 @@ pyyaml==6.0.1
     #   mlflow
 querystring-parser==1.2.4
     # via mlflow
-requests[socks]==2.31.0
+requests[socks]==2.32.3
     # via
     #   adal
     #   azure-core
     #   azureml-core
-    #   databricks-cli
     #   docker
     #   gordo-client
     #   influxdb
@@ -373,18 +391,18 @@ requests[socks]==2.31.0
     #   msrest
     #   requests-oauthlib
     #   tensorflow
-requests-oauthlib==1.3.1
+requests-oauthlib==2.0.0
     # via msrest
 rich==13.7.1
     # via keras
 scikeras==0.13.0
     # via -r requirements.in
-scikit-learn==1.5.0
+scikit-learn==1.5.1
     # via
     #   gordo-core
     #   mlflow
     #   scikeras
-scipy==1.12.0
+scipy==1.14.0
     # via
     #   gordo-core
     #   mlflow
@@ -399,7 +417,6 @@ six==1.16.0
     # via
     #   astunparse
     #   azure-core
-    #   databricks-cli
     #   google-pasta
     #   influxdb
     #   isodate
@@ -410,32 +427,31 @@ six==1.16.0
     #   tensorflow
 smmap==5.0.1
     # via gitdb
-sqlalchemy==2.0.24
+sqlalchemy==2.0.31
     # via
     #   alembic
     #   mlflow
-sqlparse==0.4.4
+sqlparse==0.5.0
     # via mlflow
 tabulate==0.9.0
-    # via
-    #   databricks-cli
-    #   knack
+    # via knack
 tensorboard==2.16.2
     # via tensorflow
 tensorboard-data-server==0.7.2
     # via tensorboard
-tensorflow==2.16.1
+tensorflow==2.16.2
     # via -r requirements.in
-tensorflow-io-gcs-filesystem==0.37.0
+tensorflow-io-gcs-filesystem==0.37.1
     # via tensorflow
 termcolor==2.4.0
     # via tensorflow
-threadpoolctl==3.2.0
+threadpoolctl==3.5.0
     # via scikit-learn
-typing-extensions==4.5.0
+typing-extensions==4.12.2
     # via
     #   alembic
     #   azure-core
+    #   opentelemetry-sdk
     #   optree
     #   pydantic
     #   sqlalchemy
@@ -443,27 +459,25 @@ typing-extensions==4.5.0
     #   typing-inspect
 typing-inspect==0.9.0
     # via dataclasses-json
-urllib3==2.1.0
+urllib3==2.2.2
     # via
     #   azureml-core
-    #   databricks-cli
     #   docker
     #   requests
-websocket-client==1.7.0
-    # via docker
-werkzeug==3.0.1
+werkzeug==3.0.3
     # via
     #   flask
     #   tensorboard
-wheel==0.42.0
+wheel==0.43.0
     # via astunparse
-wrapt==1.14.1
+wrapt==1.16.0
     # via
+    #   deprecated
     #   gordo-client
     #   tensorflow
 xarray==2023.12.0
     # via gordo-core
-zipp==3.17.0
+zipp==3.19.2
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
