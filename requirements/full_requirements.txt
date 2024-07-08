@@ -150,7 +150,9 @@ grpcio==1.64.1
     #   tensorboard
     #   tensorflow
 gunicorn==22.0.0
-    # via mlflow
+    # via
+    #   -r requirements.in
+    #   mlflow
 h5py==3.11.0
     # via
     #   keras
