@@ -80,7 +80,18 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
         self.kwargs: Dict[str, Any] = kwargs
         self._history = None
 
-        KerasRegressor.__init__(self, batch_size=kwargs.get("batch_size"))
+        # This new keras wrapper expects most of these kwargs to be set to the model attributes and uses them for
+        # defaults in some places, but always gives precedence to kwargs passed to respective fit, predict and compile
+        # methods, so this is just to make it happy again
+        _expected_kwargs = {
+            *KerasRegressor._fit_kwargs,
+            *KerasRegressor._predict_kwargs,
+            *KerasRegressor._compile_kwargs,
+        }
+        KerasRegressor.__init__(
+            self,
+            **{key: value for key, value in kwargs.items() if key in _expected_kwargs},
+        )
 
     @staticmethod
     def parse_module_path(module_path) -> Tuple[Optional[str], str]:
@@ -302,9 +313,12 @@ class KerasBaseEstimator(KerasRegressor, GordoBase):
             Parameters used in this estimator
         """
         params = super().get_params(**params)
-        params.pop("model", None)
         params.update({"kind": self.kind})
         params.update(self.kwargs)
+        if self.kwargs.get("callbacks") is not None and any(
+            isinstance(callback, dict) for callback in self.kwargs["callbacks"]
+        ):
+            params["callbacks"] = serializer.build_callbacks(self.kwargs["callbacks"])
         return params
 
     def _prepare_model(self):
@@ -405,12 +419,9 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     ...       layers:
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 4
-    ...             input_shape:
-    ...               - 4
+    ...             input_shape: [4]
     ...         - tensorflow.keras.layers.Dense:
     ...             units: 1
-    ...             input_shape:
-    ...               - 1
     ... '''
     >>> config = yaml.safe_load(config_str)
     >>> model = KerasRawModelRegressor(kind=config)
@@ -420,8 +431,7 @@ class KerasRawModelRegressor(KerasAutoEncoder):
     KerasRawModelRegressor(kind: {'compile': {'loss': 'mse', 'optimizer': 'adam'},
      'spec': {'tensorflow.keras.models.Sequential': {'layers': [{'tensorflow.keras.layers.Dense': {'input_shape': [4],
                                                                                                    'units': 4}},
-                                                                {'tensorflow.keras.layers.Dense': {'input_shape': [1],
-                                                                                                   'units': 1}}]}}})
+                                                                {'tensorflow.keras.layers.Dense': {'units': 1}}]}}})
     >>> out = model.predict(X)
     """
 

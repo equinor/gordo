@@ -18,8 +18,7 @@ RUN rm -rf /code/dist \
 # Extract a few big dependencies which docker will cache even when other dependencies change
 RUN cat /code/requirements/full_requirements.txt | grep tensorflow== > /code/prereq.txt \
     && cat /code/requirements/full_requirements.txt | grep pyarrow== >> /code/prereq.txt \
-    && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt \
-    && cat /code/requirements/full_requirements.txt | grep catboost== >> /code/prereq.txt
+    && cat /code/requirements/full_requirements.txt | grep scipy== >> /code/prereq.txt
 
 FROM python:3.10-slim-bookworm
 
@@ -48,7 +47,7 @@ RUN pip install gordo-packed.tar.gz[full]
 
 # Install GordoDeploy dependencies
 ARG HTTPS_PROXY
-ARG KUBECTL_VERSION="v1.22.4"
+ARG KUBECTL_VERSION="v1.30.2"
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
@@ -71,11 +70,11 @@ ADD build.sh ${HOME}/build.sh
 RUN cp ${HOME}/build.sh /usr/bin/build \
     && chmod a+x /usr/bin/build
 
-# Run things from gordo's home to have write access when needed (e.g. Catboost tmp files)
+# Run things from gordo's home to have write access when needed
 WORKDIR ${HOME}
 
 #download & install argo
-ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.4.7\"}]"
+ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.5.8\"}]"
 COPY scripts/download_argo.py ./download_argo.py
 RUN python3 ./download_argo.py -o /usr/local/bin
 

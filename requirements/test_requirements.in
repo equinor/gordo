@@ -1,6 +1,6 @@
 -c full_requirements.txt
 docker~=7.1.0
-pytest~=7.2
+pytest~=8.2
 pytest-xdist~=3.2
 pytest-mock~=3.6
 pytest-mypy~=0.10

@@ -5,6 +5,8 @@ import copy
 import typing  # noqa
 
 from typing import Union, Dict, Any, Iterable
+
+from keras.src.callbacks import Callback
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.base import BaseEstimator
 from tensorflow.keras import Sequential
@@ -174,9 +176,9 @@ def _build_step(
         import_str = list(step.keys())[0]
 
         try:
-            StepClass: Union[None, FeatureUnion, Pipeline, BaseEstimator] = (
-                import_location(import_str)
-            )
+            StepClass: Union[
+                None, FeatureUnion, Pipeline, BaseEstimator
+            ] = import_location(import_str)
         except (ImportError, ValueError):
             StepClass = None
 
@@ -246,28 +248,6 @@ def _build_step(
         raise ValueError(
             f"Expected step to be either a string or a dict," f"found: {type(step)}"
         )
-
-
-def _build_callbacks(definitions: list):
-    """
-    Parameters
-    ----------
-    definitions
-        List of callbacks definitions
-
-    Examples
-    --------
-    >>> callbacks=_build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
-    >>> type(callbacks[0])
-    <class 'keras.src.callbacks.early_stopping.EarlyStopping'>
-
-    Returns
-    -------
-    """
-    callbacks = []
-    for callback in definitions:
-        callbacks.append(_build_step(callback))
-    return callbacks
 
 
 def _load_param_classes(params: dict):
@@ -350,7 +330,7 @@ def _load_param_classes(params: dict):
                     kwargs = _load_param_classes(sub_params)
                     params[key] = create_instance(Model, **kwargs)  # type: ignore
         elif key == "callbacks" and isinstance(value, list):
-            params[key] = _build_callbacks(value)
+            params[key] = build_callbacks(value)
     return params
 
 
@@ -367,3 +347,27 @@ def load_params_from_definition(definition: dict) -> dict:
             "Expected definition to be a dict," f"found: {type(definition)}"
         )
     return _load_param_classes(definition)
+
+
+def build_callbacks(definitions: list):
+    """
+    Parameters
+    ----------
+    definitions
+        List of callbacks definitions
+
+    Examples
+    --------
+    >>> callbacks=build_callbacks([{'tensorflow.keras.callbacks.EarlyStopping': {'monitor': 'val_loss,', 'patience': 10}}])
+    >>> type(callbacks[0])
+    <class 'keras.src.callbacks.early_stopping.EarlyStopping'>
+
+    Returns
+    -------
+    """
+    callbacks = []
+    for callback in definitions:
+        callbacks.append(
+            callback if isinstance(callback, Callback) else _build_step(callback)
+        )
+    return callbacks

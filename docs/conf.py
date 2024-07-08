@@ -135,8 +135,6 @@ autodoc_typehints = "signature"
 
 autodoc_typehints_description_target = "documented"
 
-autodoc_mock_imports = ["tensorflow"]
-
 # Document both class doc (default) and documentation in __init__
 autoclass_content = "both"
 

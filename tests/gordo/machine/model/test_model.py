@@ -11,7 +11,8 @@ import xarray as xr
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
-from scikeras.wrappers import KerasRegressor as BaseWrapper
+
+from scikeras.wrappers import KerasRegressor
 from tensorflow.keras.callbacks import EarlyStopping
 
 from tests.utils import get_model
@@ -104,7 +105,7 @@ def test_keras_type_config(model, kind):
     # Ensure we can poke the model the same
     model_out = get_model(config)
     assert isinstance(model_out, GordoBase)
-    assert isinstance(model_out, BaseWrapper)
+    assert isinstance(model_out, KerasRegressor)
     assert isinstance(model_out, pydoc.locate(f"gordo.machine.model.models.{model}"))
 
 
@@ -356,6 +357,8 @@ def test_keras_autoencoder_fits_callbacks():
     assert isinstance(first_callback, EarlyStopping)
     assert first_callback.monitor == "val_loss"
     assert first_callback.patience == 10
+    X, y = np.random.rand(10, 10), np.random.rand(10, 10)
+    model.fit(X, y)
 
 
 def test_parse_module_path():
