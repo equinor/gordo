@@ -176,9 +176,9 @@ def _build_step(
         import_str = list(step.keys())[0]
 
         try:
-            StepClass: Union[
-                None, FeatureUnion, Pipeline, BaseEstimator
-            ] = import_location(import_str)
+            StepClass: Union[None, FeatureUnion, Pipeline, BaseEstimator] = (
+                import_location(import_str)
+            )
         except (ImportError, ValueError):
             StepClass = None
 
