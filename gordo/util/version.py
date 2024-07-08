@@ -8,7 +8,8 @@ from abc import ABCMeta, abstractmethod
 
 class Version(metaclass=ABCMeta):
     @abstractmethod
-    def get_version(self): ...
+    def get_version(self):
+        ...
 
 
 class Special(Enum):

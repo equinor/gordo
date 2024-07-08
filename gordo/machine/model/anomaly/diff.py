@@ -95,13 +95,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
         if hasattr(self, "aggregate_threshold_"):
             metadata["aggregate-threshold"] = self.aggregate_threshold_
         if hasattr(self, "feature_thresholds_per_fold_"):
-            metadata["feature-thresholds-per-fold"] = (
-                self.feature_thresholds_per_fold_.to_dict()
-            )
+            metadata[
+                "feature-thresholds-per-fold"
+            ] = self.feature_thresholds_per_fold_.to_dict()
         if hasattr(self, "aggregate_thresholds_per_fold_"):
-            metadata["aggregate-thresholds-per-fold"] = (
-                self.aggregate_thresholds_per_fold_
-            )
+            metadata[
+                "aggregate-thresholds-per-fold"
+            ] = self.aggregate_thresholds_per_fold_
         # Window threshold metadata
         if hasattr(self, "window"):
             metadata["window"] = self.window
@@ -111,9 +111,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             hasattr(self, "smooth_feature_thresholds_")
             and self.smooth_aggregate_threshold_ is not None
         ):
-            metadata["smooth-feature-thresholds"] = (
-                self.smooth_feature_thresholds_.tolist()
-            )
+            metadata[
+                "smooth-feature-thresholds"
+            ] = self.smooth_feature_thresholds_.tolist()
         if (
             hasattr(self, "smooth_aggregate_threshold_")
             and self.smooth_aggregate_threshold_ is not None
@@ -121,13 +121,13 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
             metadata["smooth-aggregate-threshold"] = self.smooth_aggregate_threshold_
 
         if hasattr(self, "smooth_feature_thresholds_per_fold_"):
-            metadata["smooth-feature-thresholds-per-fold"] = (
-                self.smooth_feature_thresholds_per_fold_.to_dict()
-            )
+            metadata[
+                "smooth-feature-thresholds-per-fold"
+            ] = self.smooth_feature_thresholds_per_fold_.to_dict()
         if hasattr(self, "smooth_aggregate_thresholds_per_fold_"):
-            metadata["smooth-aggregate-thresholds-per-fold"] = (
-                self.smooth_aggregate_thresholds_per_fold_
-            )
+            metadata[
+                "smooth-aggregate-thresholds-per-fold"
+            ] = self.smooth_aggregate_thresholds_per_fold_
 
         if isinstance(self.base_estimator, GordoBase):
             metadata.update(self.base_estimator.get_metadata())
@@ -241,9 +241,9 @@ class DiffBasedAnomalyDetector(AnomalyDetectorBase):
                 smooth_aggregate_threshold_fold = (
                     scaled_mse.rolling(self.window).min().max()
                 )
-                self.smooth_aggregate_thresholds_per_fold_[f"fold-{i}"] = (
-                    smooth_aggregate_threshold_fold
-                )
+                self.smooth_aggregate_thresholds_per_fold_[
+                    f"fold-{i}"
+                ] = smooth_aggregate_threshold_fold
 
                 smooth_tag_thresholds_fold = mae.rolling(self.window).min().max()
                 smooth_tag_thresholds_fold.name = f"fold-{i}"
