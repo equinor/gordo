@@ -1,2 +1,2 @@
 mlflow~=2.14
-azureml-core~=1.49
+azureml-core~=1.56.0

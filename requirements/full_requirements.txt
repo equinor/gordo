@@ -145,8 +145,6 @@ graphql-core==3.2.3
     #   graphql-relay
 graphql-relay==3.2.0
     # via graphene
-greenlet==3.0.3
-    # via sqlalchemy
 grpcio==1.64.1
     # via
     #   tensorboard
@@ -289,7 +287,7 @@ opt-einsum==3.3.0
     # via tensorflow
 optree==0.11.0
     # via keras
-packaging==21.3
+packaging==24.1
     # via
     #   -r requirements.in
     #   azureml-core
@@ -352,9 +350,7 @@ pyopenssl==24.1.0
     #   azureml-core
     #   ndg-httpsclient
 pyparsing==3.1.2
-    # via
-    #   matplotlib
-    #   packaging
+    # via matplotlib
 pysocks==1.7.1
     # via requests
 python-dateutil==2.9.0.post0

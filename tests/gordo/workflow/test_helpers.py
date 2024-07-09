@@ -3,6 +3,7 @@ from subprocess import CompletedProcess
 import pytest
 from mock import patch
 from packaging import version
+from packaging.version import InvalidVersion
 
 from gordo.workflow.workflow_generator.helpers import (
     determine_argo_version,
@@ -17,7 +18,11 @@ def test_parse_argo_version():
     parsed_version = parse_argo_version("2.12.11")
     assert type(parsed_version) is version.Version
     assert str(parsed_version) == "2.12.11"
-    assert parse_argo_version("wrong_version") is None
+
+
+def test_parse_argo_version_error():
+    with pytest.raises(InvalidVersion):
+        parse_argo_version("wrong_version")
 
 
 def create_completed_process(return_code, stdout):

@@ -1,15 +1,14 @@
 dictdiffer~=0.8
 dataclasses-json~=0.3
-gunicorn~=22.0
 jinja2~=3.1
 python-dateutil~=2.8
 tensorflow~=2.16.0
 scikeras~=0.13.0
+gunicorn~=22.0
 # There's a bug in keras 3.4.0 with loading models (https://github.com/keras-team/keras/issues/19921)
 keras<3.4.0
 Flask>=2.2.5,<3.0.0
 simplejson~=3.17
 prometheus_client~=0.7
-# Due to azureml-core 1.49.0 depends on packaging<22.0 
-packaging>=21.0,<22.0
+packaging>=24.0
 gordo-client~=6.2

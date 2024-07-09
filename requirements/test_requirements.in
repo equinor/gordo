@@ -1,6 +1,6 @@
 -c full_requirements.txt
-docker>=4.0,<7.0
-pytest~=7.2
+docker~=7.1.0
+pytest~=8.2
 pytest-xdist~=3.2
 pytest-mock~=3.6
 pytest-mypy~=0.10
@@ -9,10 +9,9 @@ pytest-cov~=4.0
 pytest-benchmark~=4.0
 pytest-flakes~=4.0
 mock~=5.0
-responses~=0.23
-# Due to packaging>22.0 in black 23.0, azureml-core~=1.49 requires packaging<22.0
-black>=22.0,<23.0
-notebook~=6.4
+responses~=0.25.3
+black~=24.4.2
+notebook~=7.2.1
 nbconvert~=7.4
 types-simplejson
 types-python-dateutil

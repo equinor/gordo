@@ -119,11 +119,11 @@ class NormalizedConfig:
         if gordo_version is None:
             gordo_version = __version__
         default_globals = self.get_default_globals(gordo_version)
-        default_globals["runtime"]["influx"][  # type: ignore
+        default_globals["runtime"]["influx"][
             "resources"
         ] = _calculate_influx_resources(  # type: ignore
             len(config["machines"])
-        )
+        )  # type: ignore
 
         passed_globals = load_globals_config(
             config.get("globals", dict()), join_json_paths("globals", json_path)
