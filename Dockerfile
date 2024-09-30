@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Fix CVE-2024-6345
+RUN pip install setuptools==70.0.0
+
 WORKDIR /code
 RUN rm -rf /code/dist \
     && python setup.py sdist \
@@ -33,6 +36,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     jq \
     && rm -rf /var/lib/apt/lists/*
+
+# Fix CVE-2024-6345
+RUN pip install setuptools==70.0.0
 
 # Install requirements separately for improved docker caching
 COPY --from=builder /code/prereq.txt .
