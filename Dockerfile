@@ -53,7 +53,7 @@ RUN pip install gordo-packed.tar.gz[full]
 
 # Install GordoDeploy dependencies
 ARG HTTPS_PROXY
-ARG KUBECTL_VERSION="v1.30.2"
+ARG KUBECTL_VERSION="v1.31.1"
 
 #donwload & install kubectl
 RUN curl -sSL -o /usr/local/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl &&\
@@ -80,7 +80,7 @@ RUN cp ${HOME}/build.sh /usr/bin/build \
 WORKDIR ${HOME}
 
 #download & install argo
-ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.5.8\"}]"
+ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.5.11\"}]"
 COPY scripts/download_argo.py ./download_argo.py
 RUN python3 ./download_argo.py -o /usr/local/bin
 
