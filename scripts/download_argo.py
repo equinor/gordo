@@ -8,7 +8,6 @@ import json
 import stat
 
 from subprocess import Popen, PIPE
-from packaging import version
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, IO, cast
 
@@ -73,12 +72,12 @@ def make_file_executable(file_path: str):
 
 def download_gz_binary(url: str, output_file: str, timeout: int = None):
     with open(output_file, "wb") as f:
-        p1 = Popen(["curl", "-sL", url], stdout=PIPE)
+        p1 = Popen(["curl", "-fsL", url], stdout=PIPE)
         p2 = Popen(["gzip", "-d"], stdin=p1.stdout, stdout=f)
         cast(IO[bytes], p1.stdout).close()
         p2.communicate(timeout=timeout)
         if p2.returncode != 0:
-            raise RuntimeError("Failed to download %s" % url)
+            raise IOError("Failed to download %s" % url)
 
 
 def symlink(src: str, dst: str):
@@ -136,6 +135,7 @@ def main():
         "-t",
         "--process-timeout",
         default=PROCESS_TIMEOUT,
+        type=int,
         help="Subprocesses timeout in seconds. Default: %d" % PROCESS_TIMEOUT,
     )
     args = parser.parse_args()
