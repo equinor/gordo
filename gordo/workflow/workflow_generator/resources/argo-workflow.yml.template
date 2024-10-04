@@ -28,7 +28,7 @@ metadata:
   {% endif %}
 spec:{% if argo_version.major == 2 %}
   ttlSecondsAfterFinished: 115200 # 32 hours{% else %}
-  TTLStrategy:
+  ttlStrategy:
     secondsAfterCompletion: 115200 # 32 hours
 {% endif %}
   entrypoint: do-all
