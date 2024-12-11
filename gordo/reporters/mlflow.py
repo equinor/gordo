@@ -34,9 +34,11 @@ logger = logging.getLogger(__name__)
 class MlflowLoggingError(ReporterException):
     pass
 
+
 class LogBatchKwargs(TypedDict):
     metrics: Sequence[Metric]
     params: Sequence[Param]
+
 
 def _validate_dict(d: dict, required_keys: List[str]):
     """
