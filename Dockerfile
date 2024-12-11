@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix CVE-2024-6345
-RUN pip install setuptools==70.0.0
+RUN pip install setuptools~=75.0
 
 WORKDIR /code
 RUN rm -rf /code/dist \
@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Fix CVE-2024-6345
-RUN pip install setuptools==70.0.0
+RUN pip install setuptools~=75.0
 
 # Install requirements separately for improved docker caching
 COPY --from=builder /code/prereq.txt .
@@ -80,7 +80,7 @@ RUN cp ${HOME}/build.sh /usr/bin/build \
 WORKDIR ${HOME}
 
 #download & install argo
-ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.5.11\"}]"
+ENV ARGO_VERSIONS="[{\"number\":3,\"version\":\"3.6.2\"}]"
 COPY scripts/download_argo.py ./download_argo.py
 RUN python3 ./download_argo.py -o /usr/local/bin
 
