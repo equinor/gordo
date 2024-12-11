@@ -405,8 +405,9 @@ rsa==4.9
     # via google-auth
 scikeras==0.13.0
     # via -r requirements.in
-scikit-learn==1.6.0
+scikit-learn==1.5.2
     # via
+    #   -r requirements.in
     #   gordo-core
     #   mlflow
     #   scikeras
