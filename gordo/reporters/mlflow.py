@@ -4,7 +4,8 @@ import json
 import logging
 import os
 import tempfile
-from typing import Dict, List, Union, Tuple, Optional, Type, cast
+from typing import Dict, List, Union, Tuple, Optional, Type, TypedDict, cast
+from collections.abc import Sequence
 from uuid import uuid4
 
 from azureml.core import Workspace
@@ -33,6 +34,9 @@ logger = logging.getLogger(__name__)
 class MlflowLoggingError(ReporterException):
     pass
 
+class LogBatchKwargs(TypedDict):
+    metrics: Sequence[Metric]
+    params: Sequence[Param]
 
 def _validate_dict(d: dict, required_keys: List[str]):
     """
@@ -88,7 +92,7 @@ def get_mlflow_client(
     """
     logger.info("Creating MLflow tracking client.")
 
-    tracking_uri = None
+    tracking_uri: str = ""
 
     # Get AzureML tracking_uri if using Azure as backend
     if workspace_kwargs:
@@ -278,7 +282,7 @@ def batch_log_items(
     params: List[Param],
     n_max_metrics: int = 200,
     n_max_params: int = 100,
-) -> List[Dict[str, Union[Metric, Param]]]:
+) -> List[LogBatchKwargs]:
     """
     Split metrics, params and tags to batches that satisfy limits imposed by MLFlow and AzureML
 
@@ -320,7 +324,7 @@ def batch_log_items(
 
     i = 0
     j = 0
-    log_batches = list()
+    log_batches: List[LogBatchKwargs] = list()
     for _ in range(n_batches):
         log_batches.append(
             {
