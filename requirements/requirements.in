@@ -4,6 +4,10 @@ jinja2~=3.1
 python-dateutil~=2.8
 tensorflow~=2.16.0
 scikeras~=0.13.0
+# Due incopatibility with scikeras KerasAutoEncoder
+# Exception: AttributeError: 'super' object has no attribute '__sklearn_tags__'
+# https://scikit-learn.org/stable/auto_examples/release_highlights/plot_release_highlights_1_6_0.html#improvements-to-the-developer-api-for-third-party-libraries
+scikit-learn<1.6.0
 gunicorn~=22.0
 # There's a bug in keras 3.4.0 with loading models (https://github.com/keras-team/keras/issues/19921)
 keras<3.4.0
