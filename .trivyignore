@@ -1,2 +1,4 @@
 # There is no fix for this CVE in https://github.com/argoproj/argo-workflows CLI
 CVE-2024-34156
+# For argo-workflows version 3.6.2
+CVE-2024-45337
