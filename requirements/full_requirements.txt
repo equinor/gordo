@@ -154,7 +154,7 @@ grpcio==1.68.1
     # via
     #   tensorboard
     #   tensorflow
-gunicorn==22.0.0
+gunicorn==23.0.0
     # via
     #   -r requirements.in
     #   mlflow
