@@ -20,6 +20,14 @@
 </div>
 
 ---
+# Archival Notice
+
+**Date**: 26.03.2025
+
+**Reason**: This repository has been archived due to changes in the project's architecture. The current implementation is no longer maintained and developed.
+
+
+
 
 # Table of Contents
 * [About](#About)
